@@ -49,7 +49,7 @@ try {
   const errors = []
 
   if (!validateReleaseVersion(version)) {
-    errors.push(`Invalid Pichu release version: ${version}. ${releaseVersionPolicyMessage()}`)
+    errors.push(`Invalid Owls release version: ${version}. ${releaseVersionPolicyMessage()}`)
   }
 
   if (appPackage.version !== version) {

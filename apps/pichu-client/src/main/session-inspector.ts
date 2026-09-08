@@ -79,7 +79,7 @@ async function resolveAllowedSessionPath(value: string): Promise<string> {
     return archivedFallback
   }
 
-  throw new Error('Only Codex sessions and Pichu model trajectories can be read')
+  throw new Error('Only Codex sessions and Owls model trajectories can be read')
 }
 
 function sessionIdFromCodexPath(filePath: string): string {
@@ -293,7 +293,7 @@ function isRuntimeContextMessage(message: PichuMessage): boolean {
   return (
     message.role === 'user' &&
     message.visibility === 'model-only' &&
-    message.content.includes('The following context is provided by Pichu')
+    message.content.includes('The following context is provided by Owls')
   )
 }
 
@@ -322,7 +322,7 @@ function pichuRowsToJsonl(
         id: session.sessionId,
         timestamp: session.createdAt,
         cwd: session.cwd,
-        originator: 'Pichu',
+        originator: 'Owls',
         source: 'pichu',
         model_provider: modelMessage?.modelProvider || session.agentId,
         ...(modelMessage?.modelId ? { model: modelMessage.modelId } : {}),
@@ -470,16 +470,16 @@ function readPichuSessionText(sessionId: string): SessionText {
   const totalStart = performance.now()
   const trimmedSessionId = sessionId.trim()
   if (!trimmedSessionId) {
-    throw new Error('Pichu session id is required')
+    throw new Error('Owls session id is required')
   }
   const normalizedSessionId =
     trimmedSessionId === latestPichuSessionToken ? latestPichuSessionId() : trimmedSessionId
   if (!normalizedSessionId) {
-    throw new Error('No Pichu sessions found')
+    throw new Error('No Owls sessions found')
   }
   const session = getSessionById(normalizedSessionId)
   if (!session) {
-    throw new Error(`Pichu session not found: ${normalizedSessionId}`)
+    throw new Error(`Owls session not found: ${normalizedSessionId}`)
   }
   const messagesStart = performance.now()
   const messages = getSessionMessages(normalizedSessionId)

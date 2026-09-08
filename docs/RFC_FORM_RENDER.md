@@ -2,11 +2,11 @@
 
 ## Status
 
-Draft technical design for structured user-input rendering in Pichu Client.
+Draft technical design for structured user-input rendering in Owls Client.
 
 ## Abstract
 
-Form Render 是 Pichu Client 中面向人工补充信息的交互式 UI 协议。它和 `json-render` 分工明确：
+Form Render 是 Owls Client 中面向人工补充信息的交互式 UI 协议。它和 `json-render` 分工明确：
 
 - `json-render`：只读展示，负责把结构化 JSON state 渲染成安全 UI。
 - `form-render`：可编辑输入，负责渲染字段、校验用户输入，并在 submit 时产出结构化 JSON。

@@ -54,7 +54,7 @@ export function composePromptWithContexts(
 ): string {
   const userRequest = prompt.trim()
   const requestBlock =
-    userRequest && selections.length > 0 ? `## My request for Pichu:\n${userRequest}` : userRequest
+    userRequest && selections.length > 0 ? `## My request for Owls:\n${userRequest}` : userRequest
   return [
     selections.length > 0 ? formatSelectionContext(selections) : '',
     artifacts.length > 0 ? formatArtifactContext(artifacts) : '',

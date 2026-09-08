@@ -198,7 +198,7 @@ test('macOS sandbox profile allows FSEvents for directory watchers', async (t) =
   }
 })
 
-test('directory fs.watch works under the Pichu macOS sandbox', async (t) => {
+test('directory fs.watch works under the Owls macOS sandbox', async (t) => {
   if (process.platform !== 'darwin') {
     t.skip('macOS seatbelt sandbox is only available on macOS')
     return
@@ -368,7 +368,7 @@ test('managed exec uses pipes by default', async () => {
 
 test('managed exec can allocate a PTY', async (t) => {
   if (process.platform === 'win32') {
-    t.skip('Pichu does not support Windows PTY sessions')
+    t.skip('Owls does not support Windows PTY sessions')
     return
   }
 

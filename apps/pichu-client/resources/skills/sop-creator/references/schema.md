@@ -1,6 +1,6 @@
 # SOP Graph Schema
 
-This reference defines the `pichu.sop_graph.v1` JSON shape for connecting multiple Pichu agent steps into one DAG.
+This reference defines the `pichu.sop_graph.v1` JSON shape for connecting multiple Owls agent steps into one DAG.
 
 ## Root Object
 

@@ -61,7 +61,7 @@ for (const command of [
 
 if (installApp) {
   const appPath = findLatestBuiltApp(resolve(process.cwd(), 'dist'))
-  const targetPath = '/Applications/Pichu Local.app'
+  const targetPath = '/Applications/Owls Local.app'
 
   if (!appPath) {
     console.error('Could not find a built macOS .app under dist/.')

@@ -82,7 +82,7 @@ export function registerBackgroundTerminalLocalRpcCommands(
 ): void {
   registry.register<ListBackgroundTerminalsRequest, ListBackgroundTerminalsResult>({
     method: 'backgroundTerminals.list',
-    description: 'List running background terminals Pichu started, optionally scoped to a session.',
+    description: 'List running background terminals Owls started, optionally scoped to a session.',
     parseParams: parseListParams,
     run: (params, context) => {
       requireAuthenticatedLocalRpc(context)
@@ -92,7 +92,7 @@ export function registerBackgroundTerminalLocalRpcCommands(
 
   registry.register<TerminateBackgroundTerminalRequest, TerminateBackgroundTerminalResult>({
     method: 'backgroundTerminals.terminate',
-    description: 'Terminate one background terminal by Pichu registry id.',
+    description: 'Terminate one background terminal by Owls registry id.',
     parseParams: parseTerminateParams,
     run: (params, context) => {
       requireAuthenticatedLocalRpc(context)
@@ -103,7 +103,7 @@ export function registerBackgroundTerminalLocalRpcCommands(
   registry.register<CleanBackgroundTerminalsRequest, CleanBackgroundTerminalsResult>({
     method: 'backgroundTerminals.clean',
     description:
-      'Terminate all running background terminals Pichu started, optionally scoped to a session.',
+      'Terminate all running background terminals Owls started, optionally scoped to a session.',
     parseParams: parseCleanParams,
     run: (params, context) => {
       requireAuthenticatedLocalRpc(context)

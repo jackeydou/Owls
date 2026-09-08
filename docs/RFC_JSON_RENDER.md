@@ -2,11 +2,11 @@
 
 ## Status
 
-Draft technical design for extracting json-render into a shared Pichu Client UI rendering protocol.
+Draft technical design for extracting json-render into a shared Owls Client UI rendering protocol.
 
 ## Abstract
 
-Json Render 是 Pichu Client 中面向结构化 JSON 数据的通用只读 UI 渲染方案。它把“展示结构”和“展示数据”拆成两个部分：`spec` 描述 UI 树，`state_source` 提供运行时状态。调用方只需要产出一个稳定的 JSON 文件或 JSON object，renderer 就可以在 approval 上下文、automation runtime 结果页、Workbench cell 和未来插件页面中复用同一套展示能力。
+Json Render 是 Owls Client 中面向结构化 JSON 数据的通用只读 UI 渲染方案。它把“展示结构”和“展示数据”拆成两个部分：`spec` 描述 UI 树，`state_source` 提供运行时状态。调用方只需要产出一个稳定的 JSON 文件或 JSON object，renderer 就可以在 approval 上下文、automation runtime 结果页、Workbench cell 和未来插件页面中复用同一套展示能力。
 
 核心协议：
 
@@ -45,7 +45,7 @@ Json Render 是 Pichu Client 中面向结构化 JSON 数据的通用只读 UI �
 
 ## Motivation
 
-当前 Pichu Client 已经在多个地方使用 json-render：
+当前 Owls Client 已经在多个地方使用 json-render：
 
 - Tool approval hook 通过 `approvalUi` 渲染结构化审批内容。
 - automation runtime result UI 通过 `simple.json` 和 `detailed.json` 渲染结果卡片和详情页。
@@ -55,7 +55,7 @@ Json Render 是 Pichu Client 中面向结构化 JSON 数据的通用只读 UI �
 
 ## Goals
 
-- 定义一个独立的 json-render 文件 schema，作为 Pichu 内部通用 UI 渲染契约。
+- 定义一个独立的 json-render 文件 schema，作为 Owls 内部通用 UI 渲染契约。
 - 支持 `spec` 和 `state_source` 分离，允许同一个 spec 渲染不同状态。
 - 支持 `state_source` 既可以是内联 JSON，也可以是本地 JSON 文件路径。
 - 明确本地路径解析、安全边界、失败策略和 renderer 职责。
@@ -68,7 +68,7 @@ Json Render 是 Pichu Client 中面向结构化 JSON 数据的通用只读 UI �
 - 不在本协议内定义业务审批、表单提交、automation runtime 调度或插件权限逻辑。
 - 不产出用户输入数据；需要表单输入和 submit 时使用 `form-render`，详见 `docs/RFC_FORM_RENDER.md`。
 - 不把 `state_source` 设计成远程 URL、数据库查询、shell command 或动态表达式。
-- 不承诺完全兼容所有 `@json-render/react` 组件；Pichu 只开放受控子集。
+- 不承诺完全兼容所有 `@json-render/react` 组件；Owls 只开放受控子集。
 
 ## Relationship To Form Render
 
@@ -185,11 +185,11 @@ type JsonRenderSpec = {
 }
 ```
 
-Pichu renderer 应继续执行受控校验：
+Owls renderer 应继续执行受控校验：
 
 - `root` 必须指向存在的 element。
 - element 数量和 children 数量必须有限。
-- component type 必须在 Pichu allowlist 内。
+- component type 必须在 Owls allowlist 内。
 - 禁止 `className`、`style`、`asChild`、事件 handler、`on`、`watch` 和 `repeat`。
 - 组件 props 必须通过 registry schema 校验。
 

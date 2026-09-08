@@ -3,11 +3,11 @@
 ## Status
 
 Draft technical design for adding a local Unix domain socket control plane to
-Pichu Client.
+Owls Client.
 
 ## Abstract
 
-Pichu Client can expose a local, same-machine control plane from the Electron
+Owls Client can expose a local, same-machine control plane from the Electron
 main process by listening on a Unix domain socket at startup. External local
 processes, such as CLI tools, helper daemons, automation scripts, or second
 app instances, can call allowlisted App capabilities through JSON-RPC 2.0 over
@@ -21,7 +21,7 @@ callers outside the running App process.
 
 ## Motivation
 
-External local processes currently have only a few coarse ways to trigger Pichu
+External local processes currently have only a few coarse ways to trigger Owls
 Client behavior:
 
 - Deep links.
@@ -31,7 +31,7 @@ Client behavior:
   inside a compatible process and package context.
 
 These paths are not a complete local automation interface. A Unix socket
-control plane gives Pichu a stable local integration point without opening a TCP
+control plane gives Owls a stable local integration point without opening a TCP
 port or exposing generic internal APIs.
 
 Useful callers include:
@@ -520,7 +520,7 @@ Returns protocol and method metadata:
 ```json
 {
   "protocolVersion": 1,
-  "appName": "Pichu",
+  "appName": "Owls",
   "methods": [
     "rpc.discover",
     "rpc.diagnostics",

@@ -1,11 +1,11 @@
 ---
 name: plugin-creator
-description: Create Agent Plugins 1.0 packages for Pichu with fixed skills, optional MCP servers, Pichu hooks, assets, scripts, and bundled marketplace metadata.
+description: Create Agent Plugins 1.0 packages for Owls with fixed skills, optional MCP servers, Owls hooks, assets, scripts, and bundled marketplace metadata.
 ---
 
 # Plugin Creator
 
-Create Pichu plugins as Agent Plugins 1.0 packages. Do not create Pi CLI extensions or legacy `.open-plugin` manifests.
+Create Owls plugins as Agent Plugins 1.0 packages. Do not create Pi CLI extensions or legacy `.open-plugin` manifests.
 
 ## Quick start
 
@@ -28,14 +28,14 @@ my-plugin/
   skills/                         # optional, discovered automatically
   mcp.json                        # optional, discovered automatically
   com.pichu.app/hooks/
-    hooks.json                    # optional Pichu extension
-  scripts/                        # optional Pichu extension assets
+    hooks.json                    # optional Owls extension
+  scripts/                        # optional Owls extension assets
   assets/                         # optional presentation assets
 ```
 
-`plugin.json` must declare the Agent Plugins 1.0 schema. Portable identity fields stay at the root. Pichu-only metadata belongs under `extensions.com.pichu.app`. Do not add `skills`, `mcpServers`, or `hooks` path fields: Pichu uses the fixed locations above.
+`plugin.json` must declare the Agent Plugins 1.0 schema. Portable identity fields stay at the root. Owls-only metadata belongs under `extensions.com.pichu.app`. Do not add `skills`, `mcpServers`, or `hooks` path fields: Owls uses the fixed locations above.
 
-`mcp.json` must declare the Agent Plugins MCP 1.0 schema. Pichu supports `stdio` and `streamable-http`. Use `${PLUGIN_ROOT}` and `${PLUGIN_DATA}` only where the MCP schema permits them; plugin code must not override those reserved values.
+`mcp.json` must declare the Agent Plugins MCP 1.0 schema. Owls supports `stdio` and `streamable-http`. Use `${PLUGIN_ROOT}` and `${PLUGIN_DATA}` only where the MCP schema permits them; plugin code must not override those reserved values.
 
 See `references/plugin-json-spec.md` for the canonical examples.
 
@@ -55,4 +55,4 @@ Keep marketplace policy outside `plugin.json`. Preserve marketplace order and ex
 - Keep root `plugin.json` present.
 - Never generate `.open-plugin`, Pi CLI extension entrypoints, or `.mcp.json`.
 - Keep placeholders until a human or follow-up task supplies real metadata.
-- Run Pichu plugin validation after editing the scaffold.
+- Run Owls plugin validation after editing the scaffold.

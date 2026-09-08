@@ -153,7 +153,7 @@ function ensureInProcessCaptureAllowed(opts: { computerUseEnabled: boolean }): v
   ensureCaptureEnabled(opts)
   if (!isInProcessComputerUseAllowed()) {
     throw new Error(
-      'Screen capture stable builds must route macOS capture through the Pichu Computer Use helper.'
+      'Screen capture stable builds must route macOS capture through the Owls Computer Use helper.'
     )
   }
   if (process.platform === 'darwin') {
@@ -493,7 +493,7 @@ export async function captureDesktop(options: CaptureDesktopOptions): Promise<Ca
   if (!isInProcessComputerUseAllowed()) {
     ensureCaptureEnabled({ computerUseEnabled: options.computerUseEnabled })
     if (!isComputerUseHelperAvailable()) {
-      throw new Error('Pichu Computer Use helper is not available for desktop capture.')
+      throw new Error('Owls Computer Use helper is not available for desktop capture.')
     }
     const result = await sendComputerUseHelperRequest({
       method: 'captureDesktopPng',
@@ -684,7 +684,7 @@ async function captureWindowWithHelper(options: {
 }): Promise<CapturedImage> {
   ensureCaptureEnabled({ computerUseEnabled: options.computerUseEnabled })
   if (!isComputerUseHelperAvailable()) {
-    throw new Error('Pichu Computer Use helper is not available for window capture.')
+    throw new Error('Owls Computer Use helper is not available for window capture.')
   }
 
   const nativeWindows = safeListNativeWindows()

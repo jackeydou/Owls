@@ -1,7 +1,7 @@
 {
   "name": "@pichu/sites-plugin",
   "version": "1.0.10",
-  "description": "Bundled Pichu Sites plugin source package.",
+  "description": "Bundled Owls Sites plugin source package.",
   "private": true,
   "type": "module",
   "files": [

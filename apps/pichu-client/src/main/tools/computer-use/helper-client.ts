@@ -29,10 +29,10 @@ type ComputerUseHelperError = Extract<ComputerUseHelperResponse, { ok: false }>[
 
 const HELPER_TIMEOUT_MS = 10_000
 const HELPER_APP_EXECUTABLE = join(
-  'Pichu Computer Use.app',
+  'Owls Computer Use.app',
   'Contents',
   'MacOS',
-  'Pichu Computer Use'
+  'Owls Computer Use'
 )
 const HELPER_ENTRY_RELATIVE_PATH = join('out', 'main', 'tools', 'computer-use', 'helper-entry.js')
 const BUNDLED_NODE_RELATIVE_PATH = join(
@@ -60,7 +60,7 @@ function isHelperError(error: unknown): error is ComputerUseHelperError {
 
 function helperUnavailableError(): Error {
   return new Error(
-    'Computer Use requires the Pichu Computer Use helper for macOS screen and input permissions. This build does not include the helper yet.'
+    'Computer Use requires the Owls Computer Use helper for macOS screen and input permissions. This build does not include the helper yet.'
   )
 }
 

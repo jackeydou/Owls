@@ -1,6 +1,6 @@
-# Pichu Browser Use API
+# Owls Browser Use API
 
-Pichu Browser Use follows Codex's in-app Browser API shape. Select the in-app
+Owls Browser Use follows Codex's in-app Browser API shape. Select the in-app
 browser with:
 
 ```js
@@ -8,7 +8,7 @@ const browser = await agent.browsers.get("iab");
 const tab = (await browser.tabs.selected()) ?? await browser.tabs.new();
 ```
 
-The current Pichu backend exposes one session-scoped tab with id `session`.
+The current Owls backend exposes one session-scoped tab with id `session`.
 
 ## Agent
 
@@ -183,7 +183,7 @@ interface PlaywrightAPI {
 }
 ```
 
-`evaluate` is part of the Codex shape but is not exposed by Pichu yet; it throws
+`evaluate` is part of the Codex shape but is not exposed by Owls yet; it throws
 an explicit error. `frameLocator` is also not implemented yet.
 
 ## Locators

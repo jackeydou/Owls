@@ -33,9 +33,9 @@ const ACTIVE_COMPONENTS = new Set<keyof PluginComponentPaths>([
   'bin'
 ])
 const INACTIVE_COMPONENT_MESSAGES: Partial<Record<keyof PluginComponentPaths, string>> = {
-  apps: 'App connector metadata is preserved for future support, but app connectors are not started or used in this Pichu version',
+  apps: 'App connector metadata is preserved for future support, but app connectors are not started or used in this Owls version',
   agents:
-    'Agent metadata is preserved for future support, but plugin-provided agents are not started or used in this Pichu version'
+    'Agent metadata is preserved for future support, but plugin-provided agents are not started or used in this Owls version'
 }
 function isPathInside(parent: string, child: string): boolean {
   const path = relative(parent, child)
@@ -113,7 +113,7 @@ async function addComponentDiagnosticsAsync(
     if (!active) {
       diagnostics.push({
         level: 'warning',
-        message: `${key}: ${INACTIVE_COMPONENT_MESSAGES[key] ?? 'Component metadata is preserved but inactive in this Pichu version'}`,
+        message: `${key}: ${INACTIVE_COMPONENT_MESSAGES[key] ?? 'Component metadata is preserved but inactive in this Owls version'}`,
         path: componentPath
       })
     }

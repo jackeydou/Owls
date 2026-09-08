@@ -15,7 +15,7 @@ const APP_ARG_NAMES = new Set([
 ])
 const REACT_SCAN_ARG_NAME = '--react-scan'
 const PICHU_DEV_BUNDLE_ID = 'us.pichuapp.pichu.dev'
-const PICHU_DEV_APP_NAME = 'Pichu Dev'
+const PICHU_DEV_APP_NAME = 'Owls Dev'
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pichuAppIconPath = resolve(packageDirectory, 'build/icon.icns')
 

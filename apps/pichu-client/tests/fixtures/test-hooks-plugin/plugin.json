@@ -2,9 +2,9 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "test-hooks-plugin",
   "version": "0.1.0",
-  "description": "Local test plugin for validating Codex-compatible hook behavior in Pichu.",
+  "description": "Local test plugin for validating Codex-compatible hook behavior in Owls.",
   "author": {
-    "name": "Pichu"
+    "name": "Owls"
   },
   "keywords": ["hooks", "codex", "testing"],
   "extensions": {
@@ -12,7 +12,7 @@
       "interface": {
         "displayName": "Test Hooks Plugin",
         "shortDescription": "Exercise UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, and Stop hooks.",
-        "developerName": "Pichu",
+        "developerName": "Owls",
         "category": "Developer Tools",
         "capabilities": ["Hooks", "Testing"],
         "defaultPrompt": [

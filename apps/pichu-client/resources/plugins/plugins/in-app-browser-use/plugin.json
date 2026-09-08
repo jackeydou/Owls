@@ -2,9 +2,9 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "in-app-browser-use",
   "version": "0.1.1",
-  "description": "Guidance for operating Pichu's session browser.",
+  "description": "Guidance for operating Owls's session browser.",
   "author": {
-    "name": "Pichu"
+    "name": "Owls"
   },
   "keywords": ["browser", "embedded-browser", "in-app-browser", "sidebar"],
   "extensions": {
@@ -19,8 +19,8 @@
       },
       "interface": {
         "displayName": "In-App Browser Use",
-        "shortDescription": "Operate Pichu's session browser.",
-        "developerName": "Pichu",
+        "shortDescription": "Operate Owls's session browser.",
+        "developerName": "Owls",
         "category": "Browser",
         "icon": "./assets/icon.png",
         "logo": "./assets/logo.png",

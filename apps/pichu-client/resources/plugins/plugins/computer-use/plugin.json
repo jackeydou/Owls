@@ -2,9 +2,9 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "computer-use",
   "version": "0.1.0",
-  "description": "Guidance for inspecting and controlling Mac apps through Pichu Computer Use tools.",
+  "description": "Guidance for inspecting and controlling Mac apps through Owls Computer Use tools.",
   "author": {
-    "name": "Pichu"
+    "name": "Owls"
   },
   "keywords": ["computer-use", "screen-capture", "macos", "automation"],
   "extensions": {
@@ -12,7 +12,7 @@
       "interface": {
         "displayName": "Computer Use",
         "shortDescription": "Inspect and control Mac apps without bringing them to the foreground.",
-        "developerName": "Pichu",
+        "developerName": "Owls",
         "category": "Automation",
         "icon": "./assets/icon.png",
         "logo": "./assets/logo.png",

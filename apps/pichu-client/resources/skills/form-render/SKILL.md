@@ -1,11 +1,11 @@
 ---
 name: form-render
-description: Guide agents in authoring Pichu form-render schemas for structured user input, validation, initial values, and submit JSON output. Use when the user asks to collect data from a human through a dynamic form.
+description: Guide agents in authoring Owls form-render schemas for structured user input, validation, initial values, and submit JSON output. Use when the user asks to collect data from a human through a dynamic form.
 ---
 
 # Form Render
 
-Use this skill when writing Pichu form-render UI. Form-render is a controlled interactive form protocol:
+Use this skill when writing Owls form-render UI. Form-render is a controlled interactive form protocol:
 
 - `renderer` selects the renderer and must be `"form-render"`.
 - `fields` declares the supported form fields.

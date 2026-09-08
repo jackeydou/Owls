@@ -7,11 +7,11 @@ const appRoot = resolve(import.meta.dirname, '..')
 const helperEntry = join(appRoot, 'out', 'main', 'tools', 'computer-use', 'helper-entry.js')
 const macInputPackage = join(appRoot, '..', '..', 'packages', 'mac-input')
 const generatedRoot = join(appRoot, 'build', 'generated', 'helpers')
-const helperAppRoot = join(generatedRoot, 'Pichu Computer Use.app')
+const helperAppRoot = join(generatedRoot, 'Owls Computer Use.app')
 const helperContents = join(helperAppRoot, 'Contents')
 const helperMacOs = join(helperContents, 'MacOS')
 const helperResources = join(helperContents, 'Resources')
-const helperExecutable = join(helperMacOs, 'Pichu Computer Use')
+const helperExecutable = join(helperMacOs, 'Owls Computer Use')
 const helperLauncherSource = join(helperMacOs, 'pichu-computer-use-launcher.c')
 
 if (!existsSync(helperEntry)) {
@@ -37,15 +37,15 @@ writeFileSync(
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Pichu Computer Use</string>
+    <string>Owls Computer Use</string>
     <key>CFBundleExecutable</key>
-    <string>Pichu Computer Use</string>
+    <string>Owls Computer Use</string>
     <key>CFBundleIdentifier</key>
     <string>us.pichuapp.pichu.computer-use</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Pichu Computer Use</string>
+    <string>Owls Computer Use</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
   char executable_path[PATH_MAX];
   uint32_t executable_path_size = sizeof(executable_path);
   if (_NSGetExecutablePath(executable_path, &executable_path_size) != 0) {
-    fprintf(stderr, "Pichu Computer Use launcher path is too long.\\n");
+    fprintf(stderr, "Owls Computer Use launcher path is too long.\\n");
     return 127;
   }
 

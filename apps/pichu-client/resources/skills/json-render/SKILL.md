@@ -1,11 +1,11 @@
 ---
 name: json-render
-description: Guide agents in authoring Pichu read-only json-render UI specs, including data binding, supported display components, charts, tables, and safe state_source usage. Use when the user asks to create or edit a JSON-rendered display UI.
+description: Guide agents in authoring Owls read-only json-render UI specs, including data binding, supported display components, charts, tables, and safe state_source usage. Use when the user asks to create or edit a JSON-rendered display UI.
 ---
 
 # Json Render
 
-Use this skill when writing Pichu json-render display UI. Json-render is a controlled read-only UI protocol:
+Use this skill when writing Owls json-render display UI. Json-render is a controlled read-only UI protocol:
 
 - `renderer` selects the renderer and must be `"json-render"`.
 - `spec` describes the UI tree using the `@json-render/react` spec shape.

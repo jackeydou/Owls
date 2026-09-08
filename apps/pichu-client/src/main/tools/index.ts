@@ -340,7 +340,7 @@ export async function createToolsForCwd(
   )
   const sopTools = sopCreatorEnabled
     ? createSopTools(cwd).map((tool) =>
-        applyProfileRequiredApproval(tool, 'Save an SOP graph in Pichu')
+        applyProfileRequiredApproval(tool, 'Save an SOP graph in Owls')
       )
     : []
   const imageGenerationTool = createImageGenerationToolIfConfigured(cwd)

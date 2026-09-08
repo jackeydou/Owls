@@ -34,12 +34,12 @@ function removePlistKeyIfPresent(plistPath, key) {
 
 module.exports = {
   appId: 'us.pichuapp.pichu.app',
-  productName: 'Pichu',
-  copyright: 'Copyright © 2026 Pichu Team',
+  productName: 'Owls',
+  copyright: 'Copyright © 2026 Owls Team',
   publish: {
     provider: 'github',
     owner: 'jackeydou',
-    repo: 'Pichu',
+    repo: 'Owls',
     private: false,
     channel: updateChannel,
     tagNamePrefix: ''
@@ -47,7 +47,7 @@ module.exports = {
   generateUpdatesFilesForAllChannels: true,
   protocols: [
     {
-      name: 'Pichu Client Auth',
+      name: 'Owls Client Auth',
       schemes: ['pichu-client', 'pix-client']
     }
   ],
@@ -121,13 +121,13 @@ module.exports = {
       : null
   ].filter(Boolean),
   win: {
-    executableName: isDebug ? 'Pichu Debug' : 'Pichu',
+    executableName: isDebug ? 'Owls Debug' : 'Owls',
     icon: 'resources/icon.png'
   },
   nsis: {
-    artifactName: `Pichu-\${version}${debugSuffix}-setup.\${ext}`,
-    shortcutName: isDebug ? 'Pichu Debug' : 'Pichu',
-    uninstallDisplayName: isDebug ? 'Pichu Debug' : 'Pichu',
+    artifactName: `Owls-\${version}${debugSuffix}-setup.\${ext}`,
+    shortcutName: isDebug ? 'Owls Debug' : 'Owls',
+    uninstallDisplayName: isDebug ? 'Owls Debug' : 'Owls',
     createDesktopShortcut: 'always'
   },
   mac: {
@@ -149,16 +149,16 @@ module.exports = {
     notarize: !skipNotarize
   },
   dmg: {
-    artifactName: `Pichu-\${version}${debugSuffix}.\${ext}`
+    artifactName: `Owls-\${version}${debugSuffix}.\${ext}`
   },
   linux: {
     icon: 'resources/icon.png',
     target: ['AppImage', 'snap', 'deb'],
-    maintainer: 'Pichu',
+    maintainer: 'Owls',
     category: 'Utility'
   },
   appImage: {
-    artifactName: `Pichu-\${version}${debugSuffix}.\${ext}`
+    artifactName: `Owls-\${version}${debugSuffix}.\${ext}`
   },
   npmRebuild: false,
   detectUpdateChannel: false,

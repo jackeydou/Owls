@@ -1,6 +1,6 @@
 ---
 name: control-in-app-browser
-description: Operate Pichu's in-app Browser. Use to open, navigate, inspect, test, click, type, screenshot, or verify local targets, current browser state, and websites shown side by side inside Pichu.
+description: Operate Owls's in-app Browser. Use to open, navigate, inspect, test, click, type, screenshot, or verify local targets, current browser state, and websites shown side by side inside Owls.
 ---
 
 # Browser
@@ -38,7 +38,7 @@ await tab.goto("https://example.com");
 ```
 
 Prefer the Browser Use runtime for browser work. It follows Codex's in-app
-Browser API shape and talks to Pichu over local RPC while targeting the current
+Browser API shape and talks to Owls over local RPC while targeting the current
 conversation session automatically. Do not pass a session id.
 
 Use `await agent.documentation.get("<name>")` when you need information about
@@ -109,7 +109,7 @@ Do not use external MCP browser-control tools, separate browser automation
 servers, or other browser skills for this surface. References to Playwright mean
 the in-skill `tab.playwright` API after browser-client setup.
 
-The current Pichu implementation exposes one session-scoped tab:
+The current Owls implementation exposes one session-scoped tab:
 
 ```js
 const tab = (await browser.tabs.selected()) ?? await browser.tabs.new();

@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   test:
-    name: Pichu client
+    name: Owls client
     runs-on: macos-latest
     timeout-minutes: 45
 

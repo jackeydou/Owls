@@ -4,16 +4,16 @@
 
 Initial runtime implementation in progress.
 
-Pichu Browser Use exposes the session browser through a Codex-shaped runtime
-script backed by local RPC. Browser automation remains owned by the Pichu main
+Owls Browser Use exposes the session browser through a Codex-shaped runtime
+script backed by local RPC. Browser automation remains owned by the Owls main
 process, while agents interact with it through the bundled
 `control-in-app-browser` skill and `scripts/browser-client.mjs`.
 
 ## Abstract
 
-Browser Use is Pichu's session-scoped browser automation runtime. It lets agents
+Browser Use is Owls's session-scoped browser automation runtime. It lets agents
 open pages, inspect DOM state, click, fill, wait, scroll, take screenshots, and
-perform coordinate-based CUA actions against the current Pichu session browser.
+perform coordinate-based CUA actions against the current Owls session browser.
 
 The agent-facing entrypoint is the built `browser-client.mjs` script in the
 bundled `in-app-browser-use` plugin. The script installs a Codex-aligned
@@ -44,7 +44,7 @@ authority and validates requests at a narrow process boundary.
 - Use the bundled skill to teach agents when and how to load the runtime.
 - Keep Browser Use runtime availability independent from the
   `in-app-browser-use` plugin installation state.
-- Keep browser sessions scoped to Pichu session ids.
+- Keep browser sessions scoped to Owls session ids.
 - Keep renderer, preload, local RPC, and runtime boundaries narrow and typed.
 - Preserve deterministic action flow: observe, resolve, act, verify.
 
@@ -53,7 +53,7 @@ authority and validates requests at a narrow process boundary.
 - Do not create a general-purpose remote browser automation server.
 - Do not expose arbitrary Chrome DevTools Protocol execution through local RPC,
   runtime, preload, or renderer APIs.
-- Do not let the runtime read or write Pichu SQLite data, browser profile files,
+- Do not let the runtime read or write Owls SQLite data, browser profile files,
   or Electron `WebContents` directly.
 - Do not add runtime configuration through environment variables.
 - Do not require follow-up Browser Use commands to keep the Browser panel open
@@ -95,7 +95,7 @@ UI             -> IPC handler       -> local RPC handler
 
 ## Product Model
 
-Each Pichu session can own one browser runtime:
+Each Owls session can own one browser runtime:
 
 ```text
 Session A
@@ -133,7 +133,7 @@ type BrowserSessionId = string
 ```
 
 Local RPC methods accept `sessionId`. Agent-launched runtime calls receive the
-current Pichu session id through Pichu's existing process execution context
+current Owls session id through Owls's existing process execution context
 injection for that Node REPL command. This is allowed because it is generic
 process execution context, not special runtime configuration. It does not
 configure Browser Use behavior, toggle App features, or replace persisted
@@ -285,7 +285,7 @@ The bundled `in-app-browser-use` plugin should:
 
 - Provide the Browser Use skill that explains when and how to load the runtime.
 - Provide the built `@pichu/browser-use` runtime script as an
-  Pichu-controlled plugin script shipped from App resources.
+  Owls-controlled plugin script shipped from App resources.
 - Avoid deciding whether Browser Use runtime exists. The App owns runtime
   availability; the plugin owns guidance and script delivery.
 

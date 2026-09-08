@@ -204,7 +204,7 @@ let pendingNavigationPath: string | null = null
 let automationKeepAwakeBlockerId: number | null = null
 const appHotkeyWebContents = new WeakSet<WebContents>()
 const textContextMenuWebContents = new WeakSet<WebContents>()
-const APP_NAME = 'Pichu'
+const APP_NAME = 'Owls'
 const CLIENT_PROTOCOL = 'pichu-client'
 const LEGACY_CLIENT_PROTOCOL = 'pix-client'
 const CLIENT_PROTOCOLS = [CLIENT_PROTOCOL, LEGACY_CLIENT_PROTOCOL] as const
@@ -246,6 +246,10 @@ function installStdioErrorGuard(): void {
 installStdioErrorGuard()
 
 const devAppInstance = configureDevAppInstanceProfile()
+// Keep the released Electron profile across the public product rename.
+if (app.isPackaged) {
+  app.setPath('userData', join(app.getPath('appData'), 'Pichu'))
+}
 function devDisplayName(label: string): string {
   const cleanLabel = label.trim().replace(/^dev(?:elopment)?[\s_-]+/i, '')
   return cleanLabel ? `${APP_NAME} Dev - ${cleanLabel}` : `${APP_NAME} Dev`
@@ -341,7 +345,9 @@ function startConfirmedAppQuit(): void {
   app.quit()
 }
 
-app.setName(APP_DISPLAY_NAME)
+// Electron 41 selects the macOS Keychain / Linux secret-store identity before
+// ready. Keep that identity stable; applyAppBranding sets the visible name later.
+app.setName(APP_DISPLAY_NAME.replace(/^Owls/, 'Pichu'))
 process.title = APP_DISPLAY_NAME
 installBackgroundTerminalExitCleanup()
 

@@ -852,7 +852,7 @@ function extractMeta(records: RawRecord[]) {
       model_id: asString(metaPayload.model) || asString(trajectoryPayload.model),
       model_api: asString(metaPayload.model_api) || asString(trajectoryPayload.model_api),
       originator:
-        asString(metaPayload.originator) || (trajectoryStart ? 'Pichu model trajectory' : ''),
+        asString(metaPayload.originator) || (trajectoryStart ? 'Owls model trajectory' : ''),
       cli: asString(metaPayload.cli_version),
       timestamp:
         asString(metaPayload.timestamp) || (trajectoryStart ? timestampFor(trajectoryStart) : '')

@@ -53,7 +53,7 @@ function createSaveSopTool(cwd: string): AgentTool<typeof saveSopSchema> {
     name: 'save_sop',
     label: 'Save SOP',
     description:
-      'Save an pichu.sop_graph.v1 JSON file into the Pichu data root SOP directory and update the local SOP index. ' +
+      'Save an pichu.sop_graph.v1 JSON file into the Owls data root SOP directory and update the local SOP index. ' +
       'Use this after creating or editing an SOP graph JSON with the sop-creator skill.',
     parameters: saveSopSchema,
     executionMode: 'sequential',

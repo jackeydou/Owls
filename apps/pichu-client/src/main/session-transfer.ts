@@ -85,7 +85,7 @@ function requireIsoString(record: Record<string, unknown>, key: string): string 
 
 function parseHeader(value: unknown): ExportHeader {
   if (!isRecord(value) || value.type !== EXPORT_FORMAT || value.version !== 1) {
-    throw new Error('The selected file is not an Pichu session JSONL export')
+    throw new Error('The selected file is not an Owls session JSONL export')
   }
   if (!isRecord(value.session)) {
     throw new Error('Invalid session export: missing session metadata')

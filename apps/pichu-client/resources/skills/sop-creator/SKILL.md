@@ -1,11 +1,11 @@
 ---
 name: sop-creator
-description: Guide agents in creating SOP graph JSON by connecting Pichu agent steps into a deterministic DAG. Use when the user asks to create an SOP, workflow graph, or DAG execution plan.
+description: Guide agents in creating SOP graph JSON by connecting Owls agent steps into a deterministic DAG. Use when the user asks to create an SOP, workflow graph, or DAG execution plan.
 ---
 
 # SOP Creator
 
-Use this skill when creating an SOP graph JSON file that connects Pichu agent steps into one DAG.
+Use this skill when creating an SOP graph JSON file that connects Owls agent steps into one DAG.
 
 The current graph model has exactly one node type:
 
@@ -17,13 +17,13 @@ Do not invent additional node types. Future node types require an explicit schem
 
 | Tool | When to use |
 | --- | --- |
-| `save_sop` | Save a completed SOP graph JSON file into the Pichu data root SOP catalog |
+| `save_sop` | Save a completed SOP graph JSON file into the Owls data root SOP catalog |
 
 `save_sop` accepts:
 
 - `sopJsonPath`: workspace-relative or absolute path to an `pichu.sop_graph.v1` JSON file in the current workspace.
 
-The tool copies the JSON into the Pichu data root under `sop/` and updates `sop/index.json`, which lists all locally saved SOPs.
+The tool copies the JSON into the Owls data root under `sop/` and updates `sop/index.json`, which lists all locally saved SOPs.
 
 ## Required Workflow
 

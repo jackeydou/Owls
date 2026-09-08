@@ -140,7 +140,7 @@ function getInstalledDescription(plugin: InstalledPlugin): string {
   return (
     plugin.manifest.interface?.shortDescription ||
     plugin.manifest.description ||
-    'Extend Pichu with commands, skills, and integrations.'
+    'Extend Owls with commands, skills, and integrations.'
   )
 }
 

@@ -66,7 +66,7 @@ export function ComputerUseDebugPanel(): React.JSX.Element {
   )
   const [lastResult, setLastResult] = useState<unknown>(null)
   const [lastResultAction, setLastResultAction] = useState<string | null>(null)
-  const [typeText, setTypeText] = useState('Pichu computer use test')
+  const [typeText, setTypeText] = useState('Owls computer use test')
   const [perCharDelayMs, setPerCharDelayMs] = useState('0')
   const [keyValue, setKeyValue] = useState('tab')
   const [keyModifiers, setKeyModifiers] = useState<ComputerUseModifier[]>([])

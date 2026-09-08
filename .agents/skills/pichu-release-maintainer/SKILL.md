@@ -1,9 +1,9 @@
 ---
 name: pichu-release-maintainer
-description: "Guide Pichu Client release preparation: date-based versions, release branches, changelog highlights, package version updates, and Electron packaging checks."
+description: "Guide Owls Client release preparation: date-based versions, release branches, changelog highlights, package version updates, and Electron packaging checks."
 ---
 
-# Pichu Release Maintainer
+# Owls Release Maintainer
 
 Use this skill for release preparation and publish-time readiness. It carries
 repository-bound release context and project preferences; ordinary development
@@ -32,7 +32,7 @@ work stays in normal MRs.
 
 ## Versioning
 
-Pichu uses date-based CalVer actual versions without `v`:
+Owls uses date-based CalVer actual versions without `v`:
 
 - Stable: `YYYY.M.PATCH`, where `PATCH = day * 100`, for example
   `2026.5.2000` for May 20.

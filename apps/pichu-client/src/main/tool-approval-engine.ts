@@ -673,7 +673,7 @@ function deterministicAutoReviewResult(request: ToolApprovalRequest): ToolAutoRe
       status: 'approved',
       riskLevel: 'medium',
       userAuthorization: 'medium',
-      rationale: 'Allowed because the command only terminates a process Pichu started.'
+      rationale: 'Allowed because the command only terminates a process Owls started.'
     }
   }
 

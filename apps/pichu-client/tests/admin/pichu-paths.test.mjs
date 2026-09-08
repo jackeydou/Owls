@@ -241,7 +241,7 @@ test('applyNewDataRoot rejects temporary folders before writing bootstrap', asyn
 
     assert.throws(
       () => loaded.module.applyNewDataRoot(join(tempRoot, 'data')),
-      /Temporary folders cannot be saved as the Pichu data root/
+      /Temporary folders cannot be saved as the Owls data root/
     )
     assert.equal(existsSync(join(userData, 'pichu-bootstrap.json')), false)
     assert.equal(globalThis.__pichuPathsRelaunched, undefined)
@@ -272,7 +272,7 @@ test('applyNewDataRoot rejects realpath aliases of temporary folders', async () 
     assert.throws(
       () =>
         loaded.module.applyNewDataRoot(join(realpathSync(tmpdir()), 'pichu-settings-root-alias')),
-      /Temporary folders cannot be saved as the Pichu data root/
+      /Temporary folders cannot be saved as the Owls data root/
     )
     assert.equal(existsSync(join(userData, 'pichu-bootstrap.json')), false)
   } finally {

@@ -1,20 +1,20 @@
 ---
 title: "Release Policy"
-summary: "Pichu Client release channels, version naming, changelog tracking, and release workflow"
+summary: "Owls Client release channels, version naming, changelog tracking, and release workflow"
 read_when:
-  - Looking for Pichu Client release channel definitions
-  - Looking for Pichu Client version naming and cadence
-  - Preparing an Pichu Client beta, stable, or correction release
+  - Looking for Owls Client release channel definitions
+  - Looking for Owls Client version naming and cadence
+  - Preparing an Owls Client beta, stable, or correction release
 ---
 
 # Release Policy
 
-Pichu Client uses date-based CalVer actual versions without a `v` prefix. Git
+Owls Client uses date-based CalVer actual versions without a `v` prefix. Git
 release tags use the same string as the actual version.
 
 ## Release Channels
 
-- stable: a production Pichu desktop release
+- stable: a production Owls desktop release
 - beta: a test release for validating upcoming desktop changes
 - dev: the moving head of `develop`
 
@@ -42,7 +42,7 @@ release tags use the same string as the actual version.
 - Release MRs target `develop`.
 - After the release MR is reviewed, merged, and explicitly approved for
   publishing, create the Git release tag on the merged `develop` commit.
-- `master` is not part of the Pichu Client release flow unless the operator
+- `master` is not part of the Owls Client release flow unless the operator
   explicitly changes this policy.
 
 ## Version Files
@@ -99,13 +99,13 @@ MR composes unreleased fragments.
   reliability/performance improvements. Do not mirror every changelog entry, and
   do not include purely internal refactors, tests, dependency churn, or
   process-only changes unless they materially affect users or release safety.
-- Pichu Client does not use Changesets. It is an Electron CalVer app, not a
+- Owls Client does not use Changesets. It is an Electron CalVer app, not a
   multi-package npm publishing repo.
 
 ## Electron Packaging
 
-Public app branding is `Pichu`. Release artifacts should use official names
-such as `Pichu-2026.5.2000.dmg`.
+Public app branding is `Owls`. Release artifacts should use official names
+such as `Owls-2026.5.2000.dmg`.
 
 ## GitHub Release Publishing
 
@@ -126,7 +126,7 @@ Configure these GitHub Actions repository secrets before publishing:
 
 The release assets include the DMG for manual installation, the ZIP and channel
 metadata required by `electron-updater`, blockmaps, and SHA-256 checksums. The
-packaged app uses the public `jackeydou/Pichu` GitHub Releases feed. Stable and
+packaged app uses the public `jackeydou/Owls` GitHub Releases feed. Stable and
 beta update channels can be selected in General settings.
 
 Do not upload only an Actions artifact. Actions artifacts expire and are not an

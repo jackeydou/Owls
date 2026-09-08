@@ -1,7 +1,7 @@
 {
   "name": "@pichu/browser-use",
   "version": "0.1.0",
-  "description": "Browser Use runtime for Pichu Client session browser automation.",
+  "description": "Browser Use runtime for Owls Client session browser automation.",
   "private": true,
   "type": "module",
   "files": [

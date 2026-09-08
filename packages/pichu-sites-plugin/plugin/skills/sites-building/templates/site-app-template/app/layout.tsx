@@ -4,7 +4,7 @@ import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: 'Sites Starter',
-  description: 'A clean Next.js starter for Pichu Sites builds.'
+  description: 'A clean Next.js starter for Owls Sites builds.'
 }
 
 export default function RootLayout({

@@ -11,7 +11,7 @@ fn write_cg_image_to_png(image: CGImageRef, output_path: &str) -> Result<()> {
     if image.is_null() {
         return Err(Error::new(
             Status::GenericFailure,
-            "macOS returned no screenshot image. Grant Screen Recording access to Pichu Computer Use in System Settings.",
+            "macOS returned no screenshot image. Grant Screen Recording access to Owls Computer Use in System Settings.",
         ));
     }
     let _image = OwnedCf(image as *const _);

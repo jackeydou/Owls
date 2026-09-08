@@ -261,7 +261,7 @@ function ensureInputAllowed(opts: { computerUseEnabled: boolean }): void {
   ensureComputerUseEnabled(opts)
   if (!isInProcessComputerUseAllowed()) {
     throw new Error(
-      'Computer Use stable builds must route macOS input through the Pichu Computer Use helper.'
+      'Computer Use stable builds must route macOS input through the Owls Computer Use helper.'
     )
   }
   ensureDarwinInputRuntime()

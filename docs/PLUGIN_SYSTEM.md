@@ -1,12 +1,12 @@
-# RFC: Pichu Agent Plugin System
+# RFC: Owls Agent Plugin System
 
 ## Status
 
-Proposed replacement contract for the partially implemented Pichu plugin system.
+Proposed replacement contract for the partially implemented Owls plugin system.
 
-Pichu adopts the vendor-neutral [Agent Plugins Specification
+Owls adopts the vendor-neutral [Agent Plugins Specification
 1.0.0](https://agent-plugins.org/specification) as its portable package format.
-The specification is currently a Working Draft, so Pichu must pin recognized
+The specification is currently a Working Draft, so Owls must pin recognized
 canonical schema identifiers and treat upgrades as explicit compatibility work.
 
 This document supersedes the earlier `.open-plugin/plugin.json` package format.
@@ -15,24 +15,24 @@ Pi Coding Agent extension runtime.
 
 ## Decision Summary
 
-1. A Pichu plugin is an Agent Plugin directory with a root `plugin.json`.
-2. Pichu supports both portable Agent Plugins 1.0 component types: Agent Skills
+1. A Owls plugin is an Agent Plugin directory with a root `plugin.json`.
+2. Owls supports both portable Agent Plugins 1.0 component types: Agent Skills
    under `skills/` and MCP servers declared in root `mcp.json`.
-3. Pichu validates against bundled, locally recognized Agent Plugins schemas. It
+3. Owls validates against bundled, locally recognized Agent Plugins schemas. It
    never downloads a schema while loading a plugin.
-4. Pichu retains ownership of local installation, catalog discovery, enablement,
+4. Owls retains ownership of local installation, catalog discovery, enablement,
    updates,
    trust, permissions, sandboxing, authentication, diagnostics, and UI.
-5. Pichu-specific metadata and files use the stable `com.pichu.app` client
+5. Owls-specific metadata and files use the stable `com.pichu.app` client
    extension namespace.
-6. Pichu client extensions are Agent Plugins namespaced data. They are not Pi CLI
+6. Owls client extensions are Agent Plugins namespaced data. They are not Pi CLI
    Extensions and do not execute through Pi Coding Agent.
-7. MCP tools enter the same Pichu tool registry, final approval gate, hooks,
+7. MCP tools enter the same Owls tool registry, final approval gate, hooks,
    audit, and Seatbelt policy as built-in tools.
-8. Pichu supports MCP `stdio` and `streamable-http`. Legacy `sse` is rejected as
+8. Owls supports MCP `stdio` and `streamable-http`. Legacy `sse` is rejected as
    an isolated unsupported server entry.
 9. The legacy `.open-plugin/plugin.json` manifest is removed after first-party
-   plugins are converted. Pichu does not maintain two canonical package formats.
+   plugins are converted. Owls does not maintain two canonical package formats.
 
 ## Source of Truth
 
@@ -47,22 +47,22 @@ The external specifications own their portable contracts:
 - [Model Context Protocol](https://modelcontextprotocol.io/specification/latest)
   owns MCP framing, initialization, capabilities, authorization, and lifecycle.
 
-This RFC owns Pichu installation, policy, runtime mapping, security, persistence,
+This RFC owns Owls installation, policy, runtime mapping, security, persistence,
 and user experience. If this document conflicts with a portable normative
 requirement, the recognized Agent Plugins specification version wins for the
-portable component. Pichu-only behavior must stay outside the portable core.
+portable component. Owls-only behavior must stay outside the portable core.
 
 ## Goals
 
 - Load portable Agent Plugin packages without rearranging their skills or MCP
   configuration.
-- Preserve Pichu's reviewed local installation and bundled catalog experience.
+- Preserve Owls's reviewed local installation and bundled catalog experience.
 - Add first-class, lifecycle-managed MCP support.
-- Route every model-visible MCP tool through Pichu approval and audit.
+- Route every model-visible MCP tool through Owls approval and audit.
 - Sandbox local MCP servers and isolate independent server failures.
 - Preserve persistent plugin data across plugin updates.
 - Give authors actionable validation and compatibility diagnostics.
-- Keep Pichu hooks and other product-specific behavior in a namespaced extension.
+- Keep Owls hooks and other product-specific behavior in a namespaced extension.
 
 ## Non-Goals
 
@@ -79,7 +79,7 @@ portable component. Pichu-only behavior must stay outside the portable core.
   URLs, or remote archives.
 - Do not define installation sources or Marketplace policy as part of the
   portable plugin manifest.
-- Do not introduce Pichu runtime configuration through environment variables.
+- Do not introduce Owls runtime configuration through environment variables.
 
 ## Terminology
 
@@ -88,11 +88,11 @@ portable component. Pichu-only behavior must stay outside the portable core.
 | Agent Plugin | A portable directory conforming to a recognized Agent Plugins schema. |
 | Plugin root | The filesystem-resolved directory containing root `plugin.json`. |
 | Portable component | A skill or MCP server discovered at its Agent Plugins fixed location. |
-| Pichu client extension | Pichu-owned data under `extensions.com.pichu.app` or files under `com.pichu.app/`. |
+| Owls client extension | Owls-owned data under `extensions.com.pichu.app` or files under `com.pichu.app/`. |
 | Plugin cache | Rebuildable installed package contents for one resolved plugin version. |
 | Plugin data | Persistent writable state for one installed plugin instance. |
-| MCP manager | Pichu host service that validates, starts, connects, monitors, and stops MCP servers. |
-| MCP tool adapter | The typed boundary that maps an MCP tool into a Pichu `AgentTool`. |
+| MCP manager | Owls host service that validates, starts, connects, monitors, and stops MCP servers. |
+| MCP tool adapter | The typed boundary that maps an MCP tool into a Owls `AgentTool`. |
 
 ## Portable Package Layout
 
@@ -118,8 +118,8 @@ Rules:
 - `plugin.json` is required and must be a regular file at the plugin root.
 - `skills/` and `mcp.json` are optional fixed component locations.
 - Skills are only the immediate child directories of `skills/` containing a
-  regular `SKILL.md`. Pichu does not recursively discover nested skills.
-- Pichu-specific files live under `com.pichu.app/`.
+  regular `SKILL.md`. Owls does not recursively discover nested skills.
+- Owls-specific files live under `com.pichu.app/`.
 - Every discovered, read, or executed package path must remain inside the
   filesystem-resolved plugin root after symlink, junction, and reparse-point
   resolution.
@@ -136,7 +136,7 @@ Minimal root `plugin.json`:
 }
 ```
 
-Full Pichu-compatible example:
+Full Owls-compatible example:
 
 ```json
 {
@@ -163,37 +163,37 @@ Full Pichu-compatible example:
 
 The root manifest is closed. Portable fields are limited to `$schema`, `name`,
 `version`, `description`, `author`, `homepage`, `repository`, `license`,
-`keywords`, and `extensions` for Agent Plugins 1.0. Pichu must not place `skills`,
+`keywords`, and `extensions` for Agent Plugins 1.0. Owls must not place `skills`,
 `mcpServers`, `hooks`, `permissions`, `commands`, `scripts`, `bin`, `auth`, or UI
 objects at the portable top level.
 
 Manifest behavior:
 
 - `$schema` and `name` are required.
-- Pichu initially recognizes exactly the Agent Plugins 1.0 canonical plugin
+- Owls initially recognizes exactly the Agent Plugins 1.0 canonical plugin
   schema identifier.
 - Plugin names follow the specification's lowercase name constraints.
 - Unknown top-level fields are reported and ignored when the rest of the
   manifest is valid.
 - A non-object `extensions` value is reported and ignored.
 - Other schema violations reject the plugin before component discovery.
-- Pichu ignores unimplemented client extension namespaces without validating
+- Owls ignores unimplemented client extension namespaces without validating
   their values.
 
-Pichu bundles an audited copy of each recognized schema. Runtime loading selects
+Owls bundles an audited copy of each recognized schema. Runtime loading selects
 the local schema by exact canonical identifier and never fetches it from the
 network.
 
-## Pichu Client Extension
+## Owls Client Extension
 
 Portable Agent Plugins deliberately leave client-specific behavior undefined.
-Pichu uses the reverse-domain namespace `com.pichu.app`.
+Owls uses the reverse-domain namespace `com.pichu.app`.
 
 Manifest data under `extensions.com.pichu.app` may provide presentation and
-compatibility metadata validated by a versioned Pichu schema. Executable behavior
+compatibility metadata validated by a versioned Owls schema. Executable behavior
 must not be embedded as code in the manifest.
 
-Files under `com.pichu.app/` may contain Pichu-owned declarative contracts:
+Files under `com.pichu.app/` may contain Owls-owned declarative contracts:
 
 ```text
 com.pichu.app/
@@ -206,19 +206,19 @@ com.pichu.app/
 Initial behavior:
 
 - `hooks/hooks.json` follows `docs/CODEX_AGENT_HOOKS.md`.
-- `interface.json` may contain Pichu Marketplace and renderer presentation
+- `interface.json` may contain Owls Marketplace and renderer presentation
   metadata that does not belong in the portable manifest.
-- `auth.json` may declare a Pichu-managed authentication flow, but never contains
+- `auth.json` may declare a Owls-managed authentication flow, but never contains
   credentials.
 
-Each Pichu extension document has its own closed schema, diagnostics, and failure
-boundary. An invalid Pichu extension disables only that Pichu-specific capability
+Each Owls extension document has its own closed schema, diagnostics, and failure
+boundary. An invalid Owls extension disables only that Owls-specific capability
 unless it makes the package unsafe to load. Portable skills and MCP servers
 remain governed by their own validation results.
 
 ## Skills
 
-Pichu discovers portable skills from `skills/<skill-name>/SKILL.md` and validates
+Owls discovers portable skills from `skills/<skill-name>/SKILL.md` and validates
 them against the Agent Skills contract supported by the app.
 
 Rules:
@@ -230,7 +230,7 @@ Rules:
 - A plugin must be installed and enabled before its skills become active.
 - A skill does not gain shell, filesystem, network, Keychain, or native access
   merely because its plugin is trusted.
-- Skill scripts run only through an explicit Pichu tool or MCP boundary; skill
+- Skill scripts run only through an explicit Owls tool or MCP boundary; skill
   prose cannot directly execute a bundled file.
 
 ## MCP Configuration
@@ -238,7 +238,7 @@ Rules:
 Plugin-owned MCP configuration lives only at root `mcp.json`. It is not inline
 in `plugin.json` or discovered from another portable path. Users may also add
 standalone MCP servers in Settings > Customize; those records are persisted by
-Pichu and do not modify an installed plugin.
+Owls and do not modify an installed plugin.
 
 ```json
 {
@@ -271,32 +271,32 @@ Top-level rules:
 - The MCP schema version must match the Agent Plugins version selected by
   `plugin.json`.
 - A top-level parse, schema, or version failure disables MCP for that plugin but
-  does not disable valid skills or Pichu client extensions.
+  does not disable valid skills or Owls client extensions.
 - Each server entry is validated independently. An invalid entry disables only
   that server.
 
 ### Supported Transports
 
-Pichu supports:
+Owls supports:
 
 - `stdio` with one executable `command` token and separate `args`.
 - `streamable-http` with an absolute endpoint URL and optional literal headers.
 
 Standalone user configuration exposes the same two transports as `stdio` and
-Remote. Pichu discovers Remote authentication requirements through the MCP
-handshake. If the server requires OAuth, Pichu performs the protocol flow and
+Remote. Owls discovers Remote authentication requirements through the MCP
+handshake. If the server requires OAuth, Owls performs the protocol flow and
 stores the resulting credentials securely; users do not select an auth mode in
 the server configuration.
 
-Pichu does not initially support the deprecated `sse` transport. It reports that
+Owls does not initially support the deprecated `sse` transport. It reports that
 entry as unsupported and continues loading other entries and components.
 
-Pichu uses the transport declared by `type` for the initial connection. It does
+Owls uses the transport declared by `type` for the initial connection. It does
 not silently fall back to a different transport.
 
 ### Stdio Runtime
 
-For a stdio server, Pichu must:
+For a stdio server, Owls must:
 
 1. Resolve a bare executable using the platform search policy, or resolve a
    `./` command inside the plugin root.
@@ -311,19 +311,19 @@ For a stdio server, Pichu must:
    last so plugin configuration cannot override them.
 8. Reject a `cwd` or package-relative executable that escapes its permitted
    root after filesystem resolution.
-9. Launch the server through the Pichu MCP process manager under a base Seatbelt
+9. Launch the server through the Owls MCP process manager under a base Seatbelt
    profile.
 10. Complete MCP initialize and capability negotiation before exposing tools,
     resources, or prompts.
 
 `PLUGIN_ROOT` and `PLUGIN_DATA` are output metadata required by the Agent
-Plugins subprocess contract. Pichu does not read them as application runtime
+Plugins subprocess contract. Owls does not read them as application runtime
 configuration, accept user overrides for them, or use environment variables to
-select Pichu data roots or settings.
+select Owls data roots or settings.
 
 ### Streamable HTTP Runtime
 
-For a Streamable HTTP server, Pichu must:
+For a Streamable HTTP server, Owls must:
 
 - Require an absolute HTTP or HTTPS URL without user information or fragments.
 - Require HTTPS for non-loopback hosts.
@@ -338,9 +338,9 @@ For a Streamable HTTP server, Pichu must:
 ## MCP Authentication
 
 Agent Plugins 1.0 intentionally defines no portable OAuth or credential
-reference fields. Pichu owns remote MCP authentication:
+reference fields. Owls owns remote MCP authentication:
 
-- Discover and perform supported MCP authorization flows through a Pichu-owned
+- Discover and perform supported MCP authorization flows through a Owls-owned
   service.
 - Store tokens and credentials in Keychain, never in `plugin.json`, `mcp.json`,
   static headers, logs, SQLite messages, or prompts.
@@ -352,7 +352,7 @@ reference fields. Pichu owns remote MCP authentication:
 - Expose login, reconnect, disconnect, and credential-removal actions through
   narrow typed IPC.
 
-Local stdio server secrets must also come from a Pichu-owned credential bridge,
+Local stdio server secrets must also come from a Owls-owned credential bridge,
 not portable `env` values. The bridge requires a separate typed design before a
 plugin can request secrets.
 
@@ -363,7 +363,7 @@ capabilities.
 
 ### Tools
 
-MCP tools are adapted into the Pichu tool registry with deterministic identities:
+MCP tools are adapted into the Owls tool registry with deterministic identities:
 
 ```text
 mcp__<plugin-name>__<server-name>__<tool-name>
@@ -372,18 +372,18 @@ mcp__<plugin-name>__<server-name>__<tool-name>
 The model-facing schema is derived from the MCP tool input schema, validated at
 registration, and revalidated immediately before invocation.
 
-Every MCP tool call follows the normal Pichu lifecycle:
+Every MCP tool call follows the normal Owls lifecycle:
 
 ```text
 model tool call
-  -> Pichu PreToolUse hooks
+  -> Owls PreToolUse hooks
   -> allowed input update
   -> final schema validation
-  -> Pichu risk and permission classification
+  -> Owls risk and permission classification
   -> user approval or remembered policy
   -> MCP call
   -> normalized result and audit
-  -> Pichu PostToolUse hooks
+  -> Owls PostToolUse hooks
   -> model-facing result
 ```
 
@@ -393,28 +393,28 @@ diagnostics.
 
 ### Resources and Prompts
 
-Pichu may expose MCP resources and prompts through typed host capabilities after
+Owls may expose MCP resources and prompts through typed host capabilities after
 capability negotiation. They are not automatically inserted into model context.
 
 - Resource reads require explicit invocation and size/content limits.
 - Prompt templates are namespaced by plugin and server.
-- Binary and large results use Pichu attachment or artifact storage rather than
+- Binary and large results use Owls attachment or artifact storage rather than
   unbounded IPC payloads.
 - Resource and prompt errors remain isolated to the originating server.
 
 ## Security Model
 
-Installing a plugin permits Pichu to inspect its declarative package. Enabling a
+Installing a plugin permits Owls to inspect its declarative package. Enabling a
 plugin permits its validated skills and configured servers to become available.
 Neither action grants unrestricted machine access.
 
-Before first activation, Pichu shows:
+Before first activation, Owls shows:
 
 - Plugin source, resolved version, and integrity.
 - Portable skills and MCP servers.
 - Local executables and remote endpoint origins.
-- Requested filesystem, network, and native capabilities inferred by Pichu.
-- Pichu-specific hooks or authentication behavior.
+- Requested filesystem, network, and native capabilities inferred by Owls.
+- Owls-specific hooks or authentication behavior.
 
 Local MCP servers receive a base Seatbelt profile. A tool-call approval can add
 a one-time grant bound to finalized input, but permanent denies remain stronger.
@@ -424,7 +424,7 @@ process capabilities require host policy.
 
 Remote servers never receive filesystem or native host access. Their network
 origin, redirects, credentials, request limits, and returned content remain
-subject to Pichu policy.
+subject to Owls policy.
 
 ## MCP Lifecycle and Failure Isolation
 
@@ -448,13 +448,13 @@ Requirements:
 - Bound restart attempts and use backoff; never create an infinite crash loop.
 - Redact credentials, headers, prompt content, and private payloads from logs.
 - Preserve independent failure boundaries: one failed server does not disable
-  sibling servers, skills, or Pichu client extensions.
+  sibling servers, skills, or Owls client extensions.
 - Surface validation, launch, authentication, handshake, capability, runtime,
   and shutdown failures separately.
 
 ## Installation and Distribution
 
-Agent Plugins does not prescribe installation or catalog behavior. Pichu keeps a
+Agent Plugins does not prescribe installation or catalog behavior. Owls keeps a
 local-only product-owned installation pipeline:
 
 ```text
@@ -468,11 +468,11 @@ Bundled or runtime-local catalog
 ```
 
 Supported plugin sources are bundled directories, active-runtime directories,
-and explicit local developer uploads. Pichu does not fetch remote plugin
+and explicit local developer uploads. Owls does not fetch remote plugin
 marketplaces, clone plugin repositories, or download plugin archives. Source
 resolution and integrity remain separate from root `plugin.json`.
 
-Local developer ZIP uploads are treated as untrusted input. Pichu streams each
+Local developer ZIP uploads are treated as untrusted input. Owls streams each
 regular file into a fresh temporary extraction root and rejects absolute or
 escaping paths, backslashes, symbolic links, and other special files. An upload
 is also rejected when the ZIP exceeds 256 MiB, contains more than 20,000
@@ -491,7 +491,7 @@ Recommended data layout:
 ```
 
 The cache is rebuildable. Plugin data persists across updates and may be
-removed on explicit uninstall. Runtime paths derive from Pichu settings and
+removed on explicit uninstall. Runtime paths derive from Owls settings and
 bootstrap paths, not environment variables.
 
 ## Renderer and IPC
@@ -505,7 +505,7 @@ The plugin UI should show:
 - MCP servers, transport, endpoint or executable, status, capabilities, and
   failure reason.
 - Authentication and reconnect state.
-- Pichu client-extension features and diagnostics.
+- Owls client-extension features and diagnostics.
 
 Renderer APIs remain narrow. They may install, enable, disable, remove, inspect,
 connect, disconnect, authenticate, and retry named plugins or servers. They must
@@ -515,18 +515,18 @@ database, Keychain, or registry primitives.
 All event subscriptions return unsubscribe functions. Disable, uninstall, and
 window teardown cancel relevant pending UI operations.
 
-## Legacy Pichu Plugin Migration
+## Legacy Owls Plugin Migration
 
-The previous package format used `.open-plugin/plugin.json` and Pichu-specific
+The previous package format used `.open-plugin/plugin.json` and Owls-specific
 top-level component declarations. It is not an Agent Plugins package.
 
 Migration policy:
 
-1. Convert every bundled Pichu plugin to root `plugin.json`, fixed `skills/`, and
+1. Convert every bundled Owls plugin to root `plugin.json`, fixed `skills/`, and
    root `mcp.json` where executable capabilities are required.
 2. Move hooks and presentation/auth metadata into `com.pichu.app`.
 3. Replace manifest-declared scripts and CLI tools with MCP servers or
-   explicitly Pichu-owned host capabilities.
+   explicitly Owls-owned host capabilities.
 4. Update local catalog entries to resolve Agent Plugin directories without
    duplicating the portable manifest.
 5. Revalidate installed packages by source and identity. An unconverted legacy
@@ -552,7 +552,7 @@ Migration policy:
 - Enforce filesystem-resolved package boundaries.
 - Implement Agent Plugins manifest validation and failure semantics.
 - Discover and validate immediate `skills/` children.
-- Parse Pichu client-extension data while ignoring unknown namespaces.
+- Parse Owls client-extension data while ignoring unknown namespaces.
 - Convert bundled plugins and update local catalog resolution.
 
 ### Phase 2: MCP Runtime
@@ -562,21 +562,21 @@ Migration policy:
 - Add plugin data directories, variable expansion, path containment, process
   cleanup, health, bounded restart, and diagnostics.
 - Implement MCP initialization and capability negotiation.
-- Add Pichu-managed authorization and Keychain storage for remote MCP servers.
+- Add Owls-managed authorization and Keychain storage for remote MCP servers.
 
 ### Phase 3: Agent and UI Integration
 
-- Adapt MCP tools into the central Pichu tool registry.
+- Adapt MCP tools into the central Owls tool registry.
 - Route MCP tools through hooks, schema validation, approval, audit, and result
   normalization.
 - Add plugin and MCP management UI with localized copy.
-- Add resources and prompts through typed Pichu APIs where product flows require
+- Add resources and prompts through typed Owls APIs where product flows require
   them.
 - Remove the legacy plugin loader and inactive MCP metadata paths.
 
 ### Phase 4: Conformance and Hardening
 
-- Run the Agent Plugins 1.0 conformance checklist against Pichu.
+- Run the Agent Plugins 1.0 conformance checklist against Owls.
 - Test packaged-app executable resolution and Seatbelt behavior.
 - Test local-plugin and remote-MCP partial-failure, authentication, restart,
   disable, uninstall, and update flows.
@@ -610,7 +610,7 @@ Migration policy:
 
 - Initialization, capability negotiation, list changes, calls, cancellation,
   shutdown, and bounded restart.
-- Every MCP tool crosses the final Pichu gate exactly once.
+- Every MCP tool crosses the final Owls gate exactly once.
 - Mutated inputs are revalidated before the MCP call.
 - Approval and Seatbelt correlation mismatches fail closed.
 - Local MCP processes cannot escape their base sandbox or permitted roots.
@@ -631,7 +631,7 @@ Migration policy:
 
 ## Release Gate
 
-Pichu may claim Agent Plugins 1.0 support only after it satisfies all applicable
+Owls may claim Agent Plugins 1.0 support only after it satisfies all applicable
 normative requirements for both skills and MCP servers. Until then, the UI must
 label the feature preview and report unsupported components honestly.
 
@@ -648,13 +648,13 @@ Production activation is blocked unless:
 
 ## Open Questions
 
-- Should Pichu publish its `com.pichu.app` client-extension schemas for other
-  clients to inspect, even though only Pichu executes them?
+- Should Owls publish its `com.pichu.app` client-extension schemas for other
+  clients to inspect, even though only Owls executes them?
 - Which MCP resources and prompts should be user-visible in the first release?
 - Should legacy HTTP+SSE ever be supported, or remain intentionally absent?
 - Which local MCP server capabilities require install-time trust in addition to
   per-tool approval?
 
-These questions do not change the central decisions: Pichu uses the Agent Plugins
+These questions do not change the central decisions: Owls uses the Agent Plugins
 portable package format, retains its own product and security runtime, supports
 MCP as a first-class component, and does not support Pi CLI Extensions.

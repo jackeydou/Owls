@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "name": "local-pichu-plugins",
   "interface": {
-    "displayName": "Local Pichu Plugins"
+    "displayName": "Local Owls Plugins"
   },
   "plugins": [
     {

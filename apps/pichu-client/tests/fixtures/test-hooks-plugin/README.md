@@ -1,6 +1,6 @@
 # Test Hooks Plugin
 
-This local plugin exercises Pichu's Codex-compatible hook runtime. It is intended for beta/internal testing only and lives under `resources/internal-plugins` so it is packaged for beta builds but excluded from stable packages.
+This local plugin exercises Owls's Codex-compatible hook runtime. It is intended for beta/internal testing only and lives under `resources/internal-plugins` so it is packaged for beta builds but excluded from stable packages.
 
 Install and enable the plugin from the internal test plugin marketplace. Plugin hook execution follows the plugin installation and enablement state.
 

@@ -946,7 +946,7 @@ function CompareDetail({
           <span className="badge">compare</span>
           <h2>Event comparison</h2>
           <p>
-            Pin one event as A and another as B. They can come from Codex or Pichu, same session or
+            Pin one event as A and another as B. They can come from Codex or Owls, same session or
             different sessions.
           </p>
         </div>
@@ -1089,7 +1089,7 @@ function EmptyState({ loading }: { loading: boolean }) {
     <div className="empty-state">
       <TerminalSquare size={30} />
       <strong>{loading ? 'Loading session...' : 'Load a JSONL session.'}</strong>
-      <span>Use Codex sessions, Pichu sessions, model trajectories, or drag a JSONL here.</span>
+      <span>Use Codex sessions, Owls sessions, model trajectories, or drag a JSONL here.</span>
     </div>
   )
 }

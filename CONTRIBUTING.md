@@ -1,6 +1,6 @@
-# Contributing to Pichu
+# Contributing to Owls
 
-Thank you for helping improve Pichu. Contributions can include bug reports,
+Thank you for helping improve Owls. Contributions can include bug reports,
 documentation, design feedback, tests, fixes, and new features.
 
 ## Before you start
@@ -14,12 +14,12 @@ documentation, design feedback, tests, fixes, and new features.
 
 ## Development setup
 
-Pichu is a pnpm workspace. Use the pnpm version declared in the root
+Owls is a pnpm workspace. Use the pnpm version declared in the root
 `packageManager` field; do not use npm or Yarn.
 
 ```bash
 git clone <your-fork-or-repository-url>
-cd Pichu
+cd Owls
 pnpm install
 pnpm dev
 ```
@@ -33,7 +33,7 @@ pnpm dev --pichu-dev-name "Contribution" \
 ```
 
 Do not add environment-variable runtime configuration. New runtime settings
-must use Pichu's existing settings and bootstrap paths.
+must use Owls's existing settings and bootstrap paths.
 
 ## Making changes
 

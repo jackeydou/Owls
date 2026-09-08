@@ -1,7 +1,7 @@
 {
   "name": "@pichu/mac-input",
   "version": "0.1.0",
-  "description": "Synthesize mouse and keyboard events on macOS via CGEvent. Internal Pichu package.",
+  "description": "Synthesize mouse and keyboard events on macOS via CGEvent. Internal Owls package.",
   "private": true,
   "main": "index.js",
   "types": "index.d.ts",

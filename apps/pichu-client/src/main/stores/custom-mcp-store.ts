@@ -74,7 +74,7 @@ function validateHeaders(value: unknown): Record<string, string> {
   for (const name of Object.keys(headers)) {
     const lowerName = name.toLowerCase()
     if (normalized.has(lowerName)) throw new Error(`Duplicate header: ${name}`)
-    if (RESERVED_HEADER_NAMES.has(lowerName)) throw new Error(`Header is managed by Pichu: ${name}`)
+    if (RESERVED_HEADER_NAMES.has(lowerName)) throw new Error(`Header is managed by Owls: ${name}`)
     normalized.add(lowerName)
   }
   return headers

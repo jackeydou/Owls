@@ -1,8 +1,8 @@
-# Pichu Human-In-The-Loop Tool Execution Design
+# Owls Human-In-The-Loop Tool Execution Design
 
 ## Background
 
-Pichu currently stores a tool call and its tool result in one `messages` row:
+Owls currently stores a tool call and its tool result in one `messages` row:
 
 - `role = 'tool'`
 - `content` stores the serialized tool call name and arguments.
@@ -12,7 +12,7 @@ Pichu currently stores a tool call and its tool result in one `messages` row:
 
 When a session is restored, `rowsToAgentMessages(...)` expands one persisted
 tool row back into an assistant `toolCall` message and, when
-`tool_call_result` is not null, a `toolResult` message. This gives Pichu a
+`tool_call_result` is not null, a `toolResult` message. This gives Owls a
 natural persistence point for deferred human input: the pending state can be
 stored while `tool_call_result` is null. The user response is first written to
 `human_input_requests.response_json`; the resumed tool execution later returns
@@ -53,7 +53,7 @@ Phase 1 must resolve these items before the feature can be considered safe to
 ship:
 
 - **Continuation after restore:** do not rely on pi-agent continuing from a
-  restored assistant `toolCall` that has no matching `toolResult`. Pichu needs a
+  restored assistant `toolCall` that has no matching `toolResult`. Owls needs a
   named continuation helper that finds the unresolved tool call, executes that
   tool through the normal wrapper, appends the produced `toolResult`, and only
   then calls normal agent continuation.
@@ -292,9 +292,9 @@ pi-agent tools use the fourth argument for `onUpdate`:
 execute(toolCallId, params, signal, onUpdate)
 ```
 
-Pichu must inject the helper with an adapter that preserves the existing
+Owls must inject the helper with an adapter that preserves the existing
 signature. The preferred shape is to close over the helper when creating
-Pichu-owned tools:
+Owls-owned tools:
 
 ```ts
 function createAskUserInputTool(runtimeContext: ToolRuntimeContext): AgentTool {
@@ -315,7 +315,7 @@ function createAskUserInputTool(runtimeContext: ToolRuntimeContext): AgentTool {
 ```
 
 If future tools need this helper, wrap or construct those tools in the same
-Pichu tool factory boundary. Do not replace or repurpose the `onUpdate`
+Owls tool factory boundary. Do not replace or repurpose the `onUpdate`
 argument.
 
 Phase 1 only exposes one agent-visible tool:
@@ -475,7 +475,7 @@ When `ask_user` or a future business tool calls
 
 Use a typed internal error or explicit runtime result. Phase 1 uses the explicit
 runtime result because pi-agent may convert thrown tool errors into normal
-error tool results before Pichu can catch the original exception. Keep the
+error tool results before Owls can catch the original exception. Keep the
 stable marker shape shared by both paths, for example:
 
 ```ts
@@ -539,7 +539,7 @@ tool_execution_update or partial-result events from the wrapper should be
 suppressed unless they carry the human-input request state. Generic progress
 updates after suspension would make the renderer drift back toward `running`.
 If pi-agent strips custom error properties from tool errors, Phase 1 must first
-add a controlled Pichu wrapper path that emits this marker before any generic
+add a controlled Owls wrapper path that emits this marker before any generic
 tool error event is forwarded.
 
 ### 4. User Submits Input
@@ -633,7 +633,7 @@ verified otherwise. The installed `@earendil-works/pi-agent-core` documentation
 describes `continue()` as requiring the last context message to be a user or
 toolResult message, while the HITL resume transcript ends with an assistant
 `toolCall` without a matching `toolResult`. Therefore Phase 1 must implement a
-named Pichu continuation helper unless pi-agent is upgraded or proven to support
+named Owls continuation helper unless pi-agent is upgraded or proven to support
 unresolved restored tool calls.
 
 The helper must use this exact transcript contract:
@@ -643,7 +643,7 @@ The helper must use this exact transcript contract:
   `messages.tool_call_result` has been written.
 - No synthetic user message is added.
 - No hidden assistant "continue" message is persisted.
-- Pichu locates the unresolved assistant `toolCall` without a matching
+- Owls locates the unresolved assistant `toolCall` without a matching
   `toolResult`, resolves its `toolName` in the current tool registry, and
   executes that tool manually through the same wrapper used during normal agent
   runs.
@@ -663,7 +663,7 @@ The helper must use this exact transcript contract:
 - `tool_execution_end` persistence must call the atomic
   `completeHumanInputToolResult(...)` helper for interrupted requests, so the
   tool result and `resolved` status are committed together.
-- After the transcript tail is a valid `toolResult`, Pichu can call normal
+- After the transcript tail is a valid `toolResult`, Owls can call normal
   agent continuation to generate the next assistant response.
 - Any assistant output after the tool result is persisted through the normal
   assistant streaming path.
@@ -1048,7 +1048,7 @@ Run database migration checks if the final implementation adds the schema above.
 ## Open Questions
 
 - Does pi-agent provide a supported continue API after restoring a transcript
-  with a newly available `toolResult`, or does Pichu need a named continuation
+  with a newly available `toolResult`, or does Owls need a named continuation
   helper?
 - Should a submitted request immediately resume in the background, or should
   the user explicitly click continue when reopening an old pending session?

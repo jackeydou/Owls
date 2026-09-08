@@ -39,9 +39,9 @@ test('appQuitDialogCopy distinguishes active work from local tasks', () => {
       'en'
     ),
     {
-      message: 'Quit Pichu?',
+      message: 'Quit Owls?',
       detail:
-        'Active local work on this machine will be interrupted and running requests will not continue while Pichu is closed.',
+        'Active local work on this machine will be interrupted and running requests will not continue while Owls is closed.',
       confirmLabel: 'Quit',
       cancelLabel: 'Cancel'
     }
@@ -56,9 +56,9 @@ test('appQuitDialogCopy distinguishes active work from local tasks', () => {
       'en'
     ),
     {
-      message: 'Quit Pichu?',
+      message: 'Quit Owls?',
       detail:
-        'Active local tasks on this machine will be stopped. Any local sites or services Pichu started will stop while Pichu is closed.',
+        'Active local tasks on this machine will be stopped. Any local sites or services Owls started will stop while Owls is closed.',
       confirmLabel: 'Quit',
       cancelLabel: 'Cancel'
     }
@@ -73,9 +73,9 @@ test('appQuitDialogCopy distinguishes active work from local tasks', () => {
       'en'
     ),
     {
-      message: 'Quit Pichu?',
+      message: 'Quit Owls?',
       detail:
-        'Active local work and tasks on this machine will be interrupted. Any local sites or services Pichu started will stop while Pichu is closed.',
+        'Active local work and tasks on this machine will be interrupted. Any local sites or services Owls started will stop while Owls is closed.',
       confirmLabel: 'Quit',
       cancelLabel: 'Cancel'
     }
@@ -92,8 +92,8 @@ test('appQuitDialogCopy supports Chinese quit confirmation copy', () => {
       'zh-CN'
     ),
     {
-      message: '退出 Pichu？',
-      detail: '这台电脑上的当前工作和本地任务会被中断。Pichu 启动的本地网站或服务会在关闭后停止。',
+      message: '退出 Owls？',
+      detail: '这台电脑上的当前工作和本地任务会被中断。Owls 启动的本地网站或服务会在关闭后停止。',
       confirmLabel: '退出',
       cancelLabel: '取消'
     }
