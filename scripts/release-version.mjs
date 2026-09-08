@@ -50,7 +50,7 @@ export function validateReleaseVersion(version) {
 
 export function releaseVersionPolicyMessage() {
   return [
-    'Use YYYY.M.PATCH for new Pichu release versions, where PATCH = day * 100 + same-day correction number.',
+    'Use YYYY.M.PATCH for new Owls release versions, where PATCH = day * 100 + same-day correction number.',
     'For example, use 2026.5.2000 for May 20 and 2026.5.2001 for the first May 20 correction.',
     'Use -beta.N only for prereleases, for example 2026.5.2000-beta.1.',
     'Do not use YYYY.M.D-N because semver treats it as a prerelease of YYYY.M.D.'

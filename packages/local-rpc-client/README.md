@@ -1,6 +1,6 @@
 # @pichu/local-rpc-client
 
-Node.js client for Pichu Client's local JSON-RPC socket.
+Node.js client for Owls Client's local JSON-RPC socket.
 
 The client discovers the running app through:
 

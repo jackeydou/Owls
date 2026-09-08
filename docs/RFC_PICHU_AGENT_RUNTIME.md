@@ -1,31 +1,31 @@
-# RFC: Pichu-Owned Codex-Class Agent Runtime
+# RFC: Owls-Owned Codex-Class Agent Runtime
 
 ## Status
 
 Draft technical design for internal review.
 
-This RFC replaces the earlier proposal to adopt Pi Coding Agent as Pichu's
-runtime and Pi Packages and Extensions as Pichu's ecosystem. Pichu is not building
+This RFC replaces the earlier proposal to adopt Pi Coding Agent as Owls's
+runtime and Pi Packages and Extensions as Owls's ecosystem. Owls is not building
 a desktop client for Pi CLI and does not target compatibility with the Pi CLI
 ecosystem.
 
 Existing architecture documents remain authoritative for their owned areas:
 
-- `docs/PLUGIN_SYSTEM.md` for Agent Plugins packages, Pichu client extensions,
+- `docs/PLUGIN_SYSTEM.md` for Agent Plugins packages, Owls client extensions,
   and MCP runtime behavior.
 - `docs/CODEX_AGENT_HOOKS.md` for Codex-aligned hook behavior.
 - `docs/HUMAN_IN_THE_LOOP.md` for durable human-input continuation.
 
 ## Abstract
 
-Pichu should build and own a Codex-class coding-agent runtime. It may use
+Owls should build and own a Codex-class coding-agent runtime. It may use
 `@earendil-works/pi-ai` for model/provider integration and
 `@earendil-works/pi-agent-core` for the low-level agent loop, messages, tools,
 and tool hooks. It should not use Pi CLI or Pi Coding Agent's `AgentSession`,
 `AgentSessionRuntime`, `SessionManager`, JSONL persistence, package manager, or
-extension runtime as Pichu product contracts.
+extension runtime as Owls product contracts.
 
-Pichu remains authoritative for session lifecycle, SQLite conversation history,
+Owls remains authoritative for session lifecycle, SQLite conversation history,
 context construction, compaction, tools, approvals, macOS Seatbelt, plugins,
 skills, multi-agent orchestration, artifacts, search, Electron IPC, and desktop
 experience. Codex alignment describes product behavior and security semantics;
@@ -33,29 +33,29 @@ it does not require copying Codex internals or adopting a second runtime.
 
 ## Decision Summary
 
-1. Pichu owns the coding-agent runtime and its public contracts.
-2. Pichu continues to construct `pi-agent-core` `Agent` instances through a
-   Pichu-owned runtime factory.
+1. Owls owns the coding-agent runtime and its public contracts.
+2. Owls continues to construct `pi-agent-core` `Agent` instances through a
+   Owls-owned runtime factory.
 3. `pi-ai` and `pi-agent-core` are implementation libraries, not product
    persistence or extension contracts.
-4. Pichu does not adopt `pi-coding-agent` `createAgentSession()`,
+4. Owls does not adopt `pi-coding-agent` `createAgentSession()`,
    `createAgentSessionRuntime()`, `AgentSession`, or `SessionManager`.
 5. SQLite `messages` and `message_parts` remain the authoritative conversation
    store. There is no Pi JSONL conversation store or dual write.
-6. Pichu retains its plugin product, but replaces the legacy
-   `.open-plugin/plugin.json` package contract with Agent Plugins 1.0. Pichu does
+6. Owls retains its plugin product, but replaces the legacy
+   `.open-plugin/plugin.json` package contract with Agent Plugins 1.0. Owls does
    not support Pi Packages or Pi CLI Extensions.
-7. Pichu's final tool gate, approval engine, hooks, audit, and Seatbelt policy
+7. Owls's final tool gate, approval engine, hooks, audit, and Seatbelt policy
    remain host-owned and apply to every tool source.
 8. Existing search, human input, artifacts, session inspection, local RPC,
    Browser, Computer Use, and multi-agent behavior must remain functional. MCP
-   becomes a first-class Pichu plugin capability under the same host policy.
+   becomes a first-class Owls plugin capability under the same host policy.
 9. The `pi-coding-agent` dependency should be removed after the small utility
-   imports still used by Pichu are replaced or moved behind Pichu-owned adapters.
+   imports still used by Owls are replaced or moved behind Owls-owned adapters.
 
 ## Product Direction
 
-Pichu is an open, desktop-first coding agent with a Codex-class interaction model.
+Owls is an open, desktop-first coding agent with a Codex-class interaction model.
 The product should support:
 
 - Multiple concurrent tasks and isolated worktrees.
@@ -68,24 +68,24 @@ The product should support:
 - Human-in-the-loop tools and restart-safe continuation.
 - Artifacts, attachments, Browser, Computer Use, and other desktop-native tools.
 - Multi-agent delegation with explicit parent, child, and run relationships.
-- Agent Plugins, skills, Pichu hooks, MCP servers, and future app connectors.
+- Agent Plugins, skills, Owls hooks, MCP servers, and future app connectors.
 
-These capabilities should feel comparable to Codex while remaining Pichu-owned.
-Pichu does not need to reproduce private Codex protocols, storage formats, or
+These capabilities should feel comparable to Codex while remaining Owls-owned.
+Owls does not need to reproduce private Codex protocols, storage formats, or
 implementation details.
 
 ## Goals
 
-- Preserve one coherent Pichu runtime instead of combining Pichu and Pi Coding
+- Preserve one coherent Owls runtime instead of combining Owls and Pi Coding
   Agent lifecycle models.
 - Keep SQLite as the durable source of truth for conversation and product data.
 - Centralize all agent construction so the same policy applies to main agents,
   side conversations, continuations, automations, and subagents.
-- Maintain a stable typed boundary around `pi-ai` and `pi-agent-core` so Pichu can
+- Maintain a stable typed boundary around `pi-ai` and `pi-agent-core` so Owls can
   upgrade or replace them without changing renderer or persistence contracts.
 - Make tool execution interceptable, approvable, auditable, and enforceable at
   the OS boundary.
-- Adopt Agent Plugins 1.0 for portable skills and MCP while keeping Pichu hooks
+- Adopt Agent Plugins 1.0 for portable skills and MCP while keeping Owls hooks
   and product policy in the `com.pichu.app` client extension.
 - Protect current functionality throughout the refactor.
 
@@ -97,7 +97,7 @@ implementation details.
 - Do not use Pi `AgentSession` or `SessionManager` for conversation lifecycle.
 - Do not introduce JSONL as a second conversation store.
 - Do not delete or migrate SQLite messages as part of this direction.
-- Do not delete the Pichu plugin product, installation state, Marketplace, or
+- Do not delete the Owls plugin product, installation state, Marketplace, or
   plugin data as part of this direction.
 - Do not reproduce Codex internals that are not needed for observable product
   behavior.
@@ -109,57 +109,57 @@ implementation details.
 
 | Term | Definition |
 | --- | --- |
-| Pichu runtime | Pichu-owned orchestration around agent construction, sessions, prompts, context, tools, continuations, persistence, and lifecycle. |
+| Owls runtime | Owls-owned orchestration around agent construction, sessions, prompts, context, tools, continuations, persistence, and lifecycle. |
 | Agent core | The low-level `pi-agent-core` `Agent` loop used as an implementation library. |
 | Model layer | `pi-ai` model types, providers, streaming, and related adapters. |
 | Codex-class | Product behavior comparable to Codex in task management, safety, coding tools, persistence, and desktop workflow. |
-| Pichu plugin | An Agent Plugins package loaded by Pichu, optionally containing the `com.pichu.app` client extension; it is not a Pi Package or Pi CLI Extension. |
-| Final tool gate | The last non-overridable Pichu policy step after all allowed input transformations and before tool execution. |
+| Owls plugin | An Agent Plugins package loaded by Owls, optionally containing the `com.pichu.app` client extension; it is not a Pi Package or Pi CLI Extension. |
+| Final tool gate | The last non-overridable Owls policy step after all allowed input transformations and before tool execution. |
 | Conversation store | SQLite `messages` and `message_parts`, which are authoritative for restore and replay. |
 
 ## Current Baseline
 
-Pichu already follows much of the target direction:
+Owls already follows much of the target direction:
 
 | Area | Current owner | Target |
 | --- | --- | --- |
-| Agent loop | `pi-agent-core` `Agent` constructed in Pichu | Keep, behind a centralized Pichu runtime factory |
-| Model streaming | Pichu adapters over `pi-ai` | Keep behind typed Pichu model interfaces |
+| Agent loop | `pi-agent-core` `Agent` constructed in Owls | Keep, behind a centralized Owls runtime factory |
+| Model streaming | Owls adapters over `pi-ai` | Keep behind typed Owls model interfaces |
 | Conversation history | SQLite `messages` and `message_parts` | Keep authoritative |
 | Session metadata | SQLite `sessions` | Keep authoritative |
 | Global search | SQLite FTS over sessions and messages | Keep |
-| Tool approval | Pichu approval engine | Keep and strengthen as final host gate |
-| Shell sandbox | Pichu Seatbelt integration | Keep and expand coverage |
-| Hooks | Pichu Codex-aligned hook runtime | Keep |
-| Plugins | Legacy Pichu manifest, registry, installer, skills, and hooks | Adopt Agent Plugins 1.0 packaging; retain Pichu installation and policy; add MCP |
+| Tool approval | Owls approval engine | Keep and strengthen as final host gate |
+| Shell sandbox | Owls Seatbelt integration | Keep and expand coverage |
+| Hooks | Owls Codex-aligned hook runtime | Keep |
+| Plugins | Legacy Owls manifest, registry, installer, skills, and hooks | Adopt Agent Plugins 1.0 packaging; retain Owls installation and policy; add MCP |
 | Human input | SQLite request state plus continuation | Keep |
-| Artifacts | Pichu artifact store linked to messages | Keep |
-| Multi-agent | Pichu team manager and tools | Keep, unify under the runtime factory |
+| Artifacts | Owls artifact store linked to messages | Keep |
+| Multi-agent | Owls team manager and tools | Keep, unify under the runtime factory |
 
 The current application imports a few helpers and tool types from
 `pi-coding-agent`. Those imports do not require adopting its session or
-extension runtime. They should be inventoried and replaced with Pichu-owned
+extension runtime. They should be inventoried and replaced with Owls-owned
 adapters or equivalent core-level utilities before removing the dependency.
 
 ## Target Architecture
 
 ```mermaid
 flowchart TD
-  renderer["Pichu Renderer"] -->|"typed preload IPC"| host["Pichu Runtime Host"]
+  renderer["Owls Renderer"] -->|"typed preload IPC"| host["Owls Runtime Host"]
 
-  subgraph pichu["Pichu-Owned Product Runtime"]
+  subgraph pichu["Owls-Owned Product Runtime"]
     host --> sessions["Session and Run Coordinator"]
     host --> tools["Tool Registry and Final Gate"]
-    host --> plugins["Pichu Plugins, Skills, and Hooks"]
+    host --> plugins["Owls Plugins, Skills, and Hooks"]
     host --> sqlite["SQLite Conversation and Product State"]
     tools --> approval["Approval and Audit"]
     approval --> seatbelt["Seatbelt Execution Policy"]
   end
 
   sessions --> core["pi-agent-core Agent"]
-  core --> models["Pichu Model Adapter over pi-ai"]
+  core --> models["Owls Model Adapter over pi-ai"]
   core --> tools
-  core --> persistence["Pichu Event Persistence"]
+  core --> persistence["Owls Event Persistence"]
   persistence --> sqlite
 ```
 
@@ -172,34 +172,34 @@ SQLite, approval, or tool contracts.
 
 ### `pi-ai`
 
-Pichu may use `pi-ai` for:
+Owls may use `pi-ai` for:
 
 - Model and provider types.
 - Streaming response primitives.
 - Provider capability metadata.
 - Usage and token accounting inputs.
 
-Pichu should wrap provider selection, authentication, model settings, fallback,
-and message conversion behind Pichu-owned interfaces. Renderer IPC and SQLite
+Owls should wrap provider selection, authentication, model settings, fallback,
+and message conversion behind Owls-owned interfaces. Renderer IPC and SQLite
 rows must not expose dependency-specific objects.
 
 ### `pi-agent-core`
 
-Pichu may use `pi-agent-core` for:
+Owls may use `pi-agent-core` for:
 
 - The `Agent` loop.
 - Agent messages and streaming events.
 - Tool definitions and execution callbacks.
 - `beforeToolCall` and `afterToolCall` interception.
-- Steering, follow-up, abort, and continuation primitives that Pichu explicitly
+- Steering, follow-up, abort, and continuation primitives that Owls explicitly
   adopts.
 
-Pichu owns the configuration passed to `Agent`, the lifecycle around it, and the
+Owls owns the configuration passed to `Agent`, the lifecycle around it, and the
 interpretation and persistence of emitted events.
 
 ### `pi-coding-agent`
 
-Pichu does not use these as product contracts:
+Owls does not use these as product contracts:
 
 - `createAgentSession()`.
 - `createAgentSessionRuntime()` or `AgentSessionRuntime`.
@@ -215,11 +215,11 @@ be replaced, copied only when licensing and maintenance allow it, or moved to a
 small adapter with focused tests. The end state should not require
 `pi-coding-agent` at runtime.
 
-## Pichu Runtime Contract
+## Owls Runtime Contract
 
 ### Central Agent Factory
 
-All agent construction should move behind one Pichu-owned factory:
+All agent construction should move behind one Owls-owned factory:
 
 ```ts
 type CreatePichuAgentRuntimeOptions = {
@@ -298,7 +298,7 @@ planned.
 
 ### Event Persistence
 
-Pichu subscribes to `Agent` events and persists normalized results through the
+Owls subscribes to `Agent` events and persists normalized results through the
 existing event-persistence boundary. The persistence layer must remain:
 
 - Idempotent for retried or replayed terminal events.
@@ -323,7 +323,7 @@ store because SQLite remains authoritative.
 
 ### Compaction
 
-Pichu owns context compaction. Compaction may generate summaries or derived
+Owls owns context compaction. Compaction may generate summaries or derived
 context, but it must not destroy the durable transcript or cross unresolved
 approval and human-input boundaries. The model-facing context can differ from
 the user-visible transcript when visibility metadata explicitly permits it.
@@ -337,19 +337,19 @@ The required order is:
 ```text
 model tool call
   -> normalize tool identity
-  -> Pichu PreToolUse hooks
+  -> Owls PreToolUse hooks
   -> apply allowed input updates
   -> final schema validation
-  -> Pichu permission classification
+  -> Owls permission classification
   -> approval UI or remembered policy
   -> one-time Seatbelt grant
   -> tool execution
-  -> Pichu audit and durable result
-  -> Pichu PostToolUse hooks
+  -> Owls audit and durable result
+  -> Owls PostToolUse hooks
   -> model-facing result
 ```
 
-The final validation, permission, and execution boundary is owned by Pichu. A
+The final validation, permission, and execution boundary is owned by Owls. A
 plugin hook may block, request approval, or propose an allowed input update, but
 it cannot remove or reorder the final gate.
 
@@ -379,21 +379,21 @@ need an equivalent sandboxed helper or a strict host capability boundary.
 
 ## Plugins, Skills, Hooks, and MCP
 
-Pichu adopts [Agent Plugins 1.0](https://agent-plugins.org/specification) as the
+Owls adopts [Agent Plugins 1.0](https://agent-plugins.org/specification) as the
 portable plugin package contract. A package has root `plugin.json`, optional
 Agent Skills under `skills/`, and optional MCP configuration at root
-`mcp.json`. `docs/PLUGIN_SYSTEM.md` defines the complete Pichu client behavior.
+`mcp.json`. `docs/PLUGIN_SYSTEM.md` defines the complete Owls client behavior.
 
-Pichu continues to own installation, Marketplace, enablement, updates, trust,
+Owls continues to own installation, Marketplace, enablement, updates, trust,
 permissions, sandboxing, authentication, diagnostics, and UI. These concerns
 do not become portable manifest fields.
 
-Pichu-specific declarative behavior uses `extensions.com.pichu.app` or files
+Owls-specific declarative behavior uses `extensions.com.pichu.app` or files
 under `com.pichu.app/`. Codex-aligned hooks move into that namespace and
-continue to run under Pichu-owned execution and audit.
+continue to run under Owls-owned execution and audit.
 
-MCP is a first-class runtime capability. Pichu supports stdio and Streamable HTTP
-servers, maps their tools into deterministic Pichu tool identities, and routes
+MCP is a first-class runtime capability. Owls supports stdio and Streamable HTTP
+servers, maps their tools into deterministic Owls tool identities, and routes
 every call through hooks, final schema validation, approval, audit, and
 Seatbelt policy. One server failure must not disable sibling servers or skills.
 
@@ -402,7 +402,7 @@ client extensions are portable namespaced data, not executable Pi extensions.
 
 ## Renderer and IPC
 
-The renderer consumes Pichu-owned typed APIs. It must not receive `Agent`,
+The renderer consumes Owls-owned typed APIs. It must not receive `Agent`,
 provider objects, raw database access, generic plugin registry operations, or
 filesystem primitives.
 
@@ -419,7 +419,7 @@ be validated in main and use stable failure shapes.
 
 ## Multi-Agent Direction
 
-Multi-agent behavior is a Pichu runtime capability, not a Pi Extension feature.
+Multi-agent behavior is a Owls runtime capability, not a Pi Extension feature.
 The team manager should create child agents through the same central factory and
 record:
 
@@ -458,11 +458,11 @@ reviewed independently.
   plugin, and multi-agent behavior in focused tests.
 - Inventory legacy plugin manifests and MCP-capable components against Agent
   Plugins 1.0 and the `com.pichu.app` namespace.
-- Define the stable Pichu runtime and IPC contracts.
+- Define the stable Owls runtime and IPC contracts.
 
 ### Phase 1: Centralize Agent Construction
 
-- Introduce the Pichu runtime factory.
+- Introduce the Owls runtime factory.
 - Migrate chat, detached prompt, continuation, automation, admin, and subagent
   callers to it.
 - Install persistence, hooks, approval, audit, and cleanup once in the factory.
@@ -478,7 +478,7 @@ reviewed independently.
 
 ### Phase 3: Remove Pi Coding Agent Coupling
 
-- Replace coding-tool helpers with Pichu-owned adapters over core or local
+- Replace coding-tool helpers with Owls-owned adapters over core or local
   implementations.
 - Replace isolated parser or type imports.
 - Remove `@earendil-works/pi-coding-agent` from runtime bundling and dependencies
@@ -491,7 +491,7 @@ reviewed independently.
 - Unify background command and terminal ownership.
 - Strengthen multi-agent lifecycle and visibility.
 - Complete the Agent Plugins MCP runtime and add future connectors through
-  separate Pichu-owned contracts.
+  separate Owls-owned contracts.
 - Improve session inspection, search, artifacts, and recovery without changing
   the authoritative conversation store.
 
@@ -508,12 +508,12 @@ The refactor must not ship with regressions in these capabilities:
 | Seatbelt | Input-bound one-time grants, permanent denies, background children, expiry, and `write_stdin` ownership pass tests |
 | Human input | Request, response, cancellation, restart, atomic resolution, and continuation work |
 | Artifacts | Creation, source-message navigation, export, and deletion retain current behavior |
-| Plugins and MCP | Agent Plugins validation, install, enable, skills, Pichu hooks, MCP lifecycle, auth, diagnostics, final-gate coverage, and UI work |
+| Plugins and MCP | Agent Plugins validation, install, enable, skills, Owls hooks, MCP lifecycle, auth, diagnostics, final-gate coverage, and UI work |
 | Multi-agent | Parent/child identity, cancellation, tool policy, result delivery, and cleanup work |
 | Native tools | Browser, Computer Use, web, image, cron, and workbench tools retain model-facing contracts |
 
 A failed parity case blocks the runtime cutover. Tests may use existing SQLite
-data and Pichu Plugins because both remain supported product contracts.
+data and Owls Plugins because both remain supported product contracts.
 
 ## Verification Strategy
 
@@ -547,7 +547,7 @@ data and Pichu Plugins because both remain supported product contracts.
 
 - Continue running `pnpm --filter pichu-client test:plugins` for plugin changes.
 - Validate Agent Plugins manifests, fixed component locations, schema versions,
-  paths, skills, MCP entries, Pichu hooks, and install state.
+  paths, skills, MCP entries, Owls hooks, and install state.
 - Verify disabled plugins contribute no active runtime capabilities.
 - Verify stdio and Streamable HTTP server lifecycle and failure isolation.
 - Verify MCP tools cannot bypass approval, audit, and Seatbelt.
@@ -571,14 +571,14 @@ contents, full tool payloads, or unnecessary absolute paths.
 ### Adopt Pi Coding Agent and Pi CLI Ecosystem
 
 Rejected. It provides a mature `AgentSession`, JSONL sessions, Packages, and
-Extensions, but it gives Pichu a second lifecycle, persistence model, extension
-contract, and UI compatibility problem. Pichu's goal is a Codex-class product,
+Extensions, but it gives Owls a second lifecycle, persistence model, extension
+contract, and UI compatibility problem. Owls's goal is a Codex-class product,
 not a desktop client for Pi CLI.
 
 ### Use Pi CLI RPC as the Runtime
 
 Rejected for production. RPC is useful for experiments and isolation, but it
-makes Pichu a client of Pi CLI behavior and weakens control over persistence,
+makes Owls a client of Pi CLI behavior and weakens control over persistence,
 approval, tools, recovery, and product-specific lifecycle.
 
 ### Use Pi AgentSession but Mirror Messages to SQLite
@@ -590,20 +590,20 @@ Agent runtime coupling without making its ecosystem a product goal.
 ### Implement a SQLite SessionManager for Pi Coding Agent
 
 Rejected. Matching Pi's evolving branch, compaction, label, custom-entry, and
-extension semantics would recreate a large compatibility layer that Pichu does
+extension semantics would recreate a large compatibility layer that Owls does
 not need.
 
 ### Remove All Pi Libraries
 
 Not required. `pi-ai` and `pi-agent-core` already provide useful lower-level
-model and loop primitives. Keeping them behind Pichu-owned adapters avoids
+model and loop primitives. Keeping them behind Owls-owned adapters avoids
 rewriting commodity infrastructure while preserving product ownership.
 
 ## Open Questions
 
 - Which current `pi-coding-agent` helper imports should be replaced locally and
   which should move into `pi-agent-core` upstream?
-- Should the central Pichu runtime remain in Electron main initially or move to a
+- Should the central Owls runtime remain in Electron main initially or move to a
   utility process once its typed boundary is complete?
 - Which observable Codex behaviors are release requirements versus later
   product improvements?
@@ -611,6 +611,6 @@ rewriting commodity infrastructure while preserving product ownership.
 - How should subagent worktree and approval inheritance be represented in
   SQLite?
 
-These questions do not change the core decision: Pichu owns the Codex-class
+These questions do not change the core decision: Owls owns the Codex-class
 coding-agent runtime and SQLite conversation model; Pi supplies lower-level
 model and agent-loop libraries only.

@@ -25,7 +25,7 @@ const embeddedBrowserStatusSchema = Type.Object({})
 
 const embeddedBrowserOpenSchema = Type.Object({
   url: Type.String({
-    description: 'URL to open in the visible Pichu right-sidebar embedded browser.'
+    description: 'URL to open in the visible Owls right-sidebar embedded browser.'
   }),
   waitUntilLoaded: Type.Optional(
     Type.Boolean({
@@ -36,7 +36,7 @@ const embeddedBrowserOpenSchema = Type.Object({
 
 const embeddedBrowserEvalSchema = Type.Object({
   code: Type.String({
-    description: 'JavaScript to execute in the visible Pichu right-sidebar embedded browser.'
+    description: 'JavaScript to execute in the visible Owls right-sidebar embedded browser.'
   })
 })
 
@@ -118,7 +118,7 @@ const embeddedBrowserStatusTool: AgentTool<typeof embeddedBrowserStatusSchema> =
   name: 'embeddedBrowserStatus',
   label: 'Embedded Browser Status',
   description:
-    'Inspect the visible Pichu right-sidebar embedded browser instance and whether it is attached.',
+    'Inspect the visible Owls right-sidebar embedded browser instance and whether it is attached.',
   parameters: embeddedBrowserStatusSchema,
   async execute() {
     activateEmbeddedBrowserToolSession()
@@ -141,7 +141,7 @@ const embeddedBrowserOpenTool: AgentTool<typeof embeddedBrowserOpenSchema> = {
   name: 'embeddedBrowserOpen',
   label: 'Open Embedded Browser',
   description:
-    'Show and navigate the visible Pichu right-sidebar embedded browser. The instance persists across app route changes.',
+    'Show and navigate the visible Owls right-sidebar embedded browser. The instance persists across app route changes.',
   parameters: embeddedBrowserOpenSchema,
   async execute(_toolCallId, params) {
     activateEmbeddedBrowserToolSession()
@@ -186,7 +186,7 @@ const embeddedBrowserSnapshotTool: AgentTool<typeof embeddedBrowserSnapshotSchem
 const embeddedBrowserEvalTool: AgentTool<typeof embeddedBrowserEvalSchema> = {
   name: 'embeddedBrowserEval',
   label: 'Embedded Browser Eval',
-  description: 'Execute JavaScript in the visible Pichu right-sidebar embedded browser.',
+  description: 'Execute JavaScript in the visible Owls right-sidebar embedded browser.',
   parameters: embeddedBrowserEvalSchema,
   async execute(_toolCallId, params) {
     activateEmbeddedBrowserToolSession()
@@ -204,7 +204,7 @@ const embeddedBrowserClickTool: AgentTool<typeof embeddedBrowserClickSchema> = {
   name: 'embeddedBrowserClick',
   label: 'Embedded Browser Click',
   description:
-    'Click an element in the visible Pichu right-sidebar embedded browser by selector or visible text.',
+    'Click an element in the visible Owls right-sidebar embedded browser by selector or visible text.',
   parameters: embeddedBrowserClickSchema,
   async execute(_toolCallId, params) {
     activateEmbeddedBrowserToolSession()
@@ -220,7 +220,7 @@ const embeddedBrowserFillTool: AgentTool<typeof embeddedBrowserFillSchema> = {
   name: 'embeddedBrowserFill',
   label: 'Embedded Browser Fill',
   description:
-    'Fill an input, textarea, or contenteditable element in the visible Pichu right-sidebar embedded browser.',
+    'Fill an input, textarea, or contenteditable element in the visible Owls right-sidebar embedded browser.',
   parameters: embeddedBrowserFillSchema,
   async execute(_toolCallId, params) {
     activateEmbeddedBrowserToolSession()
@@ -236,7 +236,7 @@ const embeddedBrowserTypeTool: AgentTool<typeof embeddedBrowserTypeSchema> = {
   name: 'embeddedBrowserType',
   label: 'Embedded Browser Type',
   description:
-    'Append text to a focused or selected editable element in the visible Pichu right-sidebar embedded browser.',
+    'Append text to a focused or selected editable element in the visible Owls right-sidebar embedded browser.',
   parameters: embeddedBrowserTypeSchema,
   async execute(_toolCallId, params) {
     activateEmbeddedBrowserToolSession()
@@ -252,7 +252,7 @@ const embeddedBrowserPressTool: AgentTool<typeof embeddedBrowserPressSchema> = {
   name: 'embeddedBrowserPress',
   label: 'Embedded Browser Key Press',
   description:
-    'Send a key press to a focused or selected element in the visible Pichu right-sidebar embedded browser.',
+    'Send a key press to a focused or selected element in the visible Owls right-sidebar embedded browser.',
   parameters: embeddedBrowserPressSchema,
   async execute(_toolCallId, params) {
     activateEmbeddedBrowserToolSession()
@@ -267,7 +267,7 @@ const embeddedBrowserPressTool: AgentTool<typeof embeddedBrowserPressSchema> = {
 const embeddedBrowserScrollTool: AgentTool<typeof embeddedBrowserScrollSchema> = {
   name: 'embeddedBrowserScroll',
   label: 'Embedded Browser Scroll',
-  description: 'Scroll the visible Pichu right-sidebar embedded browser page.',
+  description: 'Scroll the visible Owls right-sidebar embedded browser page.',
   parameters: embeddedBrowserScrollSchema,
   async execute(_toolCallId, params) {
     activateEmbeddedBrowserToolSession()
@@ -283,7 +283,7 @@ const embeddedBrowserWaitTool: AgentTool<typeof embeddedBrowserWaitSchema> = {
   name: 'embeddedBrowserWait',
   label: 'Embedded Browser Wait',
   description:
-    'Wait for time, a selector, or text in the visible Pichu right-sidebar embedded browser.',
+    'Wait for time, a selector, or text in the visible Owls right-sidebar embedded browser.',
   parameters: embeddedBrowserWaitSchema,
   async execute(_toolCallId, params) {
     activateEmbeddedBrowserToolSession()

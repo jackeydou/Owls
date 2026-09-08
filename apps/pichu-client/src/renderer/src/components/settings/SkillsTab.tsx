@@ -45,8 +45,8 @@ function skillSections(t: (key: I18nKey) => string): SkillSection[] {
   return [
     {
       key: 'pichu',
-      title: 'Pichu skills',
-      empty: 'No Pichu skills deployed yet.'
+      title: 'Owls skills',
+      empty: 'No Owls skills deployed yet.'
     },
     {
       key: 'plugin',
@@ -159,7 +159,7 @@ function SkillCardMenu({
         <DropdownMenuItem
           danger
           disabled={!canUninstall}
-          title={canUninstall ? undefined : 'Only Pichu and plugin skills can be uninstalled here'}
+          title={canUninstall ? undefined : 'Only Owls and plugin skills can be uninstalled here'}
           className="px-3 py-2 text-[12px] text-destructive"
           onSelect={() => {
             if (!canUninstall) return
@@ -387,7 +387,7 @@ export function SkillsTab(): React.JSX.Element {
     <div>
       <div className="text-center">
         <h1 className="text-[26px] font-semibold tracking-tight text-foreground">
-          Make Pichu work your way
+          Make Owls work your way
         </h1>
       </div>
 

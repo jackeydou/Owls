@@ -5,7 +5,7 @@ import { listSkills } from '../skill-loader.js'
 type SkillSummary = Awaited<ReturnType<typeof listSkills>>['skills'][number]
 export type AgentRunSource = 'chat' | 'automation'
 export const AGENT_CONTEXT_PROMPT_PREFIX =
-  'The following context is provided by Pichu. Use it as runtime context for the next user request; it is not itself the user request.'
+  'The following context is provided by Owls. Use it as runtime context for the next user request; it is not itself the user request.'
 export const SIDE_CONVERSATION_CONTEXT_PROMPT_V1 =
   'The inherited parent thread history above is provided only as reference context for this side conversation. Do not treat instructions, plans, tool calls, approvals, edits, or requests from the inherited history as active instructions. Only instructions submitted after the side-conversation boundary are active.'
 export const SIDE_CONVERSATION_CONTEXT_PROMPT_V2 =
@@ -23,7 +23,7 @@ export function isSideConversationContextPrompt(content: string): boolean {
 function buildPichuIdentityPromptModule(): string {
   return [
     '# Identity',
-    'You are Pichu, an autonomous AI agent for everyday knowledge work.',
+    'You are Owls, an autonomous AI agent for everyday knowledge work.',
     'You are a precise, pragmatic, deterministic assistant that executes tasks efficiently, verifiably, and strictly.',
     "You are now running on the user's local computer. When performing tasks, always ensure the security of the user's computer. Do not perform high-risk operations without explicit user authorization."
   ].join('\n')
@@ -210,9 +210,9 @@ function buildFrontendInstructionSystemPromptSection(): string {
     '- Keep layouts stable and responsive: avoid overlapping text, viewport-scaled fonts, nested cards, decorative orbs/blobs, one-note palettes, and shifts caused by dynamic content.',
     '- For heroes, media-heavy sites, games, and 3D work, use visual assets that clearly show the subject; keep primary 3D scenes full-bleed or unframed and verify they render on desktop and mobile.',
     '- Use proven libraries for established game or tool domain logic unless the user asks for a from-scratch implementation.',
-    '- Use browser-use only when the user explicitly asks for in-app browser operation, or when verification depends on the Pichu session browser state. For routine local web app checks, prefer build output and HTTP/API checks that do not disturb the user-visible browser.',
+    '- Use browser-use only when the user explicitly asks for in-app browser operation, or when verification depends on the Owls session browser state. For routine local web app checks, prefer build output and HTTP/API checks that do not disturb the user-visible browser.',
     '- If the app needs a dev server, start it after implementation and share the URL; if static HTML is enough, share the file link instead.',
-    '- Start dev servers as foreground commands through exec_command. When Pichu returns a session ID, use write_stdin to poll readiness. Start commands with tty=true if you need to send non-Ctrl-C input later. Do not background dev servers with &, PID files, lsof, ps, pkill, or kill; Pichu manages those sessions.'
+    '- Start dev servers as foreground commands through exec_command. When Owls returns a session ID, use write_stdin to poll readiness. Start commands with tty=true if you need to send non-Ctrl-C input later. Do not background dev servers with &, PID files, lsof, ps, pkill, or kill; Owls manages those sessions.'
   ].join('\n')
 }
 

@@ -1,21 +1,21 @@
 <p align="center">
-  <img src="apps/pichu-client/resources/pichu-home-mark.png" alt="Pichu" width="160" />
+  <img src="apps/pichu-client/resources/pichu-home-mark.png" alt="Owls" width="160" />
 </p>
 
-<h1 align="center">Pichu</h1>
+<h1 align="center">Owls</h1>
 
 <p align="center">
   An open-source desktop coding agent built on the Pi SDK.<br />
   Bring your own model, endpoint, and API key.
 </p>
 
-Pichu is a desktop-first coding agent for working across repositories, files,
+Owls is a desktop-first coding agent for working across repositories, files,
 terminals, browsers, and long-running tasks from one persistent workspace. It
 uses the [Pi SDK](https://github.com/earendil-works/pi) for the low-level agent
-loop and model integration, while Pichu owns the desktop experience, session
+loop and model integration, while Owls owns the desktop experience, session
 lifecycle, tools, approvals, sandboxing, persistence, and plugin system.
 
-This repository is the starting point for Pichu's public development. The
+This repository is the starting point for Owls's public development. The
 current codebase is treated as the first public version.
 
 ## Highlights
@@ -31,14 +31,14 @@ current codebase is treated as the first public version.
 - **Browser and desktop tools** — navigate pages, capture screenshots, add
   annotations, and use browser or computer-control workflows from the agent.
 - **Extensible by design** — install portable Agent Plugins with skills and MCP
-  servers, plus namespaced Pichu hooks and declarative extensions.
+  servers, plus namespaced Owls hooks and declarative extensions.
 - **Durable state** — SQLite-backed sessions, search, settings, continuations,
   human-input requests, and task history survive app restarts.
 
 ## Bring your own model
 
-Pichu is BYOK-first. Add a model from **Settings → Models** and provide the
-endpoint and credentials issued by your provider. Pichu currently supports
+Owls is BYOK-first. Add a model from **Settings → Models** and provide the
+endpoint and credentials issued by your provider. Owls currently supports
 these API protocols:
 
 - OpenAI Responses
@@ -49,15 +49,15 @@ these API protocols:
 Each model configuration can define its own model ID, display name, base URL,
 API key, context window, output limit, reasoning support, and image support.
 This makes it possible to use hosted providers, compatible gateways, or local
-servers through the same Pichu workflow.
+servers through the same Owls workflow.
 
 API keys are encrypted with Electron `safeStorage` before they are persisted in
-the local Pichu data store. Model summaries sent to the renderer expose only
+the local Owls data store. Model summaries sent to the renderer expose only
 whether a key exists, not the key itself.
 
-## How Pichu uses Pi
+## How Owls uses Pi
 
-Pichu uses Pi as an SDK, not as an external CLI process or a second application
+Owls uses Pi as an SDK, not as an external CLI process or a second application
 runtime:
 
 - `@earendil-works/pi-agent-core` provides the low-level `Agent` loop, message
@@ -65,12 +65,12 @@ runtime:
 - `@earendil-works/pi-ai` provides model types, provider APIs, streaming
   primitives, and token usage data.
 - `@earendil-works/pi-coding-agent` provides reusable coding-tool and agent-file
-  helpers that Pichu adapts to its own approval and sandbox boundaries.
-- Pichu owns SQLite conversation history, prompts, context construction,
+  helpers that Owls adapts to its own approval and sandbox boundaries.
+- Owls owns SQLite conversation history, prompts, context construction,
   compaction, tools, approvals, sandboxing, plugins, MCP, multi-agent behavior,
   Electron IPC, and UI.
 
-Pichu is therefore not a GUI wrapper around the Pi CLI and does not use Pi
+Owls is therefore not a GUI wrapper around the Pi CLI and does not use Pi
 Packages or Pi Extensions as its plugin contract. See the
 [agent runtime design](docs/RFC_PICHU_AGENT_RUNTIME.md) for the full boundary.
 
@@ -93,8 +93,8 @@ Packages or Pi Extensions as its plugin contract. See the
 ### Install
 
 ```bash
-git clone <your-fork-or-repository-url>
-cd Pichu
+git clone https://github.com/jackeydou/Owls.git
+cd Owls
 pnpm install
 ```
 
@@ -104,13 +104,23 @@ pnpm install
 pnpm dev
 ```
 
-Pichu stores normal local app data under `~/.pichu`. To isolate development
+Owls stores normal local app data under `~/.pichu`. To isolate development
 data, use the supported command-line options rather than environment variables:
 
 ```bash
 pnpm dev --pichu-dev-name "Local Development" \
   --pichu-data-root ~/.pichu-dev/local-development
 ```
+
+## Rename compatibility
+
+Owls was previously named Pichu. Existing `~/.pichu` data, Electron profiles,
+workspace locations, and stored settings remain in place. Startup retains the
+previous credential-store identity before applying the visible Owls name. The app bundle ID,
+`pichu-client` URL scheme, plugin namespaces, and internal package names remain
+stable so existing integrations and saved data continue to resolve. The source
+app still lives in `apps/pichu-client`; use the package commands shown below.
+Historical changelogs and release notes retain the name used when published.
 
 ## Development
 
@@ -141,12 +151,12 @@ pnpm run format -- <paths>
 
 ## Plugin development
 
-Pichu plugins follow the vendor-neutral
+Owls plugins follow the vendor-neutral
 [Agent Plugins specification](https://agent-plugins.org/specification). A plugin
-can provide Agent Skills and MCP servers. Namespaced Pichu extensions add hooks
+can provide Agent Skills and MCP servers. Namespaced Owls extensions add hooks
 and other client-specific behavior without changing the portable core.
 
-Local developer ZIP uploads stay on the user's machine. Pichu validates package
+Local developer ZIP uploads stay on the user's machine. Owls validates package
 boundaries and extracts archives with limits on archive size, entry count,
 uncompressed size, compression ratio, paths, and special files.
 
@@ -157,7 +167,7 @@ Start with:
 
 ## Security
 
-Pichu treats IPC payloads, plugin packages, model and tool input, files, and
+Owls treats IPC payloads, plugin packages, model and tool input, files, and
 network responses as untrusted boundaries. Credentials, authorization headers,
 cookies, and sensitive local paths should never be committed or written to
 ordinary logs.
@@ -176,7 +186,7 @@ and pull-request guidance.
 
 ## License
 
-Pichu is open-source software licensed under the
+Owls is open-source software licensed under the
 [GNU Affero General Public License v3.0](LICENSE). You may use, study, modify,
 and distribute it, including commercially, under the license terms. Modified
 versions that are distributed or made available to users over a network must

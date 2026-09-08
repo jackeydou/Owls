@@ -115,7 +115,7 @@ const modifierKeysSchema = Type.Optional(
 
 // All computer input tools route through the background path
 // (`CGEventPostToPid` + per-window-id event tagging), so they NEVER bring
-// the target app to the foreground — Pichu stays frontmost throughout.
+// the target app to the foreground — Owls stays frontmost throughout.
 
 const computerWindowTargetField = Type.Number({
   description:
@@ -222,7 +222,7 @@ const windowPointPositionSchema = Type.Object(
   },
   {
     description:
-      "Window-local point coordinates. Pichu looks up the window's global origin from `windowId` automatically — pass coords as if the window started at (0, 0)."
+      "Window-local point coordinates. Owls looks up the window's global origin from `windowId` automatically — pass coords as if the window started at (0, 0)."
   }
 )
 
@@ -238,7 +238,7 @@ const screenshotPixelPositionSchema = Type.Object(
   },
   {
     description:
-      'Pixel coordinates inside a screenshot. Pass the `geometry` blob verbatim from the screenshot tool result; Pichu converts to CG global points using `gx = anchor.x + (px / thumbnailScale) / displayScaleFactor`.'
+      'Pixel coordinates inside a screenshot. Pass the `geometry` blob verbatim from the screenshot tool result; Owls converts to CG global points using `gx = anchor.x + (px / thumbnailScale) / displayScaleFactor`.'
   }
 )
 
@@ -246,7 +246,7 @@ const computerClickPositionSchema = Type.Union(
   [cgGlobalPointPositionSchema, windowPointPositionSchema, screenshotPixelPositionSchema],
   {
     description:
-      'Click position. Pick one of three coordinate spaces — Pichu converts to CG global points internally so you do NOT need to do screenshot-pixel math yourself.'
+      'Click position. Pick one of three coordinate spaces — Owls converts to CG global points internally so you do NOT need to do screenshot-pixel math yourself.'
   }
 )
 
@@ -283,7 +283,7 @@ const screenshotPixelPathSchema = Type.Object(
   },
   {
     description:
-      'Pixel-coord path. Both endpoints share the same `geometry` (one screenshot). Pichu converts each endpoint to CG global points.'
+      'Pixel-coord path. Both endpoints share the same `geometry` (one screenshot). Owls converts each endpoint to CG global points.'
   }
 )
 
@@ -326,13 +326,13 @@ const computerClickSchema = Type.Object({
   ref: Type.Optional(
     Type.String({
       description:
-        'Element ref from computerGetAppState, e.g. "e62". When supplied, Pichu tries AX actions first and falls back to a physical click at the element frame.'
+        'Element ref from computerGetAppState, e.g. "e62". When supplied, Owls tries AX actions first and falls back to a physical click at the element frame.'
     })
   ),
   action: Type.Optional(
     Type.String({
       description:
-        'Optional AX action to try first for ref clicks, copied from the element actions shown in computerGetAppState axTree.text, e.g. "AXPress" or "AXShowMenu". If omitted, Pichu auto-tries common AX actions plus the element actions.'
+        'Optional AX action to try first for ref clicks, copied from the element actions shown in computerGetAppState axTree.text, e.g. "AXPress" or "AXShowMenu". If omitted, Owls auto-tries common AX actions plus the element actions.'
     })
   ),
   windowId: Type.Optional(computerWindowTargetField),
@@ -713,7 +713,7 @@ const computerEnsureAppTool: AgentTool<typeof computerEnsureAppSchema> = {
     'Use this as the first step for app-specific tasks, before computerGetAppState. ' +
     'Pass a human `query` such as "Safari", "Workspace", or "Cursor"; optional `bundleId`/`path` can make launching more precise. ' +
     'Returns matching visible windows with `windowId` values suitable for computerGetAppState/computerClick/computerType. ' +
-    'When Screen Recording metadata is available, also returns each window capture `sourceId`. Launch uses `open -g` so Pichu should remain foreground.',
+    'When Screen Recording metadata is available, also returns each window capture `sourceId`. Launch uses `open -g` so Owls should remain foreground.',
   parameters: computerEnsureAppSchema,
   async execute(_toolCallId, params) {
     const result = await ensureComputerApp(params)
@@ -920,7 +920,7 @@ const computerGetAppStateTool: AgentTool<typeof computerGetAppStateSchema> = {
 
 // All four computer input tools below route 100% through the background
 // path: `CGEventPostToPid` (+ per-window-id event tagging for mouse).
-// The Pichu app NEVER yields the foreground; the target app is not
+// The Owls app NEVER yields the foreground; the target app is not
 // activated. The cursor overlay only renders a transparent "ghost cursor"
 // indicator over the click point — the user's real cursor never moves.
 //
@@ -1058,8 +1058,8 @@ const computerClickTool: AgentTool<typeof computerClickSchema> = {
   name: 'computerClick',
   label: 'Click',
   description:
-    'Click a target in another app WITHOUT activating it. Prefer `ref` from `computerGetAppState`, e.g. `{ ref: "e62" }`: Pichu tries AX actions first, then falls back to a plain physical click at the element frame center. ' +
-    'If `axTree.text` shows actions for the ref, pass `action` to try a specific AX action first; otherwise Pichu auto-selects. ' +
+    'Click a target in another app WITHOUT activating it. Prefer `ref` from `computerGetAppState`, e.g. `{ ref: "e62" }`: Owls tries AX actions first, then falls back to a plain physical click at the element frame center. ' +
+    'If `axTree.text` shows actions for the ref, pass `action` to try a specific AX action first; otherwise Owls auto-selects. ' +
     'For coordinate fallback, pass `windowId` plus `position` in screenshot pixels, window points, or CG global points. ' +
     'Physical clicks use plain `CGEventPostToPid` mouseDown/mouseUp events with no synthetic Command/Option delivery bypass; target apps only see modifiers you explicitly pass. ' +
     'The result reports the resolved `globalX`/`globalY` and `windowLocalX`/`windowLocalY` so you can verify the conversion. ' +
@@ -1306,7 +1306,7 @@ const computerTypeTool: AgentTool<typeof computerTypeSchema> = {
   name: 'computerType',
   label: 'Type Text',
   description:
-    "Type Unicode text into another app's focused input WITHOUT activating that app — Pichu stays frontmost. " +
+    "Type Unicode text into another app's focused input WITHOUT activating that app — Owls stays frontmost. " +
     'Posts keyboard events directly to the target process via `CGEventPostToPid`. ' +
     'Pass either `windowId` (preferred — pid is auto-resolved) or `pid`. ' +
     'Uses the Unicode input path so any character (CJK, emoji, accents) is inserted exactly as written, regardless of the active keyboard layout. Does NOT trigger an IME — characters are inserted literally. ' +
@@ -1353,7 +1353,7 @@ const computerPressKeyTool: AgentTool<typeof computerPressKeySchema> = {
   name: 'computerPressKey',
   label: 'Press Key',
   description:
-    'Press a single named key (with optional modifiers) targeting another app WITHOUT activating it — Pichu stays frontmost. ' +
+    'Press a single named key (with optional modifiers) targeting another app WITHOUT activating it — Owls stays frontmost. ' +
     'Posts keyboard events directly to the target process via `CGEventPostToPid`. ' +
     'Pass either `windowId` (preferred) or `pid`. ' +
     'Use for shortcuts (key="s" + modifiers=["command"] for Cmd+S), navigation (arrow keys, tab, enter, escape), and special keys (function keys, page up/down). ' +

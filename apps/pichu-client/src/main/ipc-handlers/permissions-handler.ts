@@ -57,10 +57,10 @@ const NOTIFICATION_COPY: Record<'en' | 'zh-CN', Record<NotificationCopyKey, stri
     'completion.default.body': 'Click to open the completed session.',
     'approval.title': 'Approval needed',
     'approval.withTitle.body': '{title} needs approval to continue.',
-    'approval.default.body': 'Pichu needs approval to continue.',
+    'approval.default.body': 'Owls needs approval to continue.',
     'question.title': 'Input needed',
     'question.withTitle.body': '{title} needs your input to continue.',
-    'question.default.body': 'Pichu needs your input to continue.'
+    'question.default.body': 'Owls needs your input to continue.'
   },
   'zh-CN': {
     'completion.chat.title': 'Agent 会话已完成',
@@ -69,10 +69,10 @@ const NOTIFICATION_COPY: Record<'en' | 'zh-CN', Record<NotificationCopyKey, stri
     'completion.default.body': '点击打开已完成的会话。',
     'approval.title': '需要审批',
     'approval.withTitle.body': '{title} 需要审批才能继续。',
-    'approval.default.body': 'Pichu 需要审批才能继续。',
+    'approval.default.body': 'Owls 需要审批才能继续。',
     'question.title': '需要输入',
     'question.withTitle.body': '{title} 需要你的输入才能继续。',
-    'question.default.body': 'Pichu 需要你的输入才能继续。'
+    'question.default.body': 'Owls 需要你的输入才能继续。'
   }
 }
 

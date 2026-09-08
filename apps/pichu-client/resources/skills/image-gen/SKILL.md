@@ -1,6 +1,6 @@
 ---
 name: "Image Gen"
-description: "Generate or edit raster images when the task calls for AI-created visual assets such as photos, illustrations, textures, sprites, mockups, posters, cutouts, or image transformations. Use when Pichu should create a new image, modify an existing image, or produce visual variants from references. Do not use when the work is better done by editing SVG/vector/code-native assets, extending an existing icon or logo system, or building the visual directly in HTML/CSS/canvas."
+description: "Generate or edit raster images when the task calls for AI-created visual assets such as photos, illustrations, textures, sprites, mockups, posters, cutouts, or image transformations. Use when Owls should create a new image, modify an existing image, or produce visual variants from references. Do not use when the work is better done by editing SVG/vector/code-native assets, extending an existing icon or logo system, or building the visual directly in HTML/CSS/canvas."
 ---
 
 # Image Gen

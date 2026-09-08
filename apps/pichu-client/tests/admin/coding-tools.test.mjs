@@ -115,7 +115,7 @@ test('read-only tools expose exec_command instead of legacy bash', () => {
   )
 })
 
-test('exec_command uses Pichu npm cache defaults for npx', async () => {
+test('exec_command uses Owls npm cache defaults for npx', async () => {
   let observed
   globalThis.__pichuRunPichuManagedExecCommand = async (options) => {
     observed = options
@@ -143,7 +143,7 @@ test('exec_command uses Pichu npm cache defaults for npx', async () => {
   }
 })
 
-test('exec_command does not seed auth for hidden Pichu site projects', async () => {
+test('exec_command does not seed auth for hidden Owls site projects', async () => {
   const siteRoot = mkdtempSync(join(tmpdir(), 'pichu-site-dev-auth-'))
   mkdirSync(join(siteRoot, 'lib', 'server'), { recursive: true })
   mkdirSync(join(siteRoot, 'app', 'api', 'pichu-dev-auth'), { recursive: true })

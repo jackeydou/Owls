@@ -1,6 +1,6 @@
 ---
 name: release-notes-writer
-description: "Write user-facing Pichu Client release notes from CHANGELOG.md. Use when preparing release notes, editing release-notes/<version>.md, or turning a versioned changelog section into feature and bugfix notes."
+description: "Write user-facing Owls Client release notes from CHANGELOG.md. Use when preparing release notes, editing release-notes/<version>.md, or turning a versioned changelog section into feature and bugfix notes."
 ---
 
 # Release Notes Writer

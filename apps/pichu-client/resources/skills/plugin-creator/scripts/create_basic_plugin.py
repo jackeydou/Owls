@@ -66,7 +66,7 @@ def build_plugin_json(plugin_name: str) -> dict:
                     "displayName": "[TODO: Plugin Display Name]",
                     "shortDescription": "[TODO: Short description for subtitle]",
                     "longDescription": "[TODO: Long description for details page]",
-                    "developerName": "[TODO: Pichu]",
+                    "developerName": "[TODO: Owls]",
                     "category": "[TODO: Productivity]",
                     "capabilities": ["[TODO: Interactive]", "[TODO: Write]"],
                     "websiteURL": "[TODO: https://example.com/]",
@@ -218,7 +218,7 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--with-skills", action="store_true", help="Create skills/ directory")
-    parser.add_argument("--with-hooks", action="store_true", help="Create Pichu hooks config")
+    parser.add_argument("--with-hooks", action="store_true", help="Create Owls hooks config")
     parser.add_argument("--with-scripts", action="store_true", help="Create scripts/ directory")
     parser.add_argument("--with-assets", action="store_true", help="Create assets/ directory")
     parser.add_argument("--with-mcp", action="store_true", help="Create mcp.json placeholder")

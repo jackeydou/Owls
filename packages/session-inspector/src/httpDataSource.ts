@@ -29,7 +29,7 @@ export const httpSessionInspectorDataSource: SessionInspectorDataSource = {
       const response = await fetch(`/api/pichu/session?id=${encodeURIComponent(sessionId)}`)
       if (!response.ok) {
         const body = await response.json().catch(() => null)
-        throw new Error(body?.error || `Failed to read Pichu session ${sessionId}`)
+        throw new Error(body?.error || `Failed to read Owls session ${sessionId}`)
       }
       return {
         body: await response.text(),

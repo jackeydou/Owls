@@ -4,7 +4,7 @@
   "version": "1.0.10",
   "description": "Build and locally validate websites and web apps.",
   "author": {
-    "name": "Pichu"
+    "name": "Owls"
   },
   "keywords": [
     "sites",
@@ -36,7 +36,7 @@
         "displayName": "Sites",
         "shortDescription": "Build and validate websites and web apps.",
         "longDescription": "Helps create, modify, and locally validate static, CSR, and SSR websites and web apps.",
-        "developerName": "Pichu",
+        "developerName": "Owls",
         "category": "Developer Tools",
         "capabilities": ["Build", "Validate"],
         "defaultPrompt": [

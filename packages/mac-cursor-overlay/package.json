@@ -1,7 +1,7 @@
 {
   "name": "@pichu/mac-cursor-overlay",
   "version": "0.1.0",
-  "description": "Native macOS cursor overlay window for Pichu computer use.",
+  "description": "Native macOS cursor overlay window for Owls computer use.",
   "private": true,
   "main": "loader.js",
   "types": "index.d.ts",

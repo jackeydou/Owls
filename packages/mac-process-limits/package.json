@@ -1,7 +1,7 @@
 {
   "name": "@pichu/mac-process-limits",
   "version": "0.1.0",
-  "description": "Raise macOS process resource limits for Pichu child processes. Internal Pichu package.",
+  "description": "Raise macOS process resource limits for Owls child processes. Internal Owls package.",
   "private": true,
   "main": "index.js",
   "types": "index.d.ts",

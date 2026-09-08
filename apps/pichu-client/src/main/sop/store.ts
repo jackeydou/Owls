@@ -406,7 +406,7 @@ export async function saveSopFromJsonPathAsync(sopJsonPath: string): Promise<Sav
   await mkdir(root, { recursive: true })
   await assertNotSymlinkAsync(root, 'SOP data root')
   if (!isPathInside(await realpath(getDataRoot()), await realpath(root))) {
-    throw new Error('SOP data root escapes Pichu data root.')
+    throw new Error('SOP data root escapes Owls data root.')
   }
 
   const destinationPath = sopFilePath(graph.sop_id)

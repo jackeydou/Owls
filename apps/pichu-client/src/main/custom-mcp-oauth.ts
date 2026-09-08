@@ -48,7 +48,7 @@ class PichuMcpOAuthProvider implements OAuthClientProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     return {
-      client_name: 'Pichu',
+      client_name: 'Owls',
       redirect_uris: [MCP_OAUTH_CALLBACK_URL],
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
@@ -121,10 +121,10 @@ class PichuMcpOAuthProvider implements OAuthClientProvider {
 }
 
 function callbackPage(success: boolean): string {
-  const title = success ? 'Connected to Pichu' : 'Connection failed'
+  const title = success ? 'Connected to Owls' : 'Connection failed'
   const message = success
-    ? 'You can close this window and return to Pichu.'
-    : 'Return to Pichu and try connecting again.'
+    ? 'You can close this window and return to Owls.'
+    : 'Return to Owls and try connecting again.'
   return `<!doctype html><meta charset="utf-8"><title>${title}</title><style>body{font:16px system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#f6f5f2;color:#191919}main{max-width:420px;padding:40px;text-align:center}h1{font-size:22px}p{color:#666;line-height:1.5}</style><main><h1>${title}</h1><p>${message}</p></main>`
 }
 

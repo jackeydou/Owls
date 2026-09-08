@@ -1,6 +1,6 @@
-# Pichu
+# Owls
 
-Pichu desktop client for AI-assisted workflows.
+Owls desktop client for AI-assisted workflows.
 
 ## Recommended IDE Setup
 
@@ -31,7 +31,7 @@ To keep dev app history across changing worktrees, give the dev app a readable n
 $ pnpm dev --pichu-dev-name "Search QA"
 ```
 
-On macOS, development launches use the Pichu-specific bundle identifier
+On macOS, development launches use the Owls-specific bundle identifier
 `us.pichuapp.pichu.dev` instead of Electron's default `com.github.Electron` identifier.
 
 The named dev profile keeps its Electron profile stable across worktrees. By default,
@@ -58,7 +58,7 @@ $ pnpm build:mac
 # For local macOS testing without notarization
 $ pnpm build:mac:local
 
-# For local macOS testing and install to /Applications/Pichu Local.app
+# For local macOS testing and install to /Applications/Owls Local.app
 $ pnpm build:mac:local:install
 
 # For Linux

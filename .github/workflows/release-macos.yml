@@ -89,8 +89,8 @@ jobs:
         working-directory: apps/pichu-client
         run: |
           set -euo pipefail
-          app_path="$(find dist -maxdepth 3 -type d -name 'Pichu.app' -print -quit)"
-          : "${app_path:?Could not find packaged Pichu.app}"
+          app_path="$(find dist -maxdepth 3 -type d -name 'Owls.app' -print -quit)"
+          : "${app_path:?Could not find packaged Owls.app}"
           codesign --verify --deep --strict --verbose=2 "$app_path"
           spctl --assess --verbose --type exec "$app_path"
           xcrun stapler validate "$app_path"
@@ -113,7 +113,7 @@ jobs:
             apps/pichu-client/dist/SHA256SUMS.txt \
             --verify-tag \
             --draft \
-            --title "Pichu $RELEASE_VERSION" \
+            --title "Owls $RELEASE_VERSION" \
             --notes-file "release-notes/$RELEASE_VERSION.md"
           gh release edit "$RELEASE_VERSION" --draft=false --latest
 
@@ -131,6 +131,6 @@ jobs:
             --verify-tag \
             --draft \
             --prerelease \
-            --title "Pichu $RELEASE_VERSION" \
+            --title "Owls $RELEASE_VERSION" \
             --notes-file "release-notes/$RELEASE_VERSION.md"
           gh release edit "$RELEASE_VERSION" --draft=false --prerelease

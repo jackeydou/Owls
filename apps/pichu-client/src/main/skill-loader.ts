@@ -191,7 +191,7 @@ async function resolveSkillSources(options: { cwd?: string } = {}): Promise<Skil
     sources.push({
       kind: 'builtin',
       rootPath,
-      label: 'Built-in Pichu skills'
+      label: 'Built-in Owls skills'
     })
   }
 
@@ -481,12 +481,12 @@ export async function deleteSkill(skillName: string): Promise<{ deleted: boolean
   const result = await listSkills()
   const skill = result.skills.find((s) => s.name === skillName && s.sourceKind === 'pichu')
   if (!skill) {
-    throw new Error(`Pichu skill "${skillName}" not found`)
+    throw new Error(`Owls skill "${skillName}" not found`)
   }
 
   const relativeSkillDir = relative(pichuSkillsRoot, skill.baseDir)
   if (!relativeSkillDir || relativeSkillDir.startsWith('..') || isAbsolute(relativeSkillDir)) {
-    throw new Error('Can only delete skills from the Pichu skills directory')
+    throw new Error('Can only delete skills from the Owls skills directory')
   }
 
   await rm(skill.baseDir, { recursive: true, force: true })

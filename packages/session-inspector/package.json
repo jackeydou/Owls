@@ -1,7 +1,7 @@
 {
   "name": "@pichu/session-inspector",
   "version": "0.1.0",
-  "description": "Local Codex and Pichu session trace inspector.",
+  "description": "Local Codex and Owls session trace inspector.",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",

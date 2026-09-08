@@ -1,6 +1,6 @@
 ---
 name: computer-use
-description: Inspect and control Mac apps through Pichu Computer Use, screen capture, mouse, and keyboard tools.
+description: Inspect and control Mac apps through Owls Computer Use, screen capture, mouse, and keyboard tools.
 ---
 
 # Computer Use
@@ -15,7 +15,7 @@ Computer Use includes app discovery/launch (`computerEnsureApp`), app state insp
 
 1. For a task in a specific Mac app, call `computerEnsureApp` first. It finds existing windows and can launch the app if it is not currently visible.
 2. Inspect next. Use `computerGetAppState` for a target app window. It returns compact AX refs such as `e62 AXTextField ~ "Message"` plus a local screenshot path and geometry.
-3. Prefer `computerClick({ ref: "e62" })` for controls returned by `computerGetAppState`. Pichu tries AX actions first and falls back to a plain physical click at the element frame when needed.
+3. Prefer `computerClick({ ref: "e62" })` for controls returned by `computerGetAppState`. Owls tries AX actions first and falls back to a plain physical click at the element frame when needed.
 4. Use coordinate `computerClick` only when no useful AX ref exists. Pass screenshot pixels with the geometry from the latest state whenever possible.
 5. Verify after each state-changing action with a fresh `computerGetAppState`. Do not trust the input result alone.
 
@@ -34,11 +34,11 @@ Computer Use includes app discovery/launch (`computerEnsureApp`), app state insp
 
 ## Mouse And Keyboard Input
 
-- Background input tools operate in background mode. The Pichu app stays frontmost; the target app is not activated.
+- Background input tools operate in background mode. The Owls app stays frontmost; the target app is not activated.
 - Events are posted directly to the target process via `CGEventPostToPid`; mouse events also carry per-window-id field tagging so the event targets the exact window.
 - Clicks are plain mouseDown/mouseUp events and do not add Command/Option modifiers unless you explicitly pass modifiers.
 - Required permission: Computer Use plugin enabled and macOS Accessibility access granted when the tool is first used. Accessibility is different from Screen Recording.
-- `computerClick` and `computerDrag` accept `screenshot-pixels`, `window-points`, or `cg-global-points`. Pichu converts to CG global points internally, so you do not need to do screenshot-pixel math yourself.
+- `computerClick` and `computerDrag` accept `screenshot-pixels`, `window-points`, or `cg-global-points`. Owls converts to CG global points internally, so you do not need to do screenshot-pixel math yourself.
 - Ref clicks use `ref` values from the latest `computerGetAppState` result, e.g. `computerClick({ ref: "e62" })`.
 - Coordinate mouse tools require `windowId`. Get it from `computerGetAppState.details.screenshot.source.cgWindowId` or `listScreenSources`.
 - Keyboard tools accept either `windowId` (strongly preferred) or a raw `pid`.

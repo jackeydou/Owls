@@ -230,7 +230,7 @@ export function CronTab(): React.JSX.Element {
     <div>
       <SettingRow
         label="Create cron job"
-        description="Schedule recurring agent tasks. When a job triggers, Pichu runs the saved prompt once."
+        description="Schedule recurring agent tasks. When a job triggers, Owls runs the saved prompt once."
       >
         <div className="space-y-3">
           <input

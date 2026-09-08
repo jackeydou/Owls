@@ -253,19 +253,19 @@ export async function readLocalRpcMetadata(
     parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
   } catch (error) {
     throw new PichuLocalRpcConnectionError(
-      `Failed to read Pichu local RPC metadata at ${metadataPath}`,
+      `Failed to read Owls local RPC metadata at ${metadataPath}`,
       { cause: error }
     )
   }
 
-  const metadata = assertRecord(parsed, 'Invalid Pichu local RPC metadata')
+  const metadata = assertRecord(parsed, 'Invalid Owls local RPC metadata')
   if (metadata.transport !== 'unix') {
     throw new PichuLocalRpcConnectionError(
-      `Unsupported Pichu local RPC transport: ${String(metadata.transport)}`
+      `Unsupported Owls local RPC transport: ${String(metadata.transport)}`
     )
   }
   if (typeof metadata.endpoint !== 'string' || !metadata.endpoint.trim()) {
-    throw new PichuLocalRpcConnectionError('Pichu local RPC metadata is missing endpoint')
+    throw new PichuLocalRpcConnectionError('Owls local RPC metadata is missing endpoint')
   }
 
   return {
@@ -284,20 +284,20 @@ function parseJsonRpcResponse(frame: string): unknown {
   try {
     parsed = JSON.parse(frame) as unknown
   } catch (error) {
-    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC response from Pichu Client', {
+    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC response from Owls Client', {
       cause: error
     })
   }
 
-  const response = assertRecord(parsed, 'Invalid JSON-RPC response from Pichu Client')
+  const response = assertRecord(parsed, 'Invalid JSON-RPC response from Owls Client')
   if (response.jsonrpc !== '2.0') {
-    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC version from Pichu Client')
+    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC version from Owls Client')
   }
   if ('error' in response) {
-    const error = assertRecord(response.error, 'Invalid JSON-RPC error from Pichu Client')
+    const error = assertRecord(response.error, 'Invalid JSON-RPC error from Owls Client')
     throw new PichuLocalRpcError({
       code: typeof error.code === 'number' ? error.code : -32603,
-      message: typeof error.message === 'string' ? error.message : 'Pichu local RPC error',
+      message: typeof error.message === 'string' ? error.message : 'Owls local RPC error',
       data: error.data
     })
   }
@@ -463,7 +463,7 @@ function sendJsonRpcRequest<TResult>(
 
     timer = setTimeout(() => {
       fail(
-        new PichuLocalRpcConnectionError(`Pichu local RPC timed out after ${options.timeoutMs}ms`)
+        new PichuLocalRpcConnectionError(`Owls local RPC timed out after ${options.timeoutMs}ms`)
       )
     }, options.timeoutMs)
 
@@ -475,7 +475,7 @@ function sendJsonRpcRequest<TResult>(
       const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8')
       responseBytes += Buffer.byteLength(text)
       if (responseBytes > options.maxResponseBytes) {
-        fail(new PichuLocalRpcConnectionError('Pichu local RPC response exceeded maxResponseBytes'))
+        fail(new PichuLocalRpcConnectionError('Owls local RPC response exceeded maxResponseBytes'))
         return
       }
 
@@ -497,14 +497,14 @@ function sendJsonRpcRequest<TResult>(
     })
     socket.on('error', (error) => {
       fail(
-        new PichuLocalRpcConnectionError('Failed to connect to Pichu local RPC socket', {
+        new PichuLocalRpcConnectionError('Failed to connect to Owls local RPC socket', {
           cause: error
         })
       )
     })
     socket.on('end', () => {
       if (!settled) {
-        fail(new PichuLocalRpcConnectionError('Pichu local RPC socket closed before a response'))
+        fail(new PichuLocalRpcConnectionError('Owls local RPC socket closed before a response'))
       }
     })
   })

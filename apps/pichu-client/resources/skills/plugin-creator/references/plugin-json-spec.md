@@ -23,7 +23,7 @@
         "displayName": "Plugin Display Name",
         "shortDescription": "Short description",
         "longDescription": "Long description",
-        "developerName": "Pichu",
+        "developerName": "Owls",
         "category": "Productivity",
         "websiteURL": "https://example.com/",
         "defaultPrompt": ["Use this plugin to complete the task."],
@@ -39,7 +39,7 @@ Portable components use fixed locations:
 
 - skills: `skills/`
 - MCP configuration: `mcp.json`
-- Pichu hooks: `com.pichu.app/hooks/hooks.json`
+- Owls hooks: `com.pichu.app/hooks/hooks.json`
 
 Do not declare those paths in `plugin.json`.
 
@@ -65,7 +65,7 @@ Do not declare those paths in `plugin.json`.
 }
 ```
 
-Pichu injects `PLUGIN_ROOT` and `PLUGIN_DATA`. A plugin must not override them in `env`.
+Owls injects `PLUGIN_ROOT` and `PLUGIN_DATA`. A plugin must not override them in `env`.
 
 ## Marketplace entry
 

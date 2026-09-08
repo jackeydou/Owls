@@ -188,7 +188,7 @@ export async function exportDiagnosticsPackage(
     .replace(/[:.]/g, '-')
     .slice(0, 19)}.zip`
   const result = await dialog.showSaveDialog({
-    title: 'Export Pichu diagnostics',
+    title: 'Export Owls diagnostics',
     defaultPath: join(app.getPath('desktop'), defaultName),
     filters: [{ name: 'Zip archive', extensions: ['zip'] }]
   })

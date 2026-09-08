@@ -1,6 +1,6 @@
 # Browser Capability: Visibility
 
-The `visibility` browser capability controls whether Pichu presents the
+The `visibility` browser capability controls whether Owls presents the
 session browser visually to the user.
 
 ```ts

@@ -1,22 +1,22 @@
-# Pichu Plugin Agent Hooks Design
+# Owls Plugin Agent Hooks Design
 
 ## 背景
 
-Pichu Client 采用 Agent Plugins 1.0 作为 portable plugin package 规范。该规范的
-portable core 只包含 `skills/` 和根目录 `mcp.json`；Pichu hooks 属于 Pichu client
+Owls Client 采用 Agent Plugins 1.0 作为 portable plugin package 规范。该规范的
+portable core 只包含 `skills/` 和根目录 `mcp.json`；Owls hooks 属于 Owls client
 extension，固定放在 `com.pichu.app/hooks/hooks.json`。它不是 Pi CLI
 Extension，也不通过 Pi Coding Agent 执行。Codex hooks 是一个命令型 agent loop
 扩展机制，允许在 session、prompt、tool、permission 和 stop 等阶段运行外部 hook。
 
-本文档给出 Pichu Client 对齐 Codex agent 执行 hooks 的设计方案。目标是
-复用 Codex 插件作者熟悉的配置模型，同时保持 Pichu 的插件启用、路径安全、
+本文档给出 Owls Client 对齐 Codex agent 执行 hooks 的设计方案。目标是
+复用 Codex 插件作者熟悉的配置模型，同时保持 Owls 的插件启用、路径安全、
 权限审批、审计和主进程边界。
 
 ## 目标
 
 - 分阶段对齐 Codex 当前公开的 hook 事件名、配置形态和 wire format。
 - 支持 Agent Plugin 的 `com.pichu.app` extension 声明 lifecycle config，并在
-  plugin installed 且 enabled 时进入 Pichu hook runtime。
+  plugin installed 且 enabled 时进入 Owls hook runtime。
 - 在 agent session、用户 prompt、tool execution 和 stop 阶段提供明确拦截点。
 - 所有 hook 执行都可审计、可取消、可诊断，并可通过内部总闸显式关闭。
 - 保持 renderer 无通用 shell、文件系统或插件 registry 原语暴露。
@@ -29,16 +29,16 @@ Extension，也不通过 Pi Coding Agent 执行。Codex hooks 是一个命令型
   Phase 2 只做核心 runtime preview，Phase 3 先落统一工具审批/权限拦截层，
   Phase 4 再接入 `PermissionRequest`、工具别名和 canonical tool parity，
   Phase 5 覆盖所有 agent 构造点和企业治理能力。
-- 不承诺一开始覆盖所有 Codex 内部工具名；先覆盖 Pichu `AgentTool` 面，再补齐
+- 不承诺一开始覆盖所有 Codex 内部工具名；先覆盖 Owls `AgentTool` 面，再补齐
   `exec_command`、apply_patch、MCP 风格 canonical matcher。
 - 不通过环境变量开启运行时能力。开关应走 persisted settings 或插件管理 UI。
 
 ## Codex 对齐事件
 
-Codex 当前公开文档一共有 6 个 hook 事件。Pichu 首批应完整识别这 6 个事件名；
+Codex 当前公开文档一共有 6 个 hook 事件。Owls 首批应完整识别这 6 个事件名；
 runtime 执行能力按下方 phase 逐步开放，不能在 Phase 1/2 对外宣称完整 parity：
 
-| Event | Pichu 接入点 | 说明 |
+| Event | Owls 接入点 | 说明 |
 | --- | --- | --- |
 | `SessionStart` | `createAgentRuntime(...)` | 新建、恢复或清空 session 后运行，可追加 developer context。 |
 | `UserPromptSubmit` | `ensureSessionAndPrompt(...)` / `runDetachedSessionPrompt(...)` | 用户 prompt 送入 agent 前运行，可阻断或追加上下文。 |
@@ -61,13 +61,13 @@ runtime 执行能力按下方 phase 逐步开放，不能在 Phase 1/2 对外宣
 
 ## 未来兼容项
 
-Codex 当前只有上述 6 个公开 hook 事件。未来 Pichu 需要预留两类扩展：一类是
-Codex 已经在 wire format 中解析但暂未完全实现的字段和行为；另一类是 Pichu
+Codex 当前只有上述 6 个公开 hook 事件。未来 Owls 需要预留两类扩展：一类是
+Codex 已经在 wire format 中解析但暂未完全实现的字段和行为；另一类是 Owls
 自己的 agent runtime 后续会暴露的生命周期点。
 
 Codex 行为兼容项：
 
-- `PreToolUse.updatedInput`：允许 hook 修改工具输入；Pichu 当前支持 object tool input
+- `PreToolUse.updatedInput`：允许 hook 修改工具输入；Owls 当前支持 object tool input
   的原地替换。
 - `PreToolUse.additionalContext`：未来可能允许工具执行前向模型追加上下文；当前解析但
   fail-open。
@@ -78,21 +78,21 @@ Codex 行为兼容项：
   fail-closed。
 - `PermissionRequest.interrupt`：未来可能中断审批流；当前应 fail-closed。
 - `PostToolUse.updatedMCPToolOutput`：目标允许 hook 在 MCP tool result 返回模型前提出
-  更新；最终结果仍由 Pichu 进行 schema、size 和 sensitive-data 校验。MCP runtime
+  更新；最终结果仍由 Owls 进行 schema、size 和 sensitive-data 校验。MCP runtime
   接入前只解析，不应用。
 - `suppressOutput`：多个事件已解析该字段，但 Codex 当前未实现输出隐藏。
 - Managed hooks：`requirements.toml`、`managed_dir`、`windows_managed_dir` 和企业
   下发脚本目录。
 - Subagent metadata：Codex 社区已有诉求，希望 hook input 能区分 main agent 和
-  subagent；Pichu 应预留 `agent_id`、`agent_type`、`parent_session_id` 等字段。
+  subagent；Owls 应预留 `agent_id`、`agent_type`、`parent_session_id` 等字段。
 - Unified shell execution：Codex 文档提到新的 shell 执行路径仍未完整接入
-  `PreToolUse` / `PostToolUse`；Pichu 后续应统一 `exec_command`、apply_patch、MCP
+  `PreToolUse` / `PostToolUse`；Owls 后续应统一 `exec_command`、apply_patch、MCP
   和原生工具的拦截面。
 
-Pichu 运行时扩展项：
+Owls 运行时扩展项：
 
 - `SessionEnd`：内部生命周期可继续保留，但不作为 Codex 公开事件名；需要时映射到
-  `Stop` 或作为 Pichu-only extension。
+  `Stop` 或作为 Owls-only extension。
 - Context compaction lifecycle：在 `transformContext(...)` / compaction 前后观察或追加
   context，但不应混入 Codex 6 个公开事件。
 - Config/file watcher lifecycle：插件配置或工作区文件变化时触发 background hook，
@@ -108,16 +108,16 @@ Pichu 运行时扩展项：
 ## 配置模型
 
 Agent Plugins 的 root `plugin.json` 是 closed portable manifest，不能添加 top-level
-`hooks`。Pichu 只从 client-extension fixed path 发现 hooks：
+`hooks`。Owls 只从 client-extension fixed path 发现 hooks：
 
 ```text
 <plugin-root>/com.pichu.app/hooks/hooks.json
 ```
 
-文件缺失表示该 plugin 没有 Pichu hooks，不是错误。路径必须在 filesystem-resolved
+文件缺失表示该 plugin 没有 Owls hooks，不是错误。路径必须在 filesystem-resolved
 plugin root 内；symlink、junction 或 reparse point 逃逸会禁用该 hook component。
 
-Pichu 不再从 legacy `.open-plugin/plugin.json`、`manifest.raw.hooks`、inline manifest
+Owls 不再从 legacy `.open-plugin/plugin.json`、`manifest.raw.hooks`、inline manifest
 object 或 `./hooks/hooks.json` 加载 hooks。目标类型为：
 
 ```ts
@@ -278,8 +278,8 @@ Tool-scoped 事件额外包含：
 metadata；工具自身声明 `prompt` 或 `deny` 时仍按工具策略进入审批或阻断。
 `PreToolUse.additionalContext` 仍只解析但不改变执行流。
 
-Pichu 扩展 `PreToolUse.approvalUi`，允许 hook 在强制进入审批时提供结构化审批视图。
-该字段不是 Codex parity 字段；它只影响 Pichu renderer 中审批卡片的展示，不参与
+Owls 扩展 `PreToolUse.approvalUi`，允许 hook 在强制进入审批时提供结构化审批视图。
+该字段不是 Codex parity 字段；它只影响 Owls renderer 中审批卡片的展示，不参与
 allow/deny 决策本身。`approvalUi` 目前支持：
 
 ```json
@@ -303,7 +303,7 @@ allow/deny 决策本身。`approvalUi` 目前支持：
 `spec` 使用受控的 json-render 子集。renderer state 固定提供 `toolName`、`cwd`、
 `toolInput`、`args` 和 `exec_command` 的 `parsedCommand`，插件也可以通过
 `approvalUi.state` 提供额外结构化数据。插件可以通过 `$state` 引用这些数据来渲染
-命令、diff、表格、嵌套 JSON 或 key-value 摘要。Pichu 会校验 component allowlist、
+命令、diff、表格、嵌套 JSON 或 key-value 摘要。Owls 会校验 component allowlist、
 元素数量、children 数量和危险 props；非法 spec fail-open 到默认 JSON 参数预览，不
 阻断工具审批流程。
 
@@ -372,7 +372,7 @@ Matcher 使用 regex string。实现时先处理 `*`、`""` 或省略 matcher �
 - patch/edit/write 类工具匹配 `apply_patch`、`Edit`、`Write`。
 - Agent Plugin MCP 工具匹配
   `mcp__<plugin-name>__<server-name>__<tool-name>`。
-- 其他 Pichu 原生工具默认匹配 `tool.name`。
+- 其他 Owls 原生工具默认匹配 `tool.name`。
 
 同一事件下多个匹配 command hooks 并发启动。聚合规则：
 
@@ -422,7 +422,7 @@ Renderer 插件详情页应展示：
 
 审批 UI 渲染规则：
 
-- Pichu 固定渲染工具名、cwd、审批说明和 allow/deny 操作，不允许插件覆盖审批按钮
+- Owls 固定渲染工具名、cwd、审批说明和 allow/deny 操作，不允许插件覆盖审批按钮
   或最终决策交互。
 - 插件只能通过 `approvalUi` 渲染“帮助用户审阅参数”的内容区域。
 - 首版只支持 `renderer: "json-render"`，实现集中在独立 renderer 组件中，避免把
@@ -437,7 +437,7 @@ Renderer 插件详情页应展示：
 
 ## Phase 0: 文档和契约校准
 
-目标：先把 Pichu 对外承诺、Codex parity 边界和实现分期写清楚，避免 parse-only
+目标：先把 Owls 对外承诺、Codex parity 边界和实现分期写清楚，避免 parse-only
 阶段被误解为 runtime parity。
 
 详细 todos：
@@ -454,7 +454,7 @@ Renderer 插件详情页应展示：
 
 ## Phase 1: Legacy Parse Baseline 和 Agent Plugins Migration
 
-目标：让 Pichu 能理解 Codex hooks 配置，但不执行 hooks。
+目标：让 Owls 能理解 Codex hooks 配置，但不执行 hooks。
 
 下面的 legacy parse baseline 已被 Agent Plugins migration 取代。当前实现已经删除
 manifest inline hooks、string path、array declaration 和默认 `./hooks/hooks.json`
@@ -482,7 +482,7 @@ discovery；portable root `plugin.json` 不允许这些 top-level fields。
 - [x] 保持 `ACTIVE_COMPONENTS` 不包含 `hooks`，执行状态仍为 inactive。
 - [x] 更新插件详情 UI，展示 hooks capability、事件、matcher、command 数量。
 - [x] 插件详情 UI 必须展示 Phase 1 状态：配置可识别，但不会执行。
-- [x] 更新 plugin creator reference，说明 Pichu 支持 Codex shape 但 Phase 1 不执行。
+- [x] 更新 plugin creator reference，说明 Owls 支持 Codex shape 但 Phase 1 不执行。
 - [x] 更新 `docs/PLUGIN_SYSTEM.md` 的 hook 章节，指向本文档。
 - [x] 扩展 `plugin-system.test.mjs`，覆盖 valid `hooks.json`。
 - [x] 增加 invalid event、invalid handler type、invalid timeout、missing file 测试。
@@ -494,13 +494,13 @@ discovery；portable root `plugin.json` 不允许这些 top-level fields。
 
 Agent Plugins target todos：
 
-- [ ] 只从 `<plugin-root>/com.pichu.app/hooks/hooks.json` 发现 Pichu hooks。
+- [ ] 只从 `<plugin-root>/com.pichu.app/hooks/hooks.json` 发现 Owls hooks。
 - [ ] 使用 Agent Plugins filesystem-resolved root 执行 containment 检查。
 - [ ] 删除 `NormalizedPluginManifest.hooks` 和 `manifest.raw.hooks` runtime dependency。
 - [ ] 删除 manifest inline object、array 和 `./hooks/hooks.json` fallback discovery。
 - [ ] 保留现有 `AgentHookConfig` 内容 schema、event validation 和 matcher diagnostics。
 - [ ] 更新 plugin details UI，标记 hooks 为 `com.pichu.app` client extension。
-- [ ] 增加 portable skills、MCP servers 和 Pichu hooks 互相独立的 failure-boundary tests。
+- [ ] 增加 portable skills、MCP servers 和 Owls hooks 互相独立的 failure-boundary tests。
 
 ## Phase 2: Core Runtime Preview 默认开启
 
@@ -568,7 +568,7 @@ approval，approval engine 只消费 request/decision，不通过 tool name 猜�
 main process 的 `agent:prompt` IPC。main 侧恢复或创建 session runtime，展开 skill
 prompt，运行 `UserPromptSubmit` hook，设置 session 为 running，然后调用
 `runtime.agent.prompt(...)`。当模型发起 tool call 时，pi-agent 会先进入
-`beforeToolCall`。Pichu 在这里先执行 `PreToolUse` hook：`deny/block` 直接阻断，
+`beforeToolCall`。Owls 在这里先执行 `PreToolUse` hook：`deny/block` 直接阻断，
 `updatedInput` 替换后续 object tool input，`permissionDecision: "allow"` 只跳过
 hook-only approval，`permissionDecision: "ask"` 强制进入 approval request。随后 approval
 gate 根据 tool-defined metadata 或 hook 的 `ask` 决策创建 pending request，通过 main
@@ -693,7 +693,7 @@ sequenceDiagram
 - [ ] 增加 approval audit event，记录 tool name、decision、duration 和 sanitized
   description。
 - [ ] 将需要审批的现有工具逐个迁移为 tool-defined approval metadata。
-- [ ] 把 Pichu 安装/启用策略推导出的 MCP server 与 tool permissions 转换为工具注册时
+- [ ] 把 Owls 安装/启用策略推导出的 MCP server 与 tool permissions 转换为工具注册时
   的 approval metadata 或 `PermissionRequest` 输入，而不是读取 portable manifest
   top-level permission fields。
 - [x] 为 approval prompt 增加 renderer UI，支持当前 session 内一次性 allow/deny。

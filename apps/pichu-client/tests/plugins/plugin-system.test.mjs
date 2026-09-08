@@ -922,7 +922,7 @@ test('loadPluginManifest parses agent hook config files into derived declaration
   }
 })
 
-test('loadPluginManifest discovers Pichu namespaced agent hooks', async () => {
+test('loadPluginManifest discovers Owls namespaced agent hooks', async () => {
   const dataRoot = mkdtempSync(join(tmpdir(), 'pichu-plugin-data-'))
   const workspaceRoot = mkdtempSync(join(tmpdir(), 'pichu-plugin-workspace-'))
   const root = mkdtempSync(join(tmpdir(), 'pichu-plugin-default-hooks-'))
@@ -2437,7 +2437,7 @@ test('tool approval engine uses reviewer for read-only inspection commands witho
   }
 })
 
-test('loadPluginManifest ignores legacy Pichu, Codex, and Claude manifests', async () => {
+test('loadPluginManifest ignores legacy Owls, Codex, and Claude manifests', async () => {
   const dataRoot = mkdtempSync(join(tmpdir(), 'pichu-plugin-data-'))
   const workspaceRoot = mkdtempSync(join(tmpdir(), 'pichu-plugin-workspace-'))
   let moduleDir = null
@@ -2661,7 +2661,7 @@ test('validatePluginPackage reports agent hook config diagnostics without execut
   }
 })
 
-test('validatePluginPackage accepts plugins without optional Pichu hooks', async () => {
+test('validatePluginPackage accepts plugins without optional Owls hooks', async () => {
   const dataRoot = mkdtempSync(join(tmpdir(), 'pichu-plugin-data-'))
   const workspaceRoot = mkdtempSync(join(tmpdir(), 'pichu-plugin-workspace-'))
   const pluginRoot = mkdtempSync(join(tmpdir(), 'pichu-plugin-hook-missing-'))
@@ -2934,7 +2934,7 @@ test('bundled in-app browser plugin ships Codex-shaped runtime script', async ()
   assert.deepEqual(await browser.capabilities.list(), [
     {
       id: 'visibility',
-      description: 'Show Pichu session browser to the user.'
+      description: 'Show Owls session browser to the user.'
     }
   ])
   const visibility = await browser.capabilities.get('visibility')
@@ -3150,7 +3150,7 @@ test('listPluginMarketplaces reads bundled resources without syncing to data roo
     writeJson(marketplacePath, {
       schemaVersion: '1.0',
       name: 'local-pichu-plugins',
-      interface: { displayName: 'Local Pichu Plugins' },
+      interface: { displayName: 'Local Owls Plugins' },
       plugins: [
         {
           name: 'default-plugin',
@@ -4502,7 +4502,7 @@ test('plugin skills keep qualified invocation when names collide', async () => {
     mkdirSync(join(dataRoot, 'skills', 'review-pr'), { recursive: true })
     writeFileSync(
       join(dataRoot, 'skills', 'review-pr', 'SKILL.md'),
-      ['---', 'name: review-pr', 'description: Pichu review skill.', '---', '', 'Pichu body.'].join(
+      ['---', 'name: review-pr', 'description: Owls review skill.', '---', '', 'Owls body.'].join(
         '\n'
       ),
       'utf8'

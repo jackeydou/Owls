@@ -1,6 +1,6 @@
-# Pichu Site App Template
+# Owls Site App Template
 
-The default app template for new Pichu Sites builds.
+The default app template for new Owls Sites builds.
 
 ## Stack
 

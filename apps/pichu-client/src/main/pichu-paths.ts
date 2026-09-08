@@ -110,7 +110,7 @@ export function resolvePichuPath(input: string): string {
   return normalize(p)
 }
 
-/** Resolved absolute path where Pichu keeps config and persistent app data. */
+/** Resolved absolute path where Owls keeps config and persistent app data. */
 export function getDataRoot(): string {
   const fromArgv = readArgvDataRoot()
   if (fromArgv) {
@@ -232,7 +232,7 @@ function migrateSettingsFile(oldRoot: string, newRoot: string): void {
 export function applyNewDataRoot(absoluteOrTilde: string): 'restarting' | 'unchanged' {
   const newRoot = resolvePichuPath(absoluteOrTilde)
   if (isUnsafePersistentDataRoot(newRoot)) {
-    throw new Error('Temporary folders cannot be saved as the Pichu data root')
+    throw new Error('Temporary folders cannot be saved as the Owls data root')
   }
   const oldRoot = getDataRoot()
   if (newRoot === oldRoot) {

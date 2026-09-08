@@ -1,11 +1,11 @@
 {
   "name": "pichu-client",
-  "productName": "Pichu",
+  "productName": "Owls",
   "version": "2026.6.2400",
-  "description": "Pichu desktop client for AI-assisted workflows.",
+  "description": "Owls desktop client for AI-assisted workflows.",
   "license": "AGPL-3.0-only",
   "main": "./out/main/index.js",
-  "author": "Pichu",
+  "author": "Owls",
   "scripts": {
     "build:workspace-deps": "pnpm --filter @pichu/mac-window-list build && pnpm --filter @pichu/mac-input build && pnpm --filter @pichu/mac-cursor-overlay build && pnpm --filter @pichu/mac-process-limits build",
     "build:workspace-deps:with-node": "pnpm run prepare:node-runtime && pnpm run build:workspace-deps",
@@ -28,7 +28,7 @@
     "start": "electron-vite preview",
     "predev": "pnpm run build:workspace-deps",
     "dev": "node scripts/dev.mjs",
-    "dev:unpack": "pnpm run build:unpack && open dist/mac-arm64/Pichu.app",
+    "dev:unpack": "pnpm run build:unpack && open dist/mac-arm64/Owls.app",
     "build": "pnpm run typecheck && electron-vite build",
     "build:unpack": "pnpm run build:workspace-deps:with-node && pnpm run build && pnpm run prepare:computer-use-helper && electron-builder --dir --config scripts/electron-builder-config.cjs",
     "build:win": "pnpm run build:workspace-deps && pnpm run build && electron-builder --win --config scripts/electron-builder-config.cjs",

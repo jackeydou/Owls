@@ -76,7 +76,7 @@ export function findBundledNodeBinPath(): string | null {
 export function requireBundledNodePath(): string {
   const nodePath = findBundledNodePath()
   if (!nodePath) {
-    throw new Error(`Pichu app-bundled Node.js runtime is missing for ${bundledNodeRuntimeName()}.`)
+    throw new Error(`Owls app-bundled Node.js runtime is missing for ${bundledNodeRuntimeName()}.`)
   }
   return nodePath
 }

@@ -52,18 +52,18 @@ async function readLocalRpcMetadata(options = {}) {
     parsed = JSON.parse(await readFile(metadataPath, 'utf8'))
   } catch (error) {
     throw new PichuLocalRpcConnectionError(
-      `Failed to read Pichu local RPC metadata at ${metadataPath}`,
+      `Failed to read Owls local RPC metadata at ${metadataPath}`,
       { cause: error }
     )
   }
-  const metadata = assertRecord(parsed, 'Invalid Pichu local RPC metadata')
+  const metadata = assertRecord(parsed, 'Invalid Owls local RPC metadata')
   if (metadata.transport !== 'unix') {
     throw new PichuLocalRpcConnectionError(
-      `Unsupported Pichu local RPC transport: ${String(metadata.transport)}`
+      `Unsupported Owls local RPC transport: ${String(metadata.transport)}`
     )
   }
   if (typeof metadata.endpoint !== 'string' || !metadata.endpoint.trim()) {
-    throw new PichuLocalRpcConnectionError('Pichu local RPC metadata is missing endpoint')
+    throw new PichuLocalRpcConnectionError('Owls local RPC metadata is missing endpoint')
   }
   return {
     version: typeof metadata.version === 'number' ? metadata.version : 1,
@@ -80,19 +80,19 @@ function parseJsonRpcResponse(frame) {
   try {
     parsed = JSON.parse(frame)
   } catch (error) {
-    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC response from Pichu Client', {
+    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC response from Owls Client', {
       cause: error
     })
   }
-  const response = assertRecord(parsed, 'Invalid JSON-RPC response from Pichu Client')
+  const response = assertRecord(parsed, 'Invalid JSON-RPC response from Owls Client')
   if (response.jsonrpc !== '2.0') {
-    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC version from Pichu Client')
+    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC version from Owls Client')
   }
   if ('error' in response) {
-    const error = assertRecord(response.error, 'Invalid JSON-RPC error from Pichu Client')
+    const error = assertRecord(response.error, 'Invalid JSON-RPC error from Owls Client')
     throw new PichuLocalRpcError({
       code: typeof error.code === 'number' ? error.code : -32603,
-      message: typeof error.message === 'string' ? error.message : 'Pichu local RPC error',
+      message: typeof error.message === 'string' ? error.message : 'Owls local RPC error',
       data: error.data
     })
   }
@@ -214,7 +214,7 @@ function sendJsonRpcRequest(socketPath, request, options) {
     }
     timer = setTimeout(() => {
       fail(
-        new PichuLocalRpcConnectionError(`Pichu local RPC timed out after ${options.timeoutMs}ms`)
+        new PichuLocalRpcConnectionError(`Owls local RPC timed out after ${options.timeoutMs}ms`)
       )
     }, options.timeoutMs)
     socket.setEncoding('utf8')
@@ -226,7 +226,7 @@ function sendJsonRpcRequest(socketPath, request, options) {
       const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8')
       responseBytes += Buffer.byteLength(text)
       if (responseBytes > options.maxResponseBytes) {
-        fail(new PichuLocalRpcConnectionError('Pichu local RPC response exceeded maxResponseBytes'))
+        fail(new PichuLocalRpcConnectionError('Owls local RPC response exceeded maxResponseBytes'))
         return
       }
       buffer += text
@@ -245,14 +245,14 @@ function sendJsonRpcRequest(socketPath, request, options) {
     })
     socket.on('error', (error) => {
       fail(
-        new PichuLocalRpcConnectionError('Failed to connect to Pichu local RPC socket', {
+        new PichuLocalRpcConnectionError('Failed to connect to Owls local RPC socket', {
           cause: error
         })
       )
     })
     socket.on('end', () => {
       if (!settled) {
-        fail(new PichuLocalRpcConnectionError('Pichu local RPC socket closed before a response'))
+        fail(new PichuLocalRpcConnectionError('Owls local RPC socket closed before a response'))
       }
     })
   })
@@ -288,12 +288,12 @@ function sessionIdFromEnv() {
 }
 function textMatcherValue(value) {
   if (typeof value === 'string') return value
-  throw new Error('RegExp text matchers are not supported by Pichu Browser Use yet.')
+  throw new Error('RegExp text matchers are not supported by Owls Browser Use yet.')
 }
 function browserApiDocumentation() {
-  return `# Pichu Browser Use
+  return `# Owls Browser Use
 
-This runtime follows the Codex in-app Browser API shape and controls Pichu's session browser through local RPC.
+This runtime follows the Codex in-app Browser API shape and controls Owls's session browser through local RPC.
 
 Bootstrap:
 \`\`\`js
@@ -303,7 +303,7 @@ globalThis.browser = await agent.browsers.get("iab");
 nodeRepl.write(await browser.documentation());
 \`\`\`
 
-Use \`await agent.browsers.get("iab")\` to select Pichu's in-app browser. The current implementation exposes one session-scoped tab with id \`${SESSION_TAB_ID}\`.
+Use \`await agent.browsers.get("iab")\` to select Owls's in-app browser. The current implementation exposes one session-scoped tab with id \`${SESSION_TAB_ID}\`.
 
 Common operations:
 \`\`\`js
@@ -377,7 +377,7 @@ var BrowserCapabilityCollection = class {
     return [
       {
         id: 'visibility',
-        description: 'Show Pichu session browser to the user.'
+        description: 'Show Owls session browser to the user.'
       }
     ]
   }
@@ -414,7 +414,7 @@ var BrowserCollection = class {
     return [
       {
         id: BROWSER_ID,
-        name: 'Pichu In-App Browser',
+        name: 'Owls In-App Browser',
         type: 'iab',
         capabilities: {
           browser: await this.browser.capabilities.list(),
@@ -604,11 +604,11 @@ var PlaywrightApi = class {
   }
   async evaluate(_pageFunction, _arg) {
     throw new Error(
-      'playwright.evaluate is not exposed by Pichu Browser Use because local RPC does not provide arbitrary page JavaScript execution.'
+      'playwright.evaluate is not exposed by Owls Browser Use because local RPC does not provide arbitrary page JavaScript execution.'
     )
   }
   frameLocator(_frameSelector) {
-    throw new Error('playwright.frameLocator is not implemented for Pichu Browser Use yet.')
+    throw new Error('playwright.frameLocator is not implemented for Owls Browser Use yet.')
   }
 }
 var BrowserLocator = class _BrowserLocator {
@@ -717,7 +717,7 @@ var BrowserLocator = class _BrowserLocator {
     await this.click(options)
   }
   async selectOption(_value, _options = {}) {
-    throw new Error('locator.selectOption is not implemented for Pichu Browser Use yet.')
+    throw new Error('locator.selectOption is not implemented for Owls Browser Use yet.')
   }
 }
 var CuaApi = class {
@@ -763,12 +763,12 @@ var DomCuaApi = class {
   }
   async click(_options) {
     throw new Error(
-      'dom_cua.click requires a stable DOM node-id contract, which Pichu Browser Use does not expose yet.'
+      'dom_cua.click requires a stable DOM node-id contract, which Owls Browser Use does not expose yet.'
     )
   }
   async double_click(_options) {
     throw new Error(
-      'dom_cua.double_click requires a stable DOM node-id contract, which Pichu Browser Use does not expose yet.'
+      'dom_cua.double_click requires a stable DOM node-id contract, which Owls Browser Use does not expose yet.'
     )
   }
   async keypress(options) {
@@ -796,16 +796,16 @@ var TabDevApi = class {
 }
 var TabClipboardApi = class {
   async read() {
-    throw new Error('clipboard.read is not implemented for Pichu Browser Use yet.')
+    throw new Error('clipboard.read is not implemented for Owls Browser Use yet.')
   }
   async readText() {
-    throw new Error('clipboard.readText is not implemented for Pichu Browser Use yet.')
+    throw new Error('clipboard.readText is not implemented for Owls Browser Use yet.')
   }
   async write(_items) {
-    throw new Error('clipboard.write is not implemented for Pichu Browser Use yet.')
+    throw new Error('clipboard.write is not implemented for Owls Browser Use yet.')
   }
   async writeText(_text) {
-    throw new Error('clipboard.writeText is not implemented for Pichu Browser Use yet.')
+    throw new Error('clipboard.writeText is not implemented for Owls Browser Use yet.')
   }
 }
 function cssString(value) {

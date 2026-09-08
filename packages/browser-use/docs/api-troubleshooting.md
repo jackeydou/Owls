@@ -46,6 +46,6 @@ await tab.goto("https://example.com");
 
 ## Unsupported API
 
-Pichu intentionally throws explicit errors for Codex API surfaces that are not
+Owls intentionally throws explicit errors for Codex API surfaces that are not
 implemented yet, including arbitrary `playwright.evaluate`, `frameLocator`,
 clipboard methods, and DOM-CUA node-id clicks.

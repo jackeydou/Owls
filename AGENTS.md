@@ -193,7 +193,7 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
 
 ### Version Convention
 
-- Pichu uses date-based CalVer actual versions and matching Git release tags. The detailed release/version rules live in `docs/reference/RELEASING.md` and `.agents/skills/pichu-release-maintainer/SKILL.md`.
+- Owls uses date-based CalVer actual versions and matching Git release tags. The detailed release/version rules live in `docs/reference/RELEASING.md` and `.agents/skills/pichu-release-maintainer/SKILL.md`.
 - The Electron app version source is `apps/pichu-client/package.json`. Root
   `package.json` may remain pre-policy until the first CalVer release MR; after
   that release flow starts, update both version files together in release MRs.
@@ -217,7 +217,7 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
   or `--type fixed` to create fragments. Supported fragment types are `added`,
   `changed`, `fixed`, `security`, `removed`, and `internal`. This repo
   intentionally does not
-  use Changesets because Pichu Client is an Electron CalVer app, not a
+  use Changesets because Owls Client is an Electron CalVer app, not a
   multi-package npm publishing repo.
 - Use `.agents/skills/pichu-release-maintainer/SKILL.md` and `docs/reference/RELEASING.md` for release branches, version bumps, highlights, release checks, tags, and publishing.
 - Use `.agents/skills/release-notes-writer/SKILL.md` when writing user-facing release notes.
@@ -247,7 +247,7 @@ Release MR flow:
 
 ### Electron Packaging
 
-- Public app/package branding is `Pichu`; build artifacts should use names such as `Pichu-2026.5.3.dmg` rather than internal workspace names.
+- Public app/package branding is `Owls`; build artifacts should use names such as `Owls-2026.5.3.dmg` rather than internal workspace names.
 - Check `apps/pichu-client/scripts/electron-builder-config.cjs` before changing packaging behavior.
 
 ## Source Map

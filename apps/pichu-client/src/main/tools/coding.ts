@@ -106,7 +106,7 @@ import { parse, resolve } from 'node:path'
 
 const binary = process.env.PICHU_TRASH_BINARY
 if (binary == null || binary === '') {
-  console.error('rm is disabled because Pichu could not find the trash helper.')
+  console.error('rm is disabled because Owls could not find the trash helper.')
   process.exit(127)
 }
 
@@ -145,7 +145,7 @@ for (const arg of rawArgs) {
 }
 
 if (unsupported.length > 0) {
-  console.error('rm: unsupported option for Pichu trash wrapper: ' + unsupported.join(', '))
+  console.error('rm: unsupported option for Owls trash wrapper: ' + unsupported.join(', '))
   process.exit(2)
 }
 
