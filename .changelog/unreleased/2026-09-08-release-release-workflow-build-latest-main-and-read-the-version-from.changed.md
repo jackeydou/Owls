@@ -1,0 +1,1 @@
+- -- Release workflow: Build latest main and read the version from package.json without requiring an existing tag.

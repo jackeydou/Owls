@@ -6,15 +6,20 @@ import { releaseVersionPolicyMessage, validateReleaseVersion } from './release-v
 
 function parseArgs(argv) {
   let version
+  let allowUnreleased = false
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '--version') {
       version = argv[++index]
       continue
     }
+    if (arg === '--allow-unreleased') {
+      allowUnreleased = true
+      continue
+    }
     throw new Error(`Unknown argument: ${arg}`)
   }
-  return { version }
+  return { version, allowUnreleased }
 }
 
 function readJson(path) {
@@ -42,7 +47,7 @@ function unreleasedFragments() {
 }
 
 try {
-  const { version: requestedVersion } = parseArgs(process.argv.slice(2))
+  const { version: requestedVersion, allowUnreleased } = parseArgs(process.argv.slice(2))
   const rootPackage = readJson('package.json')
   const appPackage = readJson('apps/pichu-client/package.json')
   const version = requestedVersion ?? appPackage.version
@@ -67,7 +72,7 @@ try {
   }
 
   const fragments = unreleasedFragments()
-  if (fragments.length > 0) {
+  if (fragments.length > 0 && !allowUnreleased) {
     errors.push(
       `Unreleased changelog fragments remain. Run 'pnpm run changelog:compose -- --version ${version}' so consumed fragments move to .changelog/archive/${version}/: ${fragments.join(', ')}`
     )
