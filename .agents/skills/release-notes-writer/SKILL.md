@@ -14,7 +14,7 @@ Use this skill when the user asks to prepare release notes for a version.
 - Primary source section: `## <version>`, where `<version>` exactly matches `apps/pichu-client/package.json`.
 - Do not generate release notes from `## Unreleased` or raw
   `.changelog/unreleased` fragments during release prep. Run
-  `pnpm run changelog:compose -- --version <version>` first, then review the
+  `pnpm run changelog:compose --version <version>` first, then review the
   composed `## <version>` section.
 - For stable releases, include the full user-facing delta from the previous
   stable release to the current stable release. If beta versions exist between
@@ -39,7 +39,7 @@ Use this skill when the user asks to prepare release notes for a version.
 1. Read `apps/pichu-client/package.json` and use its `version` as `<version>`.
 2. Read `CHANGELOG.md`.
 3. Find `## <version>`. If it is missing, stop and ask to run
-   `pnpm run changelog:compose -- --version <version>` first.
+   `pnpm run changelog:compose --version <version>` first.
 4. If `<version>` is stable, identify the previous stable version in
    `CHANGELOG.md` and summarize relevant user-facing entries from every
    changelog section after that stable version up to and including `<version>`.
@@ -50,14 +50,14 @@ Use this skill when the user asks to prepare release notes for a version.
 7. Run:
 
 ```bash
-pnpm run release-notes:check -- --version <version>
+pnpm run release-notes:check --version <version>
 ```
 
 8. For release prep, run the normal release checks after the release notes file exists:
 
 ```bash
 pnpm run changelog:check
-pnpm run release:check -- --version <version>
+pnpm run release:check --version <version>
 ```
 
 ## Format

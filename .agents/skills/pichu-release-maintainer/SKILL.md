@@ -11,9 +11,9 @@ work stays in normal MRs.
 
 ## Repository-Bound Context
 
-- Integration branch and release source: `develop`.
+- Integration branch and release source: `main`.
 - Release branch pattern: `release/<actual-version>`.
-- MR target for release branches: `develop`.
+- MR target for release branches: `main`.
 - Version files:
   - `apps/pichu-client/package.json`
   - `package.json`
@@ -22,11 +22,11 @@ work stays in normal MRs.
 
 - Do not change versions, create tags, publish artifacts, or update feeds
   without explicit operator approval.
-- Release branches are cut from latest `origin/develop` and named
+- Release branches are cut from latest `origin/main` and named
   `release/<actual-version>`. In a git worktree, create the branch directly from
-  `origin/develop` or a detached `origin/develop` checkout; do not require this
-  worktree to own the local `develop` branch.
-- Release MRs target `develop`.
+  `origin/main` or a detached `origin/main` checkout; do not require this
+  worktree to own the local `main` branch.
+- Release MRs target `main`.
 - Create the Git release tag only after the release MR is reviewed, merged, and
   explicitly approved for publishing.
 
@@ -64,7 +64,7 @@ pnpm run release:version -- --stable --date 2026-05-20
 
 - Development MRs add release-facing facts as `.changelog/unreleased/*.md`
   fragments and do not edit `CHANGELOG.md` directly.
-- Release MRs run `pnpm run changelog:compose -- --version <version>` to move
+- Release MRs run `pnpm run changelog:compose --version <version>` to move
   fragments and any legacy `CHANGELOG.md` `## Unreleased` entries into
   `## <version>`, leave future work in `Unreleased`, and archive consumed
   fragments under `.changelog/archive/<version>/`.
@@ -88,8 +88,8 @@ Minimum release-readiness checks:
 ```bash
 pnpm run release:version -- --stable # or the matching beta/correction form
 pnpm run changelog:check
-pnpm run release-notes:check -- --version <version>
-pnpm run release:check -- --version <version>
+pnpm run release-notes:check --version <version>
+pnpm run release:check --version <version>
 pnpm --dir apps/pichu-client run build
 ```
 

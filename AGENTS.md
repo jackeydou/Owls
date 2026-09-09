@@ -98,12 +98,12 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
 ### Pull Request Workflow
 
 - All reviewable changes should be submitted through the repository's normal pull-request workflow.
-- The repository's integration branch is `develop`. Use `origin/develop` as the diff base and `develop` as the pull-request target.
-- Start MR branches from latest `origin/develop` whenever possible. In a git
-  worktree, create branches directly from `origin/develop` or a detached
-  `origin/develop` checkout; do not require the current worktree to own the
-  local `develop` branch. If work began from stale code, preserve the work and
-  make the final MR branch diff explicit against `origin/develop` before
+- The repository's integration branch is `main`. Use `origin/main` as the diff base and `main` as the pull-request target.
+- Start MR branches from latest `origin/main` whenever possible. In a git
+  worktree, create branches directly from `origin/main` or a detached
+  `origin/main` checkout; do not require the current worktree to own the
+  local `main` branch. If work began from stale code, preserve the work and
+  make the final MR branch diff explicit against `origin/main` before
   pushing.
 - Always read `.github/pull_request_template.md` and fill it with branch-specific facts.
 
@@ -111,10 +111,10 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
 
 - The current git worktree is the source of truth for development,
   verification, commit, push, and MR submission. Other worktrees may own local
-  branch names such as `develop`; that is normal and not a reason to force,
+  branch names such as `main`; that is normal and not a reason to force,
   delete, or reset anything.
-- Treat `origin/develop`, not local `develop`, as the canonical MR base. Local
-  `develop` is only a convenience checkout when this worktree can use it
+- Treat `origin/main`, not local `main`, as the canonical MR base. Local
+  `main` is only a convenience checkout when this worktree can use it
   cleanly.
 - Assume other agents or the user may be editing the same worktree at the same
   time. Check status before Git operations.
@@ -125,25 +125,25 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
 - Before committing, verify `git status` and the staged diff. If a file mixes
   current-task and unrelated changes, separate them or ask before committing it.
 - Create or switch to MR branches in the current worktree when preparing an MR.
-  If the worktree is detached at `origin/develop`, create the MR branch with
-  `git switch -c codex/<topic> origin/develop`.
+  If the worktree is detached at `origin/main`, create the MR branch with
+  `git switch -c codex/<topic> origin/main`.
 - MR submission is serialized by the current branch. Only one agent may create,
   switch, commit, amend, rebase, push, or update an MR branch in the shared
   worktree at a time.
 - If the current worktree is already on another agent's MR branch, do not commit or
   push. Stop and ask.
 - After creating or updating an MR, return the current worktree to a neutral
-  latest-develop state as soon as the MR has been read back and any required
-  tracking sync is complete. Prefer local `develop` only when it is available in
-  this worktree; if Git reports that `develop` is checked out by another
-  worktree, use `git switch --detach origin/develop` instead. Minimize time
+  latest-main state as soon as the MR has been read back and any required
+  tracking sync is complete. Prefer local `main` only when it is available in
+  this worktree; if Git reports that `main` is checked out by another
+  worktree, use `git switch --detach origin/main` instead. Minimize time
   spent on feature/MR branches because the current branch serializes MR work. To
   update the MR later, switch back to its branch, commit and push the intended
   changes, then return to the same neutral state.
 - After the user explicitly reports that an MR has merged, do not spend time
   re-checking the MR state before local cleanup. Switch or stay on local
-  `develop` when this worktree can own it; otherwise detach at `origin/develop`.
-  Sync from `origin/develop`. Only inspect the live MR state when merge status
+  `main` when this worktree can own it; otherwise detach at `origin/main`.
+  Sync from `origin/main`. Only inspect the live MR state when merge status
   is uncertain or the user asks for verification.
 - Before switching branches or pulling, check `git status`. Dirty overlapping
   paths are not an automatic stop condition. Inspect the actual overlap, preserve
@@ -169,24 +169,24 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
   `git restore --staged -- <paths>` if replay stages paths.
 - When the user says `commit`, commit only your own changes. When the user says
   `commit all`, commit all current changes in sensible grouped commits.
-- Before pushing an MR branch, make sure it is based on latest `origin/develop`
+- Before pushing an MR branch, make sure it is based on latest `origin/main`
   when feasible. Use non-destructive flows and preserve local work.
-- Do not rebase local `develop`. Do not try to check out local `develop` when it
-  is already used by another worktree. If local `develop` is available and needs
-  the latest code, use a fast-forward-only update from `origin/develop` when
+- Do not rebase local `main`. Do not try to check out local `main` when it
+  is already used by another worktree. If local `main` is available and needs
+  the latest code, use a fast-forward-only update from `origin/main` when
   clean. If local changes block that update, use the dirty update workflow
   rather than handing the problem back immediately.
 - Avoid merge commits in normal development MR branches. Prefer a clean branch
-  history on top of `origin/develop`.
+  history on top of `origin/main`.
 - MR branches may be updated with `git push --force-with-lease` after local
   history cleanup such as amend or rebase. Never use plain `--force`. For
   non-MR branches, force-push only when the user explicitly asks.
-- To submit work, fetch latest `origin/develop`, make sure the current worktree
+- To submit work, fetch latest `origin/main`, make sure the current worktree
   is on the intended MR branch, and finish implementation first. Once the diff
   is stable, run scoped formatting and relevant tests/typechecks. As the final
   MR preparation step, add any required `.changelog/unreleased` fragment, or
   decide and record `Changelog: N/A`. Then review status and the branch diff
-  against `origin/develop`, stage intended files only, commit, push the branch,
+  against `origin/main`, stage intended files only, commit, push the branch,
   and create the MR from that branch.
 - Use non-interactive Git commands where possible. Avoid interactive rebase,
   patch staging, or editors unless the user explicitly wants that workflow.
@@ -225,7 +225,7 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
 Release MR flow:
 
 1. Set the release version in `apps/pichu-client/package.json`; after the first CalVer release MR, keep root `package.json` on the same version.
-2. Run `pnpm run changelog:compose -- --version <version>` to move
+2. Run `pnpm run changelog:compose --version <version>` to move
    `.changelog/unreleased` fragments and any legacy `CHANGELOG.md`
    `## Unreleased` entries into `## <version>`, leaving only future work in
    `Unreleased`. Consumed fragments are archived under
@@ -236,7 +236,7 @@ Release MR flow:
    `CHANGELOG.md` `## <version>` section, where `<version>` is exactly
    `apps/pichu-client/package.json`'s version. Do not generate release notes
    from `Unreleased` during release prep.
-5. Run `pnpm run release:check -- --version <version>` before package builds. This validates versions, changelog structure, the versioned changelog section, and `release-notes/<version>.md`.
+5. Run `pnpm run release:check --version <version>` before package builds. This validates versions, changelog structure, the versioned changelog section, and `release-notes/<version>.md`.
 
 ### Commit Helper
 

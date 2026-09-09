@@ -52,7 +52,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Validate release files
-        run: pnpm run release:check -- --version "$RELEASE_VERSION"
+        run: pnpm run release:check --version "$RELEASE_VERSION"
 
       - name: Prepare App Store Connect API key
         shell: bash
