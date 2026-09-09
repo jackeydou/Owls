@@ -27,8 +27,13 @@ work stays in normal MRs.
   `origin/main` or a detached `origin/main` checkout; do not require this
   worktree to own the local `main` branch.
 - Release MRs target `main`.
-- Create the Git release tag only after the release MR is reviewed, merged, and
-  explicitly approved for publishing.
+- After the release MR is reviewed, merged, and explicitly approved for publishing,
+  run Release macOS from the latest `main` workflow definition. It always checks
+  out latest `main` and reads `apps/pichu-client/package.json` for the version.
+- A pre-existing tag is not required. Publishing creates a missing version tag at
+  the built commit; existing tags are not moved. Use the commit recorded in release
+  notes to identify the actual artifact source. Failed builds may be retried from
+  latest `main` with the same version; published versions require a new version.
 
 ## Versioning
 

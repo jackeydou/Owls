@@ -41,7 +41,8 @@ release tags use the same string as the actual version.
   `release/<actual-version>`, for example `release/2026.5.2000`.
 - Release MRs target `main`.
 - After the release MR is reviewed, merged, and explicitly approved for
-  publishing, create the Git release tag on the merged `main` commit.
+  publishing, run the release workflow against latest `main`. The workflow reads
+  the version from the app package and creates a version tag if needed.
 - `master` is not part of the Owls Client release flow unless the operator
   explicitly changes this policy.
 
@@ -109,38 +110,50 @@ such as `Owls-2026.5.2000.dmg`.
 
 ## GitHub Release Publishing
 
-Pushing an approved version tag triggers `.github/workflows/release-macos.yml`.
-The workflow validates that the tag matches `apps/pichu-client/package.json`,
-builds the macOS DMG and ZIP, signs the app with a Developer ID Application
-certificate, notarizes and staples it, verifies the finished bundle, and then
-creates the matching GitHub Release. Beta tags create prereleases.
+The `.github/workflows/release-macos.yml` workflow always checks out the latest
+`main` at checkout time, including the application and packaging scripts. It
+reads the version from `apps/pichu-client/package.json` and validates the release
+files for that version. Neither the triggering tag nor the workflow branch
+selector determines the application version or source checkout.
+
+It builds the macOS DMG and ZIP, signs with a Developer ID Application certificate,
+notarizes and staples the app, verifies the bundle, and creates the GitHub Release.
+Versions containing `-beta.N` create prereleases. The exact checked-out commit is
+recorded in the job summary and published release notes.
 
 ### Manual GitHub Actions runs
 
-After the workflow configuration is merged into `main`, open the repository's
-**Actions** tab, select a workflow, and click **Run workflow**:
+After merging workflow changes into `main`, open **Actions**, select a workflow,
+and click **Run workflow**:
 
-- **Unit tests**: select the branch to test and run the workflow.
-- **Release macOS**: select `main` for the workflow definition and enter an
-  existing, approved version tag in the `tag` field. The workflow checks out that
-  exact tag, validates its package version, and runs the same build and publish
-  steps as a tag push. It does not create or move tags.
-
-The same workflows can be triggered with the GitHub CLI:
+- **Unit tests**: select the branch to test.
+- **Release macOS**: select `main` for the latest workflow definition. No tag input
+  is required; the build uses the current app version and latest `main` code.
 
 ```bash
 gh workflow run unit-tests.yml --ref main
-gh workflow run release-macos.yml --ref main -f tag=2026.9.800
+gh workflow run release-macos.yml --ref main
 ```
 
-Manual release runs publish a GitHub Release; they are not build-only previews.
-Use them only after publishing approval. Automatic and manual runs for the same
-tag share a concurrency group. An existing GitHub Release is not overwritten;
-the release creation step fails if one already exists.
+Pushing a version-shaped tag remains an alternative trigger, but it does not
+select the source code or release version. All release runs share a concurrency
+group so automatic and manual runs cannot publish concurrently.
 
-The tag also selects the packaging scripts. Re-running an old tag does not pick
-up packaging fixes merged into `main`; publish a new approved version containing
-those fixes instead of moving the old tag.
+Release runs publish artifacts and require publishing approval. GitHub Release
+still uses the package version as its tag name. If that tag does not exist,
+GitHub creates it at the exact built commit. Existing tags are not moved and may
+point to older source; use the build commit in the release notes to identify the
+artifact source. Existing GitHub Releases are not overwritten.
+
+This latest-main workflow uses `release:check --allow-unreleased`: package
+versions and versioned release notes are still validated, while pending changelog
+fragments are allowed and appended to the published notes in filename order.
+It does not archive fragments or commit generated notes. Normal release preflight
+keeps the strict default and still requires changelog composition.
+
+A failed build can be retried from the latest workflow on `main` without changing
+the app version or moving an old tag. This picks up packaging fixes already merged
+into `main`. Once a version has been published, use a new version for a new release.
 
 ### Build and credentials
 
