@@ -1,7 +1,7 @@
 {
   "name": "pichu-client",
   "productName": "Owls",
-  "version": "2026.9.800",
+  "version": "2026.9.801",
   "description": "Owls desktop client for AI-assisted workflows.",
   "license": "AGPL-3.0-only",
   "main": "./out/main/index.js",
