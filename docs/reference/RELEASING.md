@@ -115,6 +115,31 @@ builds the macOS DMG and ZIP, signs the app with a Developer ID Application
 certificate, notarizes and staples it, verifies the finished bundle, and then
 creates the matching GitHub Release. Beta tags create prereleases.
 
+### Manual GitHub Actions runs
+
+After the workflow configuration is merged into `main`, open the repository's
+**Actions** tab, select a workflow, and click **Run workflow**:
+
+- **Unit tests**: select the branch to test and run the workflow.
+- **Release macOS**: select `main` for the workflow definition and enter an
+  existing, approved version tag in the `tag` field. The workflow checks out that
+  exact tag, validates its package version, and runs the same build and publish
+  steps as a tag push. It does not create or move tags.
+
+The same workflows can be triggered with the GitHub CLI:
+
+```bash
+gh workflow run unit-tests.yml --ref main
+gh workflow run release-macos.yml --ref main -f tag=2026.9.800
+```
+
+Manual release runs publish a GitHub Release; they are not build-only previews.
+Use them only after publishing approval. Automatic and manual runs for the same
+tag share a concurrency group. An existing GitHub Release is not overwritten;
+the release creation step fails if one already exists.
+
+### Build and credentials
+
 The build step raises its open-file limit to 65,536 before starting packaging
 because the macOS signer scans unpacked dependencies concurrently. Keep this in
 the same shell as the build so its child processes inherit the limit.
