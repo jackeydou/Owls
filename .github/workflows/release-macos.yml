@@ -2,6 +2,11 @@ name: Release macOS
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish the verified artifacts to GitHub Releases'
+        type: boolean
+        default: true
   push:
     tags:
       - '[0-9]*.[0-9]*.[0-9]*'
@@ -81,6 +86,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # macOS also caps descriptors in the kernel, independently of RLIMIT_NOFILE.
+          sysctl kern.maxfiles kern.maxfilesperproc
+          total_limit="$(sysctl -n kern.maxfiles)"
+          process_limit="$(sysctl -n kern.maxfilesperproc)"
+          if (( total_limit < 2097152 )); then
+            sudo sysctl -w kern.maxfiles=2097152
+          fi
+          if (( process_limit < 1048576 )); then
+            sudo sysctl -w kern.maxfilesperproc=1048576
+          fi
+          sysctl kern.maxfiles kern.maxfilesperproc
           # Preserve the hard limit so the packaging hook can size the soft limit to the bundle.
           ulimit -S -n 65536
           echo "Open-file limit: $(ulimit -n)"
@@ -128,7 +144,7 @@ jobs:
             "$RELEASE_COMMIT" "$GITHUB_REPOSITORY" "$RELEASE_COMMIT" >> "$RUNNER_TEMP/release-notes.md"
 
       - name: Create stable GitHub Release draft
-        if: ${{ !contains(steps.release.outputs.version, '-beta.') }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.publish) && !contains(steps.release.outputs.version, '-beta.') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -145,7 +161,7 @@ jobs:
           gh release edit "$RELEASE_VERSION" --draft=false --latest
 
       - name: Create beta GitHub Release draft
-        if: ${{ contains(steps.release.outputs.version, '-beta.') }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.publish) && contains(steps.release.outputs.version, '-beta.') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
