@@ -159,6 +159,27 @@ into `main`. Once a version has been published, use a new version for a new rele
 
 ### Build and credentials
 
+Keep electron-builder pinned to a verified version. Version 26.8.2 fixes pnpm
+deduplicated dependency collection; 26.8.1 could silently omit transitive runtime
+dependencies from an otherwise signed and notarized app.
+
+Every macOS package runs a runtime gate in `afterPack`, before signing. The gate
+walks the packaged production dependency manifests, rejects missing required
+dependencies or links outside the app, then uses the packaged Electron binary to
+load MCP client/server transports, load PTY, and query an in-memory SQLite database.
+It runs in Electron's Node mode without starting Owls or opening user data. Missing
+optional platform packages are allowed; installed optional packages must have their
+required dependencies. This validates dependency packaging and native loading, not
+the full graphical startup or every feature.
+
+The release workflow repeats the gate on the finished bundle before uploading any
+release assets. To inspect a built or installed app manually:
+
+```bash
+pnpm --dir apps/pichu-client run verify:packaged /Applications/Owls.app
+pnpm --filter pichu-client test:packaging
+```
+
 The build step raises only its soft open-file limit to 65,536, preserving the
 runner's hard limit. On the disposable GitHub runner, it also raises kernel limits
 to at least `kern.maxfiles=2097152` and `kern.maxfilesperproc=1048576` using sudo,
@@ -172,7 +193,7 @@ the actual process and kernel limits and fails early if either cannot accommodat
 the bundle. Do not use `ulimit -n 65536` here: Bash lowers both limits, preventing
 the hook from raising the soft limit further.
 The macOS build script passes `--publish never` to electron-builder; the workflow
-uploads release assets only after signature and notarization verification.
+uploads release assets only after runtime, signature, and notarization verification.
 
 Configure these GitHub Actions repository secrets before publishing:
 
