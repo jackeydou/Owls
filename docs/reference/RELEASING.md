@@ -133,6 +133,8 @@ and click **Run workflow**:
 ```bash
 gh workflow run unit-tests.yml --ref main
 gh workflow run release-macos.yml --ref main
+# Validate signing and notarization without creating a GitHub Release:
+gh workflow run release-macos.yml --ref main -F publish=false
 ```
 
 Pushing a version-shaped tag remains an alternative trigger, but it does not
@@ -158,11 +160,15 @@ into `main`. Once a version has been published, use a new version for a new rele
 ### Build and credentials
 
 The build step raises only its soft open-file limit to 65,536, preserving the
-runner's hard limit. Before signing, the packaging hook counts bundle files
+runner's hard limit. On the disposable GitHub runner, it also raises kernel limits
+to at least `kern.maxfiles=2097152` and `kern.maxfilesperproc=1048576` using sudo,
+without lowering existing higher values. macOS applies the lower of the process
+soft limit and `kern.maxfilesperproc`; a large `ulimit` alone is insufficient.
+Before signing, the packaging hook counts bundle files
 sequentially and raises the electron-builder process's soft limit to at least
 the file count plus 4,096 (with a minimum of 65,536). The macOS signer probes
 unpacked files concurrently, so a fixed limit may be too small. The hook logs
-the actual process limits and fails early if the hard limit cannot accommodate
+the actual process and kernel limits and fails early if either cannot accommodate
 the bundle. Do not use `ulimit -n 65536` here: Bash lowers both limits, preventing
 the hook from raising the soft limit further.
 The macOS build script passes `--publish never` to electron-builder; the workflow

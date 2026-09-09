@@ -18,10 +18,14 @@ test('signing preflight grows beyond 65536 for a large bundle', async () => {
       await symlink('framework', join(directory, `alias-${index}`))
     }
     let requested
-    await signing.prepareMacSigning(directory, (target) => {
-      requested = target
-      return { beforeSoft: 65_536, afterSoft: target, afterHard: 1_048_575 }
-    })
+    await signing.prepareMacSigning(
+      directory,
+      (target) => {
+        requested = target
+        return { beforeSoft: 65_536, afterSoft: target, afterHard: 1_048_575 }
+      },
+      1_048_576
+    )
     assert.equal(requested, 129 * 512 + 4096)
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -36,17 +40,47 @@ test('signing preflight counts nested files and framework symlinks before raisin
     await writeFile(join(directory, 'resource'), 'resource')
     await symlink('framework', join(directory, 'current'))
     let requested
-    await signing.prepareMacSigning(directory, (target) => {
-      requested = target
-      return { beforeSoft: 256, afterSoft: target, afterHard: target }
-    })
+    await signing.prepareMacSigning(
+      directory,
+      (target) => {
+        requested = target
+        return { beforeSoft: 256, afterSoft: target, afterHard: target }
+      },
+      1_048_576
+    )
     assert.equal(requested, 65_536)
     await assert.rejects(
-      signing.prepareMacSigning(directory, () => ({
-        beforeSoft: 256,
-        afterSoft: 256,
-        afterHard: 256
-      })),
+      signing.prepareMacSigning(
+        directory,
+        () => ({
+          beforeSoft: 1_048_575,
+          afterSoft: 1_048_575,
+          afterHard: 1_048_575
+        }),
+        10_240
+      ),
+      /kern.maxfilesperproc.*10240/
+    )
+    await assert.rejects(
+      signing.prepareMacSigning(
+        directory,
+        () => {
+          throw new Error('must not run')
+        },
+        NaN
+      ),
+      /Could not read a valid/
+    )
+    await assert.rejects(
+      signing.prepareMacSigning(
+        directory,
+        () => ({
+          beforeSoft: 256,
+          afterSoft: 256,
+          afterHard: 256
+        }),
+        1_048_576
+      ),
       /Raise the build shell's hard limit/
     )
   } finally {

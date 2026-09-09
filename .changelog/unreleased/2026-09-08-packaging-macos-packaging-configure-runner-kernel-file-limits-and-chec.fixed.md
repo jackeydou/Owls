@@ -1,0 +1,1 @@
+- -- macOS packaging: Configure runner kernel file limits and check the effective signing limit before scanning the app.
