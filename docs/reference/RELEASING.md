@@ -115,6 +115,12 @@ builds the macOS DMG and ZIP, signs the app with a Developer ID Application
 certificate, notarizes and staples it, verifies the finished bundle, and then
 creates the matching GitHub Release. Beta tags create prereleases.
 
+The build step raises its open-file limit to 65,536 before starting packaging
+because the macOS signer scans unpacked dependencies concurrently. Keep this in
+the same shell as the build so its child processes inherit the limit.
+The macOS build script passes `--publish never` to electron-builder; the workflow
+uploads release assets only after signature and notarization verification.
+
 Configure these GitHub Actions repository secrets before publishing:
 
 - `MAC_CSC_LINK`: base64-encoded Developer ID Application `.p12` certificate.

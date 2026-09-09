@@ -1,0 +1,1 @@
+- macOS releases: Raise the signing file limit and publish artifacts only after verification.

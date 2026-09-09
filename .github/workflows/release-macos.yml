@@ -75,7 +75,13 @@ jobs:
           chmod 600 "$RUNNER_TEMP/AuthKey.p8"
 
       - name: Build, sign, and notarize macOS package
-        run: pnpm --dir apps/pichu-client run build:mac
+        shell: bash
+        run: |
+          set -euo pipefail
+          # osx-sign scans unpacked dependencies concurrently; inherit this limit in the build.
+          ulimit -n 65536
+          echo "Open-file limit: $(ulimit -n)"
+          pnpm --dir apps/pichu-client run build:mac
         env:
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
