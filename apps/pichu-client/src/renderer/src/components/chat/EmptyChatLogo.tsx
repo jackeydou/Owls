@@ -10,7 +10,7 @@ export function EmptyChatLogo(): React.JSX.Element {
     <button
       type="button"
       aria-label={t('chat.logo.animate')}
-      className="pichu-empty-chat-logo mx-auto block w-44 select-none sm:w-48"
+      className="pichu-empty-chat-logo mx-auto block mb-4 w-24 select-none sm:w-28"
       onClick={() => setAnimationKey((currentKey) => currentKey + 1)}
     >
       <span
@@ -18,18 +18,7 @@ export function EmptyChatLogo(): React.JSX.Element {
         aria-hidden="true"
         className={`pichu-empty-chat-logo-art block ${animationKey > 0 ? 'is-animated' : ''}`}
       >
-        <img
-          alt=""
-          className="pichu-empty-chat-ear pichu-empty-chat-ear-left"
-          draggable={false}
-          src={pichuHomeMark}
-        />
-        <img
-          alt=""
-          className="pichu-empty-chat-ear pichu-empty-chat-ear-right"
-          draggable={false}
-          src={pichuHomeMark}
-        />
+        <img alt="" className="pichu-empty-chat-owl" draggable={false} src={pichuHomeMark} />
       </span>
     </button>
   )
