@@ -11,6 +11,22 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.9.801
+
+### Highlights
+
+- Fix a macOS startup crash caused by missing application dependencies.
+
+### Changes
+
+- Branding: use a static waving owl on the home screen and refresh the app icons. (#9)
+- Releases: build the latest main code using the app version without requiring an existing tag.
+
+### Fixes
+
+- Startup: include required runtime dependencies in macOS releases and reject incomplete app bundles before publishing. (#14)
+- macOS packaging: size process and kernel file limits for large app bundles and verify runtime dependencies, signing, and notarization before publishing.
+
 ## 2026.9.800
 
 ### Highlights
