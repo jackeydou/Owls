@@ -11,6 +11,27 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.9.800
+
+### Highlights
+
+- Pichu is now Owls, with existing data and integration identifiers preserved.
+- Sign in with your OpenAI subscription and configure local or remote MCP servers.
+- Explore token and message usage with daily heatmaps and model comparisons.
+- Install signed, notarized macOS releases and choose stable or beta updates in the app.
+
+### Changes
+
+- Branding: rename the app and repository to Owls and refresh the app, home screen, README, and menu bar icons.
+- Models: add OpenAI OAuth sign-in, subscription model selection, and GPT Image 2 access without a separate API key.
+- Updates: distribute signed and notarized macOS releases through GitHub with in-app stable and beta updates.
+- Customize: configure local stdio and remote MCP servers, including protocol-native OAuth support.
+- Usage: add token and message analytics with daily heatmaps, model rankings, and bar or line charts.
+
+### Fixes
+
+- Terminals: prevent command polling from ending early when no other event-loop work is active.
+
 ## 2026.6.2400
 
 ### Highlights

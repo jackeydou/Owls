@@ -16,7 +16,7 @@ release tags use the same string as the actual version.
 
 - stable: a production Owls desktop release
 - beta: a test release for validating upcoming desktop changes
-- dev: the moving head of `develop`
+- dev: the moving head of `main`
 
 ## Version Naming
 
@@ -35,13 +35,13 @@ release tags use the same string as the actual version.
 
 ## Branch Flow
 
-- `develop` is the integration branch and release source.
-- Normal development MRs target `develop`.
-- Release branches are cut from the latest `origin/develop` and named
+- `main` is the integration branch and release source.
+- Normal development MRs target `main`.
+- Release branches are cut from the latest `origin/main` and named
   `release/<actual-version>`, for example `release/2026.5.2000`.
-- Release MRs target `develop`.
+- Release MRs target `main`.
 - After the release MR is reviewed, merged, and explicitly approved for
-  publishing, create the Git release tag on the merged `develop` commit.
+  publishing, create the Git release tag on the merged `main` commit.
 - `master` is not part of the Owls Client release flow unless the operator
   explicitly changes this policy.
 
@@ -79,7 +79,7 @@ MR composes unreleased fragments.
 - Use `pnpm run changelog:add -- --type changed --scope <scope> "Area: change. (#<PR>)"`
   or `--type fixed` to create a fragment. Supported fragment types are `added`,
   `changed`, `fixed`, `security`, `removed`, and `internal`.
-- Release MRs run `pnpm run changelog:compose -- --version <version>` to move
+- Release MRs run `pnpm run changelog:compose --version <version>` to move
   `.changelog/unreleased` fragments and any legacy `CHANGELOG.md`
   `## Unreleased` entries under the target version section, for example
   `## 2026.5.2000`, create `release-notes/<version>.md`, and archive consumed
@@ -140,8 +140,8 @@ at minimum:
 
 ```bash
 pnpm run changelog:check
-pnpm run release-notes:check -- --version <version>
-pnpm run release:check -- --version <version>
+pnpm run release-notes:check --version <version>
+pnpm run release:check --version <version>
 pnpm --dir apps/pichu-client run build
 ```
 
