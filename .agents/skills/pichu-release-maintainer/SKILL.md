@@ -27,13 +27,17 @@ work stays in normal MRs.
   `origin/main` or a detached `origin/main` checkout; do not require this
   worktree to own the local `main` branch.
 - Release MRs target `main`.
-- After the release MR is reviewed, merged, and explicitly approved for publishing,
-  run Release macOS from the latest `main` workflow definition. It always checks
-  out latest `main` and reads `apps/pichu-client/package.json` for the version.
+- Release macOS builds the selected branch and its event commit for manual runs,
+  or the tagged commit for tag pushes. Select the branch in the UI or pass it with
+  `gh workflow run release-macos.yml --ref <branch>`. Workflow instructions, application
+  code, and `apps/pichu-client/package.json` must come from the same revision.
+- After review and explicit publishing approval, choose the branch to release.
+  Use `publish=false` to validate a branch without publishing.
 - A pre-existing tag is not required. Publishing creates a missing version tag at
   the built commit; existing tags are not moved. Use the commit recorded in release
-  notes to identify the actual artifact source. Failed builds may be retried from
-  latest `main` with the same version; published versions require a new version.
+  notes to identify the actual artifact source. To pick up fixes after a failed
+  build, start a fresh run on the updated branch; re-running a job uses its original
+  commit. Unpublished versions may be reused; published versions require a new version.
 
 ## Versioning
 

@@ -25,10 +25,8 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - name: Check out latest main
+      - name: Check out the selected ref
         uses: actions/checkout@v7
-        with:
-          ref: main
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -46,7 +44,7 @@ jobs:
           const fs = require('node:fs')
           const pkg = require('./apps/pichu-client/package.json')
           if (!pkg.scripts?.['verify:packaged'] || !fs.existsSync('apps/pichu-client/scripts/verify-packaged-runtime.cjs')) {
-            console.error('::error::This workflow requires the packaged runtime gate, but the checked-out main branch does not contain it. Merge the release PR, then run Release macOS from main. Selecting a PR branch changes the workflow definition, not the source checkout.')
+            console.error('::error::The selected source is missing the packaged runtime gate. Include both the verify:packaged package script and scripts/verify-packaged-runtime.cjs before running this workflow.')
             process.exit(1)
           }
           NODE
@@ -64,9 +62,13 @@ jobs:
           echo "version=$package_version" >> "$GITHUB_OUTPUT"
           echo "RELEASE_VERSION=$package_version" >> "$GITHUB_ENV"
           release_commit="$(git rev-parse HEAD)"
+          if [[ "$release_commit" != "$GITHUB_SHA" ]]; then
+            echo "::error::Checked-out commit $release_commit does not match the selected workflow commit $GITHUB_SHA."
+            exit 1
+          fi
           echo "RELEASE_COMMIT=$release_commit" >> "$GITHUB_ENV"
-          echo "Building Owls $package_version from main at $release_commit"
-          echo "Building Owls $package_version from main at $release_commit" >> "$GITHUB_STEP_SUMMARY"
+          echo "Building Owls $package_version from $GITHUB_REF at $release_commit"
+          echo "Building Owls $package_version from $GITHUB_REF at $release_commit" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -147,13 +149,13 @@ jobs:
           export LC_ALL=C
           fragments=(.changelog/unreleased/*.md)
           if (( ${#fragments[@]} > 0 )); then
-            printf '\n\n## Additional changes from main\n\n' >> "$RUNNER_TEMP/release-notes.md"
+            printf '\n\n## Additional changes\n\n' >> "$RUNNER_TEMP/release-notes.md"
             for fragment in "${fragments[@]}"; do
               cat "$fragment" >> "$RUNNER_TEMP/release-notes.md"
               printf '\n' >> "$RUNNER_TEMP/release-notes.md"
             done
           fi
-          printf '\n\nBuilt from main commit [%s](https://github.com/%s/commit/%s).\n' \
+          printf '\n\nBuilt from commit [%s](https://github.com/%s/commit/%s).\n' \
             "$RELEASE_COMMIT" "$GITHUB_REPOSITORY" "$RELEASE_COMMIT" >> "$RUNNER_TEMP/release-notes.md"
 
       - name: Create stable GitHub Release draft

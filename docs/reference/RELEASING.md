@@ -35,14 +35,16 @@ release tags use the same string as the actual version.
 
 ## Branch Flow
 
-- `main` is the integration branch and release source.
+- `main` is the integration branch. Release builds use the branch or tag selected for the run.
 - Normal development MRs target `main`.
 - Release branches are cut from the latest `origin/main` and named
   `release/<actual-version>`, for example `release/2026.5.2000`.
 - Release MRs target `main`.
-- After the release MR is reviewed, merged, and explicitly approved for
-  publishing, run the release workflow against latest `main`. The workflow reads
-  the version from the app package and creates a version tag if needed.
+- After review and explicit publishing approval, select the branch to release
+  when starting the workflow. Select `main` to release integrated changes or the
+  release branch to build its exact revision. The workflow reads that branch's
+  app version and creates a version tag if needed. Use `publish=false` to validate
+  a branch without publishing.
 - `master` is not part of the Owls Client release flow unless the operator
   explicitly changes this policy.
 
@@ -110,16 +112,16 @@ such as `Owls-2026.5.2000.dmg`.
 
 ## GitHub Release Publishing
 
-The `.github/workflows/release-macos.yml` workflow always checks out the latest
-`main` at checkout time, including the application and packaging scripts. It
-reads the version from `apps/pichu-client/package.json` and validates the release
-files for that version. Neither the triggering tag nor the workflow branch
-selector determines the application version or source checkout.
+The `.github/workflows/release-macos.yml` workflow checks out the event's ref and
+commit using the default `actions/checkout` behavior. A manual run builds the
+branch selected in **Run workflow** (or passed to `gh workflow run --ref`). A tag
+push builds the tagged commit. Workflow instructions, application code, package
+version, and release notes all come from that selected revision; there is no
+checkout override to `main`.
 
-When a workflow from an unmerged branch requires the packaged runtime gate but
-`main` does not yet contain it, preflight stops before dependency installation or
-packaging with instructions to merge the release PR and run from `main`. Selecting
-the PR branch does not build that branch's application code.
+Preflight verifies that the checked-out commit matches the workflow event's SHA
+and that the selected source contains the packaged runtime gate. Missing gate
+files stop the run before dependency installation or packaging.
 
 It builds the macOS DMG and ZIP, signs with a Developer ID Application certificate,
 notarizes and staples the app, verifies the bundle, and creates the GitHub Release.
@@ -128,22 +130,23 @@ recorded in the job summary and published release notes.
 
 ### Manual GitHub Actions runs
 
-After merging workflow changes into `main`, open **Actions**, select a workflow,
-and click **Run workflow**:
+Open **Actions**, select a workflow, and click **Run workflow**. Choose the branch
+whose workflow and application code you want to run:
 
 - **Unit tests**: select the branch to test.
-- **Release macOS**: select `main` for the latest workflow definition. No tag input
-  is required; the build uses the current app version and latest `main` code.
+- **Release macOS**: select the branch to build. No tag input is required; the
+  build reads the app version and release files from that branch. Uncheck
+  **Publish the verified artifacts to GitHub Releases** for validation only.
 
 ```bash
 gh workflow run unit-tests.yml --ref main
-gh workflow run release-macos.yml --ref main
+gh workflow run release-macos.yml --ref 'your-branch'
 # Validate signing and notarization without creating a GitHub Release:
-gh workflow run release-macos.yml --ref main -F publish=false
+gh workflow run release-macos.yml --ref 'your-branch' -F publish=false
 ```
 
-Pushing a version-shaped tag remains an alternative trigger, but it does not
-select the source code or release version. All release runs share a concurrency
+Pushing a version-shaped tag builds that tagged commit. The app package at that
+commit determines the release version. All release runs share a concurrency
 group so automatic and manual runs cannot publish concurrently.
 
 Release runs publish artifacts and require publishing approval. GitHub Release
@@ -152,15 +155,16 @@ GitHub creates it at the exact built commit. Existing tags are not moved and may
 point to older source; use the build commit in the release notes to identify the
 artifact source. Existing GitHub Releases are not overwritten.
 
-This latest-main workflow uses `release:check --allow-unreleased`: package
+The workflow uses `release:check --allow-unreleased`: package
 versions and versioned release notes are still validated, while pending changelog
 fragments are allowed and appended to the published notes in filename order.
 It does not archive fragments or commit generated notes. Normal release preflight
 keeps the strict default and still requires changelog composition.
 
-A failed build can be retried from the latest workflow on `main` without changing
-the app version or moving an old tag. This picks up packaging fixes already merged
-into `main`. Once a version has been published, use a new version for a new release.
+Re-running an existing job uses its original event commit. To pick up new fixes,
+start a fresh manual run on the branch containing them. A failed unpublished
+version can be reused without moving a tag. Once a version has been published,
+use a new version for a new release.
 
 ### Build and credentials
 
@@ -220,8 +224,8 @@ packaged app uses the public `jackeydou/Owls` GitHub Releases feed. Stable and
 beta update channels can be selected in General settings.
 
 Do not upload only an Actions artifact. Actions artifacts expire and are not an
-application update feed. Do not create or move a version tag until the release
-MR is merged and publishing has explicit operator approval.
+application update feed. Do not create or move a version tag or publish artifacts without explicit
+operator approval.
 
 ## Release Preflight
 

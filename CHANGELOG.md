@@ -20,7 +20,7 @@ development history is intentionally not carried forward.
 ### Changes
 
 - Branding: use a static waving owl on the home screen and refresh the app icons. (#9)
-- Releases: build the latest main code using the app version without requiring an existing tag.
+- Releases: build the selected branch or tagged commit using its app version without requiring an existing tag for manual runs.
 
 ### Fixes
 
