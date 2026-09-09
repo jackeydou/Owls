@@ -109,13 +109,14 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-      - name: Verify signature and notarization ticket
+      - name: Verify packaged runtime, signature, and notarization ticket
         shell: bash
         working-directory: apps/pichu-client
         run: |
           set -euo pipefail
           app_path="$(find dist -maxdepth 3 -type d -name 'Owls.app' -print -quit)"
           : "${app_path:?Could not find packaged Owls.app}"
+          pnpm run verify:packaged "$app_path"
           codesign --verify --deep --strict --verbose=2 "$app_path"
           spctl --assess --verbose --type exec "$app_path"
           xcrun stapler validate "$app_path"

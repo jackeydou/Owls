@@ -1,0 +1,1 @@
+- -- Startup: include missing runtime dependencies in macOS releases and block incomplete app bundles before publishing.
