@@ -46,7 +46,11 @@ for (const command of [
   ['pnpm', ['run', 'build:workspace-deps:with-node']],
   ['electron-vite', ['build']],
   ['pnpm', ['run', 'prepare:computer-use-helper']],
-  ['electron-builder', ['--mac', '--config', 'scripts/electron-builder-config.cjs']]
+  // The release workflow uploads artifacts after signature and notarization verification.
+  [
+    'electron-builder',
+    ['--mac', '--publish', 'never', '--config', 'scripts/electron-builder-config.cjs']
+  ]
 ]) {
   const result = spawnSync(command[0], command[1], {
     env: process.env,
