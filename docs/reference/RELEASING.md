@@ -138,11 +138,20 @@ Use them only after publishing approval. Automatic and manual runs for the same
 tag share a concurrency group. An existing GitHub Release is not overwritten;
 the release creation step fails if one already exists.
 
+The tag also selects the packaging scripts. Re-running an old tag does not pick
+up packaging fixes merged into `main`; publish a new approved version containing
+those fixes instead of moving the old tag.
+
 ### Build and credentials
 
-The build step raises its open-file limit to 65,536 before starting packaging
-because the macOS signer scans unpacked dependencies concurrently. Keep this in
-the same shell as the build so its child processes inherit the limit.
+The build step raises only its soft open-file limit to 65,536, preserving the
+runner's hard limit. Before signing, the packaging hook counts bundle files
+sequentially and raises the electron-builder process's soft limit to at least
+the file count plus 4,096 (with a minimum of 65,536). The macOS signer probes
+unpacked files concurrently, so a fixed limit may be too small. The hook logs
+the actual process limits and fails early if the hard limit cannot accommodate
+the bundle. Do not use `ulimit -n 65536` here: Bash lowers both limits, preventing
+the hook from raising the soft limit further.
 The macOS build script passes `--publish never` to electron-builder; the workflow
 uploads release assets only after signature and notarization verification.
 
@@ -154,6 +163,11 @@ Configure these GitHub Actions repository secrets before publishing:
 - `APPLE_API_KEY_ID`: App Store Connect API key ID.
 - `APPLE_API_ISSUER`: App Store Connect API issuer ID.
 - `APPLE_TEAM_ID`: Apple Developer team ID.
+
+If the signing log shows `Apple Development`, replace `MAC_CSC_LINK` with a
+Developer ID Application certificate exported with its private key and update
+`MAC_CSC_KEY_PASSWORD` to match. Apple Development certificates are not suitable
+for this outside-the-App-Store distribution flow.
 
 The release assets include the DMG for manual installation, the ZIP and channel
 metadata required by `electron-updater`, blockmaps, and SHA-256 checksums. The
