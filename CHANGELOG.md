@@ -26,6 +26,7 @@ development history is intentionally not carried forward.
 
 - Startup: include required runtime dependencies in macOS releases and reject incomplete app bundles before publishing. (#14)
 - macOS packaging: size process and kernel file limits for large app bundles and verify runtime dependencies, signing, and notarization before publishing.
+- macOS installers: reserve DMG capacity for signed bundle metadata to prevent out-of-space failures while creating the installer.
 
 ## 2026.9.800
 

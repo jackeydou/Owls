@@ -4,6 +4,7 @@ const path = require('node:path')
 const { version } = require('../package.json')
 const { prepareMacSigning } = require('./prepare-mac-signing.cjs')
 const { verifyPackagedApp } = require('./verify-packaged-runtime.cjs')
+const { prepareDmgSize } = require('./prepare-dmg-size.cjs')
 
 const buildMode = process.env.PICHU_BUILD_MODE === 'debug' ? 'debug' : 'release'
 const isDebug = buildMode === 'debug'
@@ -151,6 +152,7 @@ module.exports = {
     notarize: !skipNotarize
   },
   dmg: {
+    shrink: true,
     artifactName: `Owls-\${version}${debugSuffix}.\${ext}`
   },
   linux: {
@@ -172,6 +174,7 @@ module.exports = {
     for (const key of unusedMacPermissionInfoKeys) {
       removePlistKeyIfPresent(infoPlistPath, key)
     }
+    await prepareDmgSize(context)
     if (!skipNotarize) {
       // Load the macOS binding only after the workspace native packages are built.
       const { raiseFileDescriptorLimit } = require('@pichu/mac-process-limits')
@@ -187,5 +190,6 @@ module.exports = {
       )
     }
   },
+  afterSign: prepareDmgSize,
   ...(releaseNotes ? { releaseInfo: { releaseNotes } } : {})
 }

@@ -19,7 +19,7 @@
     "typecheck": "pnpm run typecheck:node && pnpm run typecheck:web",
     "test:unit": "pnpm run build:workspace-deps && pnpm run build && node --experimental-strip-types --test tests/admin/*.test.mjs tests/plugins/*.test.mjs",
     "test:admin": "pnpm run build && node --experimental-strip-types --test tests/admin/*.test.mjs",
-    "test:packaging": "node --test tests/admin/mac-signing.test.mjs tests/admin/packaged-runtime.test.mjs",
+    "test:packaging": "node --test tests/admin/mac-signing.test.mjs tests/admin/packaged-runtime.test.mjs tests/admin/dmg-size.test.mjs",
     "verify:packaged": "node scripts/verify-packaged-runtime.cjs",
     "test:plugins": "pnpm run build:workspace-deps && pnpm run build && node --experimental-strip-types --test tests/plugins/*.test.mjs",
     "validate:plugin": "node --experimental-strip-types scripts/validate-plugin.mjs",
