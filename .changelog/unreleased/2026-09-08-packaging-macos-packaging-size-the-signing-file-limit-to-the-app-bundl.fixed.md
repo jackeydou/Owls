@@ -1,0 +1,1 @@
+- -- macOS packaging: Size the signing file limit to the app bundle and preserve the runner hard limit.

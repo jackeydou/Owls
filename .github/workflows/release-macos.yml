@@ -97,8 +97,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # osx-sign scans unpacked dependencies concurrently; inherit this limit in the build.
-          ulimit -n 65536
+          # Preserve the hard limit so the packaging hook can size the soft limit to the bundle.
+          ulimit -S -n 65536
           echo "Open-file limit: $(ulimit -n)"
           pnpm --dir apps/pichu-client run build:mac
         env:

@@ -19,6 +19,7 @@
     "typecheck": "pnpm run typecheck:node && pnpm run typecheck:web",
     "test:unit": "pnpm run build:workspace-deps && pnpm run build && node --experimental-strip-types --test tests/admin/*.test.mjs tests/plugins/*.test.mjs",
     "test:admin": "pnpm run build && node --experimental-strip-types --test tests/admin/*.test.mjs",
+    "test:packaging": "node --test tests/admin/mac-signing.test.mjs",
     "test:plugins": "pnpm run build:workspace-deps && pnpm run build && node --experimental-strip-types --test tests/plugins/*.test.mjs",
     "validate:plugin": "node --experimental-strip-types scripts/validate-plugin.mjs",
     "db:generate": "drizzle-kit generate",
