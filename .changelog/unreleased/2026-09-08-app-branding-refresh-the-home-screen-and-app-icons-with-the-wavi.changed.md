@@ -1,1 +1,1 @@
-- -- Branding: refresh the home screen and app icons with the waving owl.
+- Branding: use a static waving owl on the home screen and refresh the app icons. (#9)
