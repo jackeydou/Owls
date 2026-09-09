@@ -135,6 +135,30 @@ jobs:
           spctl --assess --verbose --type exec "$app_path"
           xcrun stapler validate "$app_path"
 
+      - name: Verify the app inside each DMG
+        shell: bash
+        working-directory: apps/pichu-client
+        run: |
+          set -euo pipefail
+          for disk_image in dist/*.dmg; do
+            mount_dir="$(mktemp -d)"
+            mounted=false
+            cleanup() {
+              if [[ "$mounted" == true ]]; then
+                hdiutil detach "$mount_dir" || return
+              fi
+              rmdir "$mount_dir"
+            }
+            trap cleanup EXIT
+            hdiutil attach "$disk_image" -readonly -nobrowse -noautoopen -mountpoint "$mount_dir"
+            mounted=true
+            pnpm run verify:packaged "$mount_dir/Owls.app"
+            hdiutil detach "$mount_dir"
+            mounted=false
+            rmdir "$mount_dir"
+            trap - EXIT
+          done
+
       - name: Create checksums
         shell: bash
         working-directory: apps/pichu-client

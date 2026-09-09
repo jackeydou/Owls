@@ -181,8 +181,17 @@ optional platform packages are allowed; installed optional packages must have th
 required dependencies. This validates dependency packaging and native loading, not
 the full graphical startup or every feature.
 
-The release workflow repeats the gate on the finished bundle before uploading any
-release assets. To inspect a built or installed app manually:
+DMG capacity is calculated from the packaged bundle in `afterPack` and recalculated
+in `afterSign` for signed releases. The estimate rounds logical file sizes to 4 KiB,
+counts directories and symlinks without following framework aliases, reserves an
+additional 4 KiB per entry for metadata, then adds 25% plus 256 MiB of free space.
+This avoids dmgbuild's fixed 128 MiB allowance running out of space while copying
+a large signed bundle. The initial capacity is logged; `shrink: true` and normal
+compression keep unused capacity out of the final download.
+
+The release workflow repeats the gate on the finished bundle and the app mounted
+read-only from each DMG before uploading any release assets. Mounted images are
+detached on success or failure. To inspect a built or installed app manually:
 
 ```bash
 pnpm --dir apps/pichu-client run verify:packaged /Applications/Owls.app
