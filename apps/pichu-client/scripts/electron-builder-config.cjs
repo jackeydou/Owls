@@ -173,7 +173,16 @@ module.exports = {
     if (!skipNotarize) {
       // Load the macOS binding only after the workspace native packages are built.
       const { raiseFileDescriptorLimit } = require('@pichu/mac-process-limits')
-      await prepareMacSigning(path.join(context.appOutDir, appName), raiseFileDescriptorLimit)
+      const kernelLimit = Number(
+        execFileSync('/usr/sbin/sysctl', ['-n', 'kern.maxfilesperproc'], {
+          encoding: 'utf8'
+        }).trim()
+      )
+      await prepareMacSigning(
+        path.join(context.appOutDir, appName),
+        raiseFileDescriptorLimit,
+        kernelLimit
+      )
     }
   },
   ...(releaseNotes ? { releaseInfo: { releaseNotes } } : {})
