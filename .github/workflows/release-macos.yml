@@ -39,6 +39,18 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Verify runtime gate exists in the checked-out source
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const pkg = require('./apps/pichu-client/package.json')
+          if (!pkg.scripts?.['verify:packaged'] || !fs.existsSync('apps/pichu-client/scripts/verify-packaged-runtime.cjs')) {
+            console.error('::error::This workflow requires the packaged runtime gate, but the checked-out main branch does not contain it. Merge the release PR, then run Release macOS from main. Selecting a PR branch changes the workflow definition, not the source checkout.')
+            process.exit(1)
+          }
+          NODE
+
       - name: Read release version from package.json
         id: release
         shell: bash

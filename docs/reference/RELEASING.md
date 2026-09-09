@@ -116,6 +116,11 @@ reads the version from `apps/pichu-client/package.json` and validates the releas
 files for that version. Neither the triggering tag nor the workflow branch
 selector determines the application version or source checkout.
 
+When a workflow from an unmerged branch requires the packaged runtime gate but
+`main` does not yet contain it, preflight stops before dependency installation or
+packaging with instructions to merge the release PR and run from `main`. Selecting
+the PR branch does not build that branch's application code.
+
 It builds the macOS DMG and ZIP, signs with a Developer ID Application certificate,
 notarizes and staples the app, verifies the bundle, and creates the GitHub Release.
 Versions containing `-beta.N` create prereleases. The exact checked-out commit is
