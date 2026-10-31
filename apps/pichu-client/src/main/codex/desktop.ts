@@ -50,6 +50,8 @@ function createWindow(): void {
     }
   })
   window.once('ready-to-show', () => window?.show())
+  // Keep the native profile name when the renderer loads its generic HTML title.
+  window.on('page-title-updated', (event) => event.preventDefault())
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
     return { action: 'deny' }
