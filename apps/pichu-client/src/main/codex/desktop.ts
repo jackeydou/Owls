@@ -1,0 +1,115 @@
+import { existsSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { is } from '@electron-toolkit/utils'
+import { app, BrowserWindow, dialog, shell } from 'electron'
+import type { CodexEvent } from '../../shared/codex.js'
+import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
+import { getDataRoot } from '../pichu-paths.js'
+import { registerCodexIpc } from './ipc.js'
+import { safeText } from './protocol.js'
+import { CodexService } from './service.js'
+import { CodexStore } from './store.js'
+
+const profile = configureDevAppInstanceProfile()
+app.setName(profile ? `Owls — ${profile.name}` : 'Owls')
+let window: BrowserWindow | null = null
+let service: CodexService | null = null
+let quitApproved = false
+let quitPrompt = false
+
+function migrationsFolder(): string {
+  const candidates = [
+    join(process.resourcesPath, 'drizzle-codex'),
+    join(app.getAppPath(), 'drizzle-codex'),
+    join(__dirname, '../../drizzle-codex')
+  ]
+  const path = candidates.find((p) => existsSync(join(p, 'meta/_journal.json')))
+  if (!path) throw new Error('The Codex database migrations are missing from this installation.')
+  return path
+}
+function emit(event: CodexEvent): void {
+  if (window && !window.isDestroyed()) window.webContents.send('codex:event', event)
+}
+function createWindow(): void {
+  window = new BrowserWindow({
+    width: 1280,
+    height: 860,
+    minWidth: 820,
+    minHeight: 620,
+    show: false,
+    backgroundColor: '#181818',
+    title: app.getName(),
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 18, y: 19 } }
+      : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+  window.once('ready-to-show', () => window?.show())
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  window.webContents.on('will-navigate', (event) => event.preventDefault())
+  window.on('closed', () => {
+    window = null
+  })
+  if (is.dev && process.env.ELECTRON_RENDERER_URL) {
+    void window.loadURL(process.env.ELECTRON_RENDERER_URL)
+  } else void window.loadFile(join(__dirname, '../renderer/index.html'))
+}
+void app
+  .whenReady()
+  .then(() => {
+    const root = getDataRoot()
+    mkdirSync(root, { recursive: true })
+    const store = new CodexStore(join(root, 'owls-codex.db'), migrationsFolder())
+    service = new CodexService(store, emit)
+    registerCodexIpc(service, () => window)
+    createWindow()
+    void service.connect()
+    app.on('activate', () => {
+      if (!window) createWindow()
+    })
+  })
+  .catch((error) => {
+    dialog.showErrorBox(
+      'Owls could not start',
+      safeText(error instanceof Error ? error.message : 'Startup failed.')
+    )
+    app.quit()
+  })
+app.on('before-quit', (event) => {
+  if (quitApproved || !service?.hasActiveTasks()) return
+  event.preventDefault()
+  if (quitPrompt) return
+  quitPrompt = true
+  const chinese = service.snapshot().settings.language === 'zh-CN'
+  void dialog
+    .showMessageBox({
+      type: 'question',
+      message: chinese ? '仍有 Codex 任务正在运行' : 'Codex tasks are still running',
+      detail: chinese ? '退出会中断当前任务。' : 'Quitting will interrupt the current tasks.',
+      buttons: chinese ? ['继续工作', '停止并退出'] : ['Keep working', 'Stop and quit'],
+      defaultId: 0,
+      cancelId: 0
+    })
+    .then((result) => {
+      quitPrompt = false
+      if (result.response === 1) {
+        quitApproved = true
+        app.quit()
+      }
+    })
+})
+app.on('will-quit', () => {
+  service?.close()
+  service = null
+})
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit()
+})

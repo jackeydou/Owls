@@ -86,6 +86,10 @@ module.exports = {
       to: 'drizzle'
     },
     {
+      from: 'drizzle-codex',
+      to: 'drizzle-codex'
+    },
+    {
       from: 'resources/node',
       to: 'node'
     },

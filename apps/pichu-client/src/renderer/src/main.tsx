@@ -1,13 +1,11 @@
 import './assets/main.css'
-import './lib/i18n'
+import './codex/i18n'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
-import { applyThemeMode } from './lib/theme'
+import App from './codex/App'
 
-document.documentElement.dataset.platform = window.electron?.process?.platform ?? 'darwin'
-applyThemeMode()
+document.documentElement.dataset.platform = window.owlsPlatform
 
 const rootEl = document.getElementById('root')
 if (!rootEl) {

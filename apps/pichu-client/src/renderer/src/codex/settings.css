@@ -1,0 +1,128 @@
+.codex-settings-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.codex-settings-content {
+  max-width: 750px;
+  margin: 0 auto;
+  padding: 42px 38px 70px;
+}
+.codex-settings-content h1 {
+  font-size: 25px;
+  font-weight: 550;
+  letter-spacing: -0.7px;
+}
+.codex-subtitle {
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+  margin: 8px 0 36px;
+}
+.codex-settings-section {
+  border-top: 1px solid var(--color-border);
+  padding: 27px 0;
+}
+.codex-settings-section h2 {
+  font-size: 14px;
+  font-weight: 550;
+}
+.codex-settings-section h3 {
+  font-size: 12px;
+  font-weight: 500;
+}
+.codex-settings-section p {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+  line-height: 1.75;
+  margin-top: 6px;
+}
+.codex-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.codex-account {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  padding: 17px;
+  margin: 21px 0 17px;
+}
+.codex-account-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 41px;
+  height: 41px;
+  border-radius: 10px;
+  background: var(--color-card-muted);
+}
+.codex-account-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 5px;
+  flex: 1;
+}
+.codex-account-info strong {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.codex-account-info span {
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+.codex-success {
+  color: #458a68;
+}
+.codex-settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.codex-settings-section .codex-note {
+  font-size: 10px;
+  margin-top: 13px;
+}
+.codex-note a {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  color: var(--color-foreground);
+  margin-left: 5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.codex-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 25px;
+}
+.codex-setting-row label {
+  font-size: 12px;
+}
+.codex-setting-row select {
+  min-width: 130px;
+}
+.codex-path {
+  display: block;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  margin-top: 12px;
+  font-size: 10px;
+  word-break: break-all;
+}
+.codex-version {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}

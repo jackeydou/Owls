@@ -4,6 +4,11 @@
 
 Draft technical design for internal review.
 
+Historical Pi-based design. The active app entry now uses the locally installed
+Codex app-server; see [the Codex runtime guide](CODEX_APP_SERVER.md). The broader
+[Agent Orchestrator RFC](RFC_OWLS_AGENT_ORCHESTRATOR.md) records the original pivot
+proposal. This document no longer defines the active application runtime.
+
 This RFC replaces the earlier proposal to adopt Pi Coding Agent as Owls's
 runtime and Pi Packages and Extensions as Owls's ecosystem. Owls is not building
 a desktop client for Pi CLI and does not target compatibility with the Pi CLI
