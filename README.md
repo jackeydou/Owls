@@ -1,197 +1,97 @@
-<p align="center">
-  <img src="apps/pichu-client/resources/pichu-home-mark.png" alt="Owls" width="160" />
-</p>
+# Owls
 
-<h1 align="center">Owls</h1>
+A desktop workspace for your locally installed Codex.
 
-<p align="center">
-  An open-source desktop coding agent built on the Pi SDK.<br />
-  Bring your own model, endpoint, and API key.
-</p>
+Owls runs `codex app-server` on your computer. Codex owns the agent loop,
+models, tools, permissions, and authentication. Owls provides projects, tasks,
+streaming conversations, tool activity, approval and question cards, file
+changes, and a persistent desktop workspace.
 
-Owls is a desktop-first coding agent for working across repositories, files,
-terminals, browsers, and long-running tasks from one persistent workspace. It
-uses the [Pi SDK](https://github.com/earendil-works/pi) for the low-level agent
-loop and model integration, while Owls owns the desktop experience, session
-lifecycle, tools, approvals, sandboxing, persistence, and plugin system.
+## Get started
 
-This repository is the starting point for Owls's public development. The
-current codebase is treated as the first public version.
+Install and sign in to [Codex CLI](https://developers.openai.com/codex/cli)
+on your computer. Then open **Settings → Local Codex → Use local Codex sign-in**.
+Owls detects the executable, connects to app-server, and loads your account and
+available models. You can also choose an executable or start Codex's official
+ChatGPT sign-in flow from Settings.
 
-## Highlights
+Owls does not copy tokens into its database or expose credentials to the
+renderer. Your native Codex configuration and sign-in remain owned by Codex.
 
-- **Pi-powered agent runtime** — built with `pi-agent-core`, `pi-ai`, and
-  `pi-coding-agent` for streaming responses, agent control, and coding tools.
-- **Bring your own key (BYOK)** — connect your own provider account, compatible
-  endpoint, or local model server instead of depending on a bundled model plan.
-- **Coding-native workspace** — work with project files, managed terminals,
-  attachments, artifacts, repository context, and persistent chat sessions.
-- **Safe local tools** — review sensitive actions through approval controls,
-  remembered rules, audit events, and OS-level sandbox policies.
-- **Browser and desktop tools** — navigate pages, capture screenshots, add
-  annotations, and use browser or computer-control workflows from the agent.
-- **Extensible by design** — install portable Agent Plugins with skills and MCP
-  servers, plus namespaced Owls hooks and declarative extensions.
-- **Durable state** — SQLite-backed sessions, search, settings, continuations,
-  human-input requests, and task history survive app restarts.
+Open a project folder, choose the model and permissions for a new task, and send
+a message. Commands, file changes, plans, and approvals appear in the
+conversation. The Changes panel shows the current turn's unified diff.
 
-## Bring your own model
+Only open projects you trust. Codex can load project instructions, hooks,
+plugins, and MCP servers using its native configuration.
 
-Owls is BYOK-first. Add a model from **Settings → Models** and provide the
-endpoint and credentials issued by your provider. Owls currently supports
-these API protocols:
+## Runtime and data
 
-- OpenAI Responses
-- OpenAI-compatible Chat Completions
-- Anthropic Messages
-- Google Generative AI
+The active application uses the Codex runtime, not the previous Pi runtime.
+This is a clean break: Owls does not import or resume previous Pi conversations,
+model settings, or tool approvals. New local state uses `owls-codex.db` under
+the configured Owls data root. Native Codex sessions stay in Codex's own store.
 
-Each model configuration can define its own model ID, display name, base URL,
-API key, context window, output limit, reasoning support, and image support.
-This makes it possible to use hosted providers, compatible gateways, or local
-servers through the same Owls workflow.
+New task history and settings survive app restarts. An interrupted task can
+continue through its native Codex thread. Live approval callbacks expire when
+the owning process disconnects.
 
-API keys are encrypted with Electron `safeStorage` before they are persisted in
-the local Owls data store. Model summaries sent to the renderer expose only
-whether a key exists, not the key itself.
-
-## How Owls uses Pi
-
-Owls uses Pi as an SDK, not as an external CLI process or a second application
-runtime:
-
-- `@earendil-works/pi-agent-core` provides the low-level `Agent` loop, message
-  events, tool definitions, steering, and continuation primitives.
-- `@earendil-works/pi-ai` provides model types, provider APIs, streaming
-  primitives, and token usage data.
-- `@earendil-works/pi-coding-agent` provides reusable coding-tool and agent-file
-  helpers that Owls adapts to its own approval and sandbox boundaries.
-- Owls owns SQLite conversation history, prompts, context construction,
-  compaction, tools, approvals, sandboxing, plugins, MCP, multi-agent behavior,
-  Electron IPC, and UI.
-
-Owls is therefore not a GUI wrapper around the Pi CLI and does not use Pi
-Packages or Pi Extensions as its plugin contract. See the
-[agent runtime design](docs/RFC_PICHU_AGENT_RUNTIME.md) for the full boundary.
-
-## Repository layout
-
-| Path | Purpose |
-| --- | --- |
-| `apps/pichu-client` | Electron main process, preload bridge, React renderer, resources, and app tests |
-| `packages` | Shared clients, bundled plugins, native macOS helpers, and developer tools |
-| `docs` | Agent runtime, plugin, browser, IPC, workflow, and release references |
-
-## Getting started
-
-### Requirements
-
-- Node.js 22 or newer
-- pnpm `10.30.2`, as declared by the root `packageManager` field
-- Platform build tools required by Electron and the native workspace packages
-
-### Install
-
-```bash
-git clone https://github.com/jackeydou/Owls.git
-cd Owls
-pnpm install
-```
-
-### Run the desktop app
-
-```bash
-pnpm dev
-```
-
-Owls stores normal local app data under `~/.pichu`. To isolate development
-data, use the supported command-line options rather than environment variables:
-
-```bash
-pnpm dev --pichu-dev-name "Local Development" \
-  --pichu-data-root ~/.pichu-dev/local-development
-```
-
-## Rename compatibility
-
-Owls was previously named Pichu. Existing `~/.pichu` data, Electron profiles,
-workspace locations, and stored settings remain in place. Startup retains the
-previous credential-store identity before applying the visible Owls name. The app bundle ID,
-`pichu-client` URL scheme, plugin namespaces, and internal package names remain
-stable so existing integrations and saved data continue to resolve. The source
-app still lives in `apps/pichu-client`; use the package commands shown below.
-Historical changelogs and release notes retain the name used when published.
+See [Codex runtime](docs/CODEX_APP_SERVER.md) for ownership, configuration,
+storage, tests, and failure handling. The broader
+[orchestrator proposal](docs/RFC_OWLS_AGENT_ORCHESTRATOR.md) records future
+multi-provider design work.
 
 ## Development
 
-Use focused checks for the surface you changed:
+Use Node.js 22 or newer and pnpm `10.30.2`, as declared in `packageManager`.
 
 ```bash
-# Main process and Node-side code
-pnpm --filter pichu-client typecheck:node
+pnpm install
+pnpm dev
+```
 
-# Renderer and preload code
-pnpm --filter pichu-client typecheck:web
+For an isolated development profile:
 
-# Full client typecheck
+```bash
+pnpm dev --pichu-dev-name "Codex Orchestrator" \
+  --pichu-data-root ~/.pichu-dev/codex-orchestrator
+```
+
+Runtime settings are persisted; there are no Owls environment-variable overrides
+for the agent executable, model, account, or data root.
+
+```bash
 pnpm --filter pichu-client typecheck
-
-# Plugin and agent/tool behavior
-pnpm --filter pichu-client test:plugins
-pnpm --filter pichu-client test:admin
-
+pnpm --filter pichu-client test:codex
+pnpm --filter pichu-client test:codex:desktop
+pnpm --filter pichu-client test:codex:ui
 ```
 
-Formatting and linting use Biome:
+After a build, verify a real local installation. The first command only reads
+account and model metadata. The other commands use the native account to run
+small, isolated live tests.
 
 ```bash
-pnpm run lint:fix -- <paths>
-pnpm run format -- <paths>
+pnpm --filter pichu-client verify:codex
+pnpm --filter pichu-client verify:codex --prompt
+pnpm --filter pichu-client verify:codex --tools
 ```
 
-## Plugin development
-
-Owls plugins follow the vendor-neutral
-[Agent Plugins specification](https://agent-plugins.org/specification). A plugin
-can provide Agent Skills and MCP servers. Namespaced Owls extensions add hooks
-and other client-specific behavior without changing the portable core.
-
-Local developer ZIP uploads stay on the user's machine. Owls validates package
-boundaries and extracts archives with limits on archive size, entry count,
-uncompressed size, compression ratio, paths, and special files.
-
-Start with:
-
-- [Plugin system reference](docs/PLUGIN_SYSTEM.md)
-- [Agent hook reference](docs/CODEX_AGENT_HOOKS.md)
+Development changes target `main` through pull requests. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) for repository
+guidance.
 
 ## Security
 
-Owls treats IPC payloads, plugin packages, model and tool input, files, and
-network responses as untrusted boundaries. Credentials, authorization headers,
-cookies, and sensitive local paths should never be committed or written to
-ordinary logs.
+IPC input and native protocol messages are validated. The renderer has no Node
+access or generic shell/IPC capability. Native tools are governed by Codex's
+permissions and sandbox; Owls displays the approval requests Codex exposes.
 
-Please report security issues privately to the project maintainers. Do not open
-a public issue containing credentials, private data, or working exploit details.
-
-## Contributing
-
-Development changes target the `develop` branch through pull requests. Keep
-changes scoped, add focused tests for behavior that can regress, and update the
-relevant documentation when a public contract changes.
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, code style, testing, security,
-and pull-request guidance.
+Please report security issues privately. Do not include credentials, private
+project data, or authentication files in public issues.
 
 ## License
 
-Owls is open-source software licensed under the
-[GNU Affero General Public License v3.0](LICENSE). You may use, study, modify,
-and distribute it, including commercially, under the license terms. Modified
-versions that are distributed or made available to users over a network must
-offer those users the corresponding source code under AGPLv3.
-
-Pi SDK packages are maintained separately by the
-[Pi project](https://github.com/earendil-works/pi) and are distributed under
-their own MIT license.
+Owls is licensed under the
+[GNU Affero General Public License v3.0](LICENSE). Codex is separately installed
+and governed by its own license and service terms.
