@@ -1,1 +1,1 @@
-- Runtime: rebuild Owls around locally installed Codex with native account reuse, streaming tasks, approvals, and a fresh workspace database.
+- Runtime: rebuild Owls around locally installed Codex with native account reuse, streaming tasks, approvals, and a fresh workspace database. (#15)
