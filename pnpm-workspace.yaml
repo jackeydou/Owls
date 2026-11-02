@@ -16,6 +16,18 @@ allowBuilds:
   sharp: false
   tos-crc64-js: false
 
+# Owls drives the user's installed Claude Code CLI. Never install the SDK's
+# bundled platform CLIs, so a missing local executable cannot fall back to one.
+ignoredOptionalDependencies:
+  - '@anthropic-ai/claude-agent-sdk-darwin-arm64'
+  - '@anthropic-ai/claude-agent-sdk-darwin-x64'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl'
+  - '@anthropic-ai/claude-agent-sdk-win32-arm64'
+  - '@anthropic-ai/claude-agent-sdk-win32-x64'
+
 ignoredBuiltDependencies:
   - '@biomejs/biome'
   - esbuild

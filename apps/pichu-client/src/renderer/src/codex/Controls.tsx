@@ -1,8 +1,9 @@
 import { Select } from '@renderer/components/ui/select'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import { effortSchema, permissionSchema } from '../../../shared/codex'
-import { useCodexStore } from './store'
+import type { CodexSettings } from '../../../shared/codex'
+import { effortSchema, permissionSchema, providerSchema } from '../../../shared/codex'
+import { agentConnection, agentSelection, useCodexStore } from './store'
 
 export function TaskOptions({
   disabled = false,
@@ -13,32 +14,58 @@ export function TaskOptions({
 }) {
   const { t } = useTranslation()
   const settings = useCodexStore((s) => s.settings)
-  const models = useCodexStore((s) => s.connection.models)
+  const provider = settings.provider
+  const models = useCodexStore((s) => agentConnection(s, provider).models)
   const save = useCodexStore((s) => s.saveSettings)
   const id = useId()
-  const selected = models.find((m) => m.id === settings.model)
+  const agent = t(`agent.${provider}`)
+  const { model, effort } = agentSelection(settings, provider)
+  const selected = models.find((m) => m.id === model)
   const efforts = selected?.efforts ?? []
+  function saveSelection(next: { model: string | null; effort: string | null }) {
+    const update: CodexSettings =
+      provider === 'claude-code'
+        ? { ...settings, claudeModel: next.model, claudeEffort: next.effort }
+        : { ...settings, model: next.model, effort: next.effort }
+    void save(update)
+  }
   return (
     <div className={compact ? 'codex-options compact' : 'codex-options'}>
+      <label htmlFor={`${id}-agent`}>
+        <span>{t('agent')}</span>
+        <Select
+          id={`${id}-agent`}
+          value={provider}
+          disabled={disabled}
+          onChange={(event) =>
+            void save({ ...settings, provider: providerSchema.parse(event.target.value) })
+          }
+        >
+          {providerSchema.options.map((option) => (
+            <option key={option} value={option}>
+              {t(`agent.${option}`)}
+            </option>
+          ))}
+        </Select>
+      </label>
       <label htmlFor={`${id}-model`}>
         <span>{t('model')}</span>
         <Select
           id={`${id}-model`}
-          value={settings.model ?? '__default__'}
+          value={model ?? '__default__'}
           disabled={disabled || !models.length}
           onChange={(event) => {
-            const model = event.target.value === '__default__' ? null : event.target.value
-            void save({
-              ...settings,
-              model,
-              effort: model ? (models.find((m) => m.id === model)?.defaultEffort ?? null) : null
+            const next = event.target.value === '__default__' ? null : event.target.value
+            saveSelection({
+              model: next,
+              effort: next ? (models.find((m) => m.id === next)?.defaultEffort ?? null) : null
             })
           }}
         >
-          <option value="__default__">{t('nativeDefault')}</option>
-          {models.map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.name}
+          <option value="__default__">{t('nativeDefault', { agent })}</option>
+          {models.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name}
             </option>
           ))}
         </Select>
@@ -48,11 +75,11 @@ export function TaskOptions({
           <span>{t('effort')}</span>
           <Select
             id={`${id}-effort`}
-            value={settings.effort ?? '__default__'}
+            value={effort ?? '__default__'}
             disabled={disabled || !efforts.length}
             onChange={(event) =>
-              void save({
-                ...settings,
+              saveSelection({
+                model,
                 effort:
                   event.target.value === '__default__'
                     ? null
@@ -60,10 +87,10 @@ export function TaskOptions({
               })
             }
           >
-            <option value="__default__">{t('nativeDefault')}</option>
-            {efforts.map((effort) => (
-              <option key={effort} value={effort}>
-                {t(`effort.${effort}`, { defaultValue: effort })}
+            <option value="__default__">{t('nativeDefault', { agent })}</option>
+            {efforts.map((option) => (
+              <option key={option} value={option}>
+                {t(`effort.${option}`, { defaultValue: option })}
               </option>
             ))}
           </Select>

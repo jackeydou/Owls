@@ -27,7 +27,11 @@ export class CodexStore {
           effort: null,
           permission: 'workspace-write',
           theme: 'system',
-          language: 'en'
+          language: 'en',
+          provider: 'codex',
+          claudeExecutablePath: null,
+          claudeModel: null,
+          claudeEffort: null
         }
   }
   saveSettings(value: CodexSettings): CodexSettings {

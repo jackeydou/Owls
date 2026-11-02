@@ -1,10 +1,13 @@
 import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
 import { app, BrowserWindow, dialog, shell } from 'electron'
 import type { CodexEvent } from '../../shared/codex.js'
+import { ClaudeService } from '../claude/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { getDataRoot } from '../pichu-paths.js'
+import { OwlsHost } from './host.js'
 import { registerCodexIpc } from './ipc.js'
 import { safeText } from './protocol.js'
 import { CodexService } from './service.js'
@@ -13,7 +16,7 @@ import { CodexStore } from './store.js'
 const profile = configureDevAppInstanceProfile()
 app.setName(profile ? `Owls — ${profile.name}` : 'Owls')
 let window: BrowserWindow | null = null
-let service: CodexService | null = null
+let service: OwlsHost | null = null
 let quitApproved = false
 let quitPrompt = false
 
@@ -70,10 +73,11 @@ void app
     const root = getDataRoot()
     mkdirSync(root, { recursive: true })
     const store = new CodexStore(join(root, 'owls-codex.db'), migrationsFolder())
-    service = new CodexService(store, emit)
+    service = new OwlsHost(new CodexService(store, emit), new ClaudeService(store, emit, { query }))
     registerCodexIpc(service, () => window)
     createWindow()
     void service.connect()
+    void service.connectClaude()
     app.on('activate', () => {
       if (!window) createWindow()
     })
@@ -94,7 +98,7 @@ app.on('before-quit', (event) => {
   void dialog
     .showMessageBox({
       type: 'question',
-      message: chinese ? '仍有 Codex 任务正在运行' : 'Codex tasks are still running',
+      message: chinese ? '仍有任务正在运行' : 'Tasks are still running',
       detail: chinese ? '退出会中断当前任务。' : 'Quitting will interrupt the current tasks.',
       buttons: chinese ? ['继续工作', '停止并退出'] : ['Keep working', 'Stop and quit'],
       defaultId: 0,

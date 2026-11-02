@@ -19,7 +19,7 @@ import type { CodexItem, CodexRequest } from '../../../shared/codex'
 import { useCodexStore } from './store'
 
 const plugins = { code }
-export function ConversationItem({ item }: { item: CodexItem }) {
+export function ConversationItem({ item, agent }: { item: CodexItem; agent: string }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   if (item.kind === 'user') return <div className="codex-user-message">{item.text}</div>
@@ -30,7 +30,7 @@ export function ConversationItem({ item }: { item: CodexItem }) {
           <span className="codex-agent-mark">
             <Terminal size={12} />
           </span>
-          Codex
+          {agent}
         </div>
         <div className="codex-markdown">
           <Streamdown plugins={plugins} controls={false} isAnimating={item.status === 'running'}>
@@ -82,7 +82,15 @@ export function ConversationItem({ item }: { item: CodexItem }) {
     </details>
   )
 }
-export function RequestCard({ request, sessionId }: { request: CodexRequest; sessionId: string }) {
+export function RequestCard({
+  request,
+  sessionId,
+  agent
+}: {
+  request: CodexRequest
+  sessionId: string
+  agent: string
+}) {
   const { t } = useTranslation()
   const respond = useCodexStore((s) => s.respond)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -116,7 +124,9 @@ export function RequestCard({ request, sessionId }: { request: CodexRequest; ses
     >
       <div className="codex-request-title">
         <ShieldCheck size={17} />
-        <strong>{t(request.kind === 'question' ? 'questionTitle' : 'approvalTitle')}</strong>
+        <strong>
+          {t(request.kind === 'question' ? 'questionTitle' : 'approvalTitle', { agent })}
+        </strong>
       </div>
       {request.title ? <pre>{request.title}</pre> : null}
       {request.detail ? <p>{request.detail}</p> : null}

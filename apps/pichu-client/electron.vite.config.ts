@@ -57,6 +57,7 @@ export default defineConfig(({ command, mode }) => {
         },
         externalizeDeps: {
           exclude: [
+            '@anthropic-ai/claude-agent-sdk',
             '@earendil-works/pi-coding-agent',
             '@earendil-works/pi-agent-core',
             '@earendil-works/pi-ai',

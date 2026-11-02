@@ -62,6 +62,7 @@ export class CodexService {
     private readonly emit: (event: CodexEvent) => void
   ) {
     for (const session of store.sessions()) {
+      if (session.provider !== 'codex') continue
       if (active(session)) {
         session.status = 'interrupted'
         session.error = { code: 'interrupted', message: '' }
@@ -78,7 +79,7 @@ export class CodexService {
       this.store.saveSession(session)
     }
   }
-  snapshot(): CodexSnapshot {
+  snapshot(): Omit<CodexSnapshot, 'claude'> {
     this.flush()
     return {
       sessions: [...this.sessions.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
@@ -162,6 +163,7 @@ export class CodexService {
     const now = new Date().toISOString()
     const session: CodexSession = {
       id: crypto.randomUUID(),
+      provider: 'codex',
       threadId: null,
       title: '',
       cwd,
