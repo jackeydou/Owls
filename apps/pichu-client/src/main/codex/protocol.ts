@@ -46,7 +46,8 @@ export function parseModels(value: unknown): CodexModel[] {
       description: m.description,
       isDefault: m.isDefault,
       defaultEffort: m.defaultReasoningEffort,
-      efforts: m.supportedReasoningEfforts.map((e) => e.reasoningEffort)
+      efforts: m.supportedReasoningEfforts.map((e) => e.reasoningEffort),
+      autoMode: false
     }))
 }
 export function normalizeItem(

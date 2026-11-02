@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
+export const providerSchema = z.enum(['codex', 'claude-code'])
 export const effortSchema = z.string().min(1).max(64)
 export const failureSchema = z.object({
   code: z.enum([
@@ -20,7 +21,10 @@ export const failureSchema = z.object({
     'unknown_result',
     'storage_error',
     'disconnected',
-    'interrupted'
+    'interrupted',
+    'claude_not_installed',
+    'claude_not_connected',
+    'claude_disconnected'
   ]),
   message: z.string()
 })
@@ -51,6 +55,7 @@ export const requestSchema = z.object({
 })
 export const sessionSchema = z.object({
   id: z.string(),
+  provider: providerSchema.default('codex'),
   threadId: z.string().nullable(),
   title: z.string(),
   cwd: z.string(),
@@ -73,17 +78,24 @@ export const settingsSchema = z.object({
   effort: effortSchema.nullable(),
   permission: permissionSchema,
   theme: z.enum(['system', 'light', 'dark']),
-  language: z.enum(['en', 'zh-CN'])
+  language: z.enum(['en', 'zh-CN']),
+  provider: providerSchema.default('codex'),
+  claudeExecutablePath: z.string().nullable().default(null),
+  claudeModel: z.string().nullable().default(null),
+  claudeEffort: effortSchema.nullable().default(null)
 })
 export const projectSchema = z.object({ id: z.string(), name: z.string(), path: z.string() })
-export const settingsUpdateSchema = settingsSchema.omit({ executablePath: true }).strict()
+export const settingsUpdateSchema = settingsSchema
+  .omit({ executablePath: true, claudeExecutablePath: true })
+  .strict()
 export const modelSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
   isDefault: z.boolean(),
   efforts: z.array(effortSchema),
-  defaultEffort: effortSchema
+  defaultEffort: effortSchema.nullable(),
+  autoMode: z.boolean().default(false)
 })
 export type CodexItem = z.infer<typeof itemSchema>
 export type CodexRequest = z.infer<typeof requestSchema>
@@ -92,6 +104,7 @@ export type CodexSettings = z.infer<typeof settingsSchema>
 export type CodexProject = z.infer<typeof projectSchema>
 export type CodexModel = z.infer<typeof modelSchema>
 export type CodexEffort = z.infer<typeof effortSchema>
+export type AgentProvider = z.infer<typeof providerSchema>
 export type CodexAccount =
   | { kind: 'chatgpt'; email: string | null; plan: string | null }
   | { kind: 'api-key' }
@@ -105,18 +118,34 @@ export type CodexConnection = {
   models: CodexModel[]
   error: CodexFailure | null
 }
+export type ClaudeAccount =
+  | { kind: 'claude'; email: string | null; plan: string | null }
+  | { kind: 'api-key' }
+  | { kind: 'external' }
+  | { kind: 'unknown' }
+export type ClaudeConnection = {
+  status: CodexConnection['status']
+  executablePath: string | null
+  version: string | null
+  account: ClaudeAccount
+  models: CodexModel[]
+  error: CodexFailure | null
+}
 export type CodexSnapshot = {
   sessions: CodexSession[]
   projects: CodexProject[]
   settings: CodexSettings
   connection: CodexConnection
+  claude: ClaudeConnection
 }
 export type CodexEvent =
   | { type: 'connection'; connection: CodexConnection }
+  | { type: 'claude-connection'; connection: ClaudeConnection }
   | { type: 'session'; session: CodexSession }
   | { type: 'removed'; sessionId: string }
 export type CodexReply<T> = { ok: true; value: T } | { ok: false; error: CodexFailure }
 export const createSessionSchema = z.object({
+  provider: providerSchema,
   cwd: z.string().min(1).max(4096),
   model: z.string().min(1).nullable(),
   effort: effortSchema.nullable(),
@@ -140,6 +169,8 @@ export interface CodexAPI {
   snapshot(): Promise<CodexReply<CodexSnapshot>>
   connect(): Promise<CodexReply<CodexConnection>>
   selectExecutable(): Promise<CodexReply<CodexConnection | null>>
+  connectClaude(): Promise<CodexReply<ClaudeConnection>>
+  selectClaudeExecutable(): Promise<CodexReply<ClaudeConnection | null>>
   signIn(): Promise<CodexReply<void>>
   cancelSignIn(): Promise<CodexReply<void>>
   saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<CodexReply<CodexSettings>>

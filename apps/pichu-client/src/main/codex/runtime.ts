@@ -1,4 +1,8 @@
+export { discoverClaudeExecutable } from '../claude/discovery.js'
+export * as claudeNormalize from '../claude/normalize.js'
+export { ClaudeService } from '../claude/service.js'
 export { CodexClient, discoverExecutable } from './client.js'
+export { OwlsHost } from './host.js'
 export { normalizeItem, parseModels, safeText } from './protocol.js'
 export { CodexService } from './service.js'
 export { CodexStore } from './store.js'

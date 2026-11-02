@@ -18,16 +18,111 @@ import { TaskOptions } from './Controls'
 import { failureMessage, uiFailure } from './failures'
 import { useCodexStore } from './store'
 
+function ClaudeSection() {
+  const { t } = useTranslation()
+  const claude = useCodexStore((s) => s.claude)
+  const settings = useCodexStore((s) => s.settings)
+  const running = useCodexStore((s) =>
+    s.sessions.some(
+      (session) =>
+        session.provider === 'claude-code' &&
+        ['running', 'starting', 'waiting'].includes(session.status)
+    )
+  )
+  const connectClaude = useCodexStore((s) => s.connectClaude)
+  const selectClaudeExecutable = useCodexStore((s) => s.selectClaudeExecutable)
+  const account = claude.account
+  const busy = claude.status === 'connecting'
+  return (
+    <section className="codex-settings-section">
+      <div className="codex-section-heading">
+        <div>
+          <h2>{t('localClaude')}</h2>
+          <p>{t('localClaudeBody')}</p>
+        </div>
+        <span className={`codex-connection ${claude.status}`}>
+          <i />
+          {t(`connection.${claude.status}`)}
+        </span>
+      </div>
+      <div className="codex-account">
+        <div className="codex-account-icon">
+          <Terminal size={22} />
+        </div>
+        <div className="codex-account-info">
+          <strong>
+            {account.kind === 'claude'
+              ? (account.email ?? t('claudeAccount'))
+              : account.kind === 'api-key'
+                ? t('apiKey')
+                : account.kind === 'external'
+                  ? t('external')
+                  : t('claudeAccountUnknown')}
+          </strong>
+          <span>
+            {account.kind === 'claude' && account.plan
+              ? `${t('subscription')} · ${account.plan}`
+              : t('nativeRuntime')}
+          </span>
+        </div>
+        {claude.status === 'ready' ? <Check size={18} className="codex-success" /> : null}
+      </div>
+      <div className="codex-settings-actions">
+        <Button size="sm" disabled={busy || running} onClick={() => void connectClaude()}>
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+          {busy ? t('connectingClaude') : t('useLocalClaude')}
+        </Button>
+      </div>
+      <p className="codex-note">{t('claudeSignInHelp')}</p>
+      <p className="codex-note">{t('claudeAuthPrivacy')}</p>
+      {claude.error ? (
+        <div role="alert" className="codex-inline-error">
+          {failureMessage(claude.error)}
+        </div>
+      ) : null}
+      <div className="codex-setting-row">
+        <div>
+          <h3>{t('claudeExecutable')}</h3>
+          <p>{t('claudeExecutableBody')}</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy || running}
+          onClick={() => void selectClaudeExecutable()}
+        >
+          <FolderOpen size={14} />
+          {t('browse')}
+        </Button>
+      </div>
+      <code className="codex-path">
+        {claude.executablePath ?? settings.claudeExecutablePath ?? t('autoDetect')}
+      </code>
+      {claude.version ? <div className="codex-version">{claude.version}</div> : null}
+      <p className="codex-note">
+        {t('claudeInstallHelp')}{' '}
+        <a href="https://code.claude.com/docs/en/setup" target="_blank" rel="noreferrer">
+          {t('installLink')} <ExternalLink size={11} />
+        </a>
+      </p>
+    </section>
+  )
+}
+
 export function CodexSettingsPage() {
   const { t } = useTranslation()
-  const { connection, settings, sessions, connect, selectExecutable, saveSettings } =
+  const { connection, claude, settings, sessions, connect, selectExecutable, saveSettings } =
     useCodexStore()
+  const claudeDefaults = settings.provider === 'claude-code'
+  const defaultModels = claudeDefaults ? claude.models : connection.models
   const [signingIn, setSigningIn] = useState(false)
   const [loginError, setLoginError] = useState<CodexFailure | null>(null)
   const account = connection.account
   const connected = connection.status === 'ready'
   const busy = connection.status === 'connecting'
-  const running = sessions.some((s) => ['running', 'starting', 'waiting'].includes(s.status))
+  const running = sessions.some(
+    (s) => s.provider === 'codex' && ['running', 'starting', 'waiting'].includes(s.status)
+  )
   useEffect(() => {
     if (account.kind !== 'signed-out') setSigningIn(false)
   }, [account.kind])
@@ -158,15 +253,26 @@ export function CodexSettingsPage() {
               </a>
             </p>
           </section>
+          <ClaudeSection />
           <section className="codex-settings-section">
             <h2>{t('defaults')}</h2>
             <p>{t('defaultsBody')}</p>
             <TaskOptions />
-            {!connection.models.length ? (
-              <p className="codex-note">{t('accountUnavailable')}</p>
+            {!defaultModels.length ? (
+              <p className="codex-note">
+                {t(claudeDefaults ? 'claudeAccountUnavailable' : 'accountUnavailable')}
+              </p>
             ) : null}
             <p className="codex-note">
-              {t(settings.permission === 'full-access' ? 'fullAccessHelp' : 'permissionHelp')}
+              {t(
+                settings.permission === 'full-access'
+                  ? claudeDefaults
+                    ? 'claudeFullAccessHelp'
+                    : 'fullAccessHelp'
+                  : claudeDefaults
+                    ? 'claudePermissionHelp'
+                    : 'permissionHelp'
+              )}
             </p>
           </section>
           <section className="codex-settings-section">

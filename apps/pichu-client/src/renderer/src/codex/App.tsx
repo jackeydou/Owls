@@ -25,7 +25,7 @@ import { TaskOptions } from './Controls'
 import { ConversationItem, RequestCard } from './Conversation'
 import { failureMessage } from './failures'
 import { CodexSettingsPage } from './Settings'
-import { useCodexStore } from './store'
+import { agentConnection, isAgentReady, useCodexStore } from './store'
 import './codex.css'
 
 function projectName(path: string): string {
@@ -45,8 +45,9 @@ function Sidebar() {
     pickProject,
     showSettings,
     view,
-    connection
+    settings
   } = useCodexStore()
+  const connection = useCodexStore((s) => agentConnection(s, settings.provider))
   const [search, setSearch] = useState('')
   const filtered = sessions.filter((s) =>
     `${s.title} ${s.cwd}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())
@@ -56,7 +57,6 @@ function Sidebar() {
       <div className="codex-sidebar-brand">
         <img src={owlMark} alt="" />
         <span>Owls</span>
-        <span className="codex-brand-tag">Codex</span>
       </div>
       <Button variant="outline" className="codex-new-task" onClick={() => newTask()}>
         <Plus size={16} />
@@ -120,7 +120,9 @@ function Sidebar() {
               )}
               <span>
                 <strong>{session.title || t('untitled')}</strong>
-                <small>{projectName(session.cwd)}</small>
+                <small>
+                  {projectName(session.cwd)} · {t(`agent.${session.provider}`)}
+                </small>
               </span>
             </button>
             {!isActive(session) ? (
@@ -155,7 +157,7 @@ function Chat() {
     sessions,
     selectedId,
     draftCwd,
-    connection,
+    settings,
     sending,
     newTask,
     pickProject,
@@ -164,9 +166,12 @@ function Chat() {
     interrupt
   } = useCodexStore()
   const session = sessions.find((s) => s.id === selectedId)
+  const provider = session?.provider ?? settings.provider
+  const connection = useCodexStore((s) => agentConnection(s, provider))
+  const agent = t(`agent.${provider}`)
   const cwd = session?.cwd ?? draftCwd
   const active = isActive(session)
-  const connected = connection.status === 'ready' && connection.account.kind !== 'signed-out'
+  const connected = isAgentReady(connection)
   const [text, setText] = useState('')
   const [showDiff, setShowDiff] = useState(false)
   const bottom = useRef<HTMLDivElement>(null)
@@ -245,8 +250,8 @@ function Chat() {
               {!items.length ? (
                 <div className="codex-welcome">
                   <img src={owlMark} alt="" />
-                  <h1>{t(connected ? 'welcome' : 'connectTitle')}</h1>
-                  <p>{t(connected ? 'welcomeBody' : 'connectBody')}</p>
+                  <h1>{t(connected ? 'welcome' : 'connectTitle', { agent })}</h1>
+                  <p>{t(connected ? 'welcomeBody' : 'connectBody', { agent })}</p>
                   {!connected ? (
                     <Button size="sm" onClick={showSettings}>
                       {connection.status === 'connecting' ? (
@@ -254,7 +259,7 @@ function Chat() {
                       ) : (
                         <Terminal size={14} />
                       )}
-                      {t('openSettings')}
+                      {t('openSettings', { agent })}
                     </Button>
                   ) : !cwd ? (
                     <Button size="sm" variant="outline" onClick={() => void pickProject()}>
@@ -270,7 +275,7 @@ function Chat() {
                   )}
                 </div>
               ) : (
-                items.map((item) => <ConversationItem key={item.id} item={item} />)
+                items.map((item) => <ConversationItem key={item.id} item={item} agent={agent} />)
               )}
               {active && !pending.length ? (
                 <div className="codex-working" role="status">
@@ -279,7 +284,12 @@ function Chat() {
                 </div>
               ) : null}
               {pending.map((request) => (
-                <RequestCard key={request.id} request={request} sessionId={session?.id ?? ''} />
+                <RequestCard
+                  key={request.id}
+                  request={request}
+                  sessionId={session?.id ?? ''}
+                  agent={agent}
+                />
               ))}
               {session?.error ? (
                 <div className="codex-inline-error" role="alert">
@@ -296,8 +306,8 @@ function Chat() {
                 ref={textarea}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder={t('prompt')}
-                aria-label={t('prompt')}
+                placeholder={t('prompt', { agent })}
+                aria-label={t('prompt', { agent })}
                 rows={2}
                 disabled={!connected || !cwd || sending}
                 onKeyDown={(event) => {
@@ -321,7 +331,9 @@ function Chat() {
                   </button>
                   {session ? (
                     <span className="codex-existing-options">
-                      {session.model ?? t('nativeDefault')}
+                      {agent}
+                      <span>·</span>
+                      {session.model ?? t('nativeDefault', { agent })}
                       <span>·</span>
                       {t(`permission.${session.permission}`)}
                     </span>
@@ -357,7 +369,7 @@ function Chat() {
               </div>
             </div>
             <div className="codex-composer-note">
-              <span>{!session ? t('trustFolder') : t('sendHint')}</span>
+              <span>{!session ? t('trustFolder', { agent }) : t('sendHint')}</span>
               {session?.tokens ? <span>{t('tokens', { count: session.tokens })}</span> : null}
               {session && !active ? <span>{t(`status.${session.status}`)}</span> : null}
             </div>

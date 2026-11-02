@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import type {
+  AgentProvider,
+  ClaudeConnection,
   CodexConnection,
   CodexEvent,
   CodexFailure,
@@ -11,6 +13,20 @@ import type {
 } from '../../../shared/codex'
 import { CodexUIError, uiFailure } from './failures'
 
+export function agentConnection(
+  state: { connection: CodexConnection; claude: ClaudeConnection },
+  provider: AgentProvider
+): CodexConnection | ClaudeConnection {
+  return provider === 'claude-code' ? state.claude : state.connection
+}
+export function agentSelection(settings: CodexSettings, provider: AgentProvider) {
+  return provider === 'claude-code'
+    ? { model: settings.claudeModel, effort: settings.claudeEffort }
+    : { model: settings.model, effort: settings.effort }
+}
+export function isAgentReady(connection: CodexConnection | ClaudeConnection): boolean {
+  return connection.status === 'ready' && connection.account.kind !== 'signed-out'
+}
 function unwrap<T>(reply: CodexReply<T>): T {
   if (!reply.ok) throw new CodexUIError(reply.error)
   return reply.value
@@ -26,6 +42,7 @@ type State = {
   projects: CodexProject[]
   settings: CodexSettings
   connection: CodexConnection
+  claude: ClaudeConnection
   initialize(): Promise<void>
   event(event: CodexEvent): void
   select(id: string): void
@@ -35,6 +52,8 @@ type State = {
   pickProject(): Promise<void>
   connect(): Promise<void>
   selectExecutable(): Promise<void>
+  connectClaude(): Promise<void>
+  selectClaudeExecutable(): Promise<void>
   saveSettings(settings: CodexSettings): Promise<void>
   send(text: string): Promise<boolean>
   interrupt(): Promise<void>
@@ -42,6 +61,7 @@ type State = {
   archive(id: string): Promise<void>
 }
 let connectionEvents = 0
+let claudeEvents = 0
 export const useCodexStore = create<State>((set, get) => {
   async function action<T>(fn: () => Promise<CodexReply<T>>): Promise<T | undefined> {
     try {
@@ -67,7 +87,11 @@ export const useCodexStore = create<State>((set, get) => {
       effort: null,
       permission: 'workspace-write',
       theme: 'system',
-      language: 'en'
+      language: 'en',
+      provider: 'codex',
+      claudeExecutablePath: null,
+      claudeModel: null,
+      claudeEffort: null
     },
     connection: {
       status: 'disconnected',
@@ -77,8 +101,17 @@ export const useCodexStore = create<State>((set, get) => {
       models: [],
       error: null
     },
+    claude: {
+      status: 'disconnected',
+      executablePath: null,
+      version: null,
+      account: { kind: 'unknown' },
+      models: [],
+      error: null
+    },
     initialize: async () => {
       const version = connectionEvents
+      const claudeVersion = claudeEvents
       const snapshot = await action(() => window.codex.snapshot())
       if (!snapshot) {
         set({ loaded: true })
@@ -93,13 +126,19 @@ export const useCodexStore = create<State>((set, get) => {
           const live = state.sessions.find((existing) => existing.id === s.id)
           return live && live.updatedAt >= s.updatedAt ? live : s
         }),
-        connection: version === connectionEvents ? snapshot.connection : state.connection
+        connection: version === connectionEvents ? snapshot.connection : state.connection,
+        claude: claudeVersion === claudeEvents ? snapshot.claude : state.claude
       }))
     },
     event: (event) => {
       if (event.type === 'connection') {
         connectionEvents++
         set({ connection: event.connection })
+        return
+      }
+      if (event.type === 'claude-connection') {
+        claudeEvents++
+        set({ claude: event.connection })
         return
       }
       if (event.type === 'removed') {
@@ -143,6 +182,17 @@ export const useCodexStore = create<State>((set, get) => {
         await get().initialize()
       }
     },
+    connectClaude: async () => {
+      const claude = await action(() => window.codex.connectClaude())
+      if (claude) set({ claude })
+    },
+    selectClaudeExecutable: async () => {
+      const claude = await action(() => window.codex.selectClaudeExecutable())
+      if (claude) {
+        set({ claude })
+        await get().initialize()
+      }
+    },
     saveSettings: async (settings) => {
       const saved = await action(() =>
         window.codex.saveSettings({
@@ -150,7 +200,10 @@ export const useCodexStore = create<State>((set, get) => {
           effort: settings.effort,
           permission: settings.permission,
           theme: settings.theme,
-          language: settings.language
+          language: settings.language,
+          provider: settings.provider,
+          claudeModel: settings.claudeModel,
+          claudeEffort: settings.claudeEffort
         })
       )
       if (saved) set({ settings: saved })
@@ -163,9 +216,14 @@ export const useCodexStore = create<State>((set, get) => {
         if (!sessionId) {
           const cwd = get().draftCwd
           if (!cwd) return false
-          const { model, effort, permission } = get().settings
+          const { settings } = get()
           const session = unwrap(
-            await window.codex.createSession({ cwd, model, effort, permission })
+            await window.codex.createSession({
+              provider: settings.provider,
+              cwd,
+              ...agentSelection(settings, settings.provider),
+              permission: settings.permission
+            })
           )
           get().event({ type: 'session', session })
           set({ selectedId: session.id })

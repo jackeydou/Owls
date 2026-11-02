@@ -7,9 +7,67 @@ const packageIndex = process.argv.indexOf('--packaged-app')
 const resources =
   packageIndex >= 0 ? join(resolve(process.argv[packageIndex + 1]), 'Contents/Resources') : null
 const artifactRoot = resources ? join(resources, 'app.asar') : resolve(__dirname, '../..')
-const { CodexService, CodexStore } = require(join(artifactRoot, 'out/main/codex/runtime.js'))
+const { ClaudeService, CodexService, CodexStore, OwlsHost } = require(
+  join(artifactRoot, 'out/main/codex/runtime.js')
+)
 const { registerCodexIpc } = require(join(artifactRoot, 'out/main/codex/ipc.js'))
 
+// A scripted Agent SDK stand-in for the Claude Code task flow.
+const claudeSdk = {
+  query({ prompt, options }) {
+    const init = { type: 'system', subtype: 'init', session_id: 'claude-ui-session' }
+    const done = { type: 'result', subtype: 'success', is_error: false, result: '', usage: {} }
+    const generator = (async function* () {
+      const first = await prompt[Symbol.asyncIterator]().next()
+      if (first.done) return
+      yield init
+      if (first.value.message.content === 'claude approval') {
+        const input = { command: 'ls -la', description: 'List files' }
+        yield {
+          type: 'assistant',
+          parent_tool_use_id: null,
+          message: {
+            id: 'claude-m2',
+            content: [{ type: 'tool_use', id: 'claude-tool', name: 'Bash', input }]
+          }
+        }
+        const decision = await options.canUseTool('Bash', input, {
+          signal: new AbortController().signal
+        })
+        yield {
+          type: 'user',
+          parent_tool_use_id: null,
+          message: {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'claude-tool',
+                content: 'total 0',
+                is_error: decision.behavior !== 'allow'
+              }
+            ]
+          }
+        }
+      } else {
+        yield {
+          type: 'assistant',
+          parent_tool_use_id: null,
+          message: { id: 'claude-m1', content: [{ type: 'text', text: 'claude says hi' }] }
+        }
+      }
+      yield done
+    })()
+    return Object.assign(generator, {
+      initializationResult: async () => ({
+        models: [{ value: 'sonnet', displayName: 'Sonnet', description: '' }],
+        account: { email: 'claude@example.com', subscriptionType: 'pro' }
+      }),
+      interrupt: async () => {},
+      close: () => {}
+    })
+  }
+}
 const captureIndex = process.argv.indexOf('--capture-dir')
 const captureDir = captureIndex >= 0 ? process.argv[captureIndex + 1] : null
 app.disableHardwareAcceleration()
@@ -76,10 +134,17 @@ app
         join(temp, 'test.db'),
         join(resources ?? artifactRoot, 'drizzle-codex')
       )
-      store.saveSettings({ ...store.settings(), executablePath: fixture })
-      host = new CodexService(store, (event) => {
-        if (window && !window.isDestroyed()) window.webContents.send('codex:event', event)
+      const claudeFixture = resolve(__dirname, '../fixtures/claude/mock-claude.cjs')
+      chmodSync(claudeFixture, 0o755)
+      store.saveSettings({
+        ...store.settings(),
+        executablePath: fixture,
+        claudeExecutablePath: claudeFixture
       })
+      const emit = (event) => {
+        if (window && !window.isDestroyed()) window.webContents.send('codex:event', event)
+      }
+      host = new OwlsHost(new CodexService(store, emit), new ClaudeService(store, emit, claudeSdk))
       host.addProject(temp)
       await host.connect()
       window = new BrowserWindow({
@@ -170,8 +235,51 @@ app
       )
       assert.equal(await evaluate("document.querySelectorAll('.codex-user-message').length"), 3)
       assert.equal(await evaluate("document.querySelectorAll('.codex-request').length"), 0)
+
+      assert.equal((await host.connectClaude()).status, 'ready')
+      await evaluate("document.querySelector('.codex-new-task').click()")
+      await waitFor("Boolean(document.querySelector('.codex-composer select'))")
+      await evaluate(
+        "(() => { const agent = document.querySelector('.codex-composer select'); agent.value = 'claude-code'; agent.dispatchEvent(new Event('change', { bubbles: true })) })()"
+      )
+      await waitFor(
+        "document.querySelector('.codex-composer textarea')?.placeholder.includes('Claude Code')"
+      )
+      assert.equal(host.snapshot().settings.provider, 'claude-code')
+      await send('claude hello')
+      await waitFor(
+        "document.querySelector('.codex-assistant-message')?.textContent.includes('claude says hi')"
+      )
+      assert.ok(
+        await evaluate(
+          "document.querySelector('.codex-task-row.selected small').textContent.includes('Claude Code')"
+        )
+      )
+      assert.equal(
+        await evaluate("document.querySelector('.codex-message-label').textContent"),
+        'Claude Code'
+      )
+      await send('claude approval')
+      await waitFor(
+        "document.querySelector('.codex-request-title')?.textContent.includes('Claude Code 需要授权')"
+      )
+      await capture('claude-approval')
+      await evaluate('document.querySelector(\'.codex-request button[type="submit"]\').click()')
+      await waitFor("!document.querySelector('.codex-request')")
+      await waitFor(
+        "Array.from(document.querySelectorAll('.codex-activity')).some(el => el.textContent.includes('ls -la'))"
+      )
+      const claudeSession = host.snapshot().sessions.find((s) => s.provider === 'claude-code')
+      assert.equal(claudeSession.threadId, 'claude-ui-session')
+      assert.equal(claudeSession.items.find((i) => i.id === 'claude-tool').status, 'completed')
+      await evaluate("document.querySelector('.codex-sidebar-settings').click()")
+      await waitFor(
+        "Boolean(document.querySelector('.codex-settings-content')) && document.body.textContent.includes('本机 Claude Code')"
+      )
+      assert.ok(await evaluate("document.body.textContent.includes('claude@example.com')"))
+      await capture('claude-settings')
       console.log(
-        'PASS: production preload + IPC + SQLite + renderer, messages, tools/diff, approvals, questions, local account reconnect, theme/language, reload'
+        'PASS: production preload + IPC + SQLite + renderer, messages, tools/diff, approvals, questions, local account reconnect, theme/language, reload, Claude Code tasks'
       )
       if (captureDir) console.log(`UI captures: ${captureDir}`)
     } finally {

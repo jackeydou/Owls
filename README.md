@@ -36,6 +36,10 @@ New task history and settings survive app restarts. An interrupted task can
 continue through its native Codex thread. Live approval callbacks expire when
 the owning process disconnects.
 
+Owls can also run tasks with your installed Claude Code CLI: connect it in
+**Settings → Local Claude Code**, then pick the agent when starting a task. See
+[Claude Code runtime](docs/CLAUDE_CODE_RUNTIME.md).
+
 See [Codex runtime](docs/CODEX_APP_SERVER.md) for ownership, configuration,
 storage, tests, and failure handling. The broader
 [orchestrator proposal](docs/RFC_OWLS_AGENT_ORCHESTRATOR.md) records future

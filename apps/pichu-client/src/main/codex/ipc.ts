@@ -8,9 +8,9 @@ import {
   settingsUpdateSchema
 } from '../../shared/codex.js'
 import { codexFailure } from './errors.js'
-import type { CodexService } from './service.js'
+import type { OwlsHost } from './host.js'
 
-export function registerCodexIpc(host: CodexService, getWindow: () => BrowserWindow | null): void {
+export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow | null): void {
   function handle<T>(channel: string, action: (input: unknown) => T | Promise<T>): void {
     ipcMain.handle(
       `codex:${channel}`,
@@ -39,6 +39,7 @@ export function registerCodexIpc(host: CodexService, getWindow: () => BrowserWin
   }
   handle('snapshot', () => host.snapshot())
   handle('connect', () => host.connect())
+  handle('connect-claude', () => host.connectClaude())
   handle('settings', (input) =>
     host.saveSettings({
       ...host.snapshot().settings,
@@ -52,12 +53,13 @@ export function registerCodexIpc(host: CodexService, getWindow: () => BrowserWin
   handle('archive', async (input) => {
     const id = z.string().uuid().parse(input)
     const chinese = host.snapshot().settings.language === 'zh-CN'
+    const agent = host.provider(id) === 'claude-code' ? 'Claude Code' : 'Codex'
     const result = await dialog.showMessageBox({
       type: 'question',
       message: chinese ? '移除此任务？' : 'Remove this task?',
       detail: chinese
-        ? '这会移除 Owls 中的任务记录，Codex 原生历史不受影响。'
-        : 'This removes the task from Owls. Native Codex history stays in Codex.',
+        ? `这会移除 Owls 中的任务记录，${agent} 原生历史不受影响。`
+        : `This removes the task from Owls. Native ${agent} history stays in ${agent}.`,
       buttons: chinese ? ['取消', '移除'] : ['Cancel', 'Remove'],
       defaultId: 0,
       cancelId: 0
@@ -77,5 +79,11 @@ export function registerCodexIpc(host: CodexService, getWindow: () => BrowserWin
     if (result.canceled || !result.filePaths[0]) return null
     host.saveSettings({ ...host.snapshot().settings, executablePath: result.filePaths[0] })
     return host.connect()
+  })
+  handle('select-claude-executable', async () => {
+    const result = await dialog.showOpenDialog({ properties: ['openFile', 'showHiddenFiles'] })
+    if (result.canceled || !result.filePaths[0]) return null
+    host.saveSettings({ ...host.snapshot().settings, claudeExecutablePath: result.filePaths[0] })
+    return host.connectClaude()
   })
 }
