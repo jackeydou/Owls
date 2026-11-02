@@ -18,7 +18,7 @@
 
 - **Never** introduce runtime configuration via environment variables.
 - In `apps/pichu-client`, prefer persisted settings, bootstrap files, or explicit code constants over `process.env` and `import.meta.env`.
-- If a new runtime knob is needed, route it through the existing settings store / bootstrap path flow (`settings-store.ts` → `pichu-paths.ts`) instead of env-based overrides.
+- If a new runtime knob is needed, route it through the existing persisted settings / bootstrap path flow (`src/main/codex/store.ts` settings → `pichu-paths.ts`) instead of env-based overrides.
 
 ### Package Manager
 
@@ -301,15 +301,15 @@ Release MR flow:
   UI messages.
 - Long-running listeners, timers, streams, child processes, and subscriptions
   must have an explicit cleanup path. Renderer effects should return cleanup
-  functions when they subscribe to `window.api` events.
+  functions when they subscribe to `window.codex` events.
 - Sort unordered data before showing it to agents, persisting generated output,
   producing prompt text, or comparing in tests.
 
 ### Renderer
 
-- Inspect existing pages, stores, components, and `apps/pichu-client/src/renderer/src/lib/i18n.ts` before adding UI patterns.
+- Inspect existing views, stores, components, and `apps/pichu-client/src/renderer/src/codex/i18n.ts` before adding UI patterns.
 - All user-facing renderer copy, including accessibility text, must go through i18next with English and Simplified Chinese entries.
-- Renderer state should follow the existing Zustand store pattern and call main-process behavior through `window.api`.
+- Renderer state should follow the existing Zustand store pattern and call main-process behavior through `window.codex`.
 - Keep renderer code presentation-focused. Do not read Node APIs, filesystem
   paths, Electron internals, database state, or plugin internals directly from
   React components.
@@ -337,9 +337,9 @@ Release MR flow:
 
 ### IPC
 
-- Keep IPC changes synchronized across main handlers, `preload/index.ts`,
-  `preload/index.d.ts`, shared types, and renderer stores/components.
-- Prefer typed request/response shapes and existing `window.api` namespaces over
+- Keep IPC changes synchronized across main handlers, `preload/codex.ts`,
+  `preload/codex.d.ts`, shared types, and renderer stores/components.
+- Prefer typed request/response shapes and existing `window.codex` namespaces over
   ad hoc channels.
 - Treat IPC as an untrusted boundary. Validate request payloads in main before
   using them, and return stable response shapes instead of raw exceptions.
@@ -373,7 +373,8 @@ Release MR flow:
 
 - For schema changes, update `src/main/db/schema.ts`, generate Drizzle migration
   files, and commit generated SQL plus `drizzle/meta/_journal.json` together.
-- Keep data-root behavior behind `settings-store.ts` and `pichu-paths.ts`; do not
+- Keep data-root behavior behind `pichu-paths.ts` and the persisted settings in
+  `src/main/codex/store.ts`; do not
   add alternate path/config mechanisms without explicit need.
 - Migrations must be forward-only and deterministic. Do not edit existing
   applied migrations unless the task explicitly targets unreleased migration
@@ -410,8 +411,7 @@ Release MR flow:
 ### Tests
 
 - The current app tests are built-output Node tests under
-  `apps/pichu-client/tests/admin` and `apps/pichu-client/tests/plugins`; do not
-  invent a new test layout casually.
+  `apps/pichu-client/tests/admin`; do not invent a new test layout casually.
 - When adding tests, protect behavior that can regress, such as plugin
   validation, admin-agent helpers, IPC payload shaping, database migrations, or
   release/build helpers.
@@ -439,7 +439,7 @@ Release MR flow:
   `pnpm --filter pichu-client typecheck:node` when feasible.
 - For cross-process or broad app changes, run
   `pnpm --filter pichu-client typecheck` and the relevant package tests.
-- For plugin-system changes, run `pnpm --filter pichu-client test:plugins`.
+- For plugin manifest validation changes, run `pnpm --filter @pichu/sites-plugin test`.
 - For admin-agent changes, run `pnpm --filter pichu-client test:admin`.
 - For packaging changes, run the relevant build/package script or
   explain why it was not feasible.

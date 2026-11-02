@@ -1,12 +1,8 @@
-import { copyFileSync, mkdirSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import { dirname, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import reactScan from '@react-scan/vite-plugin-react-scan'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'electron-vite'
-
-const require = createRequire(import.meta.url)
 
 function resolveBuildMode(command: string): 'debug' | 'release' {
   if (process.env.PICHU_BUILD_MODE === 'debug' || process.env.PICHU_BUILD_MODE === 'release') {
@@ -14,18 +10,6 @@ function resolveBuildMode(command: string): 'debug' | 'release' {
   }
 
   return command === 'serve' ? 'debug' : 'release'
-}
-
-function copyPhotonWasmPlugin(): { name: string; closeBundle: () => void } {
-  return {
-    name: 'copy-photon-wasm',
-    closeBundle() {
-      const source = require.resolve('@silvia-odwyer/photon-node/photon_rs_bg.wasm')
-      const target = resolve('out/main/chunks/photon_rs_bg.wasm')
-      mkdirSync(dirname(target), { recursive: true })
-      copyFileSync(source, target)
-    }
-  }
 }
 
 export default defineConfig(({ command, mode }) => {
@@ -39,7 +23,6 @@ export default defineConfig(({ command, mode }) => {
   return {
     main: {
       define,
-      plugins: [copyPhotonWasmPlugin()],
       resolve: {
         conditions: ['import', 'node']
       },
@@ -56,13 +39,7 @@ export default defineConfig(({ command, mode }) => {
           }
         },
         externalizeDeps: {
-          exclude: [
-            '@anthropic-ai/claude-agent-sdk',
-            '@earendil-works/pi-coding-agent',
-            '@earendil-works/pi-agent-core',
-            '@earendil-works/pi-ai',
-            'drizzle-orm'
-          ]
+          exclude: ['@anthropic-ai/claude-agent-sdk', 'drizzle-orm']
         }
       }
     },
