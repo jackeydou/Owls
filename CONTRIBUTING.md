@@ -83,8 +83,8 @@ pnpm --filter pichu-client typecheck:web
 # Broad or cross-process changes
 pnpm --filter pichu-client typecheck
 
-# Plugin behavior
-pnpm --filter pichu-client test:plugins
+# Plugin manifest validation
+pnpm --filter @pichu/sites-plugin test
 
 # Agent, tool, and admin behavior
 pnpm --filter pichu-client test:admin
