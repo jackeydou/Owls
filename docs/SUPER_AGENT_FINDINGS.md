@@ -12,8 +12,9 @@
 - 升级 Codex 或 Claude Code 后，优先复查标注了「复查」的条目。
 
 实测环境（除非条目另有说明）：macOS arm64，Codex CLI `0.148.0`（ChatGPT `prolite` 账号），
-Claude Code `2.1.316`，Agent SDK `0.3.316`。回放证据位于
-`apps/pichu-client/tests/fixtures/providers/`。
+Claude Code `2.1.316`，Agent SDK `0.3.316`。F12 起的补充实测使用 Codex CLI `0.166.0`；
+F18–F20 使用 pi `1.5.0`。
+回放证据位于 `apps/pichu-client/tests/fixtures/providers/`。
 
 ## 速查
 
@@ -22,14 +23,24 @@ Claude Code `2.1.316`，Agent SDK `0.3.316`。回放证据位于
 | F1 | Codex 会在每个 thread 中启动用户级 MCP server 和 SessionStart hook | 已确认 |
 | F2 | Codex Worker 输出混入用户个人全局指令的内容 | 待处理 |
 | F3 | Claude Code 的 `settingSources: []` 不能阻止插件、skills、命令加载；`tools: []` 才能 | 已确认 |
-| F4 | 本机 Codex 配置的默认模型不支持当前账号，选「Codex 默认」会失败 | 待验证 |
+| F4 | 本机 Codex 配置的默认模型不支持当前账号，选「Codex 默认」会失败 | 0.166 未复现 |
 | F5 | Codex 在用量很低时也会遇到一次性 429 | 待处理 |
 | F6 | Codex `dynamicTools` 需要 `experimentalApi`，否则明确报错 | 已确认 |
-| F7 | Codex `thread/resume` 没有 `dynamicTools` 参数，但工具定义随 thread 持久化 | 已确认，复查 |
+| F7 | Codex `thread/resume` 没有 `dynamicTools` 参数，但工具定义随 thread 持久化 | 已确认，0.166 待复查 |
 | F8 | Claude Code 中 `allowedTools` 里的工具会绕过 `canUseTool` | 已确认 |
 | F9 | 两种引擎的运行中注入都在同一 turn 内生效 | 已确认 |
 | F10 | Claude Code 用户消息的 `priority` 字段无文档，实测不影响结果 | 已确认，复查 |
 | F11 | 实测在原生会话存储中留下了临时会话 | 已确认 |
+| F12 | Codex `thread/start.config` 中的 `mcp_servers: {}` 会合并，不能关闭用户级 MCP | 已确认 |
+| F13 | Codex 的 `features.hooks=false` 不能关闭 hooks，系统托管 hook 也会运行 | 已确认，复查 |
+| F14 | Codex dynamic tool 依赖 code-mode host，关闭后无法调用 | 已确认，复查 |
+| F15 | Codex 总是加载 `~/.codex/AGENTS.md`，`project_doc_max_bytes: 0` 无效 | 已确认 |
+| F16 | Claude Code Router 首次调用工具后上下文被注入约 40k token，`strictMcpConfig` 可避免 | 已确认 |
+| F17 | Claude Code 每批次一个 query 与常驻 query 的耗时无明显差异 | 已确认 |
+| F18 | pi `Agent` 不按工具 schema 拒绝类型错误的参数 | 已确认，复查 |
+| F19 | pi `Agent` 的请求上下文只包含 Owls 提供的系统提示、工具和消息 | 已确认 |
+| F20 | pi `Agent` 的 `steer()` 在工具执行期间注入，同一次运行内生效 | 已确认 |
+| R6 | 旧 pi runtime 仍在类型检查范围内，锁定 pi `0.84.1` | 处理中（#18） |
 | R1 | ClaudeService 一轮结束后立即发下一条，会被上一轮的清理误判为失败 | 已修复（#16） |
 | R2 | Claude 任务的回复标题写死为「Codex」 | 已修复（#16） |
 | R3 | `main` 上的 `pnpm-lock.yaml` 与工作区不同步 | 已修复（#16） |
@@ -72,6 +83,7 @@ Claude Code `2.1.316`，Agent SDK `0.3.316`。回放证据位于
   `tools` 字段保留原样）。
 - 影响：Router 的隔离必须依赖**工具白名单**（`tools: []` + `allowedTools`），不能只依赖
   settings。该环境中的内联插件可能来自宿主工具注入，其他机器上可能不同。
+  补充实测（F16）表明还需要 `strictMcpConfig: true`。
 
 ### F4 本机 Codex 配置的默认模型不支持当前账号
 
@@ -83,6 +95,9 @@ Claude Code `2.1.316`，Agent SDK `0.3.316`。回放证据位于
   失败。这是本机配置问题，但 Owls 可以改进：失败时提示改用账号默认模型，或把「Codex 默认」
   解释为 `model/list` 中 `isDefault` 的模型。
 - 复查：在 Owls 中新建一个 Codex 任务，选「Codex 默认」并发送消息。
+- 0.166.0 复查（2026-11-02）：`model/list` 的默认模型变为 `gpt-6.1-sol`，不指定 `model`
+  的探针均正常完成，未复现。`model/list` 的默认值与账号可用模型可能随 CLI 或账号变化，
+  Owls 仍应在 `model_not_found` 时给出可操作的提示。
 
 ### F5 Codex 在用量很低时也会遇到一次性 429
 
@@ -107,7 +122,8 @@ Claude Code `2.1.316`，Agent SDK `0.3.316`。回放证据位于
   （该接口没有 `dynamicTools` 参数）后发一轮，Codex 仍然调用了 `dispatch_task`。
 - 影响：Codex Router 重启后无需重新声明工具；但工具定义的变更无法通过 resume 下发，
   更新工具契约时需要新建 thread。
-- 复查：CLI 升级后重跑这个场景，因为这是实验接口的隐式行为。
+- 复查：CLI 升级后重跑这个场景，因为这是实验接口的隐式行为。0.166.0 尚未复查；
+  F14 显示 dynamic tool 的调用路径依赖 code-mode host，复查时一并确认。
 
 ### F8 Claude Code 中 `allowedTools` 里的工具会绕过 `canUseTool`
 
@@ -138,6 +154,112 @@ Claude Code `2.1.316`，Agent SDK `0.3.316`。回放证据位于
   存储中各留下一个临时会话（对应的临时目录已删除）。其他探针使用 ephemeral thread 或
   `persistSession: false`。
 - 影响：会在原生 CLI 的历史中看到 `owls-m0-resume-*` 目录下的会话，可以手动删除。
+
+## Router 隔离与进程模型补充实测（2026-11-02）
+
+对应 RFC 4.2 节。Codex 探针使用 ephemeral thread；Claude Code 探针在结束时删除临时目录
+及其 `~/.claude/projects/` 下的会话记录，本轮没有遗留原生会话。原始探针日志含本机 MCP、
+hook 和插件信息，未入库。
+
+### F12 Codex `thread/start.config` 中的 `mcp_servers: {}` 会合并
+
+- 现象：`thread/start.config` 关闭 `plugins`、`apps` 等 features 后，来自插件和 apps 的
+  MCP server 不再启动（11 个 → 2 个），但配置文件中声明的 server 仍然启动。再加
+  `mcp_servers: {}` 结果相同。模型在 `features.shell_tool=false` 的情况下，经用户的
+  `node_repl` MCP 执行了 shell 命令（`mcpToolCall`）。
+- 复现：`thread/start` 传 `config: { 'features.shell_tool': false, ..., mcp_servers: {} }`，
+  要求模型执行 `echo PROBE_SHELL`，观察 `mcpServer/startupStatus/updated` 和 item 类型。
+- 处理：在 app-server **启动参数**中按名称逐个设置 `-c mcp_servers.<name>.enabled=false`
+  后，没有 MCP server 启动，shell 也无法执行。server 名称可以从 `config/read` 读取。
+- 影响：关闭 shell 必须同时关闭用户 MCP；只关 `shell_tool` 不够。
+
+### F13 Codex 的 `features.hooks=false` 不能关闭 hooks
+
+- 现象：无论放在 `thread/start.config` 还是 app-server 启动参数 `-c` 中，`sessionStart`、
+  `userPromptSubmit`、`stop` 等 hooks 仍然运行。其中包括 `source: system` 的系统托管 hook
+  （企业设备管理下发）。
+- 影响：Codex 会话无法得到不运行 hooks 的环境，这是 Codex Router 不进入 M1–M4 的主要原因
+  （RFC 4.3 节）。Worker 运行 hooks 符合预期。
+- 复查：CLI 升级后检查是否提供了关闭 hooks 的配置或 app-server 参数。
+
+### F14 Codex dynamic tool 依赖 code-mode host
+
+- 现象：启动参数加 `features.code_mode_host=false` 后，模型无法调用 `dispatch_task`，
+  回复 `code-mode host is disabled`，客户端收不到 `item/tool/call`。保持开启时，
+  `item/tool/call` 和 `dynamicToolCall` 的形状与 0.148 相同。
+- 影响：Codex Router 不能通过关闭 code mode 来减少工具；code mode 的 `functions.exec`
+  会一直暴露给模型。
+- 复查：CLI 升级后重跑，这是实验接口的实现细节。
+
+### F15 Codex 总是加载 `~/.codex/AGENTS.md`
+
+- 现象：所有变体的 `thread/start` 响应中，`instructionSources` 都包含 `~/.codex/AGENTS.md`；
+  `project_doc_max_bytes: 0` 只影响项目文档。
+- 影响：F2 的内容污染在 Codex 会话中无法从配置层面消除，只能靠角色说明和把汇报当数据展示。
+
+### F16 Claude Code Router 首次调用工具后上下文被注入约 40k token
+
+- 现象：Router 设置 `tools: []`、`settingSources: []`、自定义 `systemPrompt` 时，不调用工具的
+  一轮上下文约 1.3k token（流式输入、字符串 prompt、是否持久化会话都相同）。调用
+  `mcp__owls__dispatch_task` 后，下一次请求的上下文约 42k token，cache read 为 0。
+  init 消息中的 `mcp_servers` 只有 `owls`，`tools` 只有 Owls 工具。
+- 复现：同上配置，prompt 为「Please count the files in the repo.」，读取每条 assistant
+  消息的 `usage`。
+- 对照：`skills: []`、`extraArgs: { 'disable-slash-commands': null }` 都无效；
+  `strictMcpConfig: true` 单独即可把整轮降到约 2.9k token，第二次请求命中缓存。
+- 影响：Router 必须设置 `strictMcpConfig: true`，否则每个分派批次多付约 40k token 的缓存写入。
+  注入内容的来源是推断（`mcpServers` 之外的 MCP 配置，例如宿主或插件提供的 server），
+  未直接观察到。M0 的 F3 实测没有调用后的第二次请求用量，因此当时没有发现。
+- `--bare` 能跳过更多加载，但只接受 API key 认证，不适用于订阅账号，未采用。
+
+### F17 Claude Code 每批次一个 query 与常驻 query 的耗时无明显差异
+
+- 现象：三个连续批次（分派、汇报加追问、简单回复），两轮运行，均设置 `strictMcpConfig`。
+  每批次一个 query（`resume`）的 init 为 0.32–0.38 秒，到 result 为 4.8–6.2 秒；
+  常驻 query 的 init 为 0.28–0.34 秒（仅首次），每批次到 result 为 2.2–6.9 秒。
+  最早一次未设 `strictMcpConfig` 的运行中，冷启动 init 为 2.4 秒。
+- 影响：进程开销可以忽略，RFC 8.1 节选择每批次一个 query。
+- 注意：两次运行的模型均为 CLI 默认的 `claude-opus-5-5`；样本量小，只作量级参考。
+
+## Owls 引擎离线实测（2026-11-02）
+
+对应 RFC 4.4 节。`@earendil-works/pi-agent-core`、`pi-ai`、`pi-schema` `1.5.0` 安装在仓库外的
+临时目录中，用 pi-ai 的 `fauxProvider` 驱动，没有网络请求和凭据。探针为一个只有
+`dispatch_task` 的 `Agent`，faux 响应工厂记录每次请求收到的上下文。
+
+### F18 pi `Agent` 不按工具 schema 拒绝类型错误的参数
+
+- 现象：`dispatch_task` 的 `parameters` 要求 `goal` 为字符串，模型（faux）传入 `goal: 42`，
+  工具的 `execute` 照常执行，返回 `isError: false` 的结果。
+- 推断：参数可能被转换成了字符串，未确认是转换还是未校验。
+- 影响：Owls 不能依赖引擎的参数校验；工具处理器统一先用 zod 校验（RFC 第 5 节）。
+- 复查：升级 pi 后重跑；即使 pi 改为拒绝，处理器中的校验也保留。
+
+### F19 pi `Agent` 的请求上下文只包含 Owls 提供的内容
+
+- 现象：首次请求的上下文是一条 system 消息（`content` 为系统提示，`toolsAdded` 为工具声明）
+  加一条用户消息，序列化后 434 字节。设置 `prepareRequest` 后，请求中的消息列表被完全替换，
+  `agent.state.messages` 中的完整记录不变。
+- 影响：Owls 引擎的上下文可以确定性地构建和测试，这是选择它作为默认 Router 引擎的主要依据
+  （RFC 4.3 节）。真实 provider 会在此基础上加上自己的请求格式，固定上下文大小需要在 M1 用真实
+  模型测量。
+
+### F20 pi `Agent` 的 `steer()` 在同一次运行内生效
+
+- 现象：工具执行期间调用 `agent.steer()`，注入的用户消息出现在工具结果之后、下一次请求之前，
+  同一次 `prompt()` 内完成；`execute` 抛出的错误成为 `isError: true` 的工具结果。
+- 影响：Owls 引擎与另外两个引擎一样支持运行中注入（RFC 第 8 节）。
+
+### R6 旧 pi runtime 仍在类型检查范围内
+
+- 现象：构建入口已是 `src/main/codex/desktop.ts`，但仍有 41 个文件引用
+  `@earendil-works/pi-agent-core` 或 `pi-ai` `0.84.1`：`src/main` 34 个、`src/shared` 2 个、
+  `src/renderer` 4 个、`src/preload` 1 个，分别在 `typecheck:node` 和 `typecheck:web` 的范围内。
+  npm 上的最新版本是 `1.5.0`，1.x 用 `createModels()` 取代了全局 `getModel()` 等 API。
+- 影响：直接升级会让旧代码无法通过类型检查。
+- 处理：[#18](https://github.com/jackeydou/Owls/pull/18) 移除了 import 链能到达 pi 的 186 个文件、
+  只依赖旧 preload 全局变量的 33 个 renderer 文件、对应的 12 个测试和三个 pi 依赖。按 build 入口做的
+  静态可达性检查确认被删文件都不可达。不依赖 pi 的 164 个旧文件保留，另行清理。
 
 ## Claude Code runtime 接入（PR #16，2026-11-01）
 
