@@ -1,0 +1,1 @@
+- Router: coordinate a project from one conversation with the built-in Owls Router, which dispatches Codex or Claude Code tasks and summarizes their reports, using a model and key you configure in Settings. (#19)
