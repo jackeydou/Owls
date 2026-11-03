@@ -1,6 +1,6 @@
 # RFC: Owls Router/Worker（Super-agent）架构
 
-状态：M1 实施中（Owls 引擎已实现），设计待评审。日期：2026-11-02。
+状态：M2 已实现（Claude Code 引擎、持久化 Inbox），M3 实施中；设计待评审。日期：2026-11-03。
 
 Owls 基线：`bee6fff`（M0 实测记录合入后）。
 实测版本：M0 为 Codex CLI `0.148.0`；补充实测（4.2 节）为 Codex CLI `0.166.0`。
@@ -458,7 +458,7 @@ Worker 会话出现在任务列表，并带 Router 标记；会话本身的 sche
 | `openRouter(projectId)` | `codex:router-open` | 返回该项目的 Router，不存在时创建；不发起模型请求 |
 | `sendRouter({ routerId, commandId, text })` | `codex:router-send` | 写入 Inbox；空闲时立即成批，运行中时注入 |
 | `interruptRouter(routerId)` | `codex:router-interrupt` | 中断当前批次；不影响 Worker |
-| `retryBatch({ routerId, batchId })` | `codex:router-retry` | 用户确认后重发 `dispatch_unknown` 批次中的事件 |
+| `resolveBatch({ routerId, batchId, decision })` | `codex:router-resolve-batch` | `retry` 把 `dispatch_unknown` 批次的事件放回 Inbox 重发，`ignore` 把批次记为 `ignored` |
 | `routerProviders()` | `codex:router-providers` | Owls 引擎可选的 provider 和模型，以及每个 provider 是否已配置 key |
 | `setRouterKey({ providerId, key })` | `codex:router-set-key` | 只写；key 长度 1–4096，不回显 |
 | `removeRouterKey(providerId)` | `codex:router-remove-key` | 删除已存的 key |
@@ -492,7 +492,7 @@ Worker 会话出现在任务列表，并带 Router 标记；会话本身的 sche
 | --- | --- | --- |
 | `router.engine` | `'owls'` | `'owls'`、`'claude-code'` 或 `'codex'` |
 | `router.owls` | `null` | `{ provider, model, thinking, baseUrl }`；`baseUrl` 只用于 `custom`，限 `http`/`https` |
-| `router.claudeModel` | `null`（CLI 默认模型） | Claude Code 引擎使用的模型 |
+| `router.claudeModel` | `null`（CLI 默认模型） | Claude Code 引擎使用的模型（M2） |
 | `router.codexModel` | `null`（`model/list` 的默认模型） | Codex 引擎使用的模型 |
 | `router.maxPermission` | `'workspace-write'` | `dispatch_task` 可申请的最高权限 |
 | `workerProvider` | `null`（沿用 `provider`） | `dispatch_task` 未指定 agent 时使用 |
@@ -526,7 +526,12 @@ Worker 会话出现在任务列表，并带 Router 标记；会话本身的 sche
   `{ engine: 'claude-code', sessionId }` 或 `{ engine: 'codex', threadId }`。
 - `codex_router_messages` 只由 Owls 引擎写入；切换到其他引擎后保留，以便切换回来时继续使用。
 - 事件状态：`pending` → `batched`，另有 `superseded` 和 `dropped`（所属 Worker 被移除）。
-- 批次状态：`sending` → `delivered`，另有 `dispatch_unknown` 和 `retried`。
+- 批次状态：`sending` → `delivered`，另有 `dispatch_unknown`、`retried` 和 `ignored`。
+- `codex_routers.value` 另有 `unknownBatches`（`dispatch_unknown` 批次的 ID、事件数和时间），
+  供 Router 视图显示提示条；启动时由批次表重算。
+- 用户退出时选择「停止并退出」，进行中的批次记为 `delivered`（用户主动中断），不进入
+  `dispatch_unknown`。
+- Worker 记录增加 `context` 和 `permission`，排队的 Worker 据此在之后启动，并判断是否是写入者。
 - 写入 Inbox、生成批次、更新事件状态在同一事务中完成。
 - 移除 Worker 任务时，`codex_workers` 中的记录标记为 `removed`，不删除，以免 Router 的
   历史批次引用悬空；移除 Router 时级联删除它的 Inbox、批次和 `codex_router_messages`。
@@ -552,7 +557,7 @@ F12–F16）：
 | 角色 | 策略 |
 | --- | --- |
 | Router（Owls 引擎） | 只有 Owls 工具，不读取任何 CLI 或用户配置；上下文由 `prepareRequest` 重建（9.2 节）。这是唯一一个隔离完全由 Owls 保证的引擎 |
-| Router（Claude Code） | `tools: []` + `allowedTools` 只放 Owls 工具 + `settingSources: []` + `strictMcpConfig: true` + 自定义 `systemPrompt`。隔离依赖**工具白名单和严格 MCP 配置**，不依赖 settings |
+| Router（Claude Code） | `tools: []` + `allowedTools` 只放 Owls 工具 + `permissionMode: 'dontAsk'` + `settingSources: []` + `strictMcpConfig: true` + 自定义 `systemPrompt`，Owls 工具 `alwaysLoad`，`cwd` 为项目路径（F24）。隔离依赖**工具白名单和严格 MCP 配置**，不依赖 settings |
 | Router（Codex） | 独立 app-server 进程：启动参数关闭 shell、plugins、apps 等 features，并按 `config/read` 的结果逐个关闭用户 MCP server；`sandbox: read-only`、`approvalPolicy: never`。hooks、全局 `AGENTS.md` 和原生子 agent 无法关闭，设置中向用户说明 |
 | Worker | 保留用户的开发环境配置（这正是用户期望的 agent 行为），用汇报 schema 保证输出可解析；权限取任务自身的权限设置 |
 
@@ -577,7 +582,9 @@ F12–F16）：
 - 批次：`sending` 状态的批次在重启后标记为 `dispatch_unknown`，在 Router 视图中提示用户，
   不自动重发。
 - Worker：沿用现有 Codex 和 Claude Code service 的中断与恢复语义；中断时向 Inbox 写一条
-  `stopped` 或 `failed` 事件。`queued` 的 Worker 在重启后重新排队。
+  `worker_stopped` 或 `worker_failed` 事件。重启时仍在运行的 Worker 记为 `stopped` 并写入
+  `worker_stopped`，但不主动发起批次，事件随用户的下一条消息或下一条 Worker 事件发送，避免
+  启动时产生模型请求。`queued` 的 Worker 在重启后重新排队，对应 agent 连接就绪时启动。
 - 切换引擎、原生会话丢失或 Codex 提示版本变化：新引擎从新会话开始，第一批次注入一段确定性的
   状态摘要（活跃 Worker 按 `workerId` 排序，加上每个 Worker 最近一次汇报）。Router 视图中的
   对话记录不受影响，因为它由 Owls 保存。
@@ -660,7 +667,7 @@ F12–F16）：
 | --- | --- | --- |
 | 前置 | 把构建入口不可达的旧代码移到 `legacy/`（不删除），pi 升级到 `1.5.0` 并锁定版本 | 已完成：类型检查、`pnpm test` 通过 |
 | M1 | `RouterEngine` 接口与 **Owls 引擎**（默认）、凭据存储、设置中的「协调者」分组（先只有 Owls 引擎）、Worker turn profile、`dispatch_task`、Worker 汇报、`codex_routers`、`codex_workers`、`codex_router_messages`、`codex_credentials` 表、Router 视图的最小 UI。M1 的 Inbox 在内存中，重启时丢弃未投递事件 | 已实现：faux provider 测试跑通「消息 → 分派 → 汇报 → 回复」；本机 Ollama（`qwen3.6:27b`）实测一次。任务 service 的 `steer`、`testRouterModel`、`retryBatch` 移到用到它们的阶段（M3、M2） |
-| M2 | **Claude Code 引擎**与引擎切换、Inbox 持久化、批处理、用户消息注入、`dispatch_unknown`、重启恢复、`queued` 调度 | 积压的多条汇报合并成一个批次；重启后不丢事件、不重复投递；在两个引擎之间切换后历史保留，新引擎收到状态摘要 |
+| M2 | **Claude Code 引擎**与引擎切换、Inbox 持久化、批处理、用户消息注入、`dispatch_unknown`、重启恢复、`queued` 调度 | 已实现：`router-runtime.test.mjs` 覆盖合并批次与 `superseded`、注入、`dispatch_unknown` 与重发、排队与写入者串行、移除 Worker、引擎切换后的状态摘要、Claude Code 引擎的隔离选项与 `resume`；UI 冒烟在 SQLite 上验证 Inbox 恢复和重发；真实 Claude Code 实测一次（F24、F25）。`testRouterModel` 未做，`dispatch_task` 超出排队上限（16）时返回 `worker_limit_reached` |
 | M3 | **Codex 引擎**、`message_worker`、`stop_worker`、`list_workers`、`recall`、订阅直通 | 三个引擎都可在设置中切换；Worker 视图中的追问不经过 Router；Router 决策次数下降 |
 | M4 | 消融实验：用脚本化 provider 复现文章 7.1 节，对比单会话与双层架构，以及三种 Router 引擎 | 输出 p50/p95 完成时间、Router 决策次数、token 数据 |
 

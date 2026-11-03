@@ -44,6 +44,8 @@ F18–F20 使用 pi `1.5.0`。
 | F21 | pi 的 OpenAI 兼容请求在没有 API key 时直接失败，即使本地端点不需要 key | 已确认 |
 | F22 | 失败的模型回复会进入 pi `Agent` 的消息记录 | 已确认 |
 | F23 | 本机 Ollama 实测：`qwen3.6:27b` 完成分派闭环，`qwen2.5-coder:7b` 只回复文字不调用工具 | 已确认 |
+| F24 | Claude Code Router 会把自己的工作目录写进分派目标 | 已修复（M2） |
+| F25 | `allowedTools` 覆盖 `canUseTool` 时 SDK 每次 query 打印警告；改用 `permissionMode: 'dontAsk'` | 已确认 |
 | R1 | ClaudeService 一轮结束后立即发下一条，会被上一轮的清理误判为失败 | 已修复（#16） |
 | R2 | Claude 任务的回复标题写死为「Codex」 | 已修复（#16） |
 | R3 | `main` 上的 `pnpm-lock.yaml` 与工作区不同步 | 已修复（#16） |
@@ -290,6 +292,32 @@ hook 和插件信息，未入库。
 - `qwen2.5-coder:7b`：约 5 秒内回复「I will start a background worker…」，但没有调用工具。
 - 影响：Owls 引擎的请求、工具调用和持久化路径在真实 provider 上可用；Router 质量取决于模型的工具
   调用能力，推荐模型需要在 M4 评估（RFC 开放问题 4）。
+
+## Claude Code Router 引擎实测（M2，2026-11-03）
+
+经打包后的 `out/main/codex/runtime.js` 运行 `ClaudeEngine`，使用真实 Agent SDK 与本机 Claude Code
+`2.1.316`，假的 `dispatch_task`（不启动 Worker）。两个批次：分派，然后 `resume` 后追问 Worker ID。
+结束时删除临时目录及其 `~/.claude/projects/` 下的会话记录。
+
+- 结果：第一批次调用 `dispatch_task` 并回复，usage 为 input 4、cache read 约 1.4–2.1k、
+  cache write 约 1.6k、output 约 200，与 F16 中设置 `strictMcpConfig` 后的量级一致；第二批次
+  `resume` 同一会话，正确回答 `w_live`，约 4–5 秒。
+
+### F24 Claude Code Router 会把自己的工作目录写进分派目标
+
+- 现象：Router 的 `cwd` 设为 Owls 自己的目录时，模型生成的 `goal` 写成「Count the TypeScript files
+  … in the directory /private/var/…/owls-router-live-…」。即使 `systemPrompt` 是自定义字符串，
+  Claude Code 仍会告诉模型当前工作目录。
+- 影响：Worker 在项目目录运行，目标里的路径会把它引向错误的位置。
+- 处理：Claude Code Router 以项目路径作为 `cwd`。代价是 Router 的原生会话出现在该项目的
+  Claude Code 历史中（`claude --resume`）。复测后目标中的路径即为项目路径。
+
+### F25 `allowedTools` 覆盖 `canUseTool` 时 SDK 打印警告
+
+- 现象：同时设置 `allowedTools: ['mcp__owls__dispatch_task']` 和一个拒绝一切的 `canUseTool` 时，
+  SDK 每次 query 都发出 `CLAUDE_SDK_CAN_USE_TOOL_SHADOWED` 进程警告（与 F8 是同一行为）。
+- 处理：去掉 `canUseTool`，改用 `permissionMode: 'dontAsk'`：未预先批准的工具直接拒绝，不弹审批。
+  `tools: []` 下本来也没有其他工具。
 
 ## Claude Code runtime 接入（PR #16，2026-11-01）
 
