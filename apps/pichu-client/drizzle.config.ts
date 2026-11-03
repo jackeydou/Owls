@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { defineConfig } from 'drizzle-kit'
 
 export default defineConfig({
-  schema: './src/main/db/schema.ts',
+  schema: './legacy/src/main/db/schema.ts',
   out: './drizzle',
   dialect: 'sqlite',
   dbCredentials: {
