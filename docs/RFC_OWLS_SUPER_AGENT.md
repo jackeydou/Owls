@@ -1,6 +1,6 @@
 # RFC: Owls Router/Worker（Super-agent）架构
 
-状态：设计完成，待评审。日期：2026-11-02。
+状态：M1 实施中（Owls 引擎已实现），设计待评审。日期：2026-11-02。
 
 Owls 基线：`bee6fff`（M0 实测记录合入后）。
 实测版本：M0 为 Codex CLI `0.148.0`；补充实测（4.2 节）为 Codex CLI `0.166.0`。
@@ -342,9 +342,9 @@ type RouterBatchOutcome = {
 只从 `pi-ai/models` 和 `pi-ai/providers/<id>` 子路径导入允许的 provider，不使用
 `providers/all` 和 `compat`，避免把所有 provider SDK 打包进来。
 
-- **模型集合**：`createModels({ credentials, identity })`。`credentials` 是 Owls 实现的
-  `CredentialStore`（9.3 节）；`identity` 发送 `Owls/<version>` 的 User-Agent，`attribution`
-  为 `null`，不向 provider 发送归属头。
+- **模型集合**：每个引擎用 `createModels()` 注册白名单中的 provider（`custom` 端点用 `createProvider`
+  建成单模型 provider）。key 由 `Agent.getApiKey` 显式提供（9.3 节）；`identity` 发送
+  `Owls/<version>` 的 User-Agent，`attribution` 为 `null`，不向 provider 发送归属头。
 - **Agent**：每个 Router 一个，`initialState` 为 Router 系统提示、选定的模型、思考级别和 Owls
   工具；`sessionId` 用 Router ID，供 provider 做提示缓存；`toolExecution: 'sequential'`，
   保证同一批次中多个 `dispatch_task` 的处理顺序确定；`steeringMode: 'all'`。
@@ -377,10 +377,12 @@ OpenAI 的「Sign in with ChatGPT」共享订阅额度目前只对通过审核�
 这些来源是二手报道，实施前要核对官方条款。想使用订阅额度的用户，选择 Claude Code 或
 Codex 引擎即可，这正是保留这两个选项的原因。
 
-**存储。** `src/main/router/credentials.ts` 实现 pi-ai 的 `CredentialStore`，数据存在
-`codex_credentials` 表中，密钥用 Electron `safeStorage` 加密。系统不支持加密，或 Linux 上
-退化为 `basic_text` 时，拒绝保存（与旧 `openai-oauth.ts` 的规则一致）。`list()` 只返回
-`{ providerId, type }`。
+**存储。** `src/main/router/credentials.ts` 把 key 存在 `codex_credentials` 表中，密钥用
+Electron `safeStorage` 加密。系统不支持加密，或 Linux 上退化为 `basic_text` 时，拒绝保存
+（与旧 `openai-oauth.ts` 的规则一致）。实现时没有接入 pi-ai 的 `CredentialStore`：只存 API key
+时不需要它的 OAuth 刷新和锁，key 改为在创建引擎时解密一次，经 `Agent.getApiKey` 显式传给请求；
+显式传入的 key 总是优先于 pi-ai 自己的解析。不需要 key 的 `custom` 端点传入固定占位值
+`owls-local`，因为 OpenAI 兼容客户端在没有 key 时直接报错（F21）。
 
 **不回退到环境变量。** pi-ai 在没有已存凭据时会读取 `ANTHROPIC_API_KEY` 等环境变量，这违背
 「不通过环境变量引入运行时配置」的规则。`RouterService` 在每个批次发送前检查：选定的
@@ -433,7 +435,8 @@ Worker 会话出现在任务列表，并带 Router 标记；会话本身的 sche
 | `src/main/router/engines/owls.ts` | Owls 引擎（9.2 节） |
 | `src/main/router/engines/claude.ts` | Claude Code 引擎 |
 | `src/main/router/engines/codex.ts` | Codex 引擎，自带一个 `CodexClient` 实例 |
-| `src/main/router/credentials.ts` | `CredentialStore` 实现与 provider 白名单 |
+| `src/main/router/credentials.ts` | Router key 的加密存储 |
+| `src/main/router/engines/owls-models.ts` | provider 白名单、模型目录和 `custom` 端点 |
 | `src/main/router/tools.ts` | 工具的 zod 定义、处理器、错误码，以及到三种引擎格式的转换 |
 | `src/main/router/render.ts` | 批次与状态摘要的渲染、截断、转义，以及上下文预算裁剪（纯函数） |
 | `src/main/router/report.ts` | 汇报 schema、解析与降级 |
@@ -637,10 +640,9 @@ F12–F16）：
 
 仍开放：
 
-1. **pi 1.x 升级与旧 pi runtime（R6）。** 旧 runtime 和 pi `0.84.1` 依赖在
-   [#18](https://github.com/jackeydou/Owls/pull/18) 中移除，合入后仓库不再依赖 pi；M1 引入 pi 1.x
-   时直接按 9.2 节实现，不存在旧 API 的兼容问题。剩余 164 个不依赖 pi 的旧文件和它们独占的依赖
-   另行清理。
+1. **旧 pi 代码的去留（R6）。** 旧代码现在作为 legacy 保留在 `apps/pichu-client/legacy/`，不参与
+   构建、类型检查、lint 和测试。它依赖的 pi `0.84.1` 已升级为 `1.5.0`，因此 legacy 代码无法直接编译；
+   要复用其中某部分时，需要移回 `src/` 并移植到当前运行时。
 2. **默认引擎的首次使用成本。** Owls 引擎是默认值，首次使用 Router 必须先配置 key 或本地模型。
    9.7 节的设置卡片同时提供切换到已连接 CLI 的入口，需要产品确认这个流程。
 3. **Token 成本。** Owls 引擎的固定上下文最小（4.4 节），但需要 M4 用真实模型测量。Claude Code
@@ -656,8 +658,8 @@ F12–F16）：
 
 | 阶段 | 内容 | 退出标准 |
 | --- | --- | --- |
-| 前置 | 移除旧 pi runtime 和 pi `0.84.1` 依赖（[#18](https://github.com/jackeydou/Owls/pull/18)） | 类型检查、`pnpm test`、两个 Electron 冒烟测试和打包产物检查通过，产物中没有 pi |
-| M1 | 引入 pi 1.x 并锁定版本、`RouterEngine` 接口与 **Owls 引擎**（默认）、凭据存储、设置中的「协调者」分组（先只有 Owls 引擎）、Worker turn profile 与 `steer`、`dispatch_task`、Worker 汇报、`codex_routers`、`codex_workers`、`codex_router_messages`、`codex_credentials` 表、Router 视图的最小 UI。M1 的 Inbox 在内存中，重启时丢弃未投递事件并在视图中提示 | 用 faux provider 跑通「消息 → 分派 → 汇报 → 回复」；用已配置的 key 实测一次，请求中只有 Owls 工具 |
+| 前置 | 把构建入口不可达的旧代码移到 `legacy/`（不删除），pi 升级到 `1.5.0` 并锁定版本 | 已完成：类型检查、`pnpm test` 通过 |
+| M1 | `RouterEngine` 接口与 **Owls 引擎**（默认）、凭据存储、设置中的「协调者」分组（先只有 Owls 引擎）、Worker turn profile、`dispatch_task`、Worker 汇报、`codex_routers`、`codex_workers`、`codex_router_messages`、`codex_credentials` 表、Router 视图的最小 UI。M1 的 Inbox 在内存中，重启时丢弃未投递事件 | 已实现：faux provider 测试跑通「消息 → 分派 → 汇报 → 回复」；本机 Ollama（`qwen3.6:27b`）实测一次。任务 service 的 `steer`、`testRouterModel`、`retryBatch` 移到用到它们的阶段（M3、M2） |
 | M2 | **Claude Code 引擎**与引擎切换、Inbox 持久化、批处理、用户消息注入、`dispatch_unknown`、重启恢复、`queued` 调度 | 积压的多条汇报合并成一个批次；重启后不丢事件、不重复投递；在两个引擎之间切换后历史保留，新引擎收到状态摘要 |
 | M3 | **Codex 引擎**、`message_worker`、`stop_worker`、`list_workers`、`recall`、订阅直通 | 三个引擎都可在设置中切换；Worker 视图中的追问不经过 Router；Router 决策次数下降 |
 | M4 | 消融实验：用脚本化 provider 复现文章 7.1 节，对比单会话与双层架构，以及三种 Router 引擎 | 输出 p50/p95 完成时间、Router 决策次数、token 数据 |

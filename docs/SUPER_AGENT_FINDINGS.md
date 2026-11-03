@@ -37,10 +37,13 @@ F18–F20 使用 pi `1.5.0`。
 | F15 | Codex 总是加载 `~/.codex/AGENTS.md`，`project_doc_max_bytes: 0` 无效 | 已确认 |
 | F16 | Claude Code Router 首次调用工具后上下文被注入约 40k token，`strictMcpConfig` 可避免 | 已确认 |
 | F17 | Claude Code 每批次一个 query 与常驻 query 的耗时无明显差异 | 已确认 |
-| F18 | pi `Agent` 不按工具 schema 拒绝类型错误的参数 | 已确认，复查 |
+| F18 | pi `Agent` 会把工具参数的标量类型转换成 schema 要求的类型 | 已确认，复查 |
 | F19 | pi `Agent` 的请求上下文只包含 Owls 提供的系统提示、工具和消息 | 已确认 |
 | F20 | pi `Agent` 的 `steer()` 在工具执行期间注入，同一次运行内生效 | 已确认 |
-| R6 | 旧 pi runtime 仍在类型检查范围内，锁定 pi `0.84.1` | 处理中（#18） |
+| R6 | 旧 pi runtime 仍在类型检查范围内，锁定 pi `0.84.1` | 已处理（移入 legacy） |
+| F21 | pi 的 OpenAI 兼容请求在没有 API key 时直接失败，即使本地端点不需要 key | 已确认 |
+| F22 | 失败的模型回复会进入 pi `Agent` 的消息记录 | 已确认 |
+| F23 | 本机 Ollama 实测：`qwen3.6:27b` 完成分派闭环，`qwen2.5-coder:7b` 只回复文字不调用工具 | 已确认 |
 | R1 | ClaudeService 一轮结束后立即发下一条，会被上一轮的清理误判为失败 | 已修复（#16） |
 | R2 | Claude 任务的回复标题写死为「Codex」 | 已修复（#16） |
 | R3 | `main` 上的 `pnpm-lock.yaml` 与工作区不同步 | 已修复（#16） |
@@ -227,12 +230,14 @@ hook 和插件信息，未入库。
 临时目录中，用 pi-ai 的 `fauxProvider` 驱动，没有网络请求和凭据。探针为一个只有
 `dispatch_task` 的 `Agent`，faux 响应工厂记录每次请求收到的上下文。
 
-### F18 pi `Agent` 不按工具 schema 拒绝类型错误的参数
+### F18 pi `Agent` 会把工具参数的标量类型转换成 schema 要求的类型
 
 - 现象：`dispatch_task` 的 `parameters` 要求 `goal` 为字符串，模型（faux）传入 `goal: 42`，
-  工具的 `execute` 照常执行，返回 `isError: false` 的结果。
-- 推断：参数可能被转换成了字符串，未确认是转换还是未校验。
-- 影响：Owls 不能依赖引擎的参数校验；工具处理器统一先用 zod 校验（RFC 第 5 节）。
+  工具的 `execute` 照常执行，返回 `isError: false` 的结果。M1 实现中复测：`execute` 收到的是字符串
+  `"42"`，所以 Owls 的 zod 校验也通过；而多余字段或空白 `goal` 会被 pi 用自己的
+  `Validation…` 错误拒绝，不会到达 `execute`。
+- 影响：Owls 不能依赖引擎的参数校验；工具处理器统一先用 zod 校验（RFC 第 5 节）。被转换的标量
+  不会造成越权，因为权限、provider 等枚举值仍由 zod 校验。
 - 复查：升级 pi 后重跑；即使 pi 改为拒绝，处理器中的校验也保留。
 
 ### F19 pi `Agent` 的请求上下文只包含 Owls 提供的内容
@@ -257,9 +262,34 @@ hook 和插件信息，未入库。
   `src/renderer` 4 个、`src/preload` 1 个，分别在 `typecheck:node` 和 `typecheck:web` 的范围内。
   npm 上的最新版本是 `1.5.0`，1.x 用 `createModels()` 取代了全局 `getModel()` 等 API。
 - 影响：直接升级会让旧代码无法通过类型检查。
-- 处理：[#18](https://github.com/jackeydou/Owls/pull/18) 移除了 import 链能到达 pi 的 186 个文件、
-  只依赖旧 preload 全局变量的 33 个 renderer 文件、对应的 12 个测试和三个 pi 依赖。按 build 入口做的
-  静态可达性检查确认被删文件都不可达。不依赖 pi 的 164 个旧文件保留，另行清理。
+- 处理：#18 尝试直接删除，后按维护者要求关闭。改为把构建入口不可达的 338 个源文件和覆盖它们的
+  31 个测试与 fixture 移到 `apps/pichu-client/legacy/`，保留原目录结构；legacy 不参与构建、类型检查、
+  lint 和测试。pi 升级到 `1.5.0`，`pi-coding-agent` 和它带来的 photon wasm 复制步骤移除。
+
+### F21 pi 的 OpenAI 兼容请求在没有 API key 时直接失败
+
+- 现象：Owls 引擎连本机 Ollama（`custom` 端点，`getApiKey` 返回 `undefined`）时，批次立即失败：
+  `No API key for provider: custom`。`createProvider` 的 `auth.apiKey.resolve` 返回空 auth 也一样。
+- 处理：对不需要 key 的 `custom` 端点传入固定占位值 `owls-local`（不是机密）；本地服务器会忽略它。
+- 证据：本机实测；faux provider 不经过这条路径，所以单元测试没有发现。
+
+### F22 失败的模型回复会进入 pi `Agent` 的消息记录
+
+- 现象：F21 的失败批次之后，`agent.state.messages` 中留下了一条 `stopReason: 'error'`、内容为空的
+  assistant 消息，并被持久化到 `codex_router_messages`。下一批次会把它带进上下文。
+- 处理：批次以 `error` 或 `aborted` 结束时，从内存和持久化记录中去掉这条 assistant 消息，保留用户
+  消息。回归测试：`router-runtime.test.mjs`「a failed model response is not kept」。
+
+### F23 本机 Ollama 实测
+
+- 环境：Ollama.app 提供的 OpenAI 兼容端点 `http://127.0.0.1:11434/v1`，假的 Worker host（不启动
+  真实任务），经打包后的 `out/main/codex/runtime.js` 运行。
+- `qwen3.6:27b`：第一批次调用 `dispatch_task`（约 24 秒，含模型加载），创建一个 Codex Worker 并回复；
+  注入假汇报后，第二批次按汇报回复「There are 42 TypeScript files in this project.」。记录为
+  `user, assistant, toolResult, assistant, user, assistant`。
+- `qwen2.5-coder:7b`：约 5 秒内回复「I will start a background worker…」，但没有调用工具。
+- 影响：Owls 引擎的请求、工具调用和持久化路径在真实 provider 上可用；Router 质量取决于模型的工具
+  调用能力，推荐模型需要在 M4 评估（RFC 开放问题 4）。
 
 ## Claude Code runtime 接入（PR #16，2026-11-01）
 
