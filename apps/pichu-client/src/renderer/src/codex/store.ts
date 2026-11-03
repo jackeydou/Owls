@@ -11,6 +11,8 @@ import type {
   CodexSettings,
   RespondCodexRequest
 } from '../../../shared/codex'
+import { defaultRouterSettings } from '../../../shared/router'
+import { useRouterStore } from '../router/store'
 import { CodexUIError, uiFailure } from './failures'
 
 export function agentConnection(
@@ -35,7 +37,9 @@ type State = {
   loaded: boolean
   error: CodexFailure | null
   sending: boolean
-  view: 'chat' | 'settings'
+  view: 'chat' | 'settings' | 'router'
+  /** Project whose Router is shown when `view` is `router`. */
+  routerProjectId: string | null
   selectedId: string | null
   draftCwd: string | null
   sessions: CodexSession[]
@@ -48,6 +52,7 @@ type State = {
   select(id: string): void
   newTask(cwd?: string): void
   showSettings(): void
+  showRouter(projectId: string): void
   clearError(): void
   pickProject(): Promise<void>
   connect(): Promise<void>
@@ -77,6 +82,7 @@ export const useCodexStore = create<State>((set, get) => {
     error: null,
     sending: false,
     view: 'chat',
+    routerProjectId: null,
     selectedId: null,
     draftCwd: null,
     sessions: [],
@@ -91,7 +97,9 @@ export const useCodexStore = create<State>((set, get) => {
       provider: 'codex',
       claudeExecutablePath: null,
       claudeModel: null,
-      claudeEffort: null
+      claudeEffort: null,
+      router: defaultRouterSettings,
+      workerProvider: null
     },
     connection: {
       status: 'disconnected',
@@ -117,6 +125,7 @@ export const useCodexStore = create<State>((set, get) => {
         set({ loaded: true })
         return
       }
+      useRouterStore.getState().hydrate(snapshot.routers, snapshot.workers)
       set((state) => ({
         loaded: true,
         projects: snapshot.projects,
@@ -141,6 +150,14 @@ export const useCodexStore = create<State>((set, get) => {
         set({ claude: event.connection })
         return
       }
+      if (event.type === 'router') {
+        useRouterStore.getState().router(event.router)
+        return
+      }
+      if (event.type === 'worker') {
+        useRouterStore.getState().worker(event.worker)
+        return
+      }
       if (event.type === 'removed') {
         set((state) => ({
           sessions: state.sessions.filter((s) => s.id !== event.sessionId),
@@ -158,6 +175,7 @@ export const useCodexStore = create<State>((set, get) => {
     newTask: (cwd) =>
       set({ selectedId: null, view: 'chat', error: null, draftCwd: cwd ?? get().draftCwd }),
     showSettings: () => set({ view: 'settings', error: null }),
+    showRouter: (projectId) => set({ view: 'router', routerProjectId: projectId, error: null }),
     clearError: () => set({ error: null }),
     pickProject: async () => {
       const project = await action(() => window.codex.pickProject())
@@ -203,7 +221,9 @@ export const useCodexStore = create<State>((set, get) => {
           language: settings.language,
           provider: settings.provider,
           claudeModel: settings.claudeModel,
-          claudeEffort: settings.claudeEffort
+          claudeEffort: settings.claudeEffort,
+          router: settings.router,
+          workerProvider: settings.workerProvider
         })
       )
       if (saved) set({ settings: saved })

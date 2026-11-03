@@ -2,11 +2,15 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
-import { app, BrowserWindow, dialog, shell } from 'electron'
+import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { CodexEvent } from '../../shared/codex.js'
 import { ClaudeService } from '../claude/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { getDataRoot } from '../pichu-paths.js'
+import { RouterCredentials, type SecretCipher } from '../router/credentials.js'
+import { defaultEngineFactory } from '../router/engines/factory.js'
+import { RouterService } from '../router/service.js'
+import { RouterStore } from '../router/store.js'
 import { OwlsHost } from './host.js'
 import { registerCodexIpc } from './ipc.js'
 import { safeText } from './protocol.js'
@@ -17,6 +21,7 @@ const profile = configureDevAppInstanceProfile()
 app.setName(profile ? `Owls — ${profile.name}` : 'Owls')
 let window: BrowserWindow | null = null
 let service: OwlsHost | null = null
+let router: RouterService | null = null
 let quitApproved = false
 let quitPrompt = false
 
@@ -31,7 +36,19 @@ function migrationsFolder(): string {
   return path
 }
 function emit(event: CodexEvent): void {
+  router?.observe(event)
   if (window && !window.isDestroyed()) window.webContents.send('codex:event', event)
+}
+/** Router keys use the OS keychain through safeStorage; a plain-text fallback is refused. */
+const safeStorageCipher: SecretCipher = {
+  unavailable: () =>
+    !safeStorage.isEncryptionAvailable()
+      ? 'Secure storage is not available on this system.'
+      : process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text'
+        ? 'Secure storage is using a plain-text fallback on this system.'
+        : null,
+  encrypt: (plain) => safeStorage.encryptString(plain).toString('base64'),
+  decrypt: (encoded) => safeStorage.decryptString(Buffer.from(encoded, 'base64'))
 }
 function createWindow(): void {
   window = new BrowserWindow({
@@ -74,6 +91,17 @@ void app
     mkdirSync(root, { recursive: true })
     const store = new CodexStore(join(root, 'owls-codex.db'), migrationsFolder())
     service = new OwlsHost(new CodexService(store, emit), new ClaudeService(store, emit, { query }))
+    const routerStore = new RouterStore(store)
+    const credentials = new RouterCredentials(routerStore, safeStorageCipher)
+    router = new RouterService(
+      routerStore,
+      credentials,
+      store,
+      service.workerHost(),
+      emit,
+      defaultEngineFactory(credentials)
+    )
+    service.attachRouter(router)
     registerCodexIpc(service, () => window)
     createWindow()
     void service.connect()
@@ -115,6 +143,7 @@ app.on('before-quit', (event) => {
 app.on('will-quit', () => {
   service?.close()
   service = null
+  router = null
 })
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

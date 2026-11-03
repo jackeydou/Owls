@@ -1,0 +1,122 @@
+.codex-project-item {
+  display: flex;
+  align-items: center;
+  border-radius: 7px;
+}
+.codex-project-item:hover {
+  background: var(--color-card-muted);
+}
+.codex-project-item .codex-project-row:hover {
+  background: transparent;
+}
+.codex-project-item.selected {
+  background: var(--color-card-muted);
+}
+.codex-router-entry {
+  flex-shrink: 0;
+  width: 25px;
+  padding: 0;
+  margin-right: 3px;
+}
+.router-model {
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-workers {
+  display: flex;
+  gap: 8px;
+  padding: 10px 24px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border);
+}
+.router-workers > p {
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-worker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+  text-align: left;
+}
+.router-worker:hover {
+  background: var(--color-card-muted);
+}
+.router-worker-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.router-worker-head > i {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-muted-foreground);
+}
+.router-worker.running > .router-worker-head > i,
+.router-worker.starting > .router-worker-head > i {
+  background: #458a68;
+}
+.router-worker.waiting > .router-worker-head > i {
+  background: #c39640;
+}
+.router-worker.failed > .router-worker-head > i {
+  background: #c25b4e;
+}
+.router-worker strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  font-size: 12px;
+}
+.router-worker small {
+  color: var(--color-muted-foreground);
+  font-size: 10px;
+}
+.router-worker p {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.router-view .codex-welcome > svg {
+  display: block;
+  margin: 0 auto 14px;
+  color: var(--color-muted-foreground);
+}
+.router-settings-body,
+.router-settings-help {
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.router-settings-help {
+  margin: -4px 0 10px;
+  font-size: 11px;
+}
+.router-input {
+  height: 36px;
+  min-width: 240px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-size: 13px;
+  outline: none;
+}
+.router-input:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}

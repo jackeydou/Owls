@@ -16,6 +16,7 @@ import type {
   SendCodexMessage
 } from '../../shared/codex.js'
 import { questionSchema } from '../../shared/codex.js'
+import type { TurnOutcome, TurnProfile, TurnProfiles } from '../router/service.js'
 import { CodexClient, discoverExecutable } from './client.js'
 import { CodexRuntimeError, codexFailure } from './errors.js'
 import {
@@ -48,6 +49,7 @@ export class CodexService {
   private client: CodexClient | null = null
   private connecting: Promise<CodexConnection> | null = null
   private loginId: string | null = null
+  private profiles: TurnProfiles | null = null
   private closed = false
   private connection: CodexConnection = {
     status: 'disconnected',
@@ -79,7 +81,11 @@ export class CodexService {
       this.store.saveSession(session)
     }
   }
-  snapshot(): Omit<CodexSnapshot, 'claude'> {
+  /** Lets the Router mark its worker tasks; other tasks keep the default profile. */
+  setTurnProfiles(profiles: TurnProfiles): void {
+    this.profiles = profiles
+  }
+  snapshot(): Omit<CodexSnapshot, 'claude' | 'routers' | 'workers'> {
     this.flush()
     return {
       sessions: [...this.sessions.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
@@ -204,13 +210,15 @@ export class CodexService {
       turnId: null
     })
     this.changed(session, true)
+    const profile: TurnProfile = this.profiles?.profile(session.id) ?? { role: 'task' }
     try {
       const policy = {
         cwd: session.cwd,
         model: session.model,
         approvalPolicy: 'on-request',
         approvalsReviewer: 'user',
-        sandbox: session.permission === 'full-access' ? 'danger-full-access' : session.permission
+        sandbox: session.permission === 'full-access' ? 'danger-full-access' : session.permission,
+        ...(profile.role === 'worker' ? { developerInstructions: profile.instructions } : {})
       }
       if (!session.threadId) {
         const response = record(
@@ -231,6 +239,7 @@ export class CodexService {
       if (this.cancelled.delete(session.id)) {
         session.status = 'interrupted'
         this.changed(session, true)
+        this.reportTurn(session, 'interrupted', null)
         return
       }
       const response = record(
@@ -239,7 +248,8 @@ export class CodexService {
           clientUserMessageId: input.commandId,
           input: [{ type: 'text', text: input.text, text_elements: [] }],
           ...(session.model ? { model: session.model } : {}),
-          ...(session.effort ? { effort: session.effort } : {})
+          ...(session.effort ? { effort: session.effort } : {}),
+          ...(profile.role === 'worker' ? { outputSchema: profile.reportSchema } : {})
         })
       )
       const turn = record(response.turn)
@@ -256,6 +266,7 @@ export class CodexService {
       session.error = this.errorText(error)
       this.settle(session, 'failed')
       this.changed(session, true)
+      this.reportTurn(session, 'failed', null)
       throw new CodexRuntimeError(session.error.code, session.error.message)
     }
   }
@@ -467,6 +478,7 @@ export class CodexService {
       }
       case 'turn/completed': {
         const turn = record(params.turn)
+        const completedTurn = string(turn.id, turnId)
         session.status =
           turn.status === 'failed'
             ? 'failed'
@@ -487,6 +499,15 @@ export class CodexService {
         session.turnId = null
         this.cancelled.delete(session.id)
         this.changed(session, true)
+        this.reportTurn(
+          session,
+          session.status === 'failed'
+            ? 'failed'
+            : session.status === 'interrupted'
+              ? 'interrupted'
+              : 'completed',
+          completedTurn
+        )
         return
       }
       case 'serverRequest/resolved': {
@@ -565,6 +586,7 @@ export class CodexService {
       session.turnId = null
       this.settle(session, 'interrupted')
       this.changed(session, true)
+      this.reportTurn(session, 'interrupted', null)
     }
     this.connection = {
       ...this.connection,
@@ -572,6 +594,18 @@ export class CodexService {
       error: { code: 'disconnected', message: reason }
     }
     this.emitConnection()
+  }
+  /** Tells the Router how a worker's turn ended; the report is the turn's final message. */
+  private reportTurn(
+    session: CodexSession,
+    status: TurnOutcome['status'],
+    turnId: string | null
+  ): void {
+    if (!this.profiles || this.closed) return
+    const text =
+      session.items.findLast((i) => i.kind === 'assistant' && (!turnId || i.turnId === turnId))
+        ?.text ?? ''
+    this.profiles.settled(session.id, { status, structured: null, text })
   }
   private validateSelection(model: string | null, effort: CodexSession['effort']): void {
     if (!model && effort)

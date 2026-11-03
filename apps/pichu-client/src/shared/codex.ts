@@ -1,4 +1,12 @@
 import { z } from 'zod'
+import {
+  type RouterProviderInfo,
+  type RouterWorker,
+  routerSettingsSchema,
+  routerStatusSchema,
+  type SendRouterMessage,
+  type SetRouterKey
+} from './router.js'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
 export const providerSchema = z.enum(['codex', 'claude-code'])
@@ -24,7 +32,11 @@ export const failureSchema = z.object({
     'interrupted',
     'claude_not_installed',
     'claude_not_connected',
-    'claude_disconnected'
+    'claude_disconnected',
+    'router_model_unconfigured',
+    'router_auth_failed',
+    'router_unavailable',
+    'secure_storage_unavailable'
   ]),
   message: z.string()
 })
@@ -82,7 +94,10 @@ export const settingsSchema = z.object({
   provider: providerSchema.default('codex'),
   claudeExecutablePath: z.string().nullable().default(null),
   claudeModel: z.string().nullable().default(null),
-  claudeEffort: effortSchema.nullable().default(null)
+  claudeEffort: effortSchema.nullable().default(null),
+  router: routerSettingsSchema.default(routerSettingsSchema.parse({})),
+  /** Agent for Router workers when `dispatch_task` names none; null follows `provider`. */
+  workerProvider: providerSchema.nullable().default(null)
 })
 export const projectSchema = z.object({ id: z.string(), name: z.string(), path: z.string() })
 export const settingsUpdateSchema = settingsSchema
@@ -97,6 +112,19 @@ export const modelSchema = z.object({
   defaultEffort: effortSchema.nullable(),
   autoMode: z.boolean().default(false)
 })
+/** A project's Router: the conversation shown in the Router view and its run state. */
+export const routerSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  cwd: z.string(),
+  status: routerStatusSchema,
+  items: z.array(itemSchema),
+  error: failureSchema.nullable(),
+  tokens: z.number().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string()
+})
+export type CodexRouter = z.infer<typeof routerSchema>
 export type CodexItem = z.infer<typeof itemSchema>
 export type CodexRequest = z.infer<typeof requestSchema>
 export type CodexSession = z.infer<typeof sessionSchema>
@@ -137,12 +165,16 @@ export type CodexSnapshot = {
   settings: CodexSettings
   connection: CodexConnection
   claude: ClaudeConnection
+  routers: CodexRouter[]
+  workers: RouterWorker[]
 }
 export type CodexEvent =
   | { type: 'connection'; connection: CodexConnection }
   | { type: 'claude-connection'; connection: ClaudeConnection }
   | { type: 'session'; session: CodexSession }
   | { type: 'removed'; sessionId: string }
+  | { type: 'router'; router: CodexRouter }
+  | { type: 'worker'; worker: RouterWorker }
 export type CodexReply<T> = { ok: true; value: T } | { ok: false; error: CodexFailure }
 export const createSessionSchema = z.object({
   provider: providerSchema,
@@ -180,5 +212,11 @@ export interface CodexAPI {
   interrupt(sessionId: string): Promise<CodexReply<void>>
   respond(input: RespondCodexRequest): Promise<CodexReply<void>>
   archive(sessionId: string): Promise<CodexReply<void>>
+  openRouter(projectId: string): Promise<CodexReply<CodexRouter>>
+  sendRouter(input: SendRouterMessage): Promise<CodexReply<void>>
+  interruptRouter(routerId: string): Promise<CodexReply<void>>
+  routerProviders(): Promise<CodexReply<RouterProviderInfo[]>>
+  setRouterKey(input: SetRouterKey): Promise<CodexReply<void>>
+  removeRouterKey(providerId: string): Promise<CodexReply<void>>
   onEvent(listener: (event: CodexEvent) => void): () => void
 }

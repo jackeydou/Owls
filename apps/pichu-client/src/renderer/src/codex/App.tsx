@@ -9,6 +9,7 @@ import {
   FileDiff,
   FolderOpen,
   Loader2,
+  Network,
   Plus,
   Search,
   Settings2,
@@ -21,6 +22,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import owlMark from '../../../../resources/pichu-home-mark.png'
 import type { CodexSession } from '../../../shared/codex'
+import { RouterView } from '../router/RouterView'
 import { TaskOptions } from './Controls'
 import { ConversationItem, RequestCard } from './Conversation'
 import { failureMessage } from './failures'
@@ -44,6 +46,8 @@ function Sidebar() {
     newTask,
     pickProject,
     showSettings,
+    showRouter,
+    routerProjectId,
     view,
     settings
   } = useCodexStore()
@@ -84,18 +88,30 @@ function Sidebar() {
           />
         </div>
         {projects.map((project) => (
-          <button
-            type="button"
-            className="codex-project-row"
+          <div
+            className={`codex-project-item ${view === 'router' && routerProjectId === project.id ? 'selected' : ''}`}
             key={project.id}
-            onClick={() => newTask(project.path)}
           >
-            <FolderOpen size={14} />
-            <span>{project.name}</span>
-            <span className="codex-count">
-              {sessions.filter((s) => s.cwd === project.path).length}
-            </span>
-          </button>
+            <button
+              type="button"
+              className="codex-project-row"
+              onClick={() => newTask(project.path)}
+            >
+              <FolderOpen size={14} />
+              <span>{project.name}</span>
+              <span className="codex-count">
+                {sessions.filter((s) => s.cwd === project.path).length}
+              </span>
+            </button>
+            <IconButton
+              className="codex-router-entry"
+              size="sm"
+              label={t('router.open', { project: project.name })}
+              tooltip={t('router.entry')}
+              icon={<Network size={13} />}
+              onClick={() => showRouter(project.id)}
+            />
+          </div>
         ))}
         {!projects.length ? (
           <button type="button" className="codex-add-project" onClick={() => void pickProject()}>
@@ -422,8 +438,18 @@ function Chat() {
 }
 export default function CodexApp() {
   const { t } = useTranslation()
-  const { loaded, view, settings, error, selectedId, draftCwd, initialize, event, clearError } =
-    useCodexStore()
+  const {
+    loaded,
+    view,
+    settings,
+    error,
+    selectedId,
+    draftCwd,
+    routerProjectId,
+    initialize,
+    event,
+    clearError
+  } = useCodexStore()
   useEffect(() => {
     const unsubscribe = window.codex.onEvent(event)
     void initialize()
@@ -469,6 +495,8 @@ export default function CodexApp() {
         </main>
       ) : view === 'settings' ? (
         <CodexSettingsPage />
+      ) : view === 'router' ? (
+        <RouterView key={routerProjectId ?? 'router'} />
       ) : (
         <Chat key={selectedId ?? draftCwd ?? 'new'} />
       )}

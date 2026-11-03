@@ -5,12 +5,14 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import type { CodexProject, CodexSession, CodexSettings } from '../../shared/codex.js'
 import { projectSchema, sessionSchema, settingsSchema } from '../../shared/codex.js'
+import { defaultRouterSettings } from '../../shared/router.js'
 import { CodexRuntimeError } from './errors.js'
 import { codexCommands, codexProjects, codexSessions, codexSettings } from './schema.js'
 
 export class CodexStore {
   private readonly sqlite: Database.Database
-  private readonly db
+  /** Shared with the Router store so both write through one connection. */
+  readonly db
   constructor(databasePath: string, migrationsFolder: string) {
     this.sqlite = new Database(databasePath)
     this.sqlite.pragma('journal_mode = WAL')
@@ -31,7 +33,9 @@ export class CodexStore {
           provider: 'codex',
           claudeExecutablePath: null,
           claudeModel: null,
-          claudeEffort: null
+          claudeEffort: null,
+          router: defaultRouterSettings,
+          workerProvider: null
         }
   }
   saveSettings(value: CodexSettings): CodexSettings {

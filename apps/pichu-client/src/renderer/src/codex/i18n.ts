@@ -1,5 +1,6 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { routerEn, routerZh } from '../router/i18n'
 
 const en = {
   newTask: 'New task',
@@ -324,7 +325,10 @@ const zh: Record<keyof typeof en, string> = {
   'errors.claude_disconnected': 'Claude Code 在本轮完成前停止，请发送新消息继续。'
 }
 void i18next.use(initReactI18next).init({
-  resources: { en: { codex: en }, 'zh-CN': { codex: zh } },
+  resources: {
+    en: { codex: { ...en, ...routerEn } },
+    'zh-CN': { codex: { ...zh, ...routerZh } }
+  },
   lng: navigator.language.startsWith('zh') ? 'zh-CN' : 'en',
   fallbackLng: 'en',
   defaultNS: 'codex',
