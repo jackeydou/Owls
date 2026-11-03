@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexFailure } from '../../../shared/codex'
 import { settingsSchema } from '../../../shared/codex'
+import { RouterSettingsSection } from '../router/RouterSettings'
 import { TaskOptions } from './Controls'
 import { failureMessage, uiFailure } from './failures'
 import { useCodexStore } from './store'
@@ -275,6 +276,7 @@ export function CodexSettingsPage() {
               )}
             </p>
           </section>
+          <RouterSettingsSection />
           <section className="codex-settings-section">
             <h2>{t('appearance')}</h2>
             <div className="codex-setting-row">

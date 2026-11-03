@@ -7,6 +7,12 @@ import {
   sendSchema,
   settingsUpdateSchema
 } from '../../shared/codex.js'
+import {
+  openRouterSchema,
+  owlsProviderSchema,
+  sendRouterSchema,
+  setRouterKeySchema
+} from '../../shared/router.js'
 import { codexFailure } from './errors.js'
 import type { OwlsHost } from './host.js'
 
@@ -66,6 +72,12 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
     })
     if (result.response === 1) host.archive(id)
   })
+  handle('router-open', (input) => host.openRouter(openRouterSchema.parse(input)))
+  handle('router-send', (input) => host.sendRouter(sendRouterSchema.parse(input)))
+  handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))
+  handle('router-providers', () => host.routerProviders())
+  handle('router-set-key', (input) => host.setRouterKey(setRouterKeySchema.parse(input)))
+  handle('router-remove-key', (input) => host.removeRouterKey(owlsProviderSchema.parse(input)))
   handle('cancel-sign-in', () => host.cancelSignIn())
   handle('sign-in', async () => {
     await shell.openExternal(await host.signIn())

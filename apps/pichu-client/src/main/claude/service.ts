@@ -23,6 +23,7 @@ import type {
 import { CodexRuntimeError, codexFailure } from '../codex/errors.js'
 import { record, recordSchema, safeText, string } from '../codex/protocol.js'
 import type { CodexStore } from '../codex/store.js'
+import type { TurnProfile, TurnProfiles } from '../router/service.js'
 import { discoverClaudeExecutable } from './discovery.js'
 import {
   claudeEffortSchema,
@@ -109,6 +110,9 @@ type Runtime = {
   blocks: Map<number, string>
   messageId: string | null
   stopTimer: ReturnType<typeof setTimeout> | null
+  /** The result's structured output and text, reported to the Router for worker tasks. */
+  structured: unknown
+  resultText: string
 }
 type PendingPermission = {
   sessionId: string
@@ -123,6 +127,7 @@ export class ClaudeService {
   private readonly dirty = new Set<string>()
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private connecting: Promise<ClaudeConnection> | null = null
+  private profiles: TurnProfiles | null = null
   private closed = false
   private connection: ClaudeConnection = {
     status: 'disconnected',
@@ -154,6 +159,10 @@ export class ClaudeService {
       this.sessions.set(session.id, session)
       this.store.saveSession(session)
     }
+  }
+  /** Lets the Router mark its worker tasks; other tasks keep the default profile. */
+  setTurnProfiles(profiles: TurnProfiles): void {
+    this.profiles = profiles
   }
   owns(sessionId: string): boolean {
     return this.sessions.has(sessionId)
@@ -298,7 +307,9 @@ export class ClaudeService {
       streamed: new Map(),
       blocks: new Map(),
       messageId: null,
-      stopTimer: null
+      stopTimer: null,
+      structured: null,
+      resultText: ''
     }
     this.runtimes.set(session.id, runtime)
     this.changed(session, true)
@@ -307,11 +318,22 @@ export class ClaudeService {
     const model = this.connection.models.find((m) =>
       session.model ? m.id === session.model : m.isDefault
     )
+    const profile: TurnProfile = this.profiles?.profile(session.id) ?? { role: 'task' }
     try {
       runtime.query = this.sdk.query({
         prompt: runtime.input.stream,
         options: {
           ...this.baseOptions(executable, session.cwd, runtime),
+          ...(profile.role === 'worker'
+            ? {
+                systemPrompt: {
+                  type: 'preset' as const,
+                  preset: 'claude_code' as const,
+                  append: profile.instructions
+                },
+                outputFormat: { type: 'json_schema' as const, schema: profile.reportSchema }
+              }
+            : {}),
           ...permissionOptions(session.permission, model?.autoMode === true),
           ...(session.model ? { model: session.model } : {}),
           ...(session.effort ? { effort: claudeEffortSchema.parse(session.effort) } : {}),
@@ -327,6 +349,7 @@ export class ClaudeService {
       session.turnId = null
       session.error = this.failure(error, 'claude_disconnected')
       this.changed(session, true)
+      this.profiles?.settled(session.id, { status: 'failed', structured: null, text: '' })
       throw new CodexRuntimeError(session.error.code, session.error.message)
     }
     runtime.input.push({
@@ -369,6 +392,17 @@ export class ClaudeService {
     }
     session.turnId = null
     this.changed(session, true)
+    if (!this.closed)
+      this.profiles?.settled(session.id, {
+        status:
+          session.status === 'failed'
+            ? 'failed'
+            : session.status === 'interrupted'
+              ? 'interrupted'
+              : 'completed',
+        structured: runtime.structured,
+        text: runtime.resultText
+      })
   }
   private apply(session: CodexSession, runtime: Runtime, message: SDKMessage): void {
     switch (message.type) {
@@ -401,6 +435,10 @@ export class ClaudeService {
         session.tokens = (session.tokens ?? 0) + tokens
         const succeeded = message.subtype === 'success' && !message.is_error
         const status = succeeded ? 'idle' : runtime.cancelled ? 'interrupted' : 'failed'
+        if (message.subtype === 'success') {
+          runtime.structured = message.structured_output ?? null
+          runtime.resultText = message.result
+        }
         if (status === 'failed') {
           const detail = message.subtype === 'success' ? message.result : message.errors.join('\n')
           session.error = { code: 'native_error', message: safeText(detail).slice(0, 1000) }

@@ -7,9 +7,22 @@ const packageIndex = process.argv.indexOf('--packaged-app')
 const resources =
   packageIndex >= 0 ? join(resolve(process.argv[packageIndex + 1]), 'Contents/Resources') : null
 const artifactRoot = resources ? join(resources, 'app.asar') : resolve(__dirname, '../..')
-const { ClaudeService, CodexService, CodexStore, OwlsHost } = require(
-  join(artifactRoot, 'out/main/codex/runtime.js')
-)
+const {
+  ClaudeService,
+  CodexService,
+  CodexStore,
+  OwlsHost,
+  RouterCredentials,
+  RouterService,
+  RouterStore,
+  defaultEngineFactory
+} = require(join(artifactRoot, 'out/main/codex/runtime.js'))
+// Router keys in this test never touch the OS keychain.
+const testCipher = {
+  unavailable: () => null,
+  encrypt: (plain) => Buffer.from(plain).toString('base64'),
+  decrypt: (encoded) => Buffer.from(encoded, 'base64').toString()
+}
 const { registerCodexIpc } = require(join(artifactRoot, 'out/main/codex/ipc.js'))
 
 // A scripted Agent SDK stand-in for the Claude Code task flow.
@@ -78,6 +91,7 @@ app
     const temp = mkdtempSync(join(tmpdir(), 'owls-codex-ui-'))
     let window
     let host
+    let router
     const evaluate = (source) => window.webContents.executeJavaScript(source)
     const waitFor = async (expression) => {
       const deadline = Date.now() + 12_000
@@ -142,9 +156,21 @@ app
         claudeExecutablePath: claudeFixture
       })
       const emit = (event) => {
+        router?.observe(event)
         if (window && !window.isDestroyed()) window.webContents.send('codex:event', event)
       }
       host = new OwlsHost(new CodexService(store, emit), new ClaudeService(store, emit, claudeSdk))
+      const routerStore = new RouterStore(store)
+      const credentials = new RouterCredentials(routerStore, testCipher)
+      router = new RouterService(
+        routerStore,
+        credentials,
+        store,
+        host.workerHost(),
+        emit,
+        defaultEngineFactory(credentials)
+      )
+      host.attachRouter(router)
       host.addProject(temp)
       await host.connect()
       window = new BrowserWindow({
@@ -278,8 +304,37 @@ app
       )
       assert.ok(await evaluate("document.body.textContent.includes('claude@example.com')"))
       await capture('claude-settings')
+
+      // Router: an unconfigured Owls engine shows setup, and keys never come back out.
+      assert.ok(await evaluate("document.body.textContent.includes('协调者引擎')"))
+      await evaluate("document.querySelector('.codex-router-entry').click()")
+      await waitFor(
+        "Boolean(document.querySelector('.router-view')) && document.body.textContent.includes('为协调者选择模型')"
+      )
+      await send('帮我看看项目')
+      await waitFor(
+        "Array.from(document.querySelectorAll('.router-view .codex-user-message')).some(el => el.textContent.includes('帮我看看项目'))"
+      )
+      await waitFor("document.querySelector('.router-view textarea')?.value === ''")
+      const routerState = host.snapshot().routers[0]
+      assert.equal(routerState.error.code, 'router_model_unconfigured')
+      assert.equal(routerState.items[0].text, '帮我看看项目')
+      await capture('router-setup')
+      const saved = await evaluate(
+        "window.codex.setRouterKey({ providerId: 'anthropic', key: 'sk-owls-ui-secret' })"
+      )
+      assert.equal(saved.ok, true)
+      const providers = await evaluate('window.codex.routerProviders()')
+      assert.equal(providers.ok, true)
+      assert.equal(providers.value.find((p) => p.id === 'anthropic').configured, true)
+      assert.ok(!JSON.stringify(providers).includes('sk-owls-ui-secret'))
+      assert.ok(!JSON.stringify(host.snapshot()).includes('sk-owls-ui-secret'))
+      assert.ok(await evaluate("typeof window.codex.routerKey === 'undefined'"))
+      const badKey = await evaluate("window.codex.setRouterKey({ providerId: 'nope', key: 'x' })")
+      assert.equal(badKey.ok, false)
+      assert.equal(badKey.error.code, 'invalid_request')
       console.log(
-        'PASS: production preload + IPC + SQLite + renderer, messages, tools/diff, approvals, questions, local account reconnect, theme/language, reload, Claude Code tasks'
+        'PASS: production preload + IPC + SQLite + renderer, messages, tools/diff, approvals, questions, local account reconnect, theme/language, reload, Claude Code tasks, Router setup and keys'
       )
       if (captureDir) console.log(`UI captures: ${captureDir}`)
     } finally {

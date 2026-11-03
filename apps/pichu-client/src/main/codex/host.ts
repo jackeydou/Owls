@@ -1,7 +1,9 @@
 import type {
+  AgentProvider,
   ClaudeConnection,
   CodexConnection,
   CodexProject,
+  CodexRouter,
   CodexSession,
   CodexSettings,
   CodexSnapshot,
@@ -9,7 +11,9 @@ import type {
   RespondCodexRequest,
   SendCodexMessage
 } from '../../shared/codex.js'
+import type { RouterProviderInfo, SendRouterMessage, SetRouterKey } from '../../shared/router.js'
 import type { ClaudeService } from '../claude/service.js'
+import type { RouterService, WorkerHost } from '../router/service.js'
 import { CodexRuntimeError } from './errors.js'
 import type { CodexService } from './service.js'
 
@@ -18,10 +22,33 @@ import type { CodexService } from './service.js'
  * it. Tasks never switch runtimes after creation.
  */
 export class OwlsHost {
+  private router: RouterService | null = null
   constructor(
     private readonly codex: CodexService,
     private readonly claude: ClaudeService
   ) {}
+  /** Connects the project Routers; their workers are ordinary tasks of this host. */
+  attachRouter(router: RouterService): void {
+    this.router = router
+    this.codex.setTurnProfiles(router)
+    this.claude.setTurnProfiles(router)
+  }
+  /** The narrow view of this host that Routers use to start workers. */
+  workerHost(): WorkerHost {
+    return {
+      projects: () => this.codex.snapshot().projects,
+      settings: () => this.codex.snapshot().settings,
+      providerReady: (provider: AgentProvider) => {
+        const connection =
+          provider === 'claude-code'
+            ? this.claude.connectionState()
+            : this.codex.snapshot().connection
+        return connection.status === 'ready' && connection.account.kind !== 'signed-out'
+      },
+      createSession: (input) => this.createSession(input),
+      send: (input) => this.send(input)
+    }
+  }
   snapshot(): CodexSnapshot {
     const codex = this.codex.snapshot()
     return {
@@ -29,7 +56,8 @@ export class OwlsHost {
       sessions: [...codex.sessions, ...this.claude.sessionList()].sort((a, b) =>
         b.updatedAt.localeCompare(a.updatedAt)
       ),
-      claude: this.claude.connectionState()
+      claude: this.claude.connectionState(),
+      ...(this.router?.snapshot() ?? { routers: [], workers: [] })
     }
   }
   connect(): Promise<CodexConnection> {
@@ -48,7 +76,36 @@ export class OwlsHost {
         'Stop active tasks before changing the Claude Code executable.'
       )
     }
-    return this.codex.saveSettings(settings)
+    const routerChanged =
+      JSON.stringify(settings.router) !== JSON.stringify(this.codex.snapshot().settings.router)
+    if (routerChanged && this.router?.isRunning())
+      throw new CodexRuntimeError('busy', 'Wait for the Router to finish before changing it.')
+    const saved = this.codex.saveSettings(settings)
+    if (routerChanged) this.router?.settingsChanged()
+    return saved
+  }
+  openRouter(projectId: string): CodexRouter {
+    return this.requireRouter().open(projectId)
+  }
+  sendRouter(input: SendRouterMessage): void {
+    this.requireRouter().send(input)
+  }
+  interruptRouter(routerId: string): void {
+    this.requireRouter().interrupt(routerId)
+  }
+  routerProviders(): RouterProviderInfo[] {
+    return this.requireRouter().providers()
+  }
+  setRouterKey(input: SetRouterKey): void {
+    this.requireRouter().setKey(input)
+  }
+  removeRouterKey(providerId: SetRouterKey['providerId']): void {
+    this.requireRouter().removeKey(providerId)
+  }
+  private requireRouter(): RouterService {
+    if (!this.router)
+      throw new CodexRuntimeError('router_unavailable', 'The Router is not available.')
+    return this.router
   }
   addProject(path: string): CodexProject {
     return this.codex.addProject(path)
@@ -84,9 +141,14 @@ export class OwlsHost {
     return this.codex.cancelSignIn()
   }
   hasActiveTasks(): boolean {
-    return this.codex.hasActiveTasks() || this.claude.hasActiveTasks()
+    return (
+      this.codex.hasActiveTasks() ||
+      this.claude.hasActiveTasks() ||
+      Boolean(this.router?.isRunning())
+    )
   }
   close(): void {
+    this.router?.close()
     this.claude.close()
     // The Codex service closes the shared store last.
     this.codex.close()

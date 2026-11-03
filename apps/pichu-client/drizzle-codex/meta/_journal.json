@@ -8,6 +8,13 @@
       "when": 1793433446830,
       "tag": "0000_mute_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793669569785,
+      "tag": "0001_fancy_shocker",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,12 @@ const api: CodexAPI = {
   interrupt: (id) => ipcRenderer.invoke('codex:interrupt', id),
   respond: (input) => ipcRenderer.invoke('codex:respond', input),
   archive: (id) => ipcRenderer.invoke('codex:archive', id),
+  openRouter: (projectId) => ipcRenderer.invoke('codex:router-open', projectId),
+  sendRouter: (input) => ipcRenderer.invoke('codex:router-send', input),
+  interruptRouter: (id) => ipcRenderer.invoke('codex:router-interrupt', id),
+  routerProviders: () => ipcRenderer.invoke('codex:router-providers'),
+  setRouterKey: (input) => ipcRenderer.invoke('codex:router-set-key', input),
+  removeRouterKey: (providerId) => ipcRenderer.invoke('codex:router-remove-key', providerId),
   onEvent: (listener) => {
     const handler = (_: Electron.IpcRendererEvent, event: CodexEvent) => listener(event)
     ipcRenderer.on('codex:event', handler)
