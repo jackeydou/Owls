@@ -19,6 +19,7 @@ type State = {
   open(projectId: string): Promise<CodexRouter | null>
   send(routerId: string, text: string): Promise<boolean>
   interrupt(routerId: string): Promise<void>
+  resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
   loadProviders(): Promise<void>
   setKey(providerId: OwlsProviderId, key: string): Promise<boolean>
   removeKey(providerId: OwlsProviderId): Promise<void>
@@ -73,6 +74,9 @@ export const useRouterStore = create<State>((set, get) => {
     },
     interrupt: async (routerId) => {
       await action(() => window.codex.interruptRouter(routerId))
+    },
+    resolveBatch: async (routerId, batchId, decision) => {
+      await action(() => window.codex.resolveBatch({ routerId, batchId, decision }))
     },
     loadProviders: async () => {
       const providers = await action(() => window.codex.routerProviders())

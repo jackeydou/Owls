@@ -22,6 +22,111 @@ export function RouterSettingsSection() {
   const { t } = useTranslation()
   const settings = useCodexStore((s) => s.settings)
   const saveSettings = useCodexStore((s) => s.saveSettings)
+  const claude = useCodexStore((s) => s.claude)
+  async function saveRouter(router: typeof settings.router) {
+    await saveSettings({ ...settings, router })
+  }
+  return (
+    <section className="codex-settings-section">
+      <h2>{t('routerSettings.title')}</h2>
+      <p className="router-settings-body">{t('routerSettings.body')}</p>
+      <div className="codex-setting-row">
+        <label htmlFor="router-engine">{t('routerSettings.engine')}</label>
+        <Select
+          id="router-engine"
+          value={settings.router.engine}
+          onChange={(event) =>
+            void saveRouter({
+              ...settings.router,
+              engine: routerEngineSchema.parse(event.target.value)
+            })
+          }
+        >
+          {routerEngineSchema.options.map((engine) => (
+            <option value={engine} key={engine} disabled={engine === 'codex'}>
+              {t(`routerSettings.engine.${engine}`)}
+            </option>
+          ))}
+        </Select>
+      </div>
+      <p className="router-settings-help">
+        {t(`routerSettings.engineHelp.${settings.router.engine}`)}
+      </p>
+      {settings.router.engine === 'claude-code' ? (
+        <>
+          <div className="codex-setting-row">
+            <label htmlFor="router-claude-model">{t('routerSettings.claudeModel')}</label>
+            <Select
+              id="router-claude-model"
+              value={settings.router.claudeModel ?? ''}
+              onChange={(event) =>
+                void saveRouter({ ...settings.router, claudeModel: event.target.value || null })
+              }
+            >
+              <option value="">{t('routerSettings.claudeModel.default')}</option>
+              {claude.models
+                .filter((m) => !m.isDefault)
+                .map((m) => (
+                  <option value={m.id} key={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+            </Select>
+          </div>
+          {claude.status !== 'ready' ? (
+            <p className="router-settings-help">{t('routerSettings.claudeDisconnected')}</p>
+          ) : null}
+        </>
+      ) : null}
+      {settings.router.engine === 'owls' ? <OwlsModelFields /> : null}
+      <div className="codex-setting-row">
+        <label htmlFor="router-permission">{t('routerSettings.maxPermission')}</label>
+        <Select
+          id="router-permission"
+          value={settings.router.maxPermission}
+          onChange={(event) =>
+            void saveRouter({
+              ...settings.router,
+              maxPermission: permissionSchema.parse(event.target.value)
+            })
+          }
+        >
+          {permissionSchema.options.map((permission) => (
+            <option value={permission} key={permission}>
+              {t(`permission.${permission}`)}
+            </option>
+          ))}
+        </Select>
+      </div>
+      <div className="codex-setting-row">
+        <label htmlFor="router-worker-provider">{t('routerSettings.workerProvider')}</label>
+        <Select
+          id="router-worker-provider"
+          value={settings.workerProvider ?? ''}
+          onChange={(event) =>
+            void saveSettings({
+              ...settings,
+              workerProvider: event.target.value ? providerSchema.parse(event.target.value) : null
+            })
+          }
+        >
+          <option value="">{t('routerSettings.workerProvider.default')}</option>
+          {providerSchema.options.map((p) => (
+            <option value={p} key={p}>
+              {t(`agent.${p}`)}
+            </option>
+          ))}
+        </Select>
+      </div>
+    </section>
+  )
+}
+
+/** Provider, model, and key for the built-in engine; the model is saved only when valid. */
+function OwlsModelFields() {
+  const { t } = useTranslation()
+  const settings = useCodexStore((s) => s.settings)
+  const saveSettings = useCodexStore((s) => s.saveSettings)
   const { providers, loadProviders, setKey, removeKey } = useRouterStore()
   const [draft, setDraft] = useState(() => draftFrom(settings.router.owls))
   const [key, setKeyText] = useState('')
@@ -49,29 +154,7 @@ export function RouterSettingsSection() {
     setSavingKey(false)
   }
   return (
-    <section className="codex-settings-section">
-      <h2>{t('routerSettings.title')}</h2>
-      <p className="router-settings-body">{t('routerSettings.body')}</p>
-      <div className="codex-setting-row">
-        <label htmlFor="router-engine">{t('routerSettings.engine')}</label>
-        <Select
-          id="router-engine"
-          value={settings.router.engine}
-          onChange={(event) =>
-            void saveRouter({
-              ...settings.router,
-              engine: routerEngineSchema.parse(event.target.value)
-            })
-          }
-        >
-          {routerEngineSchema.options.map((engine) => (
-            <option value={engine} key={engine} disabled={engine !== 'owls'}>
-              {t(`routerSettings.engine.${engine}`)}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <p className="router-settings-help">{t('routerSettings.engineHelp')}</p>
+    <>
       <div className="codex-setting-row">
         <label htmlFor="router-provider">{t('routerSettings.provider')}</label>
         <Select
@@ -186,45 +269,6 @@ export function RouterSettingsSection() {
           </Button>
         ) : null}
       </div>
-      <div className="codex-setting-row">
-        <label htmlFor="router-permission">{t('routerSettings.maxPermission')}</label>
-        <Select
-          id="router-permission"
-          value={settings.router.maxPermission}
-          onChange={(event) =>
-            void saveRouter({
-              ...settings.router,
-              maxPermission: permissionSchema.parse(event.target.value)
-            })
-          }
-        >
-          {permissionSchema.options.map((permission) => (
-            <option value={permission} key={permission}>
-              {t(`permission.${permission}`)}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div className="codex-setting-row">
-        <label htmlFor="router-worker-provider">{t('routerSettings.workerProvider')}</label>
-        <Select
-          id="router-worker-provider"
-          value={settings.workerProvider ?? ''}
-          onChange={(event) =>
-            void saveSettings({
-              ...settings,
-              workerProvider: event.target.value ? providerSchema.parse(event.target.value) : null
-            })
-          }
-        >
-          <option value="">{t('routerSettings.workerProvider.default')}</option>
-          {providerSchema.options.map((p) => (
-            <option value={p} key={p}>
-              {t(`agent.${p}`)}
-            </option>
-          ))}
-        </Select>
-      </div>
-    </section>
+    </>
   )
 }

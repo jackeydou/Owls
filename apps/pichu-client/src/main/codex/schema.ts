@@ -1,4 +1,4 @@
-import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import type { CodexProject, CodexRouter, CodexSession, CodexSettings } from '../../shared/codex.js'
 import type { RouterWorker } from '../../shared/router.js'
 
@@ -49,3 +49,28 @@ export const codexCredentials = sqliteTable('codex_credentials', {
   type: text('type').notNull(),
   secret: text('secret').notNull()
 })
+/** Router Inbox events. `seq` is the global delivery order; `value` holds the event body. */
+export const codexInboxEvents = sqliteTable(
+  'codex_inbox_events',
+  {
+    seq: integer('seq').primaryKey({ autoIncrement: true }),
+    id: text('id').notNull().unique(),
+    routerId: text('router_id').notNull(),
+    status: text('status').notNull(),
+    batchId: text('batch_id'),
+    value: text('value', { mode: 'json' }).$type<unknown>().notNull()
+  },
+  (table) => [index('codex_inbox_events_router_status').on(table.routerId, table.status)]
+)
+/** Router batches: what was sent to the engine, and whether its delivery is known. */
+export const codexRouterBatches = sqliteTable(
+  'codex_router_batches',
+  {
+    id: text('id').primaryKey(),
+    routerId: text('router_id').notNull(),
+    status: text('status').notNull(),
+    createdAt: text('created_at').notNull(),
+    value: text('value', { mode: 'json' }).$type<unknown>().notNull()
+  },
+  (table) => [index('codex_router_batches_router_status').on(table.routerId, table.status)]
+)

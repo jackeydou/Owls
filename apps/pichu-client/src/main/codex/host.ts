@@ -11,7 +11,12 @@ import type {
   RespondCodexRequest,
   SendCodexMessage
 } from '../../shared/codex.js'
-import type { RouterProviderInfo, SendRouterMessage, SetRouterKey } from '../../shared/router.js'
+import type {
+  ResolveBatch,
+  RouterProviderInfo,
+  SendRouterMessage,
+  SetRouterKey
+} from '../../shared/router.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
 import { CodexRuntimeError } from './errors.js'
@@ -60,6 +65,9 @@ export class OwlsHost {
       ...(this.router?.snapshot() ?? { routers: [], workers: [] })
     }
   }
+  claudeConnection(): ClaudeConnection {
+    return this.claude.connectionState()
+  }
   connect(): Promise<CodexConnection> {
     return this.codex.connect()
   }
@@ -92,6 +100,9 @@ export class OwlsHost {
   }
   interruptRouter(routerId: string): void {
     this.requireRouter().interrupt(routerId)
+  }
+  resolveBatch(input: ResolveBatch): void {
+    this.requireRouter().resolveBatch(input)
   }
   routerProviders(): RouterProviderInfo[] {
     return this.requireRouter().providers()

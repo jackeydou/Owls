@@ -11,6 +11,7 @@ import {
 
 const require = createRequire(import.meta.url)
 const {
+  ClaudeEngine,
   OwlsEngine,
   RouterCredentials,
   RouterService,
@@ -29,7 +30,57 @@ function memoryRouterStore() {
   const workers = new Map()
   const messages = new Map()
   const credentials = new Map()
+  const events = []
+  const batches = new Map()
+  let seq = 0
+  const publicEvent = (e) => ({ ...structuredClone(e.body), seq: e.seq })
   return {
+    events: (routerId, status) =>
+      events.filter((e) => e.routerId === routerId && e.status === status).map(publicEvent),
+    allEvents: () =>
+      events.map((e) => ({ ...publicEvent(e), status: e.status, batchId: e.batchId })),
+    appendEvent(routerId, id, body, batchId = null) {
+      if (events.some((e) => e.id === id)) throw new Error('duplicate event id')
+      const row = {
+        seq: ++seq,
+        id,
+        routerId,
+        status: batchId ? 'batched' : 'pending',
+        batchId,
+        body: structuredClone(body)
+      }
+      events.push(row)
+      if (batchId && batches.has(batchId)) batches.get(batchId).eventSeqs.push(row.seq)
+      return publicEvent(row)
+    },
+    setEventStatus(seqs, status) {
+      for (const e of events) if (seqs.includes(e.seq)) e.status = status
+    },
+    openBatch(batch, seqs) {
+      batches.set(batch.id, {
+        ...batch,
+        status: 'sending',
+        eventSeqs: [...seqs].sort((a, b) => a - b),
+        tokens: null,
+        durationMs: null
+      })
+      for (const e of events)
+        if (seqs.includes(e.seq)) Object.assign(e, { status: 'batched', batchId: batch.id })
+    },
+    finishBatch(id, status, result = null) {
+      const batch = batches.get(id)
+      if (batch) Object.assign(batch, { status }, result ?? {})
+    },
+    batches: (status) =>
+      [...batches.values()].filter((b) => b.status === status).map((b) => structuredClone(b)),
+    batch: (id) => (batches.has(id) ? structuredClone(batches.get(id)) : null),
+    requeueBatch(id) {
+      batches.get(id).status = 'retried'
+      for (const e of events)
+        if (e.batchId === id && e.status === 'batched')
+          Object.assign(e, { status: 'pending', batchId: null })
+    },
+    hasMessages: (id) => (messages.get(id) ?? []).length > 0,
     routers: () => [...routers.values()].map((r) => structuredClone(r)),
     saveRouter: (r) => routers.set(r.id, structuredClone(r)),
     workers: () => [...workers.values()].map((w) => structuredClone(w)),
@@ -73,7 +124,7 @@ function fakeHost(overrides = {}) {
     effort: null,
     claudeModel: null,
     claudeEffort: null,
-    router: { engine: 'owls', owls: null, maxPermission: 'workspace-write' },
+    router: { engine: 'owls', owls: null, claudeModel: null, maxPermission: 'workspace-write' },
     ...overrides.settings
   }
   return {
@@ -118,7 +169,7 @@ function harness(replies, options = {}) {
   faux.setResponses(replies)
   const store = options.store ?? memoryRouterStore()
   const events = []
-  const { host, created, sent, settings } = fakeHost(options.host)
+  const { host, created, sent, settings } = options.fake ?? fakeHost(options.host)
   const factory = (request) =>
     new OwlsEngine({
       routerId: request.router.id,
@@ -137,14 +188,14 @@ function harness(replies, options = {}) {
   const service = new RouterService(
     store,
     new RouterCredentials(store, cipher),
-    commands(),
+    options.commands ?? commands(),
     host,
     (event) => events.push(event),
     options.factory ?? factory
   )
   const router = service.open(PROJECT.id)
   const current = () => service.snapshot().routers.find((r) => r.id === router.id)
-  return { faux, service, router, current, events, created, sent, settings, store }
+  return { faux, service, router, current, events, created, sent, settings, store, host }
 }
 
 test('message → dispatch → report → reply runs through the Owls engine', async () => {
@@ -282,7 +333,7 @@ test('an unconfigured engine fails the batch and keeps its events', async () => 
   const credentials = new RouterCredentials(store, cipher)
   const { service, router, current } = harness([], {
     store,
-    factory: defaultEngineFactory(credentials)
+    factory: defaultEngineFactory({ credentials, claude: null })
   })
   service.send({ routerId: router.id, commandId: crypto.randomUUID(), text: 'Hello' })
   await waitFor(() => current().status === 'failed', 'unconfigured failure')
@@ -294,7 +345,10 @@ test('an unconfigured engine fails the batch and keeps its events', async () => 
 test('the engine factory refuses to run without a stored key', () => {
   const store = memoryRouterStore()
   const credentials = new RouterCredentials(store, cipher)
-  const factory = defaultEngineFactory(credentials)
+  const factory = defaultEngineFactory({
+    credentials,
+    claude: { sdk: null, connection: () => ({ status: 'disconnected', executablePath: null }) }
+  })
   const router = { id: 'r', projectId: 'p', cwd: '/tmp', status: 'idle', items: [] }
   const base = { router, tools: [], history: [], state: () => '', persist: () => {} }
   const owls = { provider: 'anthropic', model: 'claude-sonnet-4-5', thinking: 'off', baseUrl: null }
@@ -309,7 +363,7 @@ test('the engine factory refuses to run without a stored key', () => {
   assert.equal(
     factory({ ...base, settings: { engine: 'claude-code', owls, maxPermission: 'read-only' } })
       .code,
-    'router_unavailable'
+    'claude_not_connected'
   )
   credentials.setKey('anthropic', 'sk-test')
   const engine = factory({
@@ -403,7 +457,7 @@ test('batches render deterministically and escape their closing tag', () => {
   )
   assert.equal(
     text,
-    '<owls-batch id="b_1" events="2">\n[2] user_message · user · 10:00:05\nstop <\\/owls-batch> now\n[3] worker_failed · w_b · 10:00:05\nGoal: Build\nThe worker\'s turn failed or was stopped. The user can see the error in that task.\n</owls-batch>'
+    '<owls-batch id="b_1" events="2">\n[2] user_message · user · 10:00:05\nstop <\\/owls-batch> now\n[3] worker_failed · w_b · 10:00:05\nGoal: Build\nThe worker\'s turn failed. The user can see the error in that task.\n</owls-batch>'
   )
   assert.equal(
     renderState([
@@ -461,4 +515,485 @@ test('a failed model response is not kept in the Router transcript', async () =>
   await waitFor(() => current().status === 'idle' && second, 'recovered batch')
   assert.deepEqual(second, ['system', 'user', 'user'])
   service.close()
+})
+
+/** A RouterEngine whose batches the test drives. `hold` keeps a batch running until released. */
+function scriptedEngine() {
+  const engine = {
+    runs: [],
+    steered: [],
+    tools: [],
+    hold: false,
+    running: false,
+    native: { engine: 'owls' },
+    onRun: null,
+    release: null,
+    async run(input, sink) {
+      engine.runs.push(input)
+      engine.running = true
+      if (engine.onRun) await engine.onRun(input, engine.tools)
+      if (engine.hold) await new Promise((resolve) => (engine.release = resolve))
+      engine.running = false
+      sink.item({
+        id: `reply-${engine.runs.length}`,
+        kind: 'assistant',
+        status: 'completed',
+        text: 'ok',
+        detail: '',
+        turnId: input.batchId
+      })
+      return { status: 'completed', error: null, native: engine.native }
+    },
+    steer(text) {
+      if (!engine.running) return 'not_running'
+      engine.steered.push(text)
+      return 'steered'
+    },
+    abort() {}
+  }
+  const factory = (request) => {
+    engine.tools = request.tools
+    return engine
+  }
+  return { engine, factory }
+}
+const send = (service, router, text) =>
+  service.send({ routerId: router.id, commandId: crypto.randomUUID(), text })
+const report = (summary) => ({
+  status: 'completed',
+  structured: { status: 'done', summary, artifacts: [] },
+  text: ''
+})
+
+test('the Inbox persists events and records each batch', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current, store } = harness([], { factory })
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length === 1) await tools[0].execute({ goal: 'Lint' })
+  }
+  send(service, router, 'Lint please')
+  await waitFor(() => engine.runs.length === 1 && current().status === 'idle', 'first batch')
+  const [first] = store.batches('delivered')
+  assert.equal(first.engine, 'owls')
+  assert.equal(first.promptVersion, 1)
+  assert.deepEqual(
+    first.eventSeqs,
+    store
+      .allEvents()
+      .filter((e) => e.kind === 'user_message')
+      .map((e) => e.seq)
+  )
+  assert.equal(engine.runs[0].text, 'Lint please')
+  const worker = service.snapshot().workers[0]
+  service.settled(worker.sessionId, report('Clean.'))
+  await waitFor(() => engine.runs.length === 2, 'report batch')
+  assert.match(engine.runs[1].text, /worker_report · w_[0-9a-f]+ .* · done\nGoal: Lint\nClean\./)
+  assert.deepEqual(
+    store.allEvents().map((e) => [e.kind, e.status]),
+    [
+      ['user_message', 'batched'],
+      ['worker_report', 'batched']
+    ]
+  )
+  service.close()
+})
+
+test('backlogged reports go out in one batch and newer reports supersede older ones', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current, store } = harness([], { factory })
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length !== 1) return
+    await tools[0].execute({ goal: 'A', permission: 'read-only' })
+    await tools[0].execute({ goal: 'B', permission: 'read-only' })
+  }
+  engine.hold = true
+  send(service, router, 'Do A and B')
+  await waitFor(() => engine.runs.length === 1 && engine.release, 'held batch')
+  const [b, a] = service.snapshot().workers
+  service.settled(a.sessionId, report('A first try.'))
+  service.settled(a.sessionId, report('A done.'))
+  service.settled(b.sessionId, report('B done.'))
+  engine.hold = false
+  engine.release()
+  await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'merged batch')
+  const text = engine.runs[1].text
+  assert.match(text, /events="2"/)
+  assert.match(text, /A done\./)
+  assert.doesNotMatch(text, /A first try/)
+  assert.match(text, /B done\./)
+  assert.deepEqual(
+    store
+      .allEvents()
+      .filter((e) => e.kind === 'worker_report')
+      .map((e) => e.status),
+    ['superseded', 'batched', 'batched']
+  )
+  service.close()
+})
+
+test('a user message during a batch is steered in and recorded with that batch', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current, store } = harness([], { factory })
+  engine.hold = true
+  send(service, router, 'First')
+  await waitFor(() => engine.release, 'held batch')
+  send(service, router, 'Also this')
+  assert.deepEqual(engine.steered, ['Also this'])
+  engine.hold = false
+  engine.release()
+  await waitFor(() => current().status === 'idle', 'batch end')
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.equal(engine.runs.length, 1, 'a steered message does not start another batch')
+  const [batch] = store.batches('delivered')
+  assert.equal(batch.eventSeqs.length, 2)
+  assert.deepEqual(
+    store.allEvents().map((e) => [e.status, e.batchId]),
+    [
+      ['batched', batch.id],
+      ['batched', batch.id]
+    ]
+  )
+  service.close()
+})
+
+test('restart marks an unfinished batch dispatch_unknown and recovers stopped workers', async () => {
+  const store = memoryRouterStore()
+  const first = scriptedEngine()
+  const one = harness([], { store, factory: first.factory })
+  first.engine.onRun = async (_input, tools) => {
+    if (first.engine.runs.length === 1) await tools[0].execute({ goal: 'Long job' })
+  }
+  first.engine.hold = true
+  send(one.service, one.router, 'Start the long job')
+  await waitFor(() => first.engine.release, 'held batch')
+  // The app dies here: the batch never finishes and the worker is still running.
+
+  const second = scriptedEngine()
+  const two = harness([], { store, factory: second.factory })
+  const router = two.current()
+  assert.equal(router.status, 'interrupted')
+  assert.equal(router.unknownBatches.length, 1)
+  assert.equal(router.unknownBatches[0].events, 1)
+  assert.equal(two.service.snapshot().workers[0].status, 'stopped')
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.equal(second.engine.runs.length, 0, 'recovery does not start a batch by itself')
+
+  two.service.resolveBatch({
+    routerId: router.id,
+    batchId: router.unknownBatches[0].id,
+    decision: 'retry'
+  })
+  await waitFor(() => second.engine.runs.length === 1, 'retried batch')
+  const text = second.engine.runs[0].text
+  assert.match(text, /user_message · user .*\nStart the long job/)
+  assert.match(
+    text,
+    /worker_stopped · w_[0-9a-f]+ .*\nGoal: Long job\nThe worker was stopped before it reported\./
+  )
+  assert.equal(two.current().unknownBatches.length, 0)
+  assert.equal(store.batches('retried').length, 1)
+  assert.throws(
+    () =>
+      two.service.resolveBatch({ routerId: router.id, batchId: 'b_missing', decision: 'ignore' }),
+    (error) => error.code === 'request_unavailable'
+  )
+  two.service.close()
+})
+
+test('workers beyond the limit or a busy writer queue and start in order', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current, sent } = harness([], { factory })
+  const results = []
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length !== 1) return
+    for (const goal of ['Write A', 'Write B'])
+      results.push(JSON.parse(await tools[0].execute({ goal })).status)
+    results.push(
+      JSON.parse(await tools[0].execute({ goal: 'Read C', permission: 'read-only' })).status
+    )
+  }
+  send(service, router, 'Three things')
+  await waitFor(() => current().status === 'idle' && results.length === 3, 'dispatches')
+  assert.deepEqual(results, ['started', 'queued', 'started'], 'one writer per checkout')
+  assert.deepEqual(
+    sent.map((s) => s.text),
+    ['Write A', 'Read C']
+  )
+  const byGoal = (goal) => service.snapshot().workers.find((w) => w.goal === goal)
+  assert.equal(byGoal('Write B').status, 'queued')
+  service.settled(byGoal('Write A').sessionId, report('A written.'))
+  await waitFor(() => sent.length === 3, 'queued start')
+  assert.equal(sent[2].text, 'Write B')
+  await waitFor(() => byGoal('Write B').status === 'running', 'queued worker runs')
+  service.close()
+})
+
+test('removing a worker task drops its pending events and tells the Router', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current, store } = harness([], { factory })
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length === 1) await tools[0].execute({ goal: 'Doomed' })
+  }
+  engine.hold = false
+  send(service, router, 'Go')
+  await waitFor(() => current().status === 'idle' && service.snapshot().workers.length, 'dispatch')
+  const worker = service.snapshot().workers[0]
+  engine.hold = true
+  send(service, router, 'Hold the Router')
+  await waitFor(() => engine.release, 'held batch')
+  service.settled(worker.sessionId, report('Half done.'))
+  service.observe({ type: 'removed', sessionId: worker.sessionId })
+  assert.equal(service.snapshot().workers[0].status, 'removed')
+  assert.equal(service.profile(worker.sessionId).role, 'task')
+  engine.hold = false
+  engine.release()
+  await waitFor(() => engine.runs.length === 3, 'removal batch')
+  assert.match(engine.runs[2].text, /worker_removed · w_[0-9a-f]+/)
+  assert.doesNotMatch(engine.runs[2].text, /Half done/)
+  assert.ok(store.allEvents().some((e) => e.kind === 'worker_report' && e.status === 'dropped'))
+  service.close()
+})
+
+test('switching engines starts the new engine with the worker state', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current, settings } = harness([], { factory })
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length === 1) await tools[0].execute({ goal: 'Index the docs' })
+  }
+  send(service, router, 'Index the docs')
+  await waitFor(() => current().status === 'idle' && engine.runs.length === 1, 'owls batch')
+  assert.deepEqual(current().native, { engine: 'owls' })
+  settings.router = { ...settings.router, engine: 'claude-code' }
+  service.settingsChanged()
+  engine.native = { engine: 'claude-code', sessionId: 'claude-1' }
+  send(service, router, 'How is it going?')
+  await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'claude batch')
+  assert.match(
+    engine.runs[1].text,
+    /^<owls-batch id="b_[0-9a-f]+" events="1">\nCurrent workers:\n- w_[0-9a-f]+ · running · Index the docs/
+  )
+  assert.deepEqual(current().native, { engine: 'claude-code', sessionId: 'claude-1' })
+  send(service, router, 'And now?')
+  await waitFor(() => engine.runs.length === 3, 'resumed claude batch')
+  assert.equal(engine.runs[2].text, 'And now?', 'a resumed session gets no state again')
+  assert.deepEqual(engine.runs[2].native, { engine: 'claude-code', sessionId: 'claude-1' })
+  service.close()
+})
+
+/** A scripted Agent SDK for the Claude Code engine. Each script yields messages for one query. */
+function fakeClaudeSdk(scripts) {
+  const calls = []
+  return {
+    calls,
+    createSdkMcpServer: (options) => ({ type: 'sdk', name: options.name, options }),
+    query({ prompt, options }) {
+      const script = scripts[calls.length]
+      const call = { options, inputs: [] }
+      calls.push(call)
+      const iterator = prompt[Symbol.asyncIterator]()
+      const next = async () => {
+        const { value, done } = await iterator.next()
+        if (!done) call.inputs.push(value.message.content)
+        return done ? null : value.message.content
+      }
+      const generator = script({ options, next, call })
+      generator.interrupt = async () => {}
+      return generator
+    }
+  }
+}
+const claudeInit = (id) => ({ type: 'system', subtype: 'init', session_id: id })
+const claudeResult = (extra = {}) => ({
+  type: 'result',
+  subtype: 'success',
+  is_error: false,
+  result: '',
+  usage: { input_tokens: 3, output_tokens: 2, cache_read_input_tokens: 5 },
+  ...extra
+})
+const claudeText = (id, text) => ({
+  type: 'assistant',
+  parent_tool_use_id: null,
+  message: { id, content: [{ type: 'text', text }] }
+})
+
+test('the Claude Code engine runs isolated, calls Owls tools, and resumes its session', async () => {
+  const sdk = fakeClaudeSdk([
+    async function* ({ options, next }) {
+      await next()
+      yield claudeInit('router-session-1')
+      yield {
+        type: 'stream_event',
+        parent_tool_use_id: null,
+        event: { type: 'message_start', message: { id: 'm1' } }
+      }
+      yield {
+        type: 'stream_event',
+        parent_tool_use_id: null,
+        event: { type: 'content_block_start', index: 0, content_block: { type: 'text' } }
+      }
+      yield {
+        type: 'stream_event',
+        parent_tool_use_id: null,
+        event: {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text: 'On it' }
+        }
+      }
+      yield {
+        type: 'assistant',
+        parent_tool_use_id: null,
+        message: {
+          id: 'm1',
+          content: [
+            { type: 'text', text: 'On it.' },
+            {
+              type: 'tool_use',
+              id: 'toolu_1',
+              name: 'mcp__owls__dispatch_task',
+              input: { goal: 'Count files' }
+            }
+          ]
+        }
+      }
+      const tool = options.mcpServers.owls.options.tools[0]
+      const result = await tool.handler({ goal: 'Count files' })
+      const bad = await tool.handler({ goal: '' })
+      yield {
+        type: 'user',
+        parent_tool_use_id: null,
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_1',
+              content: result.content,
+              is_error: result.isError === true
+            }
+          ]
+        }
+      }
+      yield claudeText('m2', `bad:${bad.isError}`)
+      yield claudeResult()
+    },
+    async function* ({ next }) {
+      await next()
+      yield claudeInit('router-session-1')
+      yield claudeText('m3', 'Still counting.')
+      yield claudeResult()
+    }
+  ])
+  const factory = defaultEngineFactory({
+    credentials: null,
+    claude: {
+      sdk,
+      connection: () => ({ status: 'ready', executablePath: '/usr/local/bin/claude' })
+    }
+  })
+  const { service, router, current, created } = harness([], {
+    factory,
+    host: {
+      settings: {
+        router: {
+          engine: 'claude-code',
+          owls: null,
+          claudeModel: 'opus',
+          maxPermission: 'workspace-write'
+        }
+      }
+    }
+  })
+  send(service, router, 'Count the files')
+  await waitFor(() => current().status === 'idle' && current().items.length >= 4, 'claude batch')
+  const { options } = sdk.calls[0]
+  assert.deepEqual(options.tools, [])
+  assert.deepEqual(options.settingSources, [])
+  assert.equal(options.strictMcpConfig, true)
+  assert.deepEqual(options.allowedTools, ['mcp__owls__dispatch_task'])
+  assert.deepEqual(Object.keys(options.mcpServers), ['owls'])
+  assert.equal(options.mcpServers.owls.options.alwaysLoad, true)
+  assert.equal(typeof options.systemPrompt, 'string')
+  assert.equal(options.cwd, PROJECT.path, 'the model sees the directory workers run in')
+  assert.equal(options.permissionMode, 'dontAsk')
+  assert.equal(options.canUseTool, undefined)
+  assert.equal(options.model, 'opus')
+  assert.equal(options.resume, undefined)
+  assert.equal(created.length, 1)
+  assert.equal(created[0].cwd, PROJECT.path)
+  assert.deepEqual(
+    current().items.map((i) => [i.kind, i.text]),
+    [
+      ['user', 'Count the files'],
+      ['assistant', 'On it.'],
+      ['tool', 'dispatch_task'],
+      ['assistant', 'bad:true']
+    ]
+  )
+  assert.equal(current().items[2].status, 'completed')
+  assert.match(current().items[2].detail, /"status":"started"/)
+  assert.deepEqual(current().native, { engine: 'claude-code', sessionId: 'router-session-1' })
+  assert.equal(current().tokens, 10)
+
+  send(service, router, 'Any news?')
+  await waitFor(
+    () => sdk.calls.length === 2 && current().status === 'idle' && current().items.length >= 6,
+    'resume'
+  )
+  assert.equal(sdk.calls[1].options.resume, 'router-session-1')
+  assert.deepEqual(sdk.calls[1].inputs, ['Any news?'])
+  service.close()
+})
+
+test('the Claude Code engine folds steered messages in and drops a lost session', async () => {
+  let release
+  const gate = new Promise((resolve) => (release = resolve))
+  const sdk = fakeClaudeSdk([
+    async function* ({ next }) {
+      await next()
+      yield claudeInit('s-1')
+      await gate
+      const steered = await next()
+      yield claudeText('m1', `heard: ${steered}`)
+      yield claudeResult()
+    },
+    async function* ({ next }) {
+      await next()
+      yield claudeResult({
+        subtype: 'error_during_execution',
+        is_error: true,
+        errors: ['No conversation found with session ID: s-1']
+      })
+    }
+  ])
+  const engine = new ClaudeEngine({
+    sdk,
+    executable: '/bin/claude',
+    cwd: '/tmp',
+    model: null,
+    instructions: 'Route.',
+    tools: [],
+    version: 'test'
+  })
+  const items = []
+  const sink = { item: (item) => items.push(item), usage: () => {} }
+  const running = engine.run({ batchId: 'b_1', text: 'First', native: null }, sink)
+  await waitFor(() => sdk.calls.length === 1 && sdk.calls[0].inputs.length === 1, 'first input')
+  assert.equal(engine.steer('Second'), 'steered')
+  release()
+  const outcome = await running
+  assert.equal(outcome.status, 'completed')
+  assert.deepEqual(outcome.native, { engine: 'claude-code', sessionId: 's-1' })
+  assert.equal(items.at(-1).text, 'heard: Second')
+  assert.equal(engine.steer('Late'), 'not_running')
+
+  const lost = await engine.run({ batchId: 'b_2', text: 'Again', native: outcome.native }, sink)
+  assert.equal(sdk.calls[1].options.resume, 's-1')
+  assert.equal(lost.status, 'failed')
+  assert.deepEqual(
+    lost.native,
+    { engine: 'claude-code', sessionId: null },
+    'next batch starts fresh'
+  )
 })

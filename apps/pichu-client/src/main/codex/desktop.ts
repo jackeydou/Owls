@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { query } from '@anthropic-ai/claude-agent-sdk/core'
+import { createSdkMcpServer, query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
 import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
-import type { CodexEvent } from '../../shared/codex.js'
+import type { ClaudeConnection, CodexEvent } from '../../shared/codex.js'
 import { ClaudeService } from '../claude/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { getDataRoot } from '../pichu-paths.js'
@@ -49,6 +49,14 @@ const safeStorageCipher: SecretCipher = {
         : null,
   encrypt: (plain) => safeStorage.encryptString(plain).toString('base64'),
   decrypt: (encoded) => safeStorage.decryptString(Buffer.from(encoded, 'base64'))
+}
+const closedClaude: ClaudeConnection = {
+  status: 'disconnected',
+  executablePath: null,
+  version: null,
+  account: { kind: 'unknown' },
+  models: [],
+  error: null
 }
 function createWindow(): void {
   window = new BrowserWindow({
@@ -99,7 +107,13 @@ void app
       store,
       service.workerHost(),
       emit,
-      defaultEngineFactory(credentials)
+      defaultEngineFactory({
+        credentials,
+        claude: {
+          sdk: { query, createSdkMcpServer },
+          connection: () => service?.claudeConnection() ?? closedClaude
+        }
+      })
     )
     service.attachRouter(router)
     registerCodexIpc(service, () => window)

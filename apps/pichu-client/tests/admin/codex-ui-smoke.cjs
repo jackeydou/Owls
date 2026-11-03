@@ -162,14 +162,19 @@ app
       host = new OwlsHost(new CodexService(store, emit), new ClaudeService(store, emit, claudeSdk))
       const routerStore = new RouterStore(store)
       const credentials = new RouterCredentials(routerStore, testCipher)
-      router = new RouterService(
-        routerStore,
-        credentials,
-        store,
-        host.workerHost(),
-        emit,
-        defaultEngineFactory(credentials)
-      )
+      const startRouter = () =>
+        new RouterService(
+          routerStore,
+          credentials,
+          store,
+          host.workerHost(),
+          emit,
+          defaultEngineFactory({
+            credentials,
+            claude: { sdk: claudeSdk, connection: () => host.claudeConnection() }
+          })
+        )
+      router = startRouter()
       host.attachRouter(router)
       host.addProject(temp)
       await host.connect()
@@ -333,8 +338,63 @@ app
       const badKey = await evaluate("window.codex.setRouterKey({ providerId: 'nope', key: 'x' })")
       assert.equal(badKey.ok, false)
       assert.equal(badKey.error.code, 'invalid_request')
+
+      // Router Inbox on SQLite: the unsent message waits, and a batch left sending by a
+      // crash comes back as dispatch_unknown that the user can resend.
+      const pending = routerStore.events(routerState.id, 'pending')
+      assert.deepEqual(
+        pending.map((e) => [e.kind, e.text]),
+        [['user_message', '帮我看看项目']]
+      )
+      routerStore.openBatch(
+        {
+          id: 'b_crashed',
+          routerId: routerState.id,
+          createdAt: new Date().toISOString(),
+          engine: 'owls',
+          promptVersion: 1
+        },
+        pending.map((e) => e.seq)
+      )
+      assert.equal(routerStore.events(routerState.id, 'pending').length, 0)
+      router.close()
+      router = startRouter()
+      host.attachRouter(router)
+      assert.equal(routerStore.batch('b_crashed').status, 'dispatch_unknown')
+      await window.reload()
+      await waitFor("Boolean(document.querySelector('.codex-router-entry'))")
+      await evaluate("document.querySelector('.codex-router-entry').click()")
+      await waitFor("Boolean(document.querySelector('.router-unknown-batch'))")
+      assert.ok(
+        await evaluate(
+          "document.querySelector('.router-unknown-batch').textContent.includes('1 个事件')"
+        )
+      )
+      await capture('router-unknown-batch')
+      await evaluate(
+        "Array.from(document.querySelectorAll('.router-unknown-batch button')).find(el => el.textContent === '重新发送').click()"
+      )
+      await waitFor("!document.querySelector('.router-unknown-batch')")
+      assert.equal(routerStore.batch('b_crashed').status, 'retried')
+      // The engine is still unconfigured, so the resent message waits in the Inbox again.
+      await waitFor("document.body.textContent.includes('为协调者选择模型')")
+      assert.equal(routerStore.events(routerState.id, 'pending').length, 1)
+
+      // Choosing the Claude Code engine changes the Router header and drops the Owls fields.
+      await evaluate("document.querySelector('.codex-sidebar-settings').click()")
+      await waitFor("Boolean(document.querySelector('#router-engine'))")
+      await evaluate(
+        "document.querySelector('#router-engine').value = 'claude-code'; document.querySelector('#router-engine').dispatchEvent(new Event('change', { bubbles: true }))"
+      )
+      await waitFor(
+        "Boolean(document.querySelector('#router-claude-model')) && !document.querySelector('#router-provider')"
+      )
+      assert.equal(host.snapshot().settings.router.engine, 'claude-code')
+      await capture('router-claude-settings')
+      await evaluate("document.querySelector('.codex-router-entry').click()")
+      await waitFor("document.querySelector('.router-model')?.textContent.includes('Claude Code')")
       console.log(
-        'PASS: production preload + IPC + SQLite + renderer, messages, tools/diff, approvals, questions, local account reconnect, theme/language, reload, Claude Code tasks, Router setup and keys'
+        'PASS: production preload + IPC + SQLite + renderer, messages, tools/diff, approvals, questions, local account reconnect, theme/language, reload, Claude Code tasks, Router setup and keys, Router Inbox recovery, engine switch'
       )
       if (captureDir) console.log(`UI captures: ${captureDir}`)
     } finally {

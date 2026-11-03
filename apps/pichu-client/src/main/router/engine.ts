@@ -1,4 +1,5 @@
 import type { CodexFailure, CodexItem } from '../../shared/codex.js'
+import type { RouterNative } from '../../shared/router.js'
 
 export type RouterUsage = { input: number; output: number; cacheRead: number; cacheWrite: number }
 
@@ -9,9 +10,19 @@ export type RouterSink = {
   usage(usage: RouterUsage): void
 }
 
+export type RouterBatchInput = {
+  batchId: string
+  /** The rendered batch (see render.ts). */
+  text: string
+  /** The engine session the Router last ran in; engines resume their own kind only. */
+  native: RouterNative | null
+}
+
 export type RouterBatchOutcome = {
   status: 'completed' | 'failed' | 'interrupted'
   error: CodexFailure | null
+  /** The engine session to resume next time. */
+  native: RouterNative
 }
 
 /**
@@ -19,7 +30,7 @@ export type RouterBatchOutcome = {
  * of the same Router is running, and `steer` only while one is.
  */
 export interface RouterEngine {
-  run(batchId: string, text: string, sink: RouterSink): Promise<RouterBatchOutcome>
+  run(input: RouterBatchInput, sink: RouterSink): Promise<RouterBatchOutcome>
   steer(text: string): 'steered' | 'not_running'
   abort(): void
 }

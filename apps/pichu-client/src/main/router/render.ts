@@ -1,25 +1,5 @@
-import type { RouterWorker, WorkerReport } from '../../shared/router.js'
-
-/** One Router Inbox event. `seq` orders events across a Router's lifetime. */
-export type InboxEvent =
-  | { seq: number; kind: 'user_message'; at: string; text: string }
-  | {
-      seq: number
-      kind: 'worker_report'
-      at: string
-      workerId: string
-      goal: string
-      report: WorkerReport
-    }
-  | {
-      seq: number
-      kind: 'worker_waiting'
-      at: string
-      workerId: string
-      goal: string
-      detail: string
-    }
-  | { seq: number; kind: 'worker_failed'; at: string; workerId: string; goal: string }
+import type { RouterWorker } from '../../shared/router.js'
+import type { InboxEvent } from './events.js'
 
 /** Upper bound for the Owls engine's request context, estimated in UTF-8 bytes. */
 export const ROUTER_CONTEXT_BUDGET = 48_000
@@ -44,7 +24,11 @@ function eventText(event: InboxEvent): string {
     case 'worker_waiting':
       return `[${event.seq}] worker_waiting · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nWaiting for the user to approve: ${escapeBatch(short(event.detail, 300))}`
     case 'worker_failed':
-      return `[${event.seq}] worker_failed · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker's turn failed or was stopped. The user can see the error in that task.`
+      return `[${event.seq}] worker_failed · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker's turn failed. The user can see the error in that task.`
+    case 'worker_stopped':
+      return `[${event.seq}] worker_stopped · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker was stopped before it reported.`
+    case 'worker_removed':
+      return `[${event.seq}] worker_removed · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe user removed this worker's task. Do not follow up on it.`
   }
 }
 

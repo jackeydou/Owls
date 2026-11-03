@@ -1,11 +1,14 @@
 import { z } from 'zod'
 import {
+  type ResolveBatch,
   type RouterProviderInfo,
   type RouterWorker,
+  routerNativeSchema,
   routerSettingsSchema,
   routerStatusSchema,
   type SendRouterMessage,
-  type SetRouterKey
+  type SetRouterKey,
+  unknownBatchSchema
 } from './router.js'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
@@ -121,6 +124,8 @@ export const routerSchema = z.object({
   items: z.array(itemSchema),
   error: failureSchema.nullable(),
   tokens: z.number().nullable(),
+  native: routerNativeSchema.nullable().default(null),
+  unknownBatches: z.array(unknownBatchSchema).default([]),
   createdAt: z.string(),
   updatedAt: z.string()
 })
@@ -215,6 +220,7 @@ export interface CodexAPI {
   openRouter(projectId: string): Promise<CodexReply<CodexRouter>>
   sendRouter(input: SendRouterMessage): Promise<CodexReply<void>>
   interruptRouter(routerId: string): Promise<CodexReply<void>>
+  resolveBatch(input: ResolveBatch): Promise<CodexReply<void>>
   routerProviders(): Promise<CodexReply<RouterProviderInfo[]>>
   setRouterKey(input: SetRouterKey): Promise<CodexReply<void>>
   removeRouterKey(providerId: string): Promise<CodexReply<void>>
