@@ -26,6 +26,7 @@
     "verify:codex": "node scripts/verify-codex.mjs",
     "test:claude": "pnpm run build && node --test tests/admin/claude-runtime.test.mjs",
     "verify:claude": "node scripts/verify-claude.mjs",
+    "bench:router": "pnpm run build && node scripts/bench-router.mjs",
     "verify:packaged": "node scripts/verify-packaged-runtime.cjs",
     "validate:plugin": "node --experimental-strip-types scripts/validate-plugin.mjs",
     "db:generate": "drizzle-kit generate",
