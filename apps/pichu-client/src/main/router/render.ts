@@ -67,34 +67,58 @@ export function renderState(workers: RouterWorker[]): string {
 
 type ContextMessage = { role: string; content?: unknown }
 const size = (message: unknown) => Buffer.byteLength(JSON.stringify(message))
+/** Share of the budget a new cut trims down to, so several batches fit before the next cut. */
+const TRIM_TO = 0.6
+
+/** Where the Owls engine last cut its context: the first kept message and its note. */
+export type ContextWindow = { cut: number; note: string }
 
 /**
- * Drops the oldest conversation segments until the messages fit the budget.
- * Segments start at user messages, so tool calls stay with their results. The
- * first kept user message is prefixed with `note` (the current worker state)
- * so the Router does not lose track of work it dispatched earlier.
+ * Drops the oldest conversation segments once the messages outgrow `budget`,
+ * down to `TRIM_TO` of it. Segments start at user messages, so tool calls stay
+ * with their results. The first kept user message is prefixed with `note` (the
+ * current worker state) so the Router does not lose track of work it
+ * dispatched earlier.
+ *
+ * `previous` is the last cut. It is kept, note included, while the messages
+ * after it still fit, so consecutive requests share their prefix and the
+ * provider's prompt cache keeps working between cuts. Messages are only ever
+ * appended, so a cut index stays valid for one engine's lifetime.
  */
 export function trimContext<T extends ContextMessage>(
   messages: T[],
   budget: number,
-  note: () => string
-): T[] {
+  note: () => string,
+  previous: ContextWindow | null = null
+): { messages: T[]; window: ContextWindow | null } {
   const head = messages[0]?.role === 'system' ? 1 : 0
   const fixed = messages.slice(0, head)
   const rest = messages.slice(head)
-  const starts = rest.flatMap((m, i) => (m.role === 'user' ? [i] : []))
-  const total = (from: number) =>
-    [...fixed, ...rest.slice(from)].reduce((sum, m) => sum + size(m), 0)
-  let cut = 0
-  for (const start of starts) {
-    if (total(cut) <= budget) break
-    if (start <= cut) continue
-    cut = start
+  const tail = new Array<number>(rest.length + 1).fill(0)
+  for (let i = rest.length - 1; i >= 0; i--) tail[i] = tail[i + 1] + size(rest[i])
+  const base = fixed.reduce((sum, m) => sum + size(m), 0)
+  const total = (from: number) => base + tail[from]
+  let window =
+    previous &&
+    previous.cut > 0 &&
+    rest[previous.cut]?.role === 'user' &&
+    total(previous.cut) <= budget
+      ? previous
+      : null
+  if (!window) {
+    if (total(0) <= budget) return { messages, window: null }
+    const target = Math.floor(budget * TRIM_TO)
+    let cut = 0
+    for (let i = 1; i < rest.length; i++) {
+      if (rest[i].role !== 'user') continue
+      cut = i
+      if (total(i) <= target) break
+    }
+    if (cut === 0) return { messages, window: null }
+    window = { cut, note: note() }
   }
-  if (cut === 0) return messages
-  const kept = rest.slice(cut)
-  const [first, ...others] = kept
-  const prefix = `Earlier Router history was omitted to save space. Current workers:\n${note()}\n\n`
+  const [first, ...others] = rest.slice(window.cut)
+  const prefix = `Earlier Router history was omitted to save space. Current workers:\n${window.note}\n\n`
   const content = first.content
   const patched =
     typeof content === 'string'
@@ -102,5 +126,5 @@ export function trimContext<T extends ContextMessage>(
       : Array.isArray(content)
         ? { ...first, content: [{ type: 'text', text: prefix }, ...content] }
         : first
-  return [...fixed, patched, ...others]
+  return { messages: [...fixed, patched, ...others], window }
 }

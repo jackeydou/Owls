@@ -9,7 +9,7 @@ import type { CodexFailure, CodexItem } from '../../../shared/codex.js'
 import type { OwlsThinking } from '../../../shared/router.js'
 import { safeText } from '../../codex/protocol.js'
 import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
-import { ROUTER_CONTEXT_BUDGET, trimContext } from '../render.js'
+import { type ContextWindow, ROUTER_CONTEXT_BUDGET, trimContext } from '../render.js'
 import { type RouterTool, toolErrorText, toolJsonSchema } from '../tools.js'
 
 export type OwlsEngineOptions = {
@@ -50,6 +50,8 @@ export class OwlsEngine implements RouterEngine {
   private batchId = ''
   private current: { id: string; text: string } | null = null
   private running = false
+  /** The current context cut, kept between requests so their prefix stays cacheable. */
+  private window: ContextWindow | null = null
 
   constructor(private readonly options: OwlsEngineOptions) {
     const tools: AgentTool<Record<string, unknown>>[] = options.tools.map((tool) => ({
@@ -85,16 +87,16 @@ export class OwlsEngine implements RouterEngine {
       toolExecution: 'sequential',
       steeringMode: 'all',
       identity: { userAgent: { custom: `Owls/${options.version}` }, attribution: null },
-      prepareRequest: ({ context }) => ({
-        context: {
-          ...context,
-          messages: trimContext(
-            context.messages,
-            options.budget ?? ROUTER_CONTEXT_BUDGET,
-            options.state
-          )
-        }
-      })
+      prepareRequest: ({ context }) => {
+        const trimmed = trimContext(
+          context.messages,
+          options.budget ?? ROUTER_CONTEXT_BUDGET,
+          options.state,
+          this.window
+        )
+        this.window = trimmed.window
+        return { context: { ...context, messages: trimmed.messages } }
+      }
     })
     this.agent.subscribe((event) => this.onEvent(event))
   }
