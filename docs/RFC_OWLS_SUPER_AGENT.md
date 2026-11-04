@@ -1,6 +1,6 @@
 # RFC: Owls Router/Worker（Super-agent）架构
 
-状态：M3 已实现（三个 Router 引擎、Worker 工具、追问直通），M4 未开始；设计待评审。日期：2026-11-03。
+状态：M1–M4 已实现（M4 为脚本化模型的消融实验，见 14.1 节）；设计待评审。日期：2026-11-03。
 
 Owls 基线：`bee6fff`（M0 实测记录合入后）。
 实测版本：M0 为 Codex CLI `0.148.0`；补充实测（4.2 节）为 Codex CLI `0.166.0`。
@@ -369,8 +369,10 @@ type RouterBatchOutcome = {
 - **上下文**：由 Owls 决定，这是自建引擎的主要收益。`prepareRequest` 在每次请求前把消息列表
   重建为：系统消息、一条确定性的状态摘要（活跃 Worker 按 `workerId` 排序及其最近汇报）、
   在预算内的最近若干批次（含其中的工具调用和结果）。预算是代码常量
-  `ROUTER_CONTEXT_BUDGET`，按 UTF-8 字节数确定性估算，不调用模型做摘要。超出预算的早期批次
-  只从请求中移除，完整记录仍在数据库中，可以通过 `recall` 取回。
+  `ROUTER_CONTEXT_BUDGET`，按 UTF-8 字节数确定性估算，不调用模型做摘要。超出预算时一次裁到
+  预算的 60%，之后保留这个裁剪位置和当时的状态摘要，直到上下文再次超出预算，这样相邻请求的
+  前缀相同，provider 的提示缓存可以命中（F30）。被裁掉的早期批次只从请求中移除，完整记录仍在
+  数据库中，可以通过 `recall` 取回。
 - **持久化**：每个批次结束（`agent_end`）后，把新增的 `AgentMessage` 追加到
   `codex_router_messages`；重启后用这些记录作为 `initialState.messages` 重建 Agent。
 - **事件**：`message_update` 的文本增量写入助手 item；`tool_execution_start/end` 写入工具 item；
@@ -633,8 +635,69 @@ F12–F16）：
 | Worker | `ClaudeService` 与 `CodexService` 的 worker profile、`steer`、`settled` 回调 | `test:claude`、`test:codex` |
 | UI 冒烟 | Router 入口、设置卡片、引擎切换、Worker 卡片、汇报卡片和中英文切换；确认 renderer 拿不到 key | `pnpm --filter pichu-client test:codex:ui` |
 | 实机 | `verify:router --engine owls\|claude-code\|codex` 各跑一次完整流程，检查只暴露 Owls 工具和 token 用量；`owls` 需要用户已配置模型，否则跳过并说明 | `pnpm --filter pichu-client verify:router`（新增脚本） |
+| 消融实验 | 14.1 节的 M4 基准：真实 `RouterService`、`WorkerPool`、Owls 引擎，脚本化模型，虚拟时钟 | `pnpm --filter pichu-client bench:router` |
 
 `verify:router` 在临时目录运行，结束后删除临时目录及其原生会话记录（避免 F11 的残留）。
+
+### 14.1 M4 消融实验
+
+**做法。** 复现文章 7.1 节的设置：每次约 300 条消息，其中 260 条闲聊（需要回复，不需要干活）、
+20 条工作请求；每个请求在结果可见后有 0–2 条追问（评审意见、CI 结果，共约 26 条），每组 5 个
+种子（1001–1005）取平均。时间按文章的 1/4 缩放：一小时内到达，工作耗时中位数 6 分钟
+（2–18 分钟），追问工作 1–4 分钟。脚本 `apps/pichu-client/scripts/bench-router.mjs`：
+
+- Router 各组直接运行打包后的 `RouterService`、`WorkerPool`、Owls 引擎和真实的
+  `ROUTER_INSTRUCTIONS`；只有模型和 Worker 任务是模拟的。单会话组用同一个 pi `Agent`，
+  一个 `task` 工具代替子 agent。所有组的并发上限都是 4（与 `WORKER_LIMIT` 相同）。
+- 模型由同一个脚本化策略代替：对请求中每个未处理的标记做一次最省的正确动作（回复、分派、
+  转发追问、汇报结果）。因此各组的差异只来自「什么内容、在什么时候到达模型」。
+- 模型耗时：每次请求 1.8 秒，加上每个未缓存输入 token 0.06 毫秒（缓存命中按 10%）、每个输出
+  token 16.7 毫秒。单事件请求约 1.9 秒，与文章的 2.5 秒同量级。token 按 JSON 字符数 / 4 估算，
+  缓存按与上一次请求相同的消息前缀计算。
+- 时钟是离散事件的虚拟时钟，`Date`、`performance.now`、`crypto.randomUUID`、`Math.random`
+  在每次运行中都固定到时钟和种子，同一种子两次运行的结果完全一致；全部 7 组 × 5 个种子约 13 秒。
+- 完成时间：工作请求从到达到 Router（或单会话）回复其结果；追问在直通时以 Worker 汇报的时间
+  为准（用户在 Worker 视图中看到），否则以 Router 的回复为准。
+
+**结果**（5 个种子的平均；token 只统计协调层，Worker 自身的用量各组相同，不计入）：
+
+| 组 | 工作 p50 / p95（分钟） | 追问 p50 / p95（分钟） | 闲聊 p50 / p95（秒） | 模型请求 | 输入 token | 其中未缓存 | 最大上下文 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Router + Worker（Owls 引擎） | 8.5 / 14.5 | 2.2 / 3.9 | 1.9 / 3.2 | 316 | 2626k | 334k | 12k |
+| 去掉追问直通 | 9.0 / 15.5 | 2.7 / 5.9 | 1.9 / 3.3 | 374 | 3051k | 493k | 12k |
+| Worker 都可写（同目录串行） | 47.5 / 100.3 | 2.2 / 3.9 | 1.9 / 3.2 | 313 | 2521k | 308k | 12k |
+| 单会话，前台子 agent | 20.0 / 28.5 | 11.7 / 28.9 | 400 / 914 | 23 | 254k | 30k | 30k |
+| 单会话，后台子 agent | 8.1 / 14.5 | 4.0 / 8.2 | 2.1 / 3.5 | 371 | 12082k | 65k | 65k |
+| Router + Worker，Claude Code 引擎的固定上下文 | 8.5 / 14.5 | 2.2 / 3.9 | 1.9 / 3.3 | 317 | 3562k | 341k | 15k |
+| Router + Worker，Codex 引擎的固定上下文 | 8.5 / 14.5 | 2.2 / 3.9 | 2.0 / 3.5 | 316 | 8138k | 368k | 29k |
+
+Router 层压力测试（只有闲聊，10 分钟）：每分钟 1 条时每批次 1.00 个事件、每次请求 1.9 秒；
+每分钟 40 条时每批次 5.19 个事件（运行中到达的消息经 `steer` 并入），每次模型请求处理
+1.55 个事件，请求耗时 2.0 秒，摊到每个事件 1.3 秒。
+
+**结论。**
+
+1. **双层架构的收益来自「不阻塞」。** 与单会话前台子 agent（Claude Code `Task` 的默认行为）相比，
+   工作 p95 从 28.5 分钟降到 14.5 分钟，闲聊 p95 从 15 分钟降到 3 秒；文章的对应数据是 29.5 和
+   15.7 分钟。
+2. **单会话改用后台子 agent 时完成时间与 Router 相当，代价在上下文和 token。** 一小时后上下文
+   65k 且持续增长，输入 token 是 Router 的 4.6 倍。按缓存命中计 10% 折算，Router 约 563k、
+   后台单会话约 1267k，Router 便宜约一半；后台单会话还没有 Worker 隔离，也需要压缩。
+3. **追问直通减少 15% 的 Router 请求**（374 → 316），追问 p95 从 5.9 分钟降到 3.9 分钟，工作 p95
+   也略有下降（15.5 → 14.5）。
+4. **同一 checkout 中可写 Worker 串行是目前最大的瓶颈**（F31）：p50 是只读 Worker 的 5.6 倍，
+   p95 是 6.9 倍。`dispatch_task` 不指定权限时取项目默认的 `workspace-write`，实际使用中会落到
+   这一组，需要 worktree 隔离才能并行（第 16 节开放问题 8）。
+5. **三种引擎的完成时间相同，差别在 token。** 固定上下文大多命中缓存：Claude Code 引擎的输入
+   token 是 Owls 引擎的 1.36 倍，Codex 引擎是 3.1 倍；按上面的方法折算分别约 663k、1145k，
+   对比 Owls 引擎的 563k。
+6. **实验发现并修复了 Owls 引擎的上下文裁剪问题**（F30）：超出预算后每次请求都重新裁剪，前缀
+   每次都变，提示缓存全部失效。修复后种子 1001 的未缓存输入从约 2659k 降到 327k。
+
+**局限。** 模型是脚本化的，不衡量 Router 的判断质量，也不衡量单个任务的执行能力（与文章相同）；
+耗时模型是假设，没有用真实模型校准；Claude Code 与 Codex 引擎只模拟了 F24、F28 实测的固定
+上下文，没有运行原生 CLI；单会话组只带 Owls 自己的短系统提示，真实 CLI 会话还有 15–40k 的
+固定上下文，所以单会话的 token 数偏低。
 
 ## 15. 备选方案
 
@@ -668,16 +731,17 @@ F12–F16）：
    要复用其中某部分时，需要移回 `src/` 并移植到当前运行时。
 2. **默认引擎的首次使用成本。** Owls 引擎是默认值，首次使用 Router 必须先配置 key 或本地模型。
    9.7 节的设置卡片同时提供切换到已连接 CLI 的入口，需要产品确认这个流程。
-3. **Token 成本。** Owls 引擎的固定上下文最小（4.4 节），但需要 M4 用真实模型测量。Claude Code
-   引擎每批次约 1.5–3k token 起（4.2 节），且会随会话增长；Codex 引擎未测量。M4 对比三种引擎和
-   单会话的总 token 与缓存读取量。
+3. **Token 成本的实机校准。** M4（14.1 节）用脚本化模型给出了三种引擎和单会话的 token 对比；
+   耗时和 token 的估算还没有用真实模型校准，需要 `verify:router` 实机运行后核对。
 4. **Owls 引擎的推荐模型。** Router 只需要可靠的工具调用和简短汇总，倾向于小而快的模型；
    M4 中给出每个 provider 的推荐值。
 5. **Worker 汇报的污染（F2）。** M1 中验证 Worker 角色说明能否压住全局指令；如果不能，
    在汇报卡片中提示「内容来自 Worker 原文」。
 6. ~~F7 复测~~：0.166 下跨进程 `thread/resume` 后工具仍可调用（F26）。
-7. **Codex Router 的上下文成本。** 每批次约 17.5k token 的固定上下文（F28），约为 Claude Code
-   引擎的 6 倍，M4 中一并比较。
+7. ~~Codex Router 的上下文成本~~：M4 中输入 token 是 Owls 引擎的 3.1 倍，但大多命中缓存，
+   折算后约 2 倍；完成时间相同（14.1 节）。在设置说明中保留。
+8. **可写 Worker 的并行（F31）。** 同一 checkout 中可写 Worker 串行，M4 中完成时间是只读 Worker
+   的 5.6–6.9 倍。需要自动 git worktree 管理（第 2 节非目标），是 M4 之后的第一优先级。
 
 ## 17. 实施阶段
 
@@ -687,9 +751,10 @@ F12–F16）：
 | M1 | `RouterEngine` 接口与 **Owls 引擎**（默认）、凭据存储、设置中的「协调者」分组（先只有 Owls 引擎）、Worker turn profile、`dispatch_task`、Worker 汇报、`codex_routers`、`codex_workers`、`codex_router_messages`、`codex_credentials` 表、Router 视图的最小 UI。M1 的 Inbox 在内存中，重启时丢弃未投递事件 | 已实现：faux provider 测试跑通「消息 → 分派 → 汇报 → 回复」；本机 Ollama（`qwen3.6:27b`）实测一次。任务 service 的 `steer`、`testRouterModel`、`retryBatch` 移到用到它们的阶段（M3、M2） |
 | M2 | **Claude Code 引擎**与引擎切换、Inbox 持久化、批处理、用户消息注入、`dispatch_unknown`、重启恢复、`queued` 调度 | 已实现：`router-runtime.test.mjs` 覆盖合并批次与 `superseded`、注入、`dispatch_unknown` 与重发、排队与写入者串行、移除 Worker、引擎切换后的状态摘要、Claude Code 引擎的隔离选项与 `resume`；UI 冒烟在 SQLite 上验证 Inbox 恢复和重发；真实 Claude Code 实测一次（F24、F25）。`testRouterModel` 未做，`dispatch_task` 超出排队上限（16）时返回 `worker_limit_reached` |
 | M3 | **Codex 引擎**、`message_worker`、`stop_worker`、`list_workers`、`recall`、订阅直通 | 已实现：三个引擎都可在设置中切换；追问的结果不发起批次（测试覆盖），Router 决策次数的量化放到 M4；Codex 引擎脚本化测试覆盖隔离参数、工具调用、`resume`、线程丢失和提示版本变化；真实 Codex 实测一次（F26–F28）。`ROUTER_PROMPT_VERSION` 升为 2。`CodexService.steer` 只有 M0 的协议 fixture，没有 service 级测试 |
-| M4 | 消融实验：用脚本化 provider 复现文章 7.1 节，对比单会话与双层架构，以及三种 Router 引擎 | 输出 p50/p95 完成时间、Router 决策次数、token 数据 |
+| M4 | 消融实验：用脚本化 provider 复现文章 7.1 节，对比单会话与双层架构，以及三种 Router 引擎 | 已实现：`bench:router` 输出 p50/p95 完成时间、模型请求与批次数、token 数据（14.1 节），同一种子结果完全可复现；实验发现并修复了上下文裁剪导致的缓存失效（F30）。引擎差异按 F24、F28 的固定上下文模拟，未运行原生 CLI |
 
-M4 之后的候选：Watchdog、投机执行、GitHub 和 IM 信源、Owls 引擎的更多 provider。
+M4 之后的候选：自动 git worktree 管理（可写 Worker 并行，F31）、`verify:router` 实机校准、
+Watchdog、投机执行、GitHub 和 IM 信源、Owls 引擎的更多 provider。
 
 每个阶段都基于最新 `origin/main` 单独开 MR。行为类变更附 changelog fragment；
 本 RFC 为 docs-only，`Changelog: N/A`。
