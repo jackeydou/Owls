@@ -1,0 +1,1 @@
+- Router: workers that change code now each run in their own git worktree on an owls/<worker> branch, so several can work at once instead of taking turns in your checkout; removed tasks clean up their worktrees, and a worktree with uncommitted changes is kept until you discard it. (#23)

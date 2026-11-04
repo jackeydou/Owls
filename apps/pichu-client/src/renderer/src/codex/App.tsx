@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import owlMark from '../../../../resources/pichu-home-mark.png'
 import type { CodexSession } from '../../../shared/codex'
 import { RouterView } from '../router/RouterView'
+import { useWorktreeProjects } from '../router/store'
 import { TaskOptions } from './Controls'
 import { ConversationItem, RequestCard } from './Conversation'
 import { failureMessage } from './failures'
@@ -52,6 +53,8 @@ function Sidebar() {
     settings
   } = useCodexStore()
   const connection = useCodexStore((s) => agentConnection(s, settings.provider))
+  const worktreeProjects = useWorktreeProjects()
+  const projectOf = (session: CodexSession) => worktreeProjects.get(session.id) ?? session.cwd
   const [search, setSearch] = useState('')
   const filtered = sessions.filter((s) =>
     `${s.title} ${s.cwd}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())
@@ -100,7 +103,7 @@ function Sidebar() {
               <FolderOpen size={14} />
               <span>{project.name}</span>
               <span className="codex-count">
-                {sessions.filter((s) => s.cwd === project.path).length}
+                {sessions.filter((s) => projectOf(s) === project.path).length}
               </span>
             </button>
             <IconButton
@@ -137,7 +140,7 @@ function Sidebar() {
               <span>
                 <strong>{session.title || t('untitled')}</strong>
                 <small>
-                  {projectName(session.cwd)} · {t(`agent.${session.provider}`)}
+                  {projectName(projectOf(session))} · {t(`agent.${session.provider}`)}
                 </small>
               </span>
             </button>
@@ -185,7 +188,9 @@ function Chat() {
   const provider = session?.provider ?? settings.provider
   const connection = useCodexStore((s) => agentConnection(s, provider))
   const agent = t(`agent.${provider}`)
-  const cwd = session?.cwd ?? draftCwd
+  // A worker in its own worktree belongs to the project it was dispatched in.
+  const worktreeProjects = useWorktreeProjects()
+  const cwd = (session ? (worktreeProjects.get(session.id) ?? session.cwd) : null) ?? draftCwd
   const active = isActive(session)
   const connected = isAgentReady(connection)
   const [text, setText] = useState('')

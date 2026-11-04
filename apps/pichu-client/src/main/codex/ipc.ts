@@ -8,6 +8,7 @@ import {
   settingsUpdateSchema
 } from '../../shared/codex.js'
 import {
+  discardWorktreeSchema,
   openRouterSchema,
   owlsProviderSchema,
   resolveBatchSchema,
@@ -77,6 +78,21 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
   handle('router-send', (input) => host.sendRouter(sendRouterSchema.parse(input)))
   handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))
   handle('router-resolve-batch', (input) => host.resolveBatch(resolveBatchSchema.parse(input)))
+  handle('router-discard-worktree', async (input) => {
+    const request = discardWorktreeSchema.parse(input)
+    const chinese = host.snapshot().settings.language === 'zh-CN'
+    const result = await dialog.showMessageBox({
+      type: 'warning',
+      message: chinese ? '丢弃这个 worktree？' : 'Discard this worktree?',
+      detail: chinese
+        ? '这会删除 worktree 中未提交的修改，无法恢复。已提交到分支的内容会保留。'
+        : 'This deletes its uncommitted changes and cannot be undone. Commits on its branch are kept.',
+      buttons: chinese ? ['取消', '丢弃'] : ['Cancel', 'Discard'],
+      defaultId: 0,
+      cancelId: 0
+    })
+    if (result.response === 1) await host.discardWorktree(request)
+  })
   handle('router-providers', () => host.routerProviders())
   handle('router-set-key', (input) => host.setRouterKey(setRouterKeySchema.parse(input)))
   handle('router-remove-key', (input) => host.removeRouterKey(owlsProviderSchema.parse(input)))

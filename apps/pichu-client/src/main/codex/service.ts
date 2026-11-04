@@ -164,9 +164,14 @@ export class CodexService {
     this.store.saveProject(project)
     return project
   }
-  createSession(input: CreateCodexSession): CodexSession {
-    const cwd = realpathSync(input.cwd)
-    if (!this.store.projects().some((p) => p.path === cwd))
+  /**
+   * `worker` is main-internal (IPC never passes it): the session runs in a
+   * Router worker's worktree of a registered project, which may not exist yet.
+   */
+  createSession(input: CreateCodexSession, worker?: { projectPath: string }): CodexSession {
+    const cwd = worker ? input.cwd : realpathSync(input.cwd)
+    const projectPath = worker?.projectPath ?? cwd
+    if (!this.store.projects().some((p) => p.path === projectPath))
       throw new CodexRuntimeError('project_required', 'Choose a project before starting a task.')
     this.validateSelection(input.model, input.effort)
     const now = new Date().toISOString()
@@ -199,6 +204,10 @@ export class CodexService {
     if (active(session))
       throw new CodexRuntimeError('busy', 'Wait for the current task or stop it before sending.')
     this.validateSelection(session.model, session.effort)
+    // A Router worker's worktree must exist before the agent starts in it.
+    await this.profiles?.prepare(session.id)
+    if (active(session))
+      throw new CodexRuntimeError('busy', 'Wait for the current task or stop it before sending.')
     if (!this.store.acceptCommand(input.commandId, session.id, input.text)) return
     session.status = 'starting'
     session.error = null

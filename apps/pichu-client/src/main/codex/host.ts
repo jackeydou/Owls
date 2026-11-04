@@ -12,6 +12,7 @@ import type {
   SendCodexMessage
 } from '../../shared/codex.js'
 import type {
+  DiscardWorktree,
   ResolveBatch,
   RouterProviderInfo,
   SendRouterMessage,
@@ -50,7 +51,10 @@ export class OwlsHost {
             : this.codex.snapshot().connection
         return connection.status === 'ready' && connection.account.kind !== 'signed-out'
       },
-      createSession: (input) => this.createSession(input),
+      createSession: (input, worker) =>
+        input.provider === 'claude-code'
+          ? this.claude.createSession(input, worker)
+          : this.codex.createSession(input, worker),
       send: (input) => this.send(input),
       steer: (sessionId, text) => this.steer(sessionId, text),
       interrupt: (sessionId) => this.interrupt(sessionId)
@@ -108,6 +112,9 @@ export class OwlsHost {
   }
   resolveBatch(input: ResolveBatch): void {
     this.requireRouter().resolveBatch(input)
+  }
+  discardWorktree(input: DiscardWorktree): Promise<void> {
+    return this.requireRouter().discardWorktree(input)
   }
   routerProviders(): RouterProviderInfo[] {
     return this.requireRouter().providers()

@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import test from 'node:test'
 import {
   createModels,
@@ -20,6 +24,7 @@ const {
   RouterCredentials,
   RouterService,
   defaultEngineFactory,
+  GitWorkspaces,
   parseReport,
   renderBatch,
   renderState,
@@ -62,13 +67,14 @@ function fakeHost(overrides = {}) {
       projects: () => [PROJECT],
       settings: () => settings,
       providerReady: (provider) => (overrides.ready ?? ['codex', 'claude-code']).includes(provider),
-      createSession: (input) => {
-        const session = { id: crypto.randomUUID(), ...input }
+      createSession: (input, worker) => {
+        const session = { id: crypto.randomUUID(), ...input, worker: worker ?? null }
         created.push(session)
         return session
       },
-      // Like the task services, ask for the turn profile as each turn starts.
+      // Like the task services, prepare the workspace and ask for the turn profile per turn.
       send: async (input) => {
+        await turns.profiles?.prepare(input.sessionId)
         turns.profiles?.profile(input.sessionId)
         turns.running.add(input.sessionId)
         sent.push(input)
@@ -130,7 +136,8 @@ function harness(replies, options = {}) {
     options.commands ?? commands(),
     host,
     (event) => events.push(event),
-    options.factory ?? factory
+    options.factory ?? factory,
+    options.workspaces
   )
   fake.turns.profiles = service
   const router = service.open(PROJECT.id)
@@ -410,10 +417,16 @@ test('batches render deterministically and escape their closing tag', () => {
   )
   assert.equal(
     renderState([
-      { id: 'w_b', status: 'running', goal: 'B', report: null },
-      { id: 'w_a', status: 'idle', goal: 'A', report: { summary: 'done' } }
+      { id: 'w_b', status: 'running', goal: 'B', report: null, workspace: { kind: 'checkout' } },
+      {
+        id: 'w_a',
+        status: 'idle',
+        goal: 'A',
+        report: { summary: 'done' },
+        workspace: { kind: 'worktree', branch: 'owls/w_a' }
+      }
     ]),
-    '- w_a · idle · A — done\n- w_b · running · B'
+    '- w_a · idle · branch owls/w_a · A — done\n- w_b · running · B'
   )
 })
 
@@ -550,7 +563,7 @@ test('the Inbox persists events and records each batch', async () => {
   await waitFor(() => engine.runs.length === 1 && current().status === 'idle', 'first batch')
   const [first] = store.batches('delivered')
   assert.equal(first.engine, 'owls')
-  assert.equal(first.promptVersion, 2)
+  assert.equal(first.promptVersion, 3)
   assert.deepEqual(
     first.eventSeqs,
     store
@@ -1397,4 +1410,399 @@ test('the Codex Router restarts before a thread loads when the project adds an M
   )
   assert.ok(reads.every((r) => r.params.cwd === PROJECT.path))
   server.close()
+})
+
+// Worker worktrees (RFC 11.1): the git layer on real temporary repositories.
+
+function gitIn(cwd, ...args) {
+  return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8' }).trim()
+}
+/** A temporary directory with a repository at `repo` (one commit) and a worktrees root. */
+function tempRepo(t) {
+  const dir = mkdtempSync(join(tmpdir(), 'owls-worktrees-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  const repo = join(dir, 'demo')
+  mkdirSync(join(repo, 'packages', 'app'), { recursive: true })
+  gitIn(dir, 'init', '--quiet', '--initial-branch=main', repo)
+  gitIn(repo, 'config', 'user.email', 'test@example.com')
+  gitIn(repo, 'config', 'user.name', 'Test')
+  gitIn(repo, 'config', 'commit.gpgsign', 'false')
+  writeFileSync(join(repo, 'README.md'), 'hello\n')
+  writeFileSync(join(repo, 'packages', 'app', 'index.js'), 'export {}\n')
+  gitIn(repo, 'add', '.')
+  gitIn(repo, 'commit', '--quiet', '-m', 'init')
+  return { dir, repo, workspaces: new GitWorkspaces(join(dir, 'data', 'worktrees')) }
+}
+const commitIn = (cwd, file, text) => {
+  writeFileSync(join(cwd, file), text)
+  gitIn(cwd, 'add', file)
+  gitIn(cwd, 'commit', '--quiet', '-m', `change ${file}`)
+}
+
+test('worktrees are only offered for repositories with a commit', async (t) => {
+  const { dir, repo, workspaces } = tempRepo(t)
+  const plain = join(dir, 'plain')
+  const empty = join(dir, 'empty')
+  mkdirSync(plain)
+  gitIn(dir, 'init', '--quiet', empty)
+  assert.equal(await workspaces.inspect(plain), null, 'not a repository')
+  assert.equal(await workspaces.inspect(empty), null, 'no commit to branch from')
+  const top = await workspaces.inspect(repo)
+  assert.equal(top.subdir, '')
+  const nested = await workspaces.inspect(join(repo, 'packages', 'app'))
+  assert.equal(nested.repo, top.repo)
+  assert.equal(nested.subdir, join('packages', 'app'))
+  const plan = workspaces.plan(nested, 'w_1', 'head')
+  assert.equal(plan.branch, 'owls/w_1')
+  assert.equal(plan.cwd, join(plan.path, 'packages', 'app'))
+  assert.match(plan.path, /[/\\]data[/\\]worktrees[/\\]demo-[0-9a-f]{8}[/\\]w_1$/)
+  assert.equal(plan.state, 'active')
+})
+
+test('a worker worktree starts from HEAD without the checkout uncommitted changes', async (t) => {
+  const { repo, workspaces } = tempRepo(t)
+  const head = gitIn(repo, 'rev-parse', 'HEAD')
+  writeFileSync(join(repo, 'README.md'), 'uncommitted edit\n')
+  writeFileSync(join(repo, 'scratch.txt'), 'untracked\n')
+  const plan = workspaces.plan(
+    await workspaces.inspect(join(repo, 'packages', 'app')),
+    'w_2',
+    'head'
+  )
+  const [one, two] = await Promise.all([workspaces.ensure(plan), workspaces.ensure(plan)])
+  assert.equal(one, head)
+  assert.equal(two, head, 'concurrent calls share one checkout')
+  assert.ok(existsSync(plan.cwd))
+  assert.equal(readFileSync(join(plan.path, 'README.md'), 'utf8'), 'hello\n')
+  assert.equal(existsSync(join(plan.path, 'scratch.txt')), false)
+  assert.equal(gitIn(plan.path, 'branch', '--show-current'), 'owls/w_2')
+  assert.equal(readFileSync(join(repo, 'README.md'), 'utf8'), 'uncommitted edit\n')
+})
+
+test('a deleted worktree directory is checked out again from its branch', async (t) => {
+  const { repo, workspaces } = tempRepo(t)
+  const plan = workspaces.plan(await workspaces.inspect(repo), 'w_3', 'head')
+  plan.baseCommit = await workspaces.ensure(plan)
+  commitIn(plan.path, 'work.txt', 'done\n')
+  rmSync(plan.path, { recursive: true, force: true })
+  assert.equal(await workspaces.ensure(plan), plan.baseCommit)
+  assert.equal(readFileSync(join(plan.path, 'work.txt'), 'utf8'), 'done\n')
+})
+
+test('releasing a worktree removes clean work, keeps branches with commits and dirty trees', async (t) => {
+  const { repo, workspaces } = tempRepo(t)
+  const top = await workspaces.inspect(repo)
+  const ready = async (id) => {
+    const plan = workspaces.plan(top, id, 'head')
+    plan.baseCommit = await workspaces.ensure(plan)
+    return plan
+  }
+  const branches = () => gitIn(repo, 'branch', '--list', 'owls/*')
+
+  const clean = await ready('w_clean')
+  assert.deepEqual(await workspaces.release(clean, false), {
+    worktree: 'removed',
+    branch: 'deleted'
+  })
+  assert.equal(existsSync(clean.path), false)
+
+  const committed = await ready('w_commit')
+  commitIn(committed.path, 'feature.txt', 'new\n')
+  assert.deepEqual(await workspaces.release(committed, false), {
+    worktree: 'removed',
+    branch: 'kept'
+  })
+  assert.match(branches(), /owls\/w_commit/)
+
+  const merged = await ready('w_merged')
+  commitIn(merged.path, 'merged.txt', 'in\n')
+  gitIn(repo, 'merge', '--quiet', '--ff-only', 'owls/w_merged')
+  assert.deepEqual(await workspaces.release(merged, false), {
+    worktree: 'removed',
+    branch: 'deleted'
+  })
+
+  const dirty = await ready('w_dirty')
+  writeFileSync(join(dirty.path, 'draft.txt'), 'unsaved\n')
+  assert.deepEqual(await workspaces.release(dirty, false), { worktree: 'kept', branch: 'kept' })
+  assert.ok(existsSync(join(dirty.path, 'draft.txt')), 'uncommitted work survives')
+  assert.deepEqual(await workspaces.release(dirty, true), {
+    worktree: 'removed',
+    branch: 'deleted'
+  })
+  assert.equal(existsSync(dirty.path), false)
+  assert.doesNotMatch(branches(), /w_clean|w_merged|w_dirty/)
+})
+
+test('a default-branch worktree starts from the fetched remote branch', async (t) => {
+  const { dir, repo, workspaces } = tempRepo(t)
+  const remote = join(dir, 'remote.git')
+  gitIn(dir, 'clone', '--quiet', '--bare', repo, remote)
+  gitIn(repo, 'remote', 'add', 'origin', remote)
+  gitIn(repo, 'fetch', '--quiet', 'origin')
+  gitIn(repo, 'remote', 'set-head', 'origin', 'main')
+  // The remote moves on, and the user is on a feature branch with local work.
+  const upstream = join(dir, 'upstream')
+  gitIn(dir, 'clone', '--quiet', remote, upstream)
+  gitIn(upstream, 'config', 'user.email', 'test@example.com')
+  gitIn(upstream, 'config', 'user.name', 'Test')
+  commitIn(upstream, 'remote.txt', 'from remote\n')
+  gitIn(upstream, 'push', '--quiet', 'origin', 'main')
+  gitIn(repo, 'switch', '--quiet', '-c', 'feature')
+  commitIn(repo, 'local.txt', 'local only\n')
+
+  const top = await workspaces.inspect(repo)
+  const fromMain = workspaces.plan(top, 'w_main', 'default-branch')
+  assert.equal(await workspaces.ensure(fromMain), gitIn(remote, 'rev-parse', 'main'))
+  assert.ok(existsSync(join(fromMain.path, 'remote.txt')), 'fetched before branching')
+  assert.equal(existsSync(join(fromMain.path, 'local.txt')), false)
+  const fromHead = workspaces.plan(top, 'w_head', 'head')
+  assert.equal(await workspaces.ensure(fromHead), gitIn(repo, 'rev-parse', 'HEAD'))
+  assert.ok(existsSync(join(fromHead.path, 'local.txt')))
+})
+
+// Worker worktrees in the WorkerPool, with a recording stand-in for git.
+
+function fakeWorkspaces(options = {}) {
+  const calls = []
+  return {
+    calls,
+    inspect: async (path) => {
+      calls.push(['inspect', path])
+      return options.git === false ? null : { repo: path, subdir: '' }
+    },
+    plan: (repo, workerId, base) => ({
+      kind: 'worktree',
+      repo: repo.repo,
+      path: `/worktrees/${workerId}`,
+      cwd: `/worktrees/${workerId}`,
+      branch: `owls/${workerId}`,
+      base,
+      baseCommit: null,
+      state: 'active'
+    }),
+    ensure: async (workspace) => {
+      calls.push(['ensure', workspace.branch])
+      if (options.failEnsure) throw new Error('disk full')
+      return 'c0ffee'
+    },
+    release: async (workspace, force) => {
+      calls.push(['release', workspace.branch, force])
+      return options.release?.(workspace, force) ?? { worktree: 'removed', branch: 'deleted' }
+    },
+    prune: async (repo) => {
+      calls.push(['prune', repo])
+    }
+  }
+}
+// Claude Code workers start without the Codex start gap, so these tests stay fast.
+const worktreeSettings = {
+  provider: 'claude-code',
+  router: { ...fakeHost().settings.router, worktrees: true }
+}
+
+test('workers that write start together, each in its own worktree', async () => {
+  const workspaces = fakeWorkspaces()
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current, sent, created } = harness([], {
+    factory,
+    workspaces,
+    host: { settings: worktreeSettings }
+  })
+  const results = []
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length !== 1) return
+    for (const goal of ['Write A', 'Write B'])
+      results.push(JSON.parse(await tools[0].execute({ goal })))
+    results.push(
+      JSON.parse(
+        await tools[0].execute({ goal: 'Write C', workspace: 'checkout', base: 'default-branch' })
+      )
+    )
+    results.push(JSON.parse(await tools[0].execute({ goal: 'Write D', workspace: 'checkout' })))
+    results.push(JSON.parse(await tools[0].execute({ goal: 'Write E', base: 'default-branch' })))
+  }
+  send(service, router, 'Five changes')
+  await waitFor(() => current().status === 'idle' && results.length === 5, 'dispatches')
+  assert.deepEqual(
+    results.map((r) => [r.status, r.workspace, r.branch === null ? null : 'branch']),
+    [
+      ['started', 'worktree', 'branch'],
+      ['started', 'worktree', 'branch'],
+      ['started', 'checkout', null],
+      ['queued', 'checkout', null],
+      ['started', 'worktree', 'branch']
+    ],
+    'only writers sharing the checkout wait for each other'
+  )
+  assert.equal(results[0].branch, `owls/${results[0].workerId}`)
+  assert.deepEqual(
+    sent.map((s) => s.text),
+    ['Write A', 'Write B', 'Write C', 'Write E']
+  )
+  const a = created.find((c) => c.cwd === `/worktrees/${results[0].workerId}`)
+  assert.deepEqual(a.worker, { projectPath: PROJECT.path })
+  assert.equal(created.find((c) => c.cwd === PROJECT.path).worker, null)
+  const workerA = service.snapshot().workers.find((w) => w.goal === 'Write A')
+  assert.equal(workerA.workspace.baseCommit, 'c0ffee', 'prepared before the turn')
+  assert.equal(
+    service.snapshot().workers.find((w) => w.goal === 'Write E').workspace.base,
+    'default-branch'
+  )
+  const profile = service.profile(workerA.sessionId)
+  assert.match(profile.instructions, new RegExp(`branch owls/${workerA.id}`))
+  assert.doesNotMatch(
+    service.profile(service.snapshot().workers.find((w) => w.goal === 'Write C').sessionId)
+      .instructions,
+    /worktree/
+  )
+  service.close()
+})
+
+test('without worktrees, writers in one project still take turns', async () => {
+  for (const [label, options] of [
+    ['setting off', { host: {}, workspaces: fakeWorkspaces() }],
+    [
+      'not a repository',
+      { host: { settings: worktreeSettings }, workspaces: fakeWorkspaces({ git: false }) }
+    ]
+  ]) {
+    const { engine, factory } = scriptedEngine()
+    const { service, router, current } = harness([], { factory, ...options })
+    const results = []
+    engine.onRun = async (_input, tools) => {
+      if (engine.runs.length !== 1) return
+      for (const goal of ['Write A', 'Write B'])
+        results.push(JSON.parse(await tools[0].execute({ goal })))
+    }
+    send(service, router, 'Two changes')
+    await waitFor(() => current().status === 'idle' && results.length === 2, label)
+    assert.deepEqual(
+      results.map((r) => [r.status, r.workspace]),
+      [
+        ['started', 'checkout'],
+        ['queued', 'checkout']
+      ],
+      label
+    )
+    service.close()
+  }
+})
+
+test('a worktree that cannot be prepared fails the dispatch and the follow-up', async () => {
+  const workspaces = fakeWorkspaces({ failEnsure: true })
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current } = harness([], {
+    factory,
+    workspaces,
+    host: { settings: worktreeSettings }
+  })
+  let error = null
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length === 1)
+      await tools[0].execute({ goal: 'Write A' }).catch((e) => (error = e))
+  }
+  send(service, router, 'Change it')
+  await waitFor(() => current().status === 'idle' && error, 'dispatch')
+  assert.equal(error.code, 'dispatch_failed')
+  const worker = service.snapshot().workers[0]
+  assert.equal(worker.status, 'failed')
+  await assert.rejects(service.prepare(worker.sessionId), (e) => e.code === 'worktree_failed')
+  service.close()
+})
+
+test('removing a worktree worker cleans up, keeps unmerged work, and can discard', async () => {
+  const kept = new Set()
+  const workspaces = fakeWorkspaces({
+    release: (workspace, force) =>
+      force
+        ? { worktree: 'removed', branch: 'kept' }
+        : kept.has(workspace.branch)
+          ? { worktree: 'kept', branch: 'kept' }
+          : { worktree: 'removed', branch: 'kept' }
+  })
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current } = harness([], {
+    factory,
+    workspaces,
+    host: { settings: worktreeSettings }
+  })
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length !== 1) return
+    for (const goal of ['Merged later', 'Left dirty']) await tools[0].execute({ goal })
+  }
+  send(service, router, 'Two changes')
+  await waitFor(() => current().status === 'idle' && service.snapshot().workers.length === 2, 'go')
+  const byGoal = (goal) => service.snapshot().workers.find((w) => w.goal === goal)
+  for (const goal of ['Merged later', 'Left dirty'])
+    service.settled(byGoal(goal).sessionId, report('ok'))
+  await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'reports')
+  kept.add(byGoal('Left dirty').workspace.branch)
+
+  service.observe({ type: 'removed', sessionId: byGoal('Merged later').sessionId })
+  await waitFor(() => engine.runs.length === 3, 'removal batch')
+  assert.match(
+    engine.runs[2].text,
+    new RegExp(`unmerged work stays on branch owls/${byGoal('Merged later').id}`)
+  )
+  assert.equal(byGoal('Merged later').workspace.state, 'released')
+
+  service.observe({ type: 'removed', sessionId: byGoal('Left dirty').sessionId })
+  await waitFor(() => byGoal('Left dirty').workspace.state === 'kept', 'kept worktree')
+  await assert.rejects(
+    service.discardWorktree({ routerId: router.id, workerId: byGoal('Merged later').id }),
+    (e) => e.code === 'request_unavailable'
+  )
+  await service.discardWorktree({ routerId: router.id, workerId: byGoal('Left dirty').id })
+  assert.equal(byGoal('Left dirty').workspace.state, 'released')
+  assert.deepEqual(
+    workspaces.calls.filter((c) => c[0] === 'release').map((c) => c[2]),
+    [false, false, true]
+  )
+  service.close()
+})
+
+test('restart prunes worktrees and finishes a cleanup that did not complete', async () => {
+  const store = memoryRouterStore()
+  const first = scriptedEngine()
+  const failing = fakeWorkspaces({
+    release: () => {
+      throw new Error('repository locked')
+    }
+  })
+  const one = harness([], {
+    store,
+    factory: first.factory,
+    workspaces: failing,
+    host: { settings: worktreeSettings }
+  })
+  first.engine.onRun = async (_input, tools) => {
+    if (first.engine.runs.length === 1) await tools[0].execute({ goal: 'Write A' })
+  }
+  send(one.service, one.router, 'Change it')
+  await waitFor(
+    () => one.current().status === 'idle' && one.service.snapshot().workers.length,
+    'go'
+  )
+  const worker = one.service.snapshot().workers[0]
+  one.service.settled(worker.sessionId, report('ok'))
+  one.service.observe({ type: 'removed', sessionId: worker.sessionId })
+  await waitFor(() => failing.calls.some((c) => c[0] === 'release'), 'failed cleanup')
+  assert.equal(one.service.snapshot().workers[0].workspace.state, 'active')
+  one.service.close()
+
+  const workspaces = fakeWorkspaces()
+  const two = harness([], {
+    store,
+    factory: scriptedEngine().factory,
+    workspaces,
+    host: { settings: worktreeSettings }
+  })
+  await two.service.recovered
+  assert.deepEqual(workspaces.calls, [
+    ['prune', PROJECT.path],
+    ['release', `owls/${worker.id}`, false]
+  ])
+  assert.equal(two.service.snapshot().workers[0].workspace.state, 'released')
+  two.service.close()
 })

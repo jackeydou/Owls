@@ -18,6 +18,38 @@ const {
 const PROJECT = { id: 'bench', name: 'bench', path: '/tmp/owls-router-bench' }
 /** Matches WORKER_LIMIT, so every architecture runs at most four tasks at once. */
 const PARALLEL = 4
+/** Modeled time for `git worktree add` in a medium repository, paid once per worker. */
+export const WORKTREE_CREATE_MS = 2000
+
+/**
+ * Worktrees as the WorkerPool sees them (RFC 11.1): every project is a
+ * repository, and a worker's first turn waits while its worktree is created.
+ */
+function simulatedWorkspaces(clock) {
+  const created = new Set()
+  return {
+    inspect: async (path) => ({ repo: path, subdir: '' }),
+    plan: (repo, workerId, base) => ({
+      kind: 'worktree',
+      repo: repo.repo,
+      path: `${repo.repo}/.worktrees/${workerId}`,
+      cwd: `${repo.repo}/.worktrees/${workerId}`,
+      branch: `owls/${workerId}`,
+      base,
+      baseCommit: null,
+      state: 'active'
+    }),
+    ensure: async (workspace) => {
+      if (!created.has(workspace.path)) {
+        created.add(workspace.path)
+        await clock.sleep(WORKTREE_CREATE_MS)
+      }
+      return 'bench'
+    },
+    release: async () => ({ worktree: 'removed', branch: 'deleted' }),
+    prune: async () => {}
+  }
+}
 
 /**
  * Fixed per-request context of each Router engine, in tokens. Claude Code and
@@ -98,7 +130,8 @@ function schedule(clock, load, tracker, send) {
 /**
  * Owls Router + workers. `passthrough` false sends follow-ups to the Router
  * instead of the worker's task (the article's "no event passthrough" arm);
- * `permission` 'workspace-write' makes workers in one checkout run one at a time.
+ * `permission` 'workspace-write' makes workers in one checkout run one at a
+ * time, unless `worktrees` gives each its own git worktree.
  */
 export async function runRouter(clock, load, options) {
   const meter = new Meter()
@@ -122,7 +155,8 @@ export async function runRouter(clock, load, options) {
       owls: null,
       claudeModel: null,
       codexModel: null,
-      maxPermission: 'workspace-write'
+      maxPermission: 'workspace-write',
+      worktrees: Boolean(options.worktrees)
     }
   }
   // Worker tasks: each turn takes the simulated work time of the tags it carries.
@@ -174,6 +208,7 @@ export async function runRouter(clock, load, options) {
       return { id, ...input }
     },
     send: async ({ sessionId, text }) => {
+      await service.prepare(sessionId)
       service.profile(sessionId)
       startTurn(sessionId, text, false)
     },
@@ -200,7 +235,8 @@ export async function runRouter(clock, load, options) {
         state: request.state,
         persist: request.persist,
         version: 'bench'
-      })
+      }),
+    options.worktrees ? simulatedWorkspaces(clock) : undefined
   )
   const router = service.open(PROJECT.id)
   let commandId = 0

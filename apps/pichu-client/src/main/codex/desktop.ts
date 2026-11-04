@@ -6,12 +6,13 @@ import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { ClaudeConnection, CodexEvent } from '../../shared/codex.js'
 import { ClaudeService } from '../claude/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
-import { getDataRoot } from '../pichu-paths.js'
+import { getDataRoot, workerWorktreesRoot } from '../pichu-paths.js'
 import { RouterCredentials, type SecretCipher } from '../router/credentials.js'
 import { CodexRouterServer } from '../router/engines/codex.js'
 import { defaultEngineFactory } from '../router/engines/factory.js'
 import { RouterService } from '../router/service.js'
 import { RouterStore } from '../router/store.js'
+import { GitWorkspaces } from '../router/worktrees.js'
 import { OwlsHost } from './host.js'
 import { registerCodexIpc } from './ipc.js'
 import { safeText } from './protocol.js'
@@ -121,7 +122,8 @@ void app
           connection: () =>
             service?.codexConnection() ?? { ...closedClaude, account: { kind: 'signed-out' } }
         }
-      })
+      }),
+      new GitWorkspaces(workerWorktreesRoot(root))
     )
     service.attachRouter(router)
     registerCodexIpc(service, () => window)

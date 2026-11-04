@@ -4,6 +4,7 @@ import {
   AlertCircle,
   ArrowUp,
   FolderOpen,
+  GitBranch,
   Loader2,
   Network,
   Settings2,
@@ -52,6 +53,12 @@ function WorkerCard({ worker }: { worker: RouterWorker }) {
         {worker.report ? ` · ${t(`reportStatus.${worker.report.status}`)}` : ''}
         {worker.degraded ? ` · ${t('router.degraded')}` : ''}
       </small>
+      {worker.workspace.kind === 'worktree' ? (
+        <small className="router-worker-branch">
+          <GitBranch size={11} aria-hidden />
+          {t('router.branch', { branch: worker.workspace.branch })}
+        </small>
+      ) : null}
       {worker.report?.summary ? <p>{worker.report.summary}</p> : null}
     </button>
   )
@@ -65,11 +72,22 @@ export function RouterView() {
   const claude = useCodexStore((s) => s.claude)
   const codex = useCodexStore((s) => s.connection)
   const showSettings = useCodexStore((s) => s.showSettings)
-  const { open, send, interrupt, resolveBatch, sending, error, clearError } = useRouterStore()
+  const { open, send, interrupt, resolveBatch, discardWorktree, sending, error, clearError } =
+    useRouterStore()
   const router = useRouterStore((s) => s.routers.find((r) => r.projectId === projectId))
   const allWorkers = useRouterStore((s) => s.workers)
   const workers = router
     ? allWorkers.filter((w) => w.routerId === router.id && w.status !== 'removed')
+    : []
+  // Removed workers whose worktrees still hold uncommitted changes (RFC 11.1).
+  const kept = router
+    ? allWorkers.filter(
+        (w) =>
+          w.routerId === router.id &&
+          w.status === 'removed' &&
+          w.workspace.kind === 'worktree' &&
+          w.workspace.state === 'kept'
+      )
     : []
   const [text, setText] = useState('')
   const bottom = useRef<HTMLDivElement>(null)
@@ -145,6 +163,34 @@ export function RouterView() {
               <p>{t('router.noWorkers')}</p>
             )}
           </section>
+          {router && kept.length ? (
+            <section className="router-kept" aria-label={t('router.keptWorktrees')}>
+              <strong>{t('router.keptWorktrees')}</strong>
+              <p>{t('router.keptWorktreesBody')}</p>
+              <ul>
+                {kept.map((worker) =>
+                  worker.workspace.kind === 'worktree' ? (
+                    <li key={worker.id}>
+                      <span>
+                        <span className="router-kept-goal">{worker.goal}</span>
+                        <small>
+                          {worker.workspace.branch} · {worker.workspace.path}
+                        </small>
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        aria-label={t('router.discardWorktreeLabel', { goal: worker.goal })}
+                        onClick={() => void discardWorktree(router.id, worker.id)}
+                      >
+                        {t('router.discardWorktree')}
+                      </Button>
+                    </li>
+                  ) : null
+                )}
+              </ul>
+            </section>
+          ) : null}
           <div className="codex-conversation-scroll">
             <div className="codex-conversation">
               {setup ? (

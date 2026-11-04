@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { permissionSchema, providerSchema } from '../../shared/codex.js'
-import { workerStatusSchema } from '../../shared/router.js'
+import { workerStatusSchema, worktreeBaseSchema } from '../../shared/router.js'
 
 /** Model-facing error codes. Messages are short English sentences without paths or secrets. */
 export type RouterToolErrorCode =
@@ -36,11 +36,28 @@ export const dispatchTaskInput = z
       .describe('Coding agent to run the task. Omit to use the default agent.'),
     permission: permissionSchema
       .optional()
-      .describe('Access the worker needs. Omit to use the project default.')
+      .describe('Access the worker needs. Omit to use the project default.'),
+    workspace: z
+      .enum(['worktree', 'checkout'])
+      .optional()
+      .describe(
+        "Where a worker that can write runs. Omit for its own git worktree; use checkout only when it must work in the user's checkout."
+      ),
+    base: worktreeBaseSchema
+      .optional()
+      .describe(
+        "What a worktree starts from: head (the user's current branch, the default) or default-branch (the remote default branch)."
+      )
   })
   .strict()
 export type DispatchTaskInput = z.infer<typeof dispatchTaskInput>
-export type DispatchTaskResult = { workerId: string; status: 'started' | 'queued' }
+export type DispatchTaskResult = {
+  workerId: string
+  status: 'started' | 'queued'
+  workspace: 'worktree' | 'checkout'
+  /** The worktree's branch, which holds the worker's commits; null in the checkout. */
+  branch: string | null
+}
 
 const workerId = z.string().trim().min(1).max(64).describe('The worker ID from dispatch_task.')
 export const messageWorkerInput = z

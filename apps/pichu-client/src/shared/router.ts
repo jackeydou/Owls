@@ -33,14 +33,17 @@ export const routerSettingsSchema = z.object({
   claudeModel: z.string().trim().min(1).max(200).nullable().default(null),
   /** Model for the Codex engine; null uses the Codex default. */
   codexModel: z.string().trim().min(1).max(200).nullable().default(null),
-  maxPermission: z.enum(permissionValues).default('workspace-write')
+  maxPermission: z.enum(permissionValues).default('workspace-write'),
+  /** Workers that can write run in their own git worktree when the project is a repository. */
+  worktrees: z.boolean().default(true)
 })
 export const defaultRouterSettings: RouterSettings = {
   engine: 'owls',
   owls: null,
   claudeModel: null,
   codexModel: null,
-  maxPermission: 'workspace-write'
+  maxPermission: 'workspace-write',
+  worktrees: true
 }
 
 export const workerReportSchema = z.object({
@@ -62,6 +65,30 @@ export const workerStatusSchema = z.enum([
   'failed',
   'removed'
 ])
+/** Where a worker's worktree starts: the user's checkout HEAD, or the remote default branch. */
+export const worktreeBaseSchema = z.enum(['head', 'default-branch'])
+/**
+ * Where a worker runs. `checkout` is the project directory itself; a
+ * `worktree` is a linked git worktree Owls created for this worker (RFC 11.1).
+ * `active` worktrees belong to a live worker; after removal one is `released`,
+ * or `kept` because it still has uncommitted changes.
+ */
+export const workerWorkspaceSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('checkout') }),
+  z.object({
+    kind: z.literal('worktree'),
+    /** Top level of the project's repository, where git commands for this worktree run. */
+    repo: z.string(),
+    path: z.string(),
+    /** The worker's working directory: `path` plus the project's subdirectory in the repository. */
+    cwd: z.string(),
+    branch: z.string(),
+    base: worktreeBaseSchema,
+    /** The commit the branch started from; null until the worktree exists. */
+    baseCommit: z.string().nullable(),
+    state: z.enum(['active', 'kept', 'released'])
+  })
+])
 export const workerSchema = z.object({
   id: z.string(),
   routerId: z.string(),
@@ -74,6 +101,7 @@ export const workerSchema = z.object({
   /** The message a queued worker sends when it starts: its first turn or a Router follow-up. */
   next: z.string().nullable().default(null),
   status: workerStatusSchema,
+  workspace: workerWorkspaceSchema.default({ kind: 'checkout' }),
   report: workerReportSchema.nullable(),
   /** True when the last report did not match the schema and was rebuilt from raw text. */
   degraded: z.boolean().default(false),
@@ -110,6 +138,10 @@ export const resolveBatchSchema = z.object({
   batchId: z.string().min(1).max(64),
   decision: z.enum(['retry', 'ignore'])
 })
+export const discardWorktreeSchema = z.object({
+  routerId: z.string().uuid(),
+  workerId: z.string().min(1).max(64)
+})
 export const setRouterKeySchema = z.object({
   providerId: owlsProviderSchema,
   key: z.string().trim().min(1).max(4096)
@@ -122,6 +154,9 @@ export type OwlsModelSettings = z.infer<typeof owlsModelSchema>
 export type RouterSettings = z.infer<typeof routerSettingsSchema>
 export type WorkerReport = z.infer<typeof workerReportSchema>
 export type WorkerStatus = z.infer<typeof workerStatusSchema>
+export type WorktreeBase = z.infer<typeof worktreeBaseSchema>
+export type WorkerWorkspace = z.infer<typeof workerWorkspaceSchema>
+export type DiscardWorktree = z.infer<typeof discardWorktreeSchema>
 export type RouterWorker = z.infer<typeof workerSchema>
 export type RouterStatus = z.infer<typeof routerStatusSchema>
 export type RouterNative = z.infer<typeof routerNativeSchema>

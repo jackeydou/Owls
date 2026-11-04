@@ -15,7 +15,12 @@ export const inboxEventBodySchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('worker_waiting'), ...workerEvent, detail: z.string() }),
   z.object({ kind: z.literal('worker_failed'), ...workerEvent }),
   z.object({ kind: z.literal('worker_stopped'), ...workerEvent }),
-  z.object({ kind: z.literal('worker_removed'), ...workerEvent })
+  z.object({
+    kind: z.literal('worker_removed'),
+    ...workerEvent,
+    /** The worker's branch when it still holds work the user's checkout does not have. */
+    branch: z.string().nullable().default(null)
+  })
 ])
 export type InboxEventBody = z.infer<typeof inboxEventBodySchema>
 /** One Router Inbox event. `seq` orders events across all Routers. */

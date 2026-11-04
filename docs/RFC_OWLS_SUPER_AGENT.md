@@ -1,6 +1,6 @@
 # RFC: Owls Router/Worker（Super-agent）架构
 
-状态：M1–M4 已实现（M4 为脚本化模型的消融实验，见 14.1 节）；设计待评审。日期：2026-11-03。
+状态：M1–M4 已实现（M4 为脚本化模型的消融实验，见 14.1 节），可写 Worker 的 git worktree 已实现（11.1 节）。日期：2026-11-03。
 
 Owls 基线：`bee6fff`（M0 实测记录合入后）。
 实测版本：M0 为 Codex CLI `0.148.0`；补充实测（4.2 节）为 Codex CLI `0.166.0`。
@@ -51,7 +51,7 @@ Watchdog、投机执行）作为后续事件源或独立阶段，不在本 RFC �
 - Worker 使用自定义模型（BYOM）：只有 Router 可以配置模型，Worker 的模型由各自的 CLI 决定。
 - 在 Owls 引擎中使用消费级订阅登录（见 9.3 节）。
 - Worker 之间直接通信。
-- 自动 git worktree 管理（M3 之后单独设计）。
+- 自动合并 Worker 的分支（Worker 的 git worktree 见 11.1 节）。
 
 ## 3. 架构
 
@@ -196,7 +196,7 @@ Owls 引擎转成 JSON Schema 的 `AgentTool`，Claude Code 转成 SDK `tool()`�
 
 | 工具 | 输入 | 输出 |
 | --- | --- | --- |
-| `dispatch_task` | `goal`（1–4000 字符）；可选 `context`（≤ 8000 字符）、`provider`、`permission` | `{ workerId, status: 'started' \| 'queued' }`；或错误码 `worker_limit_reached`、`permission_not_allowed`、`provider_unavailable`、`invalid_request` |
+| `dispatch_task` | `goal`（1–4000 字符）；可选 `context`（≤ 8000 字符）、`provider`、`permission`、`workspace`、`base`（11.1 节） | `{ workerId, status: 'started' \| 'queued', workspace, branch }`；或错误码 `worker_limit_reached`、`permission_not_allowed`、`provider_unavailable`、`invalid_request` |
 | `message_worker` | `workerId`、`text`（1–8000 字符） | `{ delivered: 'steered' \| 'started' \| 'queued' }`：运行中的 Worker 在当前 turn 内收到（`steered`），空闲的 Worker 开始新的一轮（`started`），受并发或写入串行限制时排队（`queued`）；或 `worker_not_found`、`worker_closed` |
 | `stop_worker` | `workerId` | `{ status: 'stopping' \| 'cancelled' \| 'already_idle' }`，`cancelled` 指取消排队中的 Worker；或 `worker_not_found`、`worker_closed`。Router 主动停止产生的 `worker_stopped` 事件不单独发起批次 |
 | `list_workers` | 可选 `status` | 按 `updatedAt` 倒序、同时间按 `workerId` 排序的 `{ workerId, goal, status, provider, report }` 列表，`report.summary` 截断为 300 字符；不指定 `status` 时不含已移除的 Worker |
@@ -513,6 +513,7 @@ Worker 会话出现在任务列表，并带 Router 标记；会话本身的 sche
 | `router.claudeModel` | `null`（CLI 默认模型） | Claude Code 引擎使用的模型（M2） |
 | `router.codexModel` | `null`（`model/list` 的默认模型） | Codex 引擎使用的模型（M3） |
 | `router.maxPermission` | `'workspace-write'` | `dispatch_task` 可申请的最高权限 |
+| `router.worktrees` | `true` | 可写的 Worker 在独立的 git worktree 中运行（11.1 节） |
 | `workerProvider` | `null`（沿用 `provider`） | `dispatch_task` 未指定 agent 时使用 |
 
 - 设置页新增「协调者」分组：引擎单选（Owls 内置（推荐）、Claude Code、Codex），每个选项下方
@@ -549,7 +550,8 @@ Worker 会话出现在任务列表，并带 Router 标记；会话本身的 sche
   供 Router 视图显示提示条；启动时由批次表重算。
 - 用户退出时选择「停止并退出」，进行中的批次记为 `delivered`（用户主动中断），不进入
   `dispatch_unknown`。
-- Worker 记录增加 `context` 和 `permission`，排队的 Worker 据此在之后启动，并判断是否是写入者。
+- Worker 记录增加 `context` 和 `permission`，排队的 Worker 据此在之后启动，并判断是否是写入者；
+  `workspace` 记录 Worker 在 checkout 还是自己的 worktree 中运行（11.1 节）。
 - 写入 Inbox、生成批次、更新事件状态在同一事务中完成。
 - 移除 Worker 任务时，`codex_workers` 中的记录标记为 `removed`，不删除，以免 Router 的
   历史批次引用悬空；移除 Router 时级联删除它的 Inbox、批次和 `codex_router_messages`。
@@ -584,13 +586,137 @@ F12–F16）：
 - Router 能读到的只有用户消息、Worker 汇报和 Owls 摘要，都按数据渲染（第 7 节），
   不会被提升为系统指令。
 - Worker 发起的审批照常显示在 UI 上，同时作为 Inbox 事件通知 Router，但 Router 不能代替用户批准。
-- 全局 Worker 并发上限先定为常量 4；同一 checkout 上权限不是 `read-only` 的 Worker 串行执行，
-  直到引入 worktree。超出限制的分派返回 `queued`，不返回错误。
+- 全局 Worker 并发上限先定为常量 4；同一工作区中权限不是 `read-only` 的 Worker 串行执行。
+  可写 Worker 默认各自使用一个 git worktree，因此互不串行（11.1 节）。超出限制的分派返回
+  `queued`，不返回错误。
 - Codex Worker 并发启动时间隔至少 1 秒，降低 F5 的一次性 429；429 显示为可重试的失败，
   不自动重试。
 - Owls 引擎的 API key 只在 main 进程中解密，只发往用户选定的 provider（`custom` 端点发往用户
   填写的 `baseUrl`）。
 - 日志只记录 Router/Worker ID、引擎、事件种类、批次大小和 token 数，不记录批次正文和凭据。
+
+### 11.1 可写 Worker 的 git worktree
+
+状态：设计已评审并实现（2026-11-03），解决 F31 和第 16 节开放问题 8。M4 基准中可写 Worker 的完成时间回到只读 Worker 的水平（14.1 节）。
+
+**工作区的选择。** 每个 Worker 有一个工作区（`workspace`），在分派时确定，之后不变：
+
+- `worktree`：Worker 在自己的 linked worktree 中运行。需要同时满足：权限不是 `read-only`；
+  设置 `router.worktrees` 为 `true`（默认）；项目路径在一个 git 仓库中，且 HEAD 指向一个提交。
+- `checkout`：在项目 checkout 中运行，即 M1–M4 的行为。用于只读 Worker、非 git 项目、还没有
+  提交的仓库、找不到 git、设置关闭，以及 Router 显式指定 `checkout` 的情况。
+
+`dispatch_task` 增加两个可选参数：
+
+- `workspace: 'worktree' | 'checkout'`。不指定时按上面的规则选择；指定 `worktree` 但条件不满足时
+  退回 `checkout`，不报错。
+- `base: 'head' | 'default-branch'`，只对 worktree 生效，默认 `head`（见下方「分支与基点」）。
+
+结果增加 `workspace` 和 `branch`（`checkout` 时为 `null`），`list_workers` 和 `recall` 同样返回这两个
+字段。Router 提示补充两条：任务需要看到或基于用户 checkout 中未提交的修改，或者要把 Worker 的
+分支合入用户的 checkout 时，使用 `checkout`；任务应该独立于用户当前的分支（例如单独开一个 MR）
+时，使用 `base: 'default-branch'`。`ROUTER_PROMPT_VERSION` 升为 3。
+
+**位置。** `<dataRoot>/worktrees/<repoKey>/<workerId>`：
+
+- `<dataRoot>` 是 `pichu-paths.ts` 的 `getDataRoot()`，沿用现有的 bootstrap 和设置流程。
+  `pichu-paths.ts` 新增 `workerWorktreesRoot()`，由 main 启动时传给 `WorkerPool`。不新增路径设置，
+  不读环境变量。
+- `repoKey` 是仓库顶层目录名加上其规范路径 SHA-256 的前 8 位，同名仓库不会冲突。
+- 不放在项目目录中，避免 worktree 出现在项目文件树里、被工具扫描，或者需要修改 `.gitignore`；
+  也不放在系统临时目录中，保证重启后仍在。
+- 项目是仓库的一个子目录（例如 monorepo 中的一个包）时，Worker 的 `cwd` 是 worktree 中相同的
+  相对路径。
+
+**分支与基点。**
+
+- 每个 worktree Worker 一个分支 `owls/<workerId>`（例如 `owls/w_1a2b3c4d`）。
+- worktree 在 Worker 的第一轮开始前创建（`git worktree add -b owls/<workerId> <path> <base>`），
+  基点提交记录为 `baseCommit`。排队中的 Worker 不占磁盘。
+- 基点默认是当时项目 checkout 的 HEAD（`base: 'head'`）：Worker 接着用户当前的分支和本地未 push
+  的提交工作，不需要 remote 和网络，合并回来也最直接。
+- `base: 'default-branch'` 时基点是远端的默认分支：从 `refs/remotes/origin/HEAD` 解析分支名，先
+  `git fetch origin <branch>`（不允许交互式输入凭据，15 秒超时），失败时用本地已有的
+  `origin/<branch>`；解析不到默认分支时退回 HEAD。用于应该独立于用户当前分支的任务，例如单独开
+  一个 MR。Worker 记录保存实际使用的 `base`。
+- worktree 只包含已提交的内容。用户 checkout 中未提交的修改、被忽略的文件（`node_modules`、
+  `.env`、构建产物）和子模块的检出都不在其中。脏的 checkout 照常创建 worktree，不复制修改，也不
+  拒绝分派。worktree Worker 的角色说明写明这一点，需要依赖时由 Worker 自己安装。
+
+**结果如何回到用户手里。**
+
+- worktree Worker 的角色说明追加一段：你在这个项目的独立 worktree 中、分支 `owls/<id>` 上
+  工作；不要切换分支、push 或修改其他 worktree；任务完成时把修改提交到这个分支，并在 summary
+  中写明。是否需要用户批准提交取决于 agent 的沙箱（例如 Codex 的 `workspace-write` 不允许写
+  worktree 之外的 git 元数据），这与在主 checkout 中提交相同。
+- Owls 自己不提交、合并、rebase 或 push，也不按 `artifacts[].ref` 读写文件（第 6 节不变）。
+  分支就是交付物：Router 从 `dispatch_task`、`list_workers` 和 `recall` 拿到分支名并告诉用户；
+  Worker 卡片显示分支；任务视图的 diff 照常显示。
+- 是否合并由用户决定：可以自己用 git 合并，也可以让 Router 以 `workspace: 'checkout'` 分派一个
+  合并任务，它与其他 checkout 写入者串行。
+- `artifacts` 不变：renderer 目前不展示 `artifacts`，Router 只在批次中看到原文。
+
+**清理。**
+
+- Worker 停止、失败或空闲时保留 worktree，Router 可以继续 `message_worker`，用户也可以在任务
+  视图中追问。worktree 的生命周期与 Worker 任务相同。
+- 用户移除 Worker 任务时（`removed` 事件）：
+  - worktree 没有未提交的修改（`git status --porcelain` 为空，包括未跟踪文件）时执行
+    `git worktree remove`；
+  - 分支没有新提交（tip 等于 `baseCommit`），或已经合入项目 checkout 当前的 HEAD 时删除分支；
+    否则保留分支，并在 `worker_removed` 事件中注明分支名。
+- 有未提交修改时不删除：worktree 记为 `kept`，Router 视图列出保留的 worktree（目标、分支、
+  路径）并提供「丢弃」操作。用户确认后，Owls 通过 `codex:router-discard-worktree` 执行
+  `git worktree remove --force`，分支按上一条规则处理。没有用户的操作，Owls 不会丢弃未提交的修改。
+- Owls 只删除自己创建、并且记录在 `codex_workers` 中的 worktree 和 `owls/*` 分支。
+
+**重启恢复。**
+
+- Worker 记录增加 `workspace` 字段：`{ kind: 'checkout' }`，或
+  `{ kind: 'worktree', path, cwd, branch, baseCommit, state }`，`state` 为 `active`、`kept` 或
+  `released`。字段保存在 `codex_workers.value` 中，旧记录默认为 `{ kind: 'checkout' }`，不需要迁移。
+- 每一轮开始前（无论由 Router 发起还是用户追问），任务 service 调用新增的
+  `TurnProfiles.prepare(sessionId)`，由 `WorkerPool` 确认 worktree 存在：目录在就直接使用；目录不在
+  但分支在，就用 `git worktree add <path> owls/<id>` 重新检出；两者都不在，就按新 Worker 创建。
+  用户手动删除 worktree 目录不会让 Worker 失效，但目录中未提交的修改会随之丢失。
+- 启动时对每个涉及的仓库执行一次 `git worktree prune`。已经 `removed`、但 `state` 仍为 `active`
+  的 Worker（移除后清理还没完成就退出了）重新执行上面的清理。
+- 创建失败（磁盘、权限、分支名冲突、仓库被锁）时这一轮不开始：Worker 记为 `failed` 并写入
+  `worker_failed` 事件；用户追问时返回新增的失败码 `worktree_failed`。消息是固定文案，不包含路径
+  和 git 的原始输出。
+
+**与调度和任务 service 的关系。**
+
+- `canStart()` 的写入者串行从「同一 Router」改为「同一工作区」：`checkout` 中的写入者之间仍然
+  串行；worktree Worker 的工作区只有它自己，不与任何 Worker 冲突；只读 Worker 不受限制。
+- `WORKER_LIMIT`（4）和 `QUEUE_LIMIT`（16）不变。使用 worktree 后，可写 Worker 的并行度只受
+  `WORKER_LIMIT` 限制。这个上限针对 agent 进程数、限流（F5）和机器负载，与 checkout 无关。
+- 同一仓库的 git 写操作（`worktree add`、`worktree remove`、删除分支）在 `WorkerPool` 内按仓库
+  串行执行，避免并发争用 `.git` 中的锁文件。
+- Worker 会话的 `cwd` 是 worktree 中的路径。Codex 的 `thread/start`、`thread/resume` 和 Claude Code
+  的 `query` 都使用它，所以 Worker 加载的是 worktree 中（即 `baseCommit` 版本）的 `AGENTS.md`、
+  `CLAUDE.md` 和项目配置。
+- 两个 service 的 `createSession` 增加一个 main 内部参数 `{ projectPath }`。带这个参数时，
+  service 检查 `projectPath` 是已注册的项目，不要求 `cwd` 已经存在或者是项目路径；IPC 的
+  `create-session` 不会传这个参数。侧边栏按 Worker 记录把会话归到所属项目下。
+- `full-access` 的 Worker 同样使用 worktree，但仍然可以写任何路径。worktree 隔离的是默认工作
+  目录，不是沙箱。
+
+**设置。** `router.worktrees: boolean`，默认 `true`。设置页「协调者」分组中增加一个开关：
+「可写的 Worker 在独立的 git worktree 中运行」。关闭后回到同目录串行。
+
+**不做的事。** 自动合并和冲突处理；push 和开 PR；把未提交的修改复制到 worktree（例如
+`git stash create`）；在 worktree 中自动安装依赖；worktree 的磁盘配额；清理不在 `codex_workers`
+中的目录（数据库丢失后留下的目录由用户自行删除，`git worktree prune` 会清理它们的元数据）。
+
+**验证。**
+
+- `router-runtime.test.mjs` 用临时 git 仓库覆盖：创建 worktree、子目录项目、脏 checkout 的修改
+  不进入 worktree、空仓库和非 git 项目退回 `checkout`、移除时的三种结果（删除、保留分支、保留
+  worktree）、目录被删除后重新检出、重启后补做清理。
+- `WorkerPool` 层覆盖：两个可写 Worker 并行启动、`checkout` 写入者仍然串行、设置关闭时串行。
+- `bench:router` 增加「Worker 都可写，各自 worktree」一组，每个 worktree 的创建按 2 秒计入虚拟
+  时钟，与「Worker 都可写（同目录串行）」和只读组对比（14.1 节）。
 
 ## 12. 恢复语义
 
@@ -663,13 +789,17 @@ F12–F16）：
 
 | 组 | 工作 p50 / p95（分钟） | 追问 p50 / p95（分钟） | 闲聊 p50 / p95（秒） | 模型请求 | 输入 token | 其中未缓存 | 最大上下文 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Router + Worker（Owls 引擎） | 8.5 / 14.5 | 2.2 / 3.9 | 1.9 / 3.2 | 316 | 2626k | 334k | 12k |
-| 去掉追问直通 | 9.0 / 15.5 | 2.7 / 5.9 | 1.9 / 3.3 | 374 | 3051k | 493k | 12k |
-| Worker 都可写（同目录串行） | 47.5 / 100.3 | 2.2 / 3.9 | 1.9 / 3.2 | 313 | 2521k | 308k | 12k |
+| Router + Worker（Owls 引擎） | 8.5 / 14.5 | 2.2 / 3.9 | 1.9 / 3.2 | 316 | 2635k | 326k | 12k |
+| 去掉追问直通 | 9.0 / 15.5 | 2.7 / 5.9 | 1.9 / 3.3 | 374 | 3060k | 481k | 12k |
+| Worker 都可写（同目录串行） | 47.5 / 100.3 | 2.2 / 3.9 | 1.9 / 3.2 | 313 | 2532k | 303k | 12k |
+| Worker 都可写，各自 worktree（11.1 节） | 8.5 / 14.5 | 2.2 / 3.9 | 1.9 / 3.3 | 315 | 2643k | 337k | 12k |
 | 单会话，前台子 agent | 20.0 / 28.5 | 11.7 / 28.9 | 400 / 914 | 23 | 254k | 30k | 30k |
 | 单会话，后台子 agent | 8.1 / 14.5 | 4.0 / 8.2 | 2.1 / 3.5 | 371 | 12082k | 65k | 65k |
-| Router + Worker，Claude Code 引擎的固定上下文 | 8.5 / 14.5 | 2.2 / 3.9 | 1.9 / 3.3 | 317 | 3562k | 341k | 15k |
-| Router + Worker，Codex 引擎的固定上下文 | 8.5 / 14.5 | 2.2 / 3.9 | 2.0 / 3.5 | 316 | 8138k | 368k | 29k |
+| Router + Worker，Claude Code 引擎的固定上下文 | 8.5 / 14.5 | 2.2 / 3.9 | 1.9 / 3.3 | 317 | 3572k | 330k | 15k |
+| Router + Worker，Codex 引擎的固定上下文 | 8.5 / 14.5 | 2.2 / 3.9 | 2.0 / 3.5 | 316 | 8147k | 356k | 29k |
+
+表中数据来自 worktree 实现之后的运行（`ROUTER_PROMPT_VERSION` 3）。Router 提示加长后，各 Router
+组的输入 token 比 M4 首次记录增加不到 1%，完成时间不变。
 
 Router 层压力测试（只有闲聊，10 分钟）：每分钟 1 条时每批次 1.00 个事件、每次请求 1.9 秒；
 每分钟 40 条时每批次 5.19 个事件（运行中到达的消息经 `steer` 并入），每次模型请求处理
@@ -685,9 +815,11 @@ Router 层压力测试（只有闲聊，10 分钟）：每分钟 1 条时每批�
    后台单会话约 1267k，Router 便宜约一半；后台单会话还没有 Worker 隔离，也需要压缩。
 3. **追问直通减少 15% 的 Router 请求**（374 → 316），追问 p95 从 5.9 分钟降到 3.9 分钟，工作 p95
    也略有下降（15.5 → 14.5）。
-4. **同一 checkout 中可写 Worker 串行是目前最大的瓶颈**（F31）：p50 是只读 Worker 的 5.6 倍，
+4. **同一 checkout 中可写 Worker 串行曾是最大的瓶颈**（F31）：p50 是只读 Worker 的 5.6 倍，
    p95 是 6.9 倍。`dispatch_task` 不指定权限时取项目默认的 `workspace-write`，实际使用中会落到
-   这一组，需要 worktree 隔离才能并行（第 16 节开放问题 8）。
+   这一组。可写 Worker 各自使用 worktree（11.1 节）之后，工作 p50 / p95 为 8.52 / 14.53 分钟，
+   只读组为 8.46 / 14.45 分钟，同目录串行组为 47.54 / 100.28 分钟；多出的约 4 秒来自每个 worktree
+   2 秒的创建时间。
 5. **三种引擎的完成时间相同，差别在 token。** 固定上下文大多命中缓存：Claude Code 引擎的输入
    token 是 Owls 引擎的 1.36 倍，Codex 引擎是 3.1 倍；按上面的方法折算分别约 663k、1145k，
    对比 Owls 引擎的 563k。
@@ -740,8 +872,8 @@ Router 层压力测试（只有闲聊，10 分钟）：每分钟 1 条时每批�
 6. ~~F7 复测~~：0.166 下跨进程 `thread/resume` 后工具仍可调用（F26）。
 7. ~~Codex Router 的上下文成本~~：M4 中输入 token 是 Owls 引擎的 3.1 倍，但大多命中缓存，
    折算后约 2 倍；完成时间相同（14.1 节）。在设置说明中保留。
-8. **可写 Worker 的并行（F31）。** 同一 checkout 中可写 Worker 串行，M4 中完成时间是只读 Worker
-   的 5.6–6.9 倍。需要自动 git worktree 管理（第 2 节非目标），是 M4 之后的第一优先级。
+8. ~~可写 Worker 的并行（F31）~~：可写 Worker 默认各自使用一个 git worktree（11.1 节），M4 基准中
+   完成时间与只读 Worker 相同（14.1 节）。worktree 创建耗时的 2 秒是假设，需要在大仓库上实测。
 
 ## 17. 实施阶段
 
@@ -752,8 +884,9 @@ Router 层压力测试（只有闲聊，10 分钟）：每分钟 1 条时每批�
 | M2 | **Claude Code 引擎**与引擎切换、Inbox 持久化、批处理、用户消息注入、`dispatch_unknown`、重启恢复、`queued` 调度 | 已实现：`router-runtime.test.mjs` 覆盖合并批次与 `superseded`、注入、`dispatch_unknown` 与重发、排队与写入者串行、移除 Worker、引擎切换后的状态摘要、Claude Code 引擎的隔离选项与 `resume`；UI 冒烟在 SQLite 上验证 Inbox 恢复和重发；真实 Claude Code 实测一次（F24、F25）。`testRouterModel` 未做，`dispatch_task` 超出排队上限（16）时返回 `worker_limit_reached` |
 | M3 | **Codex 引擎**、`message_worker`、`stop_worker`、`list_workers`、`recall`、订阅直通 | 已实现：三个引擎都可在设置中切换；追问的结果不发起批次（测试覆盖），Router 决策次数的量化放到 M4；Codex 引擎脚本化测试覆盖隔离参数、工具调用、`resume`、线程丢失和提示版本变化；真实 Codex 实测一次（F26–F28）。`ROUTER_PROMPT_VERSION` 升为 2。`CodexService.steer` 只有 M0 的协议 fixture，没有 service 级测试 |
 | M4 | 消融实验：用脚本化 provider 复现文章 7.1 节，对比单会话与双层架构，以及三种 Router 引擎 | 已实现：`bench:router` 输出 p50/p95 完成时间、模型请求与批次数、token 数据（14.1 节），同一种子结果完全可复现；实验发现并修复了上下文裁剪导致的缓存失效（F30）。引擎差异按 F24、F28 的固定上下文模拟，未运行原生 CLI |
+| Worktree | 可写 Worker 的 git worktree（11.1 节）：`dispatch_task` 的 `workspace` 和 `base`、按工作区串行、`TurnProfiles.prepare`、移除时的清理与保留、重启恢复、设置开关、Router 视图中的分支和保留的 worktree | 已实现：`router-runtime.test.mjs` 在临时 git 仓库上覆盖创建、子目录项目、脏 checkout、重新检出、三种清理结果和 `default-branch`；`WorkerPool` 层覆盖并行、串行、准备失败、丢弃和重启后补做清理；`bench:router` 的 worktree 组 p50 / p95 为 8.52 / 14.53 分钟。未在真实 Codex / Claude Code Worker 上实测 |
 
-M4 之后的候选：自动 git worktree 管理（可写 Worker 并行，F31）、`verify:router` 实机校准、
+M4 之后：可写 Worker 的 git worktree（11.1 节，F31）已实现。其余候选：`verify:router` 实机校准、
 Watchdog、投机执行、GitHub 和 IM 信源、Owls 引擎的更多 provider。
 
 每个阶段都基于最新 `origin/main` 单独开 MR。行为类变更附 changelog fragment；

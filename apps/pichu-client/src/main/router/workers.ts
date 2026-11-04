@@ -10,9 +10,10 @@ import type {
   SendCodexMessage
 } from '../../shared/codex.js'
 import type { RouterWorker, WorkerStatus } from '../../shared/router.js'
+import { CodexRuntimeError } from '../codex/errors.js'
 import { safeText } from '../codex/protocol.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
-import { WORKER_INSTRUCTIONS } from './prompt.js'
+import { WORKER_INSTRUCTIONS, worktreeInstructions } from './prompt.js'
 import { parseReport, WORKER_REPORT_JSON_SCHEMA } from './report.js'
 import type { RouterStore } from './store.js'
 import {
@@ -23,6 +24,7 @@ import {
   RouterToolError,
   type StopWorkerResult
 } from './tools.js'
+import type { WorkerWorkspaces, WorktreeWorkspace } from './worktrees.js'
 
 /** What a task service asks before each turn, and reports after it. */
 export type TurnProfile =
@@ -35,6 +37,8 @@ export type TurnOutcome = {
   text: string
 }
 export interface TurnProfiles {
+  /** Runs before every turn of a session, so a worker's worktree exists before the agent starts. */
+  prepare(sessionId: string): Promise<void>
   profile(sessionId: string): TurnProfile
   settled(sessionId: string, outcome: TurnOutcome): void
 }
@@ -44,7 +48,8 @@ export type WorkerHost = {
   projects(): CodexProject[]
   settings(): CodexSettings
   providerReady(provider: AgentProvider): boolean
-  createSession(input: CreateCodexSession): CodexSession
+  /** `worker` marks a session whose `cwd` is a worker worktree of `projectPath`. */
+  createSession(input: CreateCodexSession, worker?: { projectPath: string }): CodexSession
   send(input: SendCodexMessage): Promise<void>
   steer(sessionId: string, text: string): Promise<'steered' | 'not_running'>
   interrupt(sessionId: string): Promise<void>
@@ -72,11 +77,14 @@ const PERMISSION_RANK = { 'read-only': 0, 'workspace-write': 1, 'full-access': 2
 export const activeWorker = (w: RouterWorker) =>
   w.status === 'starting' || w.status === 'running' || w.status === 'waiting'
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const worktreeOf = (w: RouterWorker): WorktreeWorkspace | null =>
+  w.workspace.kind === 'worktree' ? w.workspace : null
 
 /**
  * Router workers: ordinary tasks started through the host, plus the queue
- * that holds dispatches beyond the concurrency limit. Two workers that can
- * write never run in the same checkout at once (RFC 11).
+ * that holds dispatches beyond the concurrency limit. Workers that can write
+ * get their own git worktree where the project allows it; two writers never
+ * run in the same checkout at once (RFC 11, 11.1).
  */
 export class WorkerPool implements TurnProfiles {
   private readonly workers = new Map<string, RouterWorker>()
@@ -89,12 +97,15 @@ export class WorkerPool implements TurnProfiles {
   private readonly stopping = new Set<string>()
   private nextCodexStart = 0
   private closed = false
+  /** Settles once startup cleanup of worktrees has run. */
+  readonly recovered: Promise<void>
 
   constructor(
     private readonly store: RouterStore,
     private readonly host: WorkerHost,
     private readonly inbox: WorkerInbox,
-    private readonly emit: (worker: RouterWorker) => void
+    private readonly emit: (worker: RouterWorker) => void,
+    private readonly workspaces: WorkerWorkspaces
   ) {
     for (const worker of store.workers()) {
       this.workers.set(worker.id, worker)
@@ -105,6 +116,7 @@ export class WorkerPool implements TurnProfiles {
         this.inbox.add(worker.routerId, this.event('worker_stopped', worker), false)
       }
     }
+    this.recovered = this.recover()
   }
 
   snapshot(): RouterWorker[] {
@@ -144,27 +156,52 @@ export class WorkerPool implements TurnProfiles {
       .update('\0')
       .update(input.context ?? '')
       .digest('hex')
-    const repeated = this.workers.get(seen?.get(key) ?? '')
-    if (repeated)
-      return { workerId: repeated.id, status: repeated.status === 'queued' ? 'queued' : 'started' }
+    const repeated = () => {
+      const worker = this.workers.get(seen?.get(key) ?? '')
+      return worker
+        ? {
+            workerId: worker.id,
+            status: worker.status === 'queued' ? ('queued' as const) : ('started' as const),
+            ...this.place(worker)
+          }
+        : null
+    }
+    const before = repeated()
+    if (before) return before
     if ([...this.workers.values()].filter((w) => w.status === 'queued').length >= QUEUE_LIMIT)
       throw new RouterToolError(
         'worker_limit_reached',
         `At most ${QUEUE_LIMIT} workers can wait to start. Wait for some to report.`
       )
+    const wantsWorktree =
+      permission !== 'read-only' && settings.router.worktrees && input.workspace !== 'checkout'
+    const repo = wantsWorktree ? await this.workspaces.inspect(router.cwd) : null
+    // The same call may have finished while the repository was inspected.
+    const after = repeated()
+    if (after) return after
+    const id = `w_${crypto.randomUUID().slice(0, 8)}`
+    const workspace = repo
+      ? this.workspaces.plan(repo, id, input.base ?? 'head')
+      : ({ kind: 'checkout' } as const)
     const selection =
       provider === 'claude-code'
         ? { model: settings.claudeModel, effort: settings.claudeEffort }
         : { model: settings.model, effort: settings.effort }
     let session: CodexSession
     try {
-      session = this.host.createSession({ provider, cwd: router.cwd, permission, ...selection })
+      session =
+        workspace.kind === 'worktree'
+          ? this.host.createSession(
+              { provider, cwd: workspace.cwd, permission, ...selection },
+              { projectPath: router.cwd }
+            )
+          : this.host.createSession({ provider, cwd: router.cwd, permission, ...selection })
     } catch (error) {
       throw new RouterToolError('dispatch_failed', safeText(String(error)).slice(0, 200))
     }
     const now = new Date().toISOString()
     const worker: RouterWorker = {
-      id: `w_${crypto.randomUUID().slice(0, 8)}`,
+      id,
       routerId: router.id,
       sessionId: session.id,
       provider,
@@ -173,6 +210,7 @@ export class WorkerPool implements TurnProfiles {
       permission,
       next: input.context ? `${input.goal}\n\nContext:\n${input.context}` : input.goal,
       status: 'queued',
+      workspace,
       report: null,
       degraded: false,
       createdAt: now,
@@ -182,10 +220,11 @@ export class WorkerPool implements TurnProfiles {
     this.workers.set(worker.id, worker)
     this.save(worker)
     seen?.set(key, worker.id)
-    if (!this.canStart(worker)) return { workerId: worker.id, status: 'queued' }
+    if (!this.canStart(worker))
+      return { workerId: worker.id, status: 'queued', ...this.place(worker) }
     if (!(await this.start(worker, false)))
       throw new RouterToolError('dispatch_failed', 'The worker could not start its first turn.')
-    return { workerId: worker.id, status: 'started' }
+    return { workerId: worker.id, status: 'started', ...this.place(worker) }
   }
 
   /**
@@ -239,10 +278,56 @@ export class WorkerPool implements TurnProfiles {
         goal: w.goal,
         status: w.status,
         provider: w.provider,
+        ...this.place(w),
         report: w.report
           ? { status: w.report.status, summary: w.report.summary.slice(0, 300) }
           : null
       }))
+  }
+
+  /** Where a worker runs, as the Router tools describe it. */
+  place(worker: RouterWorker): { workspace: 'worktree' | 'checkout'; branch: string | null } {
+    const tree = worktreeOf(worker)
+    return tree
+      ? { workspace: 'worktree', branch: tree.branch }
+      : { workspace: 'checkout', branch: null }
+  }
+
+  /**
+   * Creates or re-attaches a worker's worktree before its turn, whether the
+   * Router or the user started it. Task sessions that are not workers pass.
+   */
+  async prepare(sessionId: string): Promise<void> {
+    const worker = this.bySession(sessionId)
+    const tree = worker && worker.status !== 'removed' ? worktreeOf(worker) : null
+    if (!worker || !tree) return
+    try {
+      const baseCommit = await this.workspaces.ensure(tree)
+      if (tree.baseCommit !== baseCommit) {
+        tree.baseCommit = baseCommit
+        this.save(worker)
+      }
+    } catch {
+      throw new CodexRuntimeError(
+        'worktree_failed',
+        "Owls could not prepare this worker's git worktree."
+      )
+    }
+  }
+
+  /** Removes a worktree the user chose to discard after removing its worker. */
+  async discard(routerId: string, workerId: string): Promise<void> {
+    const worker = this.workers.get(workerId)
+    const tree = worker?.routerId === routerId ? worktreeOf(worker) : null
+    if (!worker || !tree || tree.state !== 'kept')
+      throw new CodexRuntimeError('request_unavailable', 'This worktree is no longer kept.')
+    try {
+      await this.workspaces.release(tree, true)
+    } catch {
+      throw new CodexRuntimeError('worktree_failed', 'Owls could not remove this git worktree.')
+    }
+    tree.state = 'released'
+    this.save(worker)
   }
 
   /** Starts queued workers that the limits allow, oldest first. */
@@ -269,13 +354,15 @@ export class WorkerPool implements TurnProfiles {
 
   profile(sessionId: string): TurnProfile {
     const worker = this.bySession(sessionId)
-    return worker && worker.status !== 'removed'
-      ? {
-          role: 'worker',
-          instructions: WORKER_INSTRUCTIONS,
-          reportSchema: WORKER_REPORT_JSON_SCHEMA
-        }
-      : { role: 'task' }
+    if (!worker || worker.status === 'removed') return { role: 'task' }
+    const tree = worktreeOf(worker)
+    return {
+      role: 'worker',
+      instructions: tree
+        ? `${WORKER_INSTRUCTIONS}\n\n${worktreeInstructions(tree.branch)}`
+        : WORKER_INSTRUCTIONS,
+      reportSchema: WORKER_REPORT_JSON_SCHEMA
+    }
   }
 
   settled(sessionId: string, outcome: TurnOutcome): void {
@@ -337,7 +424,12 @@ export class WorkerPool implements TurnProfiles {
         (e) => 'workerId' in e && e.workerId === worker.id,
         'dropped'
       )
-      this.inbox.add(worker.routerId, this.event('worker_removed', worker))
+      const removed = (branch: string | null) => {
+        if (this.closed) return
+        this.inbox.add(worker.routerId, { ...this.event('worker_removed', worker), branch })
+      }
+      if (worktreeOf(worker)) void this.release(worker).then(removed)
+      else removed(null)
       this.schedule()
       return
     }
@@ -373,8 +465,39 @@ export class WorkerPool implements TurnProfiles {
     if (!this.host.providerReady(worker.provider)) return false
     const active = [...this.workers.values()].filter(activeWorker)
     if (active.length >= WORKER_LIMIT) return false
-    if (worker.permission === 'read-only') return true
-    return !active.some((w) => w.routerId === worker.routerId && w.permission !== 'read-only')
+    // A worktree is this worker's alone; only writers sharing the checkout wait for each other.
+    if (worker.permission === 'read-only' || worktreeOf(worker)) return true
+    return !active.some(
+      (w) => w.routerId === worker.routerId && w.permission !== 'read-only' && !worktreeOf(w)
+    )
+  }
+
+  /**
+   * Cleans up a removed worker's worktree. Returns the branch when it holds
+   * work the user's checkout does not have yet. A worktree with uncommitted
+   * changes is kept until the user discards it; a failed cleanup stays
+   * `active` and runs again on the next start.
+   */
+  private async release(worker: RouterWorker): Promise<string | null> {
+    const tree = worktreeOf(worker)
+    if (!tree || tree.state !== 'active') return null
+    try {
+      const result = await this.workspaces.release(tree, false)
+      tree.state = result.worktree === 'kept' ? 'kept' : 'released'
+      this.save(worker)
+      return result.branch === 'kept' ? tree.branch : null
+    } catch {
+      return null
+    }
+  }
+
+  /** Startup: prunes registrations of deleted worktrees and finishes interrupted cleanups. */
+  private async recover(): Promise<void> {
+    const trees = [...this.workers.values()].map((w) => worktreeOf(w)).filter((t) => t !== null)
+    for (const repo of [...new Set(trees.map((t) => t.repo))].sort())
+      await this.workspaces.prune(repo).catch(() => {})
+    for (const worker of [...this.workers.values()].sort((a, b) => a.id.localeCompare(b.id)))
+      if (worker.status === 'removed') await this.release(worker)
   }
 
   /**

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { create } from 'zustand'
 import type { CodexFailure, CodexReply, CodexRouter } from '../../../shared/codex'
 import type { OwlsProviderId, RouterProviderInfo, RouterWorker } from '../../../shared/router'
@@ -20,10 +21,27 @@ type State = {
   send(routerId: string, text: string): Promise<boolean>
   interrupt(routerId: string): Promise<void>
   resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
+  discardWorktree(routerId: string, workerId: string): Promise<void>
   loadProviders(): Promise<void>
   setKey(providerId: OwlsProviderId, key: string): Promise<boolean>
   removeKey(providerId: OwlsProviderId): Promise<void>
   clearError(): void
+}
+/**
+ * Project directory of each worker session that runs in its own worktree,
+ * by session ID. Other sessions run in their project, so their `cwd` is it.
+ */
+export function useWorktreeProjects(): Map<string, string> {
+  const workers = useRouterStore((s) => s.workers)
+  const routers = useRouterStore((s) => s.routers)
+  return useMemo(() => {
+    const projects = new Map<string, string>()
+    for (const worker of workers) {
+      const router = routers.find((r) => r.id === worker.routerId)
+      if (router && worker.workspace.kind === 'worktree') projects.set(worker.sessionId, router.cwd)
+    }
+    return projects
+  }, [workers, routers])
 }
 const newer = <T extends { id: string; updatedAt: string }>(list: T[], next: T) => {
   const current = list.find((x) => x.id === next.id)
@@ -77,6 +95,9 @@ export const useRouterStore = create<State>((set, get) => {
     },
     resolveBatch: async (routerId, batchId, decision) => {
       await action(() => window.codex.resolveBatch({ routerId, batchId, decision }))
+    },
+    discardWorktree: async (routerId, workerId) => {
+      await action(() => window.codex.discardWorktree({ routerId, workerId }))
     },
     loadProviders: async () => {
       const providers = await action(() => window.codex.routerProviders())

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  type DiscardWorktree,
   type ResolveBatch,
   type RouterProviderInfo,
   type RouterWorker,
@@ -39,7 +40,8 @@ export const failureSchema = z.object({
     'router_model_unconfigured',
     'router_auth_failed',
     'router_unavailable',
-    'secure_storage_unavailable'
+    'secure_storage_unavailable',
+    'worktree_failed'
   ]),
   message: z.string()
 })
@@ -221,6 +223,7 @@ export interface CodexAPI {
   sendRouter(input: SendRouterMessage): Promise<CodexReply<void>>
   interruptRouter(routerId: string): Promise<CodexReply<void>>
   resolveBatch(input: ResolveBatch): Promise<CodexReply<void>>
+  discardWorktree(input: DiscardWorktree): Promise<CodexReply<void>>
   routerProviders(): Promise<CodexReply<RouterProviderInfo[]>>
   setRouterKey(input: SetRouterKey): Promise<CodexReply<void>>
   removeRouterKey(providerId: string): Promise<CodexReply<void>>

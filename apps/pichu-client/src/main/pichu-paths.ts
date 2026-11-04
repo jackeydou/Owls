@@ -28,6 +28,11 @@ function legacyDefaultDataRoot(): string {
   return join(homedir(), '.pix')
 }
 
+/** Where Router workers get their own git worktrees, one directory per repository (RFC 11.1). */
+export function workerWorktreesRoot(dataRoot = getDataRoot()): string {
+  return join(dataRoot, 'worktrees')
+}
+
 export function defaultWorkspaceRoot(): string {
   return join(homedir(), 'Documents', 'Pichu')
 }

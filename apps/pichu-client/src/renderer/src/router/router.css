@@ -82,6 +82,15 @@
   color: var(--color-muted-foreground);
   font-size: 10px;
 }
+.router-worker small.router-worker-branch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  white-space: nowrap;
+}
 .router-worker p {
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -125,4 +134,38 @@
 }
 .router-unknown-batch > span {
   flex: 1;
+}
+.router-kept {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+}
+.router-kept > p {
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-kept li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+.router-kept li > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.router-kept-goal,
+.router-kept small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-kept small {
+  color: var(--color-muted-foreground);
+  font-size: 10px;
 }
