@@ -7,11 +7,6 @@
   height: 48px;
   object-fit: contain;
   margin: 0 auto 25px;
-  opacity: 0.85;
-}
-[data-theme="dark"] .codex-welcome > img,
-[data-theme="dark"] .codex-sidebar-brand img {
-  filter: invert(1);
 }
 .codex-welcome h1 {
   font-size: 26px;

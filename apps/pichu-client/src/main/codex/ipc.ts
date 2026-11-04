@@ -15,6 +15,7 @@ import {
   sendRouterSchema,
   setRouterKeySchema
 } from '../../shared/router.js'
+import { applyAppLogo } from './app-logo.js'
 import { codexFailure } from './errors.js'
 import type { OwlsHost } from './host.js'
 
@@ -48,12 +49,12 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
   handle('snapshot', () => host.snapshot())
   handle('connect', () => host.connect())
   handle('connect-claude', () => host.connectClaude())
-  handle('settings', (input) =>
-    host.saveSettings({
-      ...host.snapshot().settings,
-      ...settingsUpdateSchema.parse(input)
-    })
-  )
+  handle('settings', (input) => {
+    const previous = host.snapshot().settings
+    const saved = host.saveSettings({ ...previous, ...settingsUpdateSchema.parse(input) })
+    if (saved.appLogo !== previous.appLogo) applyAppLogo(saved.appLogo, getWindow())
+    return saved
+  })
   handle('create-session', (input) => host.createSession(createSessionSchema.parse(input)))
   handle('send', (input) => host.send(sendSchema.parse(input)))
   handle('interrupt', (input) => host.interrupt(z.string().uuid().parse(input)))

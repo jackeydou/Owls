@@ -112,6 +112,47 @@
 .codex-setting-row select {
   min-width: 130px;
 }
+.codex-logo-field {
+  margin-top: 25px;
+}
+.codex-logo-field legend {
+  font-size: 12px;
+}
+.codex-logo-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.codex-logo-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.codex-logo-option:has(input:checked) {
+  border-color: var(--color-accent);
+}
+.codex-logo-option:has(input:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.codex-logo-option img {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+}
+/* The Dock artwork keeps Apple's icon margin, which reads as undersized inside the app. */
+.codex-logo-option img,
+.codex-sidebar-brand img,
+.codex-welcome > img {
+  transform: scale(1.24);
+}
 .codex-path {
   display: block;
   padding: 12px;

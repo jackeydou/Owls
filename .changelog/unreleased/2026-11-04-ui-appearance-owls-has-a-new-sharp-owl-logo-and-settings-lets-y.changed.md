@@ -1,0 +1,1 @@
+- -- Appearance: Owls has a new sharp owl logo, and Settings lets you switch the Dock icon and in-app logo between the Line, Solid, and Brow styles. (#24)

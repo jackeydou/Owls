@@ -258,6 +258,12 @@ app
       await waitFor("document.body.textContent.includes('导入并使用本地 Codex 登录')")
       assert.equal(host.snapshot().settings.language, 'zh-CN')
       assert.equal(host.snapshot().settings.theme, 'dark')
+      assert.equal(host.snapshot().settings.appLogo, 'solid')
+      await evaluate(
+        "[...document.querySelectorAll('input[name=codex-app-logo]')].length === 3 && document.querySelectorAll('input[name=codex-app-logo]')[0].click()"
+      )
+      await waitFor("document.querySelector('.codex-sidebar-brand img')?.dataset.logo === 'line'")
+      assert.equal(host.snapshot().settings.appLogo, 'line')
       await capture('settings')
 
       await window.reload()
@@ -411,7 +417,7 @@ app
       await evaluate("document.querySelector('.codex-router-entry').click()")
       await waitFor("document.querySelector('.router-model')?.textContent.includes('Claude Code')")
       console.log(
-        'PASS: production preload + IPC + SQLite + renderer, messages, tools/diff, approvals, questions, local account reconnect, theme/language, reload, Claude Code tasks, Router setup and keys, Router Inbox recovery, engine switch'
+        'PASS: production preload + IPC + SQLite + renderer, messages, tools/diff, approvals, questions, local account reconnect, theme/language, app logo, reload, Claude Code tasks, Router setup and keys, Router Inbox recovery, engine switch'
       )
       if (captureDir) console.log(`UI captures: ${captureDir}`)
     } finally {

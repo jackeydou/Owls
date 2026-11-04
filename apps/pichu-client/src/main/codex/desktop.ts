@@ -13,6 +13,7 @@ import { defaultEngineFactory } from '../router/engines/factory.js'
 import { RouterService } from '../router/service.js'
 import { RouterStore } from '../router/store.js'
 import { GitWorkspaces } from '../router/worktrees.js'
+import { applyAppLogo } from './app-logo.js'
 import { OwlsHost } from './host.js'
 import { registerCodexIpc } from './ipc.js'
 import { safeText } from './protocol.js'
@@ -81,6 +82,7 @@ function createWindow(): void {
       nodeIntegration: false
     }
   })
+  if (service) applyAppLogo(service.snapshot().settings.appLogo, window)
   window.once('ready-to-show', () => window?.show())
   // Keep the native profile name when the renderer loads its generic HTML title.
   window.on('page-title-updated', (event) => event.preventDefault())

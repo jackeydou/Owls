@@ -30,6 +30,7 @@ export class CodexStore {
           permission: 'workspace-write',
           theme: 'system',
           language: 'en',
+          appLogo: 'solid',
           provider: 'codex',
           claudeExecutablePath: null,
           claudeModel: null,
