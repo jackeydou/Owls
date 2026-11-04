@@ -1,0 +1,1 @@
+- Router: long conversations with the built-in Owls Router keep hitting the model provider's prompt cache instead of resending their full context on every request. (#22)

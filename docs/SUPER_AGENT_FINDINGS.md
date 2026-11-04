@@ -50,6 +50,10 @@ F18–F20 使用 pi `1.5.0`。
 | F27 | `-c mcp_servers.<未知名称>.enabled=false` 使 app-server 启动失败；未知 feature 只被忽略 | 已确认 |
 | F28 | Codex Router 每批次约 17.5k token 固定上下文；`tokenUsage/updated` 可能重复发送 | 已确认 |
 | F29 | 受信任项目的 `.codex/config.toml` 中的 MCP server 在 `thread/start` 时启动，不带 `cwd` 的 `config/read` 读不到 | 已确认，已修复 |
+| F30 | Owls 引擎超出上下文预算后每次请求都重新裁剪，提示缓存全部失效，且裁剪本身是平方复杂度 | 已修复（M4） |
+| F31 | 同一 checkout 中可写 Worker 串行，M4 中完成时间是只读 Worker 的 5.6–6.9 倍 | 待处理 |
+| F32 | 后台子 agent 的单会话完成时间与 Router 相当，但输入 token 是 4.6 倍，上下文持续增长 | 已确认（脚本化模型） |
+| F33 | 追问直通减少 15% 的 Router 请求，追问 p95 从 5.9 分钟降到 3.9 分钟 | 已确认（脚本化模型） |
 | R1 | ClaudeService 一轮结束后立即发下一条，会被上一轮的清理误判为失败 | 已修复（#16） |
 | R2 | Claude 任务的回复标题写死为「Codex」 | 已修复（#16） |
 | R3 | `main` 上的 `pnpm-lock.yaml` 与工作区不同步 | 已修复（#16） |
@@ -372,6 +376,51 @@ Codex CLI `0.166.0`。先用独立脚本复现 RFC 4.2 节的锁定进程，再�
   thread 不重复检查）从运行中的进程再读一次配置，出现未关闭的 server 时重启进程。同样的实测中
   原有 server 和中途新增的 server 都不再启动。
 - 未验证：已加载的 thread 在后续 turn 中是否会启动配置中新增的 server（需要登录才能发起 turn）。
+
+## M4 消融实验（2026-11-03）
+
+`pnpm --filter pichu-client bench:router`，设置与完整结果见 RFC 14.1 节。打包后的
+`RouterService`、`WorkerPool` 和 Owls 引擎由脚本化的 pi faux provider 驱动，时间走虚拟时钟；
+以下数字是 5 个种子的平均，单种子的数字会标明。
+
+### F30 Owls 引擎超出上下文预算后提示缓存全部失效
+
+- 现象：Router 的上下文一旦超过 `ROUTER_CONTEXT_BUDGET`，`trimContext` 在每次请求时都从头重新
+  计算裁剪位置，并把最新的 Worker 状态摘要拼到第一条保留的消息前面。裁剪位置随每个新批次后移，
+  摘要也随 Worker 状态变化，所以相邻两次请求只有系统提示相同。种子 1001 中 Router 的输入
+  3693k token 只有 28% 可以命中缓存（同一负载的单会话为 99%）。另外 `trimContext` 对每个候选
+  位置重新序列化全部消息，是平方复杂度：修复前 7 组基准约 54 秒，修复后 2.9 秒。
+- 影响：长时间运行的 Router 每个请求都按全价付约 12k token 的上下文；main 进程在每次请求前
+  同步序列化整段历史。
+- 修复：超出预算时一次裁到预算的 60%，Owls 引擎记住裁剪位置和当时的摘要，直到剩余部分再次
+  超出预算才重新裁剪；后缀大小一次累加，线性复杂度。种子 1001 的未缓存输入从约 2659k 降到 327k。
+  回归测试：`router-runtime.test.mjs` 中的
+  「trimContext keeps its cut and note until the context outgrows the budget again」。
+
+### F31 同一 checkout 中可写 Worker 串行
+
+- 现象：RFC 11 节规定同一 checkout 上权限不是 `read-only` 的 Worker 串行执行。基准中 Worker 都以
+  `workspace-write` 分派时，工作完成时间 p50 47.5 分钟、p95 100.3 分钟，只读 Worker 为 8.5 和
+  14.5 分钟。
+- 影响：`dispatch_task` 不指定权限时取项目默认权限（通常是 `workspace-write`），所以实际使用中
+  Router 分派的改代码任务基本是串行的，双层架构的并行收益只对只读任务成立。
+- 后续：自动 git worktree 管理（RFC 第 16 节开放问题 8）。
+
+### F32 后台子 agent 的单会话与 Router 完成时间相当，成本更高
+
+- 现象：单会话用前台子 agent（等待结果再继续）时工作 p95 28.5 分钟、闲聊 p95 914 秒；改用
+  后台子 agent（结果作为新消息到达）后工作 p50 / p95 为 8.1 / 14.5 分钟，与 Router 的 8.5 / 14.5
+  相当。代价是上下文一小时后达到 65k 且持续增长，输入 token 12082k，是 Router 的 4.6 倍；按缓存
+  命中计 10% 折算约为 Router 的 2.2 倍。
+- 影响：Router 的完成时间优势来自不阻塞，后台子 agent 也能做到；Router 的优势在于上下文有界、
+  Worker 隔离和成本。该结论依赖耗时模型（缓存 token 的预填充成本只算 10%），需要实机校准。
+
+### F33 追问直通减少 Router 决策
+
+- 现象：去掉追问直通（追问先发给 Router，再由 `message_worker` 转给 Worker）后，Router 请求从
+  316 增加到 374，批次从 257 增加到 283；追问 p50 / p95 从 2.2 / 3.9 分钟变为 2.7 / 5.9 分钟，
+  工作 p95 从 14.5 变为 15.5 分钟。
+- 影响：与文章的方向一致：直通在不改变结果的前提下减少协调层的负载和排队。
 
 ## Claude Code runtime 接入（PR #16，2026-11-01）
 
