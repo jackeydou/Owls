@@ -12,6 +12,9 @@ import {
 const require = createRequire(import.meta.url)
 const {
   ClaudeEngine,
+  CodexEngine,
+  CodexRouterServer,
+  codexRouterArgs,
   OwlsEngine,
   RouterCredentials,
   RouterService,
@@ -81,6 +84,22 @@ function memoryRouterStore() {
           Object.assign(e, { status: 'pending', batchId: null })
     },
     hasMessages: (id) => (messages.get(id) ?? []).length > 0,
+    event(n) {
+      const row = events.find((e) => e.seq === n)
+      return row
+        ? {
+            event: publicEvent(row),
+            routerId: row.routerId,
+            status: row.status,
+            batchId: row.batchId
+          }
+        : null
+    },
+    workerEvents: (routerId, workerId, limit) =>
+      events
+        .filter((e) => e.routerId === routerId && e.body.workerId === workerId)
+        .slice(-limit)
+        .map(publicEvent),
     routers: () => [...routers.values()].map((r) => structuredClone(r)),
     saveRouter: (r) => routers.set(r.id, structuredClone(r)),
     workers: () => [...workers.values()].map((w) => structuredClone(w)),
@@ -116,6 +135,9 @@ function commands() {
 function fakeHost(overrides = {}) {
   const created = []
   const sent = []
+  const steered = []
+  const interrupted = []
+  const turns = { profiles: null, running: new Set() }
   const settings = {
     permission: 'workspace-write',
     provider: 'codex',
@@ -124,12 +146,21 @@ function fakeHost(overrides = {}) {
     effort: null,
     claudeModel: null,
     claudeEffort: null,
-    router: { engine: 'owls', owls: null, claudeModel: null, maxPermission: 'workspace-write' },
+    router: {
+      engine: 'owls',
+      owls: null,
+      claudeModel: null,
+      codexModel: null,
+      maxPermission: 'workspace-write'
+    },
     ...overrides.settings
   }
   return {
     created,
     sent,
+    steered,
+    interrupted,
+    turns,
     settings,
     host: {
       projects: () => [PROJECT],
@@ -140,8 +171,19 @@ function fakeHost(overrides = {}) {
         created.push(session)
         return session
       },
+      // Like the task services, ask for the turn profile as each turn starts.
       send: async (input) => {
+        turns.profiles?.profile(input.sessionId)
+        turns.running.add(input.sessionId)
         sent.push(input)
+      },
+      steer: async (sessionId, text) => {
+        if (!turns.running.has(sessionId)) return 'not_running'
+        steered.push({ sessionId, text })
+        return 'steered'
+      },
+      interrupt: async (sessionId) => {
+        interrupted.push(sessionId)
       }
     }
   }
@@ -169,7 +211,8 @@ function harness(replies, options = {}) {
   faux.setResponses(replies)
   const store = options.store ?? memoryRouterStore()
   const events = []
-  const { host, created, sent, settings } = options.fake ?? fakeHost(options.host)
+  const fake = options.fake ?? fakeHost(options.host)
+  const { host, created, sent, settings } = fake
   const factory = (request) =>
     new OwlsEngine({
       routerId: request.router.id,
@@ -193,9 +236,10 @@ function harness(replies, options = {}) {
     (event) => events.push(event),
     options.factory ?? factory
   )
+  fake.turns.profiles = service
   const router = service.open(PROJECT.id)
   const current = () => service.snapshot().routers.find((r) => r.id === router.id)
-  return { faux, service, router, current, events, created, sent, settings, store, host }
+  return { faux, service, router, current, events, created, sent, settings, store, host, fake }
 }
 
 test('message → dispatch → report → reply runs through the Owls engine', async () => {
@@ -347,7 +391,11 @@ test('the engine factory refuses to run without a stored key', () => {
   const credentials = new RouterCredentials(store, cipher)
   const factory = defaultEngineFactory({
     credentials,
-    claude: { sdk: null, connection: () => ({ status: 'disconnected', executablePath: null }) }
+    claude: { sdk: null, connection: () => ({ status: 'disconnected', executablePath: null }) },
+    codex: {
+      server: null,
+      connection: () => ({ status: 'ready', executablePath: null, account: { kind: 'signed-out' } })
+    }
   })
   const router = { id: 'r', projectId: 'p', cwd: '/tmp', status: 'idle', items: [] }
   const base = { router, tools: [], history: [], state: () => '', persist: () => {} }
@@ -364,6 +412,11 @@ test('the engine factory refuses to run without a stored key', () => {
     factory({ ...base, settings: { engine: 'claude-code', owls, maxPermission: 'read-only' } })
       .code,
     'claude_not_connected'
+  )
+  assert.equal(
+    factory({ ...base, settings: { engine: 'codex', owls, maxPermission: 'read-only' } }).code,
+    'not_connected',
+    'a signed-out Codex cannot run the Router'
   )
   credentials.setKey('anthropic', 'sk-test')
   const engine = factory({
@@ -575,7 +628,7 @@ test('the Inbox persists events and records each batch', async () => {
   await waitFor(() => engine.runs.length === 1 && current().status === 'idle', 'first batch')
   const [first] = store.batches('delivered')
   assert.equal(first.engine, 'owls')
-  assert.equal(first.promptVersion, 1)
+  assert.equal(first.promptVersion, 2)
   assert.deepEqual(
     first.eventSeqs,
     store
@@ -911,7 +964,13 @@ test('the Claude Code engine runs isolated, calls Owls tools, and resumes its se
   assert.deepEqual(options.tools, [])
   assert.deepEqual(options.settingSources, [])
   assert.equal(options.strictMcpConfig, true)
-  assert.deepEqual(options.allowedTools, ['mcp__owls__dispatch_task'])
+  assert.deepEqual(options.allowedTools, [
+    'mcp__owls__dispatch_task',
+    'mcp__owls__list_workers',
+    'mcp__owls__message_worker',
+    'mcp__owls__recall',
+    'mcp__owls__stop_worker'
+  ])
   assert.deepEqual(Object.keys(options.mcpServers), ['owls'])
   assert.equal(options.mcpServers.owls.options.alwaysLoad, true)
   assert.equal(typeof options.systemPrompt, 'string')
@@ -980,13 +1039,13 @@ test('the Claude Code engine folds steered messages in and drops a lost session'
   const sink = { item: (item) => items.push(item), usage: () => {} }
   const running = engine.run({ batchId: 'b_1', text: 'First', native: null }, sink)
   await waitFor(() => sdk.calls.length === 1 && sdk.calls[0].inputs.length === 1, 'first input')
-  assert.equal(engine.steer('Second'), 'steered')
+  assert.equal(await engine.steer('Second'), 'steered')
   release()
   const outcome = await running
   assert.equal(outcome.status, 'completed')
   assert.deepEqual(outcome.native, { engine: 'claude-code', sessionId: 's-1' })
   assert.equal(items.at(-1).text, 'heard: Second')
-  assert.equal(engine.steer('Late'), 'not_running')
+  assert.equal(await engine.steer('Late'), 'not_running')
 
   const lost = await engine.run({ batchId: 'b_2', text: 'Again', native: outcome.native }, sink)
   assert.equal(sdk.calls[1].options.resume, 's-1')
@@ -996,4 +1055,365 @@ test('the Claude Code engine folds steered messages in and drops a lost session'
     { engine: 'claude-code', sessionId: null },
     'next batch starts fresh'
   )
+})
+
+/** Runs one batch whose engine calls `script(tools)` and returns the parsed tool results. */
+async function withTools(script, options = {}) {
+  const { engine, factory } = scriptedEngine()
+  const h = harness([], { factory, ...options })
+  const results = []
+  engine.onRun = async (_input, tools) => {
+    const call = async (name, args) => {
+      try {
+        return JSON.parse(await tools.find((t) => t.name === name).execute(args))
+      } catch (error) {
+        return JSON.parse(
+          error.message.startsWith('{')
+            ? error.message
+            : JSON.stringify({ error: { code: error.code } })
+        )
+      }
+    }
+    if (engine.runs.length === 1) results.push(...(await script(call, h)))
+  }
+  send(h.service, h.router, 'go')
+  await waitFor(() => engine.runs.length >= 1 && h.current().status === 'idle', 'tool batch')
+  return { ...h, engine, results }
+}
+
+test('the Router sees its tools in a fixed order', async () => {
+  const { engine, service } = await withTools(async () => [])
+  assert.deepEqual(
+    engine.tools.map((t) => t.name),
+    ['dispatch_task', 'list_workers', 'message_worker', 'recall', 'stop_worker']
+  )
+  service.close()
+})
+
+test('message_worker steers a running worker and starts a new turn for an idle one', async () => {
+  const { service, results, fake, sent } = await withTools(async (call, h) => {
+    const { workerId } = await call('dispatch_task', { goal: 'Fix the bug' })
+    const running = await call('message_worker', { workerId, text: 'Also add a test.' })
+    const worker = h.service.snapshot().workers[0]
+    h.fake.turns.running.delete(worker.sessionId)
+    h.service.settled(worker.sessionId, report('Fixed.'))
+    const idle = await call('message_worker', { workerId, text: 'Now update the docs.' })
+    const missing = await call('message_worker', { workerId: 'w_nope', text: 'Hi' })
+    return [running, idle, missing]
+  })
+  assert.deepEqual(results[0], { delivered: 'steered' })
+  assert.deepEqual(
+    fake.steered.map((s) => s.text),
+    ['Also add a test.']
+  )
+  assert.deepEqual(results[1], { delivered: 'started' })
+  assert.equal(sent.at(-1).text, 'Now update the docs.')
+  assert.equal(results[2].error.code, 'worker_not_found')
+  assert.equal(service.snapshot().workers[0].status, 'running')
+  service.close()
+})
+
+test('a follow-up for a busy writer waits in the queue and a removed worker is closed', async () => {
+  const { service, results, sent } = await withTools(async (call, h) => {
+    const a = await call('dispatch_task', { goal: 'Write A' })
+    const b = await call('dispatch_task', { goal: 'Write B' })
+    const queued = await call('message_worker', { workerId: b.workerId, text: 'Use tabs.' })
+    const worker = h.service.snapshot().workers.find((w) => w.id === a.workerId)
+    h.service.observe({ type: 'removed', sessionId: worker.sessionId })
+    const closed = await call('message_worker', { workerId: a.workerId, text: 'Hello?' })
+    return [b, queued, closed]
+  })
+  assert.equal(results[0].status, 'queued')
+  assert.deepEqual(results[1], { delivered: 'queued' })
+  assert.equal(results[2].error.code, 'worker_closed')
+  // Removing A frees the checkout, so B starts with its goal and the follow-up together.
+  await waitFor(() => sent.length === 2, 'queued start')
+  assert.equal(sent[1].text, 'Write B\n\nUse tabs.')
+  service.close()
+})
+
+test('stop_worker interrupts a running worker without a new batch and cancels a queued one', async () => {
+  const { service, results, fake, engine, current } = await withTools(async (call) => {
+    const a = await call('dispatch_task', { goal: 'Long A' })
+    const b = await call('dispatch_task', { goal: 'Long B' })
+    return [
+      await call('stop_worker', { workerId: a.workerId }),
+      await call('stop_worker', { workerId: b.workerId }),
+      a,
+      b
+    ]
+  })
+  assert.deepEqual(results.slice(0, 2), [{ status: 'stopping' }, { status: 'cancelled' }])
+  const a = service.snapshot().workers.find((w) => w.id === results[2].workerId)
+  assert.deepEqual(fake.interrupted, [a.sessionId])
+  service.settled(a.sessionId, { status: 'interrupted', structured: null, text: '' })
+  await new Promise((resolve) => setTimeout(resolve, 30))
+  assert.equal(engine.runs.length, 1, 'a stop the Router asked for does not start a batch')
+  assert.equal(
+    service.snapshot().workers.find((w) => w.id === results[3].workerId).status,
+    'stopped'
+  )
+  assert.equal(current().status, 'idle')
+  service.close()
+})
+
+test('list_workers and recall describe workers, events, and batches', async () => {
+  const long = `${'x'.repeat(8100)}END`
+  const { service, results, store, router } = await withTools(async (call, h) => {
+    const { workerId } = await call('dispatch_task', {
+      goal: 'Summarize',
+      context: 'c'.repeat(5000),
+      permission: 'read-only'
+    })
+    const worker = h.service.snapshot().workers[0]
+    h.service.settled(worker.sessionId, report('s'.repeat(900)))
+    return [
+      await call('list_workers', {}),
+      await call('recall', { id: workerId }),
+      await call('recall', { id: 'w_other' })
+    ]
+  })
+  const [list, worker, missing] = results
+  assert.equal(list.workers.length, 1)
+  assert.equal(list.workers[0].report.summary.length, 300)
+  assert.equal(worker.context.text.length, 4000)
+  assert.equal(worker.context.next, `${worker.id}@4000`)
+  assert.equal(missing.error.code, 'not_found')
+  // A long user message is cut in the batch and readable through recall.
+  const { engine, factory } = scriptedEngine()
+  const h = harness([], { factory, store })
+  const recalled = []
+  engine.onRun = async (input, tools) => {
+    const recall = tools.find((t) => t.name === 'recall')
+    const id = /recall: (ev_\d+)/.exec(input.text)?.[1]
+    if (!id) return
+    const first = JSON.parse(await recall.execute({ id }))
+    const second = JSON.parse(await recall.execute({ id: first.next }))
+    const batch = JSON.parse(await recall.execute({ id: input.batchId }))
+    recalled.push(first, second, batch)
+  }
+  send(h.service, h.router, long)
+  await waitFor(() => recalled.length === 3, 'recall batch')
+  assert.match(engine.runs[0].text, /x… \(truncated, recall: ev_\d+\)$/)
+  assert.equal(recalled[0].kind, 'user_message')
+  assert.equal(recalled[0].text.length, 4000)
+  assert.ok(recalled[1].text.startsWith('x'))
+  assert.equal(recalled[1].next, `${recalled[0].id}@8000`)
+  assert.equal(recalled[2].status, 'sending')
+  assert.ok(recalled[2].events.includes(recalled[0].id))
+  assert.equal(h.router.id, router.id)
+  service.close()
+  h.service.close()
+})
+
+test('a follow-up the user runs in a worker task reaches the Router without a batch', async () => {
+  const { service, router, engine, current, sent } = await withTools(async (call) => [
+    await call('dispatch_task', { goal: 'Draft the README' })
+  ])
+  const worker = service.snapshot().workers[0]
+  service.settled(worker.sessionId, report('Drafted.'))
+  await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'report batch')
+  // The user asks the worker directly: a turn the Router did not start.
+  service.observe({
+    type: 'session',
+    session: { id: worker.sessionId, status: 'running', requests: [] }
+  })
+  service.settled(worker.sessionId, report('Added a badge.'))
+  await new Promise((resolve) => setTimeout(resolve, 30))
+  assert.equal(engine.runs.length, 2, 'no batch for the follow-up')
+  send(service, router, 'Status?')
+  await waitFor(() => engine.runs.length === 3, 'next batch')
+  assert.match(
+    engine.runs[2].text,
+    /worker_report · w_[0-9a-f]+ · .* · done · follow-up\nGoal: Draft the README\nAdded a badge\./
+  )
+  assert.equal(sent.length, 1)
+  service.close()
+})
+
+/** A scripted Codex app-server pair: the config probe and the Router process. */
+function fakeCodex(script) {
+  const launches = []
+  const requests = []
+  let onFrame = null
+  const launch = async (_executable, options, frame, _close) => {
+    launches.push(options)
+    const index = launches.length
+    if (options.args.length) onFrame = frame
+    return {
+      request: async (method, params) => {
+        requests.push({ process: index, method, params })
+        if (method === 'config/read')
+          return { config: { mcp_servers: { pencil: {}, node_repl: {} } } }
+        return script(method, params, (f) => onFrame(f))
+      },
+      respond: (id, result) =>
+        requests.push({ process: index, method: 'respond', id, params: result }),
+      reject: (id) => requests.push({ process: index, method: 'reject', id }),
+      stop: () => requests.push({ process: index, method: 'stop' })
+    }
+  }
+  return { launch, launches, requests }
+}
+
+test('the Codex engine runs a locked-down thread, answers tool calls, and resumes', async () => {
+  let threads = 0
+  const codex = fakeCodex((method, params, emit) => {
+    if (method === 'thread/start') return { thread: { id: `thread-${++threads}` } }
+    if (method === 'thread/resume') {
+      if (params.threadId === 'thread-gone') throw new Error('no rollout found')
+      return {}
+    }
+    if (method === 'turn/start') {
+      const threadId = params.threadId
+      const turnId = `turn-${params.input[0].text.length}`
+      queueMicrotask(() => {
+        emit({ method: 'turn/started', params: { threadId, turn: { id: turnId } } })
+        emit({
+          id: 7,
+          method: 'item/tool/call',
+          params: {
+            threadId,
+            turnId,
+            callId: 'c1',
+            tool: 'dispatch_task',
+            arguments: { goal: 'Ship it' }
+          }
+        })
+        emit({
+          method: 'item/completed',
+          params: {
+            threadId,
+            turnId,
+            item: {
+              type: 'dynamicToolCall',
+              id: 'c1',
+              tool: 'dispatch_task',
+              arguments: { goal: 'Ship it' },
+              success: true,
+              contentItems: [{ type: 'inputText', text: '{"workerId":"w_1"}' }]
+            }
+          }
+        })
+        emit({
+          method: 'item/agentMessage/delta',
+          params: { threadId, turnId, itemId: 'm1', delta: 'Started.' }
+        })
+        emit({
+          method: 'item/completed',
+          params: { threadId, turnId, item: { type: 'agentMessage', id: 'm1', text: 'Started.' } }
+        })
+        // Codex can repeat the same update; only a new total counts.
+        const tokenUsage = {
+          total: { totalTokens: 105 * params.input[0].text.length },
+          last: { inputTokens: 100, cachedInputTokens: 60, outputTokens: 5 }
+        }
+        emit({ method: 'thread/tokenUsage/updated', params: { threadId, tokenUsage } })
+        emit({ method: 'thread/tokenUsage/updated', params: { threadId, tokenUsage } })
+        setTimeout(
+          () =>
+            emit({
+              method: 'turn/completed',
+              params: { threadId, turn: { id: turnId, status: 'completed' } }
+            }),
+          5
+        )
+      })
+      return { turn: { id: turnId } }
+    }
+    if (method === 'turn/steer') return { turnId: params.expectedTurnId }
+    return {}
+  })
+  const server = new CodexRouterServer(codex.launch)
+  const calls = []
+  const tools = [
+    {
+      name: 'dispatch_task',
+      description: 'Dispatch.',
+      schema: { _zod: true },
+      execute: async (args) => {
+        calls.push(args)
+        return '{"workerId":"w_1","status":"started"}'
+      }
+    }
+  ]
+  const make = (promptVersion = 2) =>
+    new CodexEngine({
+      server,
+      executable: '/bin/codex',
+      cwd: PROJECT.path,
+      model: 'gpt-test',
+      instructions: 'Route.',
+      promptVersion,
+      tools: tools.map((t) => ({
+        ...t,
+        schema: require('zod').z.object({ goal: require('zod').z.string() })
+      })),
+      state: () => '- w_1 · running · Ship it'
+    })
+  const items = []
+  const usage = []
+  const sink = { item: (i) => items.push(i), usage: (u) => usage.push(u) }
+  const engine = make()
+  const first = await engine.run({ batchId: 'b_1', text: 'Ship it', native: null }, sink)
+  assert.equal(first.status, 'completed')
+  assert.deepEqual(first.native, { engine: 'codex', threadId: 'thread-1', promptVersion: 2 })
+  assert.deepEqual(
+    codex.launches[0],
+    { args: [], experimentalApi: true },
+    'a plain probe reads the config'
+  )
+  assert.deepEqual(codex.launches[1].args, codexRouterArgs(['node_repl', 'pencil']))
+  assert.ok(codex.launches[1].args.includes('mcp_servers.node_repl.enabled=false'))
+  assert.ok(codex.launches[1].args.includes('features.shell_tool=false'))
+  assert.ok(!codex.launches[1].args.some((a) => a.startsWith('features.code_mode_host')))
+  const start = codex.requests.find((r) => r.method === 'thread/start').params
+  assert.equal(start.sandbox, 'read-only')
+  assert.equal(start.approvalPolicy, 'never')
+  assert.equal(start.cwd, PROJECT.path)
+  assert.equal(start.developerInstructions, 'Route.')
+  assert.deepEqual(
+    start.dynamicTools.map((t) => t.name),
+    ['dispatch_task']
+  )
+  assert.deepEqual(calls, [{ goal: 'Ship it' }])
+  const reply = codex.requests.find((r) => r.method === 'respond')
+  assert.deepEqual(reply.params, {
+    success: true,
+    contentItems: [{ type: 'inputText', text: '{"workerId":"w_1","status":"started"}' }]
+  })
+  assert.deepEqual(
+    items.filter((i) => i.status === 'completed').map((i) => [i.kind, i.text]),
+    [
+      ['tool', 'dispatch_task'],
+      ['assistant', 'Started.']
+    ]
+  )
+  assert.deepEqual(usage, [{ input: 40, output: 5, cacheRead: 60, cacheWrite: 0 }])
+
+  // Same process: the loaded thread is reused without a resume.
+  await engine.run({ batchId: 'b_2', text: 'More', native: first.native }, sink)
+  assert.equal(codex.requests.filter((r) => r.method === 'thread/resume').length, 0)
+  // A restarted process resumes the thread; a lost thread starts over with the state.
+  server.loaded.clear()
+  await engine.run({ batchId: 'b_3', text: 'Again', native: first.native }, sink)
+  assert.equal(codex.requests.filter((r) => r.method === 'thread/resume').length, 1)
+  const lost = await engine.run(
+    {
+      batchId: 'b_4',
+      text: 'Hello',
+      native: { engine: 'codex', threadId: 'thread-gone', promptVersion: 2 }
+    },
+    sink
+  )
+  assert.equal(lost.native.threadId, 'thread-2')
+  const lostTurn = codex.requests.filter((r) => r.method === 'turn/start').at(-1).params
+  assert.match(
+    lostTurn.input[0].text,
+    /^Earlier Router history is not available\. Current workers:\n- w_1 · running · Ship it\n\nHello$/
+  )
+  // New instructions need a new thread.
+  const bumped = await make(3).run({ batchId: 'b_5', text: 'Hi', native: lost.native }, sink)
+  assert.deepEqual(bumped.native, { engine: 'codex', threadId: 'thread-3', promptVersion: 3 })
+  server.close()
 })

@@ -9,13 +9,20 @@ import type {
   CreateCodexSession,
   SendCodexMessage
 } from '../../shared/codex.js'
-import type { RouterWorker } from '../../shared/router.js'
+import type { RouterWorker, WorkerStatus } from '../../shared/router.js'
 import { safeText } from '../codex/protocol.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
 import { WORKER_INSTRUCTIONS } from './prompt.js'
 import { parseReport, WORKER_REPORT_JSON_SCHEMA } from './report.js'
 import type { RouterStore } from './store.js'
-import { type DispatchTaskInput, type DispatchTaskResult, RouterToolError } from './tools.js'
+import {
+  type DispatchTaskInput,
+  type DispatchTaskResult,
+  type MessageWorkerInput,
+  type MessageWorkerResult,
+  RouterToolError,
+  type StopWorkerResult
+} from './tools.js'
 
 /** What a task service asks before each turn, and reports after it. */
 export type TurnProfile =
@@ -39,6 +46,8 @@ export type WorkerHost = {
   providerReady(provider: AgentProvider): boolean
   createSession(input: CreateCodexSession): CodexSession
   send(input: SendCodexMessage): Promise<void>
+  steer(sessionId: string, text: string): Promise<'steered' | 'not_running'>
+  interrupt(sessionId: string): Promise<void>
 }
 
 /** How workers reach the Router Inbox. */
@@ -71,6 +80,13 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
  */
 export class WorkerPool implements TurnProfiles {
   private readonly workers = new Map<string, RouterWorker>()
+  /**
+   * Sessions whose current turn the Router started. Any other worker turn is a
+   * follow-up the user started in the worker's own task view.
+   */
+  private readonly routerTurns = new Set<string>()
+  /** Workers the Router asked to stop, whose stop needs no new batch. */
+  private readonly stopping = new Set<string>()
   private nextCodexStart = 0
   private closed = false
 
@@ -155,6 +171,7 @@ export class WorkerPool implements TurnProfiles {
       goal: input.goal,
       context: input.context ?? null,
       permission,
+      next: input.context ? `${input.goal}\n\nContext:\n${input.context}` : input.goal,
       status: 'queued',
       report: null,
       degraded: false,
@@ -169,6 +186,63 @@ export class WorkerPool implements TurnProfiles {
     if (!(await this.start(worker, false)))
       throw new RouterToolError('dispatch_failed', 'The worker could not start its first turn.')
     return { workerId: worker.id, status: 'started' }
+  }
+
+  /**
+   * Delivers a Router follow-up: into the running turn when possible, otherwise
+   * as the worker's next turn, which may wait in the queue.
+   */
+  async message(routerId: string, input: MessageWorkerInput): Promise<MessageWorkerResult> {
+    const worker = this.owned(routerId, input.workerId)
+    const append = (text: string) => (worker.next ? `${worker.next}\n\n${text}` : text)
+    if (activeWorker(worker)) {
+      if ((await this.host.steer(worker.sessionId, input.text)) === 'steered')
+        return { delivered: 'steered' }
+      // The turn is ending; the message becomes the next turn once it settles.
+      if (activeWorker(worker)) {
+        worker.next = append(input.text)
+        this.save(worker)
+        return { delivered: 'queued' }
+      }
+    }
+    worker.next = append(input.text)
+    if (worker.status !== 'queued') worker.status = 'queued'
+    this.save(worker)
+    if (!this.canStart(worker)) return { delivered: 'queued' }
+    if (!(await this.start(worker, false)))
+      throw new RouterToolError('dispatch_failed', 'The worker could not start a new turn.')
+    return { delivered: 'started' }
+  }
+
+  async stop(routerId: string, workerId: string): Promise<StopWorkerResult> {
+    const worker = this.owned(routerId, workerId)
+    if (worker.status === 'queued') {
+      worker.status = worker.report ? 'idle' : 'stopped'
+      worker.next = null
+      this.save(worker)
+      return { status: 'cancelled' }
+    }
+    worker.next = null
+    if (!activeWorker(worker)) return { status: 'already_idle' }
+    this.stopping.add(worker.id)
+    await this.host.interrupt(worker.sessionId).catch(() => {})
+    return { status: 'stopping' }
+  }
+
+  /** The list_workers result: newest first, report summaries shortened. */
+  describe(routerId: string, status?: WorkerStatus) {
+    return this.list(routerId)
+      .filter((w) => (status ? w.status === status : w.status !== 'removed'))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id))
+      .map((w) => ({
+        workerId: w.id,
+        goal: w.goal,
+        status: w.status,
+        provider: w.provider,
+        report: w.report
+          ? { status: w.report.status, summary: w.report.summary.slice(0, 300) }
+          : null
+      }))
   }
 
   /** Starts queued workers that the limits allow, oldest first. */
@@ -207,6 +281,10 @@ export class WorkerPool implements TurnProfiles {
   settled(sessionId: string, outcome: TurnOutcome): void {
     const worker = this.bySession(sessionId)
     if (!worker || worker.status === 'removed' || this.closed) return
+    // The user is already looking at a follow-up turn, so its result waits for the
+    // next batch instead of starting one (RFC 3.1, passthrough).
+    const followUp = !this.routerTurns.delete(sessionId)
+    const stopped = this.stopping.delete(worker.id)
     if (outcome.status === 'completed') {
       const { report, degraded } = parseReport(outcome.structured, outcome.text)
       // A report the Router has not seen yet is replaced, not stacked (RFC 8, rule 5).
@@ -219,16 +297,26 @@ export class WorkerPool implements TurnProfiles {
       worker.report = report
       worker.degraded = degraded
       worker.status = 'reported'
-      this.save(worker)
-      this.inbox.add(worker.routerId, { ...this.event('worker_report', worker), report })
-    } else {
-      worker.status = outcome.status === 'interrupted' ? 'stopped' : 'failed'
-      this.save(worker)
       this.inbox.add(
         worker.routerId,
-        this.event(outcome.status === 'interrupted' ? 'worker_stopped' : 'worker_failed', worker)
+        { ...this.event('worker_report', worker, followUp), report },
+        !followUp
+      )
+    } else {
+      worker.status = outcome.status === 'interrupted' ? 'stopped' : 'failed'
+      this.inbox.add(
+        worker.routerId,
+        this.event(
+          outcome.status === 'interrupted' ? 'worker_stopped' : 'worker_failed',
+          worker,
+          followUp
+        ),
+        !followUp && !stopped
       )
     }
+    // A Router follow-up that arrived as the turn ended runs next.
+    if (worker.next) worker.status = 'queued'
+    this.save(worker)
     this.schedule()
   }
 
@@ -261,15 +349,17 @@ export class WorkerPool implements TurnProfiles {
       worker.status = 'waiting'
       this.save(worker)
       const request = session.requests.find((r) => r.status === 'pending')
-      this.inbox.add(worker.routerId, {
-        ...this.event('worker_waiting', worker),
-        detail: request ? request.title || request.kind : ''
-      })
-    } else if (
-      session.status === 'running' &&
-      (worker.status === 'starting' || worker.status === 'waiting' || worker.status === 'queued')
-    ) {
-      // A queued worker the user started from its task view is no longer queued.
+      const followUp = !this.routerTurns.has(session.id)
+      this.inbox.add(
+        worker.routerId,
+        {
+          ...this.event('worker_waiting', worker, followUp),
+          detail: request ? request.title || request.kind : ''
+        },
+        !followUp
+      )
+    } else if (session.status === 'running' && worker.status !== 'running') {
+      // Also covers a follow-up the user started in the worker's own task view.
       worker.status = 'running'
       this.save(worker)
     }
@@ -302,10 +392,13 @@ export class WorkerPool implements TurnProfiles {
       // Removed, or started by the user from its task view, while waiting.
       if (this.closed || this.status(worker) !== 'starting') return true
     }
-    const text = worker.context ? `${worker.goal}\n\nContext:\n${worker.context}` : worker.goal
+    const text = worker.next ?? worker.goal
+    worker.next = null
+    this.routerTurns.add(worker.sessionId)
     try {
       await this.host.send({ sessionId: worker.sessionId, commandId: crypto.randomUUID(), text })
     } catch {
+      this.routerTurns.delete(worker.sessionId)
       // The task service settles turns that got far enough to start.
       if (worker.status === 'starting') {
         worker.status = 'failed'
@@ -323,9 +416,19 @@ export class WorkerPool implements TurnProfiles {
 
   private event<K extends Exclude<InboxEventBody['kind'], 'user_message'>>(
     kind: K,
-    worker: RouterWorker
-  ): { kind: K; at: string; workerId: string; goal: string } {
-    return { kind, at: new Date().toISOString(), workerId: worker.id, goal: worker.goal }
+    worker: RouterWorker,
+    followUp = false
+  ): { kind: K; at: string; workerId: string; goal: string; followUp: boolean } {
+    return { kind, at: new Date().toISOString(), workerId: worker.id, goal: worker.goal, followUp }
+  }
+  /** A worker of this Router that can still take instructions. */
+  private owned(routerId: string, workerId: string): RouterWorker {
+    const worker = this.workers.get(workerId)
+    if (!worker || worker.routerId !== routerId)
+      throw new RouterToolError('worker_not_found', `No worker ${workerId} in this project.`)
+    if (worker.status === 'removed')
+      throw new RouterToolError('worker_closed', 'The user removed this worker.')
+    return worker
   }
   /** Reads the status afresh after an await, where TypeScript keeps an older narrowing. */
   private status(worker: RouterWorker): RouterWorker['status'] {

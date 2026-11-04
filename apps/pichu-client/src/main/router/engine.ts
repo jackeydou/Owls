@@ -31,6 +31,7 @@ export type RouterBatchOutcome = {
  */
 export interface RouterEngine {
   run(input: RouterBatchInput, sink: RouterSink): Promise<RouterBatchOutcome>
-  steer(text: string): 'steered' | 'not_running'
+  /** Resolves `not_running` when no batch can take the message; the caller queues it. */
+  steer(text: string): Promise<'steered' | 'not_running'>
   abort(): void
 }

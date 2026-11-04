@@ -31,12 +31,15 @@ export const routerSettingsSchema = z.object({
   owls: owlsModelSchema.nullable().default(null),
   /** Model for the Claude Code engine; null uses the CLI default. */
   claudeModel: z.string().trim().min(1).max(200).nullable().default(null),
+  /** Model for the Codex engine; null uses the Codex default. */
+  codexModel: z.string().trim().min(1).max(200).nullable().default(null),
   maxPermission: z.enum(permissionValues).default('workspace-write')
 })
 export const defaultRouterSettings: RouterSettings = {
   engine: 'owls',
   owls: null,
   claudeModel: null,
+  codexModel: null,
   maxPermission: 'workspace-write'
 }
 
@@ -68,6 +71,8 @@ export const workerSchema = z.object({
   /** Background passed to the first turn; kept so a queued worker can start later. */
   context: z.string().nullable().default(null),
   permission: z.enum(permissionValues).default('workspace-write'),
+  /** The message a queued worker sends when it starts: its first turn or a Router follow-up. */
+  next: z.string().nullable().default(null),
   status: workerStatusSchema,
   report: workerReportSchema.nullable(),
   /** True when the last report did not match the schema and was rebuilt from raw text. */
@@ -79,7 +84,13 @@ export const routerStatusSchema = z.enum(['idle', 'running', 'failed', 'interrup
 /** The engine session a Router last ran in, used to resume it or detect a switch. */
 export const routerNativeSchema = z.discriminatedUnion('engine', [
   z.object({ engine: z.literal('owls') }),
-  z.object({ engine: z.literal('claude-code'), sessionId: z.string().nullable() })
+  z.object({ engine: z.literal('claude-code'), sessionId: z.string().nullable() }),
+  /** Codex threads are tied to the instructions they started with, so the version is kept. */
+  z.object({
+    engine: z.literal('codex'),
+    threadId: z.string().nullable(),
+    promptVersion: z.number().int()
+  })
 ])
 /** A batch whose delivery is unknown after a crash; the user decides whether to resend it. */
 export const unknownBatchSchema = z.object({

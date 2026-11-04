@@ -10,25 +10,29 @@ const escapeBatch = (text: string) => text.replaceAll('</owls-batch>', '<\\/owls
 const clock = (iso: string) => iso.slice(11, 19)
 const short = (text: string, limit: number) =>
   text.length > limit ? `${text.slice(0, limit)}… (truncated)` : text
+/** Like `short`, but points the Router at the event that holds the full text. */
+const clip = (text: string, limit: number, seq: number) =>
+  text.length > limit ? `${text.slice(0, limit)}… (truncated, recall: ev_${seq})` : text
+const origin = (event: { followUp?: boolean }) => (event.followUp ? ' · follow-up' : '')
 
 function eventText(event: InboxEvent): string {
   switch (event.kind) {
     case 'user_message':
-      return `[${event.seq}] user_message · user · ${clock(event.at)}\n${escapeBatch(short(event.text, USER_TEXT_LIMIT))}`
+      return `[${event.seq}] user_message · user · ${clock(event.at)}\n${escapeBatch(clip(event.text, USER_TEXT_LIMIT, event.seq))}`
     case 'worker_report': {
       const artifacts = event.report.artifacts.length
         ? `\nArtifacts: ${event.report.artifacts.map((a) => `${a.kind}:${a.ref}`).join(', ')}`
         : ''
-      return `[${event.seq}] worker_report · ${event.workerId} · ${clock(event.at)} · ${event.report.status}\nGoal: ${escapeBatch(short(event.goal, 200))}\n${escapeBatch(short(event.report.summary, REPORT_TEXT_LIMIT))}${escapeBatch(artifacts)}`
+      return `[${event.seq}] worker_report · ${event.workerId} · ${clock(event.at)} · ${event.report.status}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\n${escapeBatch(clip(event.report.summary, REPORT_TEXT_LIMIT, event.seq))}${escapeBatch(artifacts)}`
     }
     case 'worker_waiting':
-      return `[${event.seq}] worker_waiting · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nWaiting for the user to approve: ${escapeBatch(short(event.detail, 300))}`
+      return `[${event.seq}] worker_waiting · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nWaiting for the user to approve: ${escapeBatch(short(event.detail, 300))}`
     case 'worker_failed':
-      return `[${event.seq}] worker_failed · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker's turn failed. The user can see the error in that task.`
+      return `[${event.seq}] worker_failed · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker's turn failed. The user can see the error in that task.`
     case 'worker_stopped':
-      return `[${event.seq}] worker_stopped · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker was stopped before it reported.`
+      return `[${event.seq}] worker_stopped · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker was stopped before it reported.`
     case 'worker_removed':
-      return `[${event.seq}] worker_removed · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe user removed this worker's task. Do not follow up on it.`
+      return `[${event.seq}] worker_removed · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe user removed this worker's task. Do not follow up on it.`
   }
 }
 
@@ -40,7 +44,7 @@ export function renderBatch(batchId: string, events: InboxEvent[], state: string
   const ordered = [...events].sort((a, b) => a.seq - b.seq)
   const only = ordered[0]
   if (ordered.length === 1 && only?.kind === 'user_message' && !state)
-    return short(only.text, USER_TEXT_LIMIT)
+    return clip(only.text, USER_TEXT_LIMIT, only.seq)
   const header = `<owls-batch id="${batchId}" events="${ordered.length}">`
   const parts = [header]
   if (state) parts.push(`Current workers:\n${escapeBatch(state)}`)

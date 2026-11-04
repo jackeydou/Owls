@@ -23,8 +23,15 @@ const SETUP_FAILURES = [
   'router_model_unconfigured',
   'model_unavailable',
   'router_unavailable',
-  'claude_not_connected'
+  'claude_not_connected',
+  'not_connected'
 ]
+
+const SETUP_COPY = {
+  owls: { title: 'router.setupTitle', body: 'router.setupBody' },
+  claude: { title: 'router.claudeSetupTitle', body: 'router.claudeSetupBody' },
+  codex: { title: 'router.codexSetupTitle', body: 'router.codexSetupBody' }
+} as const
 
 function WorkerCard({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
@@ -56,6 +63,7 @@ export function RouterView() {
   const project = useCodexStore((s) => s.projects.find((p) => p.id === projectId))
   const settings = useCodexStore((s) => s.settings)
   const claude = useCodexStore((s) => s.claude)
+  const codex = useCodexStore((s) => s.connection)
   const showSettings = useCodexStore((s) => s.showSettings)
   const { open, send, interrupt, resolveBatch, sending, error, clearError } = useRouterStore()
   const router = useRouterStore((s) => s.routers.find((r) => r.projectId === projectId))
@@ -85,15 +93,19 @@ export function RouterView() {
       ? claude.status !== 'ready' || setupError
         ? 'claude'
         : null
-      : (engine === 'owls' && !settings.router.owls) || setupError
-        ? 'owls'
-        : null
+      : engine === 'codex'
+        ? codex.status !== 'ready' || codex.account.kind === 'signed-out' || setupError
+          ? 'codex'
+          : null
+        : !settings.router.owls || setupError
+          ? 'owls'
+          : null
   const model =
     engine === 'owls'
       ? (settings.router.owls?.model ?? null)
       : engine === 'claude-code'
         ? (settings.router.claudeModel ?? t('router.cliDefaultModel'))
-        : null
+        : (settings.router.codexModel ?? t('router.cliDefaultModel'))
   const name = project?.name ?? ''
   async function submit() {
     if (!router || !text.trim() || sending) return
@@ -138,8 +150,8 @@ export function RouterView() {
               {setup ? (
                 <div className="codex-welcome">
                   <Network size={30} />
-                  <h1>{t(setup === 'claude' ? 'router.claudeSetupTitle' : 'router.setupTitle')}</h1>
-                  <p>{t(setup === 'claude' ? 'router.claudeSetupBody' : 'router.setupBody')}</p>
+                  <h1>{t(SETUP_COPY[setup].title)}</h1>
+                  <p>{t(SETUP_COPY[setup].body)}</p>
                   <Button size="sm" onClick={showSettings}>
                     <Settings2 size={14} />
                     {t('router.openSettings')}

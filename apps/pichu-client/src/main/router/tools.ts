@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { permissionSchema, providerSchema } from '../../shared/codex.js'
+import { workerStatusSchema } from '../../shared/router.js'
 
 /** Model-facing error codes. Messages are short English sentences without paths or secrets. */
 export type RouterToolErrorCode =
@@ -8,6 +9,10 @@ export type RouterToolErrorCode =
   | 'provider_unavailable'
   | 'worker_limit_reached'
   | 'dispatch_failed'
+  | 'worker_not_found'
+  | 'worker_closed'
+  | 'not_found'
+  | 'tool_failed'
 
 export class RouterToolError extends Error {
   constructor(
@@ -37,8 +42,41 @@ export const dispatchTaskInput = z
 export type DispatchTaskInput = z.infer<typeof dispatchTaskInput>
 export type DispatchTaskResult = { workerId: string; status: 'started' | 'queued' }
 
+const workerId = z.string().trim().min(1).max(64).describe('The worker ID from dispatch_task.')
+export const messageWorkerInput = z
+  .object({
+    workerId,
+    text: z.string().trim().min(1).max(8000).describe('What to tell the worker.')
+  })
+  .strict()
+export const stopWorkerInput = z.object({ workerId }).strict()
+export const listWorkersInput = z
+  .object({ status: workerStatusSchema.optional().describe('Only list workers in this state.') })
+  .strict()
+export const recallInput = z
+  .object({
+    id: z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .describe(
+        'A worker (w_…), event (ev_…), or batch (b_…) ID, or a continuation ID it returned.'
+      )
+  })
+  .strict()
+export type MessageWorkerInput = z.infer<typeof messageWorkerInput>
+export type ListWorkersInput = z.infer<typeof listWorkersInput>
+/** `started` means the message began a new turn; `queued` means it waits for the worker to start. */
+export type MessageWorkerResult = { delivered: 'steered' | 'started' | 'queued' }
+export type StopWorkerResult = { status: 'stopping' | 'cancelled' | 'already_idle' }
+
 export type RouterToolHandlers = {
   dispatchTask(input: DispatchTaskInput): Promise<DispatchTaskResult>
+  messageWorker(input: MessageWorkerInput): Promise<MessageWorkerResult>
+  stopWorker(workerId: string): Promise<StopWorkerResult>
+  listWorkers(input: ListWorkersInput): unknown
+  recall(id: string): unknown
 }
 
 /** An engine-neutral tool: adapters convert `schema` to their own format. */
@@ -52,20 +90,61 @@ export type RouterTool = {
 }
 
 export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
-  return [
-    {
-      name: 'dispatch_task',
-      label: 'Dispatch task',
-      description:
-        'Start a background worker (a Codex or Claude Code task in this project) for one piece of work. Returns immediately with the worker ID and whether it started or is queued behind other workers; the worker reports back in a later batch.',
-      schema: dispatchTaskInput,
-      async execute(args) {
-        const parsed = dispatchTaskInput.safeParse(args)
-        if (!parsed.success)
-          throw new RouterToolError('invalid_request', 'The task arguments are invalid.')
-        return JSON.stringify(await handlers.dispatchTask(parsed.data))
-      }
+  const tool = <T extends z.ZodObject>(
+    name: string,
+    label: string,
+    description: string,
+    schema: T,
+    run: (input: z.infer<T>) => unknown
+  ): RouterTool => ({
+    name,
+    label,
+    description,
+    schema,
+    async execute(args) {
+      const parsed = schema.safeParse(args)
+      if (!parsed.success)
+        throw new RouterToolError('invalid_request', `The ${name} arguments are invalid.`)
+      return JSON.stringify(await run(parsed.data))
     }
+  })
+  // Sorted by name so every engine sees the same tool order.
+  return [
+    tool(
+      'dispatch_task',
+      'Dispatch task',
+      'Start a background worker (a Codex or Claude Code task in this project) for one piece of work. Returns immediately with the worker ID and whether it started or is queued behind other workers; the worker reports back in a later batch.',
+      dispatchTaskInput,
+      (input) => handlers.dispatchTask(input)
+    ),
+    tool(
+      'list_workers',
+      'List workers',
+      "List this project's workers, newest first, with their goal, status, and the start of their last report.",
+      listWorkersInput,
+      (input) => handlers.listWorkers(input)
+    ),
+    tool(
+      'message_worker',
+      'Message worker',
+      'Send a follow-up to an existing worker instead of dispatching a new one. A running worker gets it in its current turn; an idle worker starts a new turn and reports again.',
+      messageWorkerInput,
+      (input) => handlers.messageWorker(input)
+    ),
+    tool(
+      'recall',
+      'Recall',
+      'Read the full details behind an ID: a worker, an Inbox event (for text a batch truncated), or a batch. Long text returns a continuation ID.',
+      recallInput,
+      (input) => handlers.recall(input.id)
+    ),
+    tool(
+      'stop_worker',
+      'Stop worker',
+      'Stop a running worker, or cancel one that is still queued. Use it only when the user asks or the work is no longer needed.',
+      stopWorkerInput,
+      (input) => handlers.stopWorker(input.workerId)
+    )
   ]
 }
 
@@ -73,7 +152,7 @@ export function toolErrorText(error: unknown): string {
   const failure =
     error instanceof RouterToolError
       ? { code: error.code, message: error.message }
-      : { code: 'dispatch_failed', message: 'The task could not be started.' }
+      : { code: 'tool_failed', message: 'The tool call failed.' }
   return JSON.stringify({ error: failure })
 }
 

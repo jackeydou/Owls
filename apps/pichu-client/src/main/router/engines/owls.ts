@@ -135,7 +135,7 @@ export class OwlsEngine implements RouterEngine {
     return { status: 'completed', error: null, native }
   }
 
-  steer(input: string): 'steered' | 'not_running' {
+  async steer(input: string): Promise<'steered' | 'not_running'> {
     if (!this.running) return 'not_running'
     this.agent.steer({ role: 'user', content: input, timestamp: Date.now() })
     return 'steered'

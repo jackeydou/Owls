@@ -128,7 +128,7 @@ export class ClaudeEngine implements RouterEngine {
     return { ...outcome, native: { engine: 'claude-code', sessionId: lost ? null : sessionId } }
   }
 
-  steer(text: string): 'steered' | 'not_running' {
+  async steer(text: string): Promise<'steered' | 'not_running'> {
     const run = this.run_
     if (!run || run.stopping) return 'not_running'
     run.input.push({

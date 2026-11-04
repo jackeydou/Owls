@@ -320,6 +320,30 @@ export class ClaudeService {
     this.changed(session, true)
     void this.consume(session, runtime, runtime.query)
   }
+  /**
+   * Adds a message to the running turn; Claude Code folds it into the same turn
+   * (F9). Returns not_running when no turn can take it.
+   */
+  steer(sessionId: string, text: string): 'steered' | 'not_running' {
+    const session = this.getSession(sessionId)
+    const runtime = this.runtimes.get(sessionId)
+    if (!runtime || runtime.cancelled || !active(session)) return 'not_running'
+    session.items.push({
+      id: crypto.randomUUID(),
+      kind: 'user',
+      status: 'completed',
+      text,
+      detail: '',
+      turnId: runtime.turnId
+    })
+    runtime.input.push({
+      type: 'user',
+      message: { role: 'user', content: text },
+      parent_tool_use_id: null
+    })
+    this.changed(session, true)
+    return 'steered'
+  }
   private async consume(session: CodexSession, runtime: Runtime, query: Query): Promise<void> {
     try {
       for await (const message of query) {

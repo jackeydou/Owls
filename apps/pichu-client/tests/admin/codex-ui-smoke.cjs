@@ -15,6 +15,7 @@ const {
   RouterCredentials,
   RouterService,
   RouterStore,
+  CodexRouterServer,
   defaultEngineFactory
 } = require(join(artifactRoot, 'out/main/codex/runtime.js'))
 // Router keys in this test never touch the OS keychain.
@@ -171,7 +172,8 @@ app
           emit,
           defaultEngineFactory({
             credentials,
-            claude: { sdk: claudeSdk, connection: () => host.claudeConnection() }
+            claude: { sdk: claudeSdk, connection: () => host.claudeConnection() },
+            codex: { server: new CodexRouterServer(), connection: () => host.codexConnection() }
           })
         )
       router = startRouter()
@@ -379,6 +381,21 @@ app
       // The engine is still unconfigured, so the resent message waits in the Inbox again.
       await waitFor("document.body.textContent.includes('为协调者选择模型')")
       assert.equal(routerStore.events(routerState.id, 'pending').length, 1)
+      // recall reads events back by sequence and by worker through SQLite JSON queries.
+      const [waiting] = routerStore.events(routerState.id, 'pending')
+      assert.equal(routerStore.event(waiting.seq).event.text, '帮我看看项目')
+      const workerEvent = routerStore.appendEvent(routerState.id, crypto.randomUUID(), {
+        kind: 'worker_failed',
+        at: new Date().toISOString(),
+        workerId: 'w_smoke',
+        goal: 'Smoke',
+        followUp: false
+      })
+      assert.deepEqual(
+        routerStore.workerEvents(routerState.id, 'w_smoke', 10).map((e) => e.seq),
+        [workerEvent.seq]
+      )
+      routerStore.setEventStatus([workerEvent.seq], 'dropped')
 
       // Choosing the Claude Code engine changes the Router header and drops the Owls fields.
       await evaluate("document.querySelector('.codex-sidebar-settings').click()")

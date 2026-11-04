@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, max } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, max, sql } from 'drizzle-orm'
 import { type CodexRouter, routerSchema } from '../../shared/codex.js'
 import { type RouterWorker, workerSchema } from '../../shared/router.js'
 import {
@@ -145,6 +145,37 @@ export class RouterStore {
       .orderBy(asc(codexInboxEvents.seq))
       .all()
       .map(toEvent)
+  }
+  /** One event with its delivery state, for recall. */
+  event(
+    seq: number
+  ): { event: InboxEvent; routerId: string; status: InboxStatus; batchId: string | null } | null {
+    const row = this.db.select().from(codexInboxEvents).where(eq(codexInboxEvents.seq, seq)).get()
+    return row
+      ? {
+          event: toEvent(row),
+          routerId: row.routerId,
+          status: row.status as InboxStatus,
+          batchId: row.batchId
+        }
+      : null
+  }
+  /** The newest events about one worker, oldest first. */
+  workerEvents(routerId: string, workerId: string, limit: number): InboxEvent[] {
+    return this.db
+      .select()
+      .from(codexInboxEvents)
+      .where(
+        and(
+          eq(codexInboxEvents.routerId, routerId),
+          sql`json_extract(${codexInboxEvents.value}, '$.workerId') = ${workerId}`
+        )
+      )
+      .orderBy(desc(codexInboxEvents.seq))
+      .limit(limit)
+      .all()
+      .map(toEvent)
+      .reverse()
   }
   setEventStatus(seqs: number[], status: InboxStatus): void {
     if (!seqs.length) return

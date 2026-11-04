@@ -8,6 +8,7 @@ import { ClaudeService } from '../claude/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { getDataRoot } from '../pichu-paths.js'
 import { RouterCredentials, type SecretCipher } from '../router/credentials.js'
+import { CodexRouterServer } from '../router/engines/codex.js'
 import { defaultEngineFactory } from '../router/engines/factory.js'
 import { RouterService } from '../router/service.js'
 import { RouterStore } from '../router/store.js'
@@ -22,6 +23,8 @@ app.setName(profile ? `Owls — ${profile.name}` : 'Owls')
 let window: BrowserWindow | null = null
 let service: OwlsHost | null = null
 let router: RouterService | null = null
+/** The Router's own Codex app-server; started only when the Codex engine runs. */
+const codexRouter = new CodexRouterServer()
 let quitApproved = false
 let quitPrompt = false
 
@@ -112,6 +115,11 @@ void app
         claude: {
           sdk: { query, createSdkMcpServer },
           connection: () => service?.claudeConnection() ?? closedClaude
+        },
+        codex: {
+          server: codexRouter,
+          connection: () =>
+            service?.codexConnection() ?? { ...closedClaude, account: { kind: 'signed-out' } }
         }
       })
     )
@@ -156,6 +164,7 @@ app.on('before-quit', (event) => {
 })
 app.on('will-quit', () => {
   service?.close()
+  codexRouter.close()
   service = null
   router = null
 })

@@ -1,12 +1,18 @@
 import type { AgentMessage } from '@earendil-works/pi-agent-core'
 import appPackage from '../../../../package.json'
-import type { ClaudeConnection, CodexFailure, CodexRouter } from '../../../shared/codex.js'
+import type {
+  ClaudeConnection,
+  CodexConnection,
+  CodexFailure,
+  CodexRouter
+} from '../../../shared/codex.js'
 import type { RouterSettings } from '../../../shared/router.js'
 import type { RouterCredentials } from '../credentials.js'
 import type { RouterEngine } from '../engine.js'
 import { ROUTER_INSTRUCTIONS, ROUTER_PROMPT_VERSION } from '../prompt.js'
 import type { RouterTool } from '../tools.js'
 import { ClaudeEngine, type ClaudeRouterSdk } from './claude.js'
+import { CodexEngine, type CodexRouterServer } from './codex.js'
 import { OwlsEngine } from './owls.js'
 import { resolveRouterModel } from './owls-models.js'
 
@@ -25,6 +31,11 @@ export type EngineDeps = {
   claude: {
     sdk: ClaudeRouterSdk
     connection: () => ClaudeConnection
+  }
+  codex: {
+    /** The Router's own app-server, shared by all Routers. */
+    server: CodexRouterServer
+    connection: () => CodexConnection
   }
 }
 /** Sent to keyless OpenAI-compatible endpoints; not a secret. */
@@ -53,7 +64,25 @@ export function defaultEngineFactory(deps: EngineDeps): EngineFactory {
         version
       })
     }
-    if (settings.engine !== 'owls') return { code: 'router_unavailable', message: '' }
+    if (settings.engine === 'codex') {
+      const connection = deps.codex.connection()
+      if (
+        connection.status !== 'ready' ||
+        !connection.executablePath ||
+        connection.account.kind === 'signed-out'
+      )
+        return { code: 'not_connected', message: '' }
+      return new CodexEngine({
+        server: deps.codex.server,
+        executable: connection.executablePath,
+        cwd: request.router.cwd,
+        model: settings.codexModel,
+        instructions: ROUTER_INSTRUCTIONS,
+        promptVersion: ROUTER_PROMPT_VERSION,
+        tools: request.tools,
+        state: request.state
+      })
+    }
     const owls = settings.owls
     if (!owls) return { code: 'router_model_unconfigured', message: '' }
     const key = deps.credentials.key(owls.provider)

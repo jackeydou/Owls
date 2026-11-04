@@ -16,7 +16,7 @@ import type { InboxEvent, InboxEventBody } from './events.js'
 import { ROUTER_PROMPT_VERSION } from './prompt.js'
 import { renderBatch, renderState } from './render.js'
 import type { RouterStore } from './store.js'
-import { routerTools } from './tools.js'
+import { RouterToolError, routerTools } from './tools.js'
 import {
   type TurnOutcome,
   type TurnProfile,
@@ -29,6 +29,8 @@ export type { TurnOutcome, TurnProfile, TurnProfiles, WorkerHost } from './worke
 export { WORKER_LIMIT } from './workers.js'
 
 type ActiveBatch = { id: string; startedAt: number; tokens: number }
+/** Characters recall returns per call; longer text continues at `<id>@<offset>`. */
+const RECALL_PAGE = 4000
 
 /**
  * Project Routers: their conversations, the persisted Inbox, and batch
@@ -120,7 +122,7 @@ export class RouterService implements TurnProfiles {
     return router
   }
 
-  send(input: SendRouterMessage): void {
+  async send(input: SendRouterMessage): Promise<void> {
     const router = this.getRouter(input.routerId)
     if (!this.commands.acceptCommand(input.commandId, router.id, input.text)) return
     router.items.push({
@@ -139,7 +141,9 @@ export class RouterService implements TurnProfiles {
     }
     // A running batch takes the user's message immediately; other events wait.
     const batch = this.active.get(router.id)
-    if (batch && this.engines.get(router.id)?.engine.steer(input.text) === 'steered') {
+    const engine = this.engines.get(router.id)?.engine
+    // Checked again after the await: the batch may have ended meanwhile.
+    if (batch && engine && (await engine.steer(input.text)) === 'steered') {
       this.store.appendEvent(router.id, input.commandId, body, batch.id)
       return
     }
@@ -338,7 +342,11 @@ export class RouterService implements TurnProfiles {
       router,
       settings,
       tools: routerTools({
-        dispatchTask: (input) => this.pool.dispatch(router, input, this.dispatched.get(router.id))
+        dispatchTask: (input) => this.pool.dispatch(router, input, this.dispatched.get(router.id)),
+        messageWorker: (input) => this.pool.message(router.id, input),
+        stopWorker: (workerId) => this.pool.stop(router.id, workerId),
+        listWorkers: (input) => ({ workers: this.pool.describe(router.id, input.status) }),
+        recall: (id) => this.recall(router.id, id)
       }),
       history: this.store.messages(router.id),
       state: () => renderState(this.pool.list(router.id)),
@@ -363,6 +371,72 @@ export class RouterService implements TurnProfiles {
         router.tokens = (router.tokens ?? 0) + tokens
       }
     }
+  }
+
+  /** Expands a worker, event, or batch ID for the Router, one page of long text at a time. */
+  private recall(routerId: string, id: string): Record<string, unknown> {
+    const [base = '', at = '0'] = id.split('@')
+    const offset = /^\d+$/.test(at) ? Number(at) : 0
+    const page = (text: string | null) => {
+      if (!text || text.length <= offset + RECALL_PAGE) return { text: text?.slice(offset) ?? null }
+      return {
+        text: text.slice(offset, offset + RECALL_PAGE),
+        next: `${base}@${offset + RECALL_PAGE}`
+      }
+    }
+    const missing = () => new RouterToolError('not_found', `Nothing to recall for ${id}.`)
+    if (base.startsWith('w_')) {
+      const worker = this.pool.get(base)
+      if (!worker || worker.routerId !== routerId) throw missing()
+      return {
+        id: worker.id,
+        goal: worker.goal,
+        status: worker.status,
+        provider: worker.provider,
+        permission: worker.permission,
+        report: worker.report,
+        context: page(worker.context),
+        events: this.store.workerEvents(routerId, worker.id, 10).map((e) => `ev_${e.seq}`)
+      }
+    }
+    const seq = /^ev_(\d+)$/.exec(base)?.[1]
+    if (seq) {
+      const found = this.store.event(Number(seq))
+      if (!found || found.routerId !== routerId) throw missing()
+      const { event, status, batchId } = found
+      const text =
+        event.kind === 'user_message'
+          ? event.text
+          : event.kind === 'worker_report'
+            ? event.report.summary
+            : event.kind === 'worker_waiting'
+              ? event.detail
+              : null
+      return {
+        id: base,
+        kind: event.kind,
+        at: event.at,
+        status,
+        batchId,
+        ...('workerId' in event ? { workerId: event.workerId, goal: event.goal } : {}),
+        ...(event.kind === 'worker_report'
+          ? { reportStatus: event.report.status, artifacts: event.report.artifacts }
+          : {}),
+        ...page(text)
+      }
+    }
+    if (base.startsWith('b_')) {
+      const batch = this.store.batch(base)
+      if (!batch || batch.routerId !== routerId) throw missing()
+      return {
+        id: batch.id,
+        status: batch.status,
+        engine: batch.engine,
+        createdAt: batch.createdAt,
+        events: batch.eventSeqs.map((n) => `ev_${n}`)
+      }
+    }
+    throw missing()
   }
 
   private dropIdleEngines(): void {
