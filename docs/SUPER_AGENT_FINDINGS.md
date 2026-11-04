@@ -51,7 +51,7 @@ F18–F20 使用 pi `1.5.0`。
 | F28 | Codex Router 每批次约 17.5k token 固定上下文；`tokenUsage/updated` 可能重复发送 | 已确认 |
 | F29 | 受信任项目的 `.codex/config.toml` 中的 MCP server 在 `thread/start` 时启动，不带 `cwd` 的 `config/read` 读不到 | 已确认，已修复 |
 | F30 | Owls 引擎超出上下文预算后每次请求都重新裁剪，提示缓存全部失效，且裁剪本身是平方复杂度 | 已修复（M4） |
-| F31 | 同一 checkout 中可写 Worker 串行，M4 中完成时间是只读 Worker 的 5.6–6.9 倍 | 待处理 |
+| F31 | 同一 checkout 中可写 Worker 串行，M4 中完成时间是只读 Worker 的 5.6–6.9 倍 | 已修复（worktree，RFC 11.1） |
 | F32 | 后台子 agent 的单会话完成时间与 Router 相当，但输入 token 是 4.6 倍，上下文持续增长 | 已确认（脚本化模型） |
 | F33 | 追问直通减少 15% 的 Router 请求，追问 p95 从 5.9 分钟降到 3.9 分钟 | 已确认（脚本化模型） |
 | R1 | ClaudeService 一轮结束后立即发下一条，会被上一轮的清理误判为失败 | 已修复（#16） |
@@ -404,7 +404,12 @@ Codex CLI `0.166.0`。先用独立脚本复现 RFC 4.2 节的锁定进程，再�
   14.5 分钟。
 - 影响：`dispatch_task` 不指定权限时取项目默认权限（通常是 `workspace-write`），所以实际使用中
   Router 分派的改代码任务基本是串行的，双层架构的并行收益只对只读任务成立。
-- 后续：自动 git worktree 管理（RFC 第 16 节开放问题 8）。
+- 修复：可写 Worker 默认各自使用一个 git worktree，分支 `owls/<workerId>`（RFC 11.1 节）；
+  写入者只在共用同一个 checkout 时串行。
+- 复测（`bench:router`，5 个种子，worktree 创建按每个 2 秒计）：「Worker 都可写，各自 worktree」组
+  工作 p50 / p95 为 8.52 / 14.53 分钟，只读组为 8.46 / 14.45 分钟，同目录串行组仍为 47.54 / 100.28
+  分钟。差值约 4 秒，来自 worktree 的创建时间。
+- 局限：创建耗时是假设；真实仓库中 Worker 还可能需要在 worktree 里安装依赖，这部分不在基准中。
 
 ### F32 后台子 agent 的单会话与 Router 完成时间相当，成本更高
 

@@ -124,6 +124,20 @@ export function RouterSettingsSection() {
         </Select>
       </div>
       <div className="codex-setting-row">
+        <label htmlFor="router-worktrees">{t('routerSettings.worktrees')}</label>
+        <Select
+          id="router-worktrees"
+          value={settings.router.worktrees ? 'on' : 'off'}
+          onChange={(event) =>
+            void saveRouter({ ...settings.router, worktrees: event.target.value === 'on' })
+          }
+        >
+          <option value="on">{t('routerSettings.worktrees.on')}</option>
+          <option value="off">{t('routerSettings.worktrees.off')}</option>
+        </Select>
+      </div>
+      <p className="router-settings-help">{t('routerSettings.worktreesHelp')}</p>
+      <div className="codex-setting-row">
         <label htmlFor="router-worker-provider">{t('routerSettings.workerProvider')}</label>
         <Select
           id="router-worker-provider"

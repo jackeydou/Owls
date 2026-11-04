@@ -84,6 +84,8 @@ export class ClaudeService {
   private readonly runtimes = new Map<string, Runtime>()
   private readonly permissions = new Map<string, PendingPermission>()
   private readonly dirty = new Set<string>()
+  /** Sessions whose worktree is being prepared, and whether the user stopped them meanwhile. */
+  private readonly preparing = new Map<string, { stopped: boolean }>()
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private connecting: Promise<ClaudeConnection> | null = null
   private profiles: TurnProfiles | null = null
@@ -206,9 +208,14 @@ export class ClaudeService {
       query.close()
     }
   }
-  createSession(input: CreateCodexSession): CodexSession {
-    const cwd = realpathSync(input.cwd)
-    if (!this.store.projects().some((p) => p.path === cwd))
+  /**
+   * `worker` is main-internal (IPC never passes it): the session runs in a
+   * Router worker's worktree of a registered project, which may not exist yet.
+   */
+  createSession(input: CreateCodexSession, worker?: { projectPath: string }): CodexSession {
+    const cwd = worker ? input.cwd : realpathSync(input.cwd)
+    const projectPath = worker?.projectPath ?? cwd
+    if (!this.store.projects().some((p) => p.path === projectPath))
       throw new CodexRuntimeError('project_required', 'Choose a project before starting a task.')
     this.validateSelection(input.model, input.effort)
     const now = new Date().toISOString()
@@ -242,8 +249,11 @@ export class ClaudeService {
       throw new CodexRuntimeError('busy', 'Wait for the current task or stop it before sending.')
     this.validateSelection(session.model, session.effort)
     if (!this.store.acceptCommand(input.commandId, session.id, input.text)) return
-    const turnId = crypto.randomUUID()
+    const previous = session.status
     session.status = 'starting'
+    this.changed(session, true)
+    if (!(await this.prepared(session, previous))) return
+    const turnId = crypto.randomUUID()
     session.error = null
     session.diff = ''
     session.turnId = turnId
@@ -606,6 +616,11 @@ export class ClaudeService {
   }
   async interrupt(id: string): Promise<void> {
     const session = this.getSession(id)
+    const preparing = this.preparing.get(id)
+    if (preparing) {
+      preparing.stopped = true
+      return
+    }
     const runtime = this.runtimes.get(id)
     if (!active(session) || !runtime || runtime.cancelled) return
     runtime.cancelled = true
@@ -628,6 +643,32 @@ export class ClaudeService {
     this.store.removeSession(id)
     this.sessions.delete(id)
     this.emit({ type: 'removed', sessionId: id })
+  }
+  /**
+   * Creates a Router worker's worktree before the agent starts in it. The session
+   * is already starting, so it can be stopped but not removed meanwhile. False
+   * when it was stopped and the turn must not start.
+   */
+  private async prepared(
+    session: CodexSession,
+    previous: CodexSession['status']
+  ): Promise<boolean> {
+    const preparing = { stopped: false }
+    this.preparing.set(session.id, preparing)
+    try {
+      await this.profiles?.prepare(session.id)
+    } catch (error) {
+      session.status = previous
+      this.changed(session, true)
+      throw error
+    } finally {
+      this.preparing.delete(session.id)
+    }
+    if (!preparing.stopped) return true
+    session.status = 'interrupted'
+    this.changed(session, true)
+    this.profiles?.settled(session.id, { status: 'interrupted', structured: null, text: '' })
+    return false
   }
   private expirePermissions(session: CodexSession): void {
     for (const request of session.requests) {

@@ -1,5 +1,6 @@
 import type { CodexEvent, CodexFailure, CodexItem, CodexRouter } from '../../shared/codex.js'
 import type {
+  DiscardWorktree,
   ResolveBatch,
   RouterEngineId,
   RouterProviderInfo,
@@ -24,6 +25,7 @@ import {
   type WorkerHost,
   WorkerPool
 } from './workers.js'
+import { checkoutOnly, type WorkerWorkspaces } from './worktrees.js'
 
 export type { TurnOutcome, TurnProfile, TurnProfiles, WorkerHost } from './workers.js'
 export { WORKER_LIMIT } from './workers.js'
@@ -53,7 +55,8 @@ export class RouterService implements TurnProfiles {
     private readonly commands: { acceptCommand(id: string, scope: string, text: string): boolean },
     private readonly host: WorkerHost,
     private readonly emit: (event: CodexEvent) => void,
-    private readonly createEngine: EngineFactory
+    private readonly createEngine: EngineFactory,
+    workspaces: WorkerWorkspaces = checkoutOnly
   ) {
     // A batch still sending when the app stopped may or may not have reached the model.
     for (const batch of store.batches('sending')) store.finishBatch(batch.id, 'dispatch_unknown')
@@ -86,8 +89,14 @@ export class RouterService implements TurnProfiles {
       },
       (worker) => {
         if (!this.closed) this.emit({ type: 'worker', worker })
-      }
+      },
+      workspaces
     )
+  }
+
+  /** Settles once startup cleanup of worker worktrees has run. */
+  get recovered(): Promise<void> {
+    return this.pool.recovered
   }
 
   snapshot(): { routers: CodexRouter[]; workers: RouterWorker[] } {
@@ -192,6 +201,16 @@ export class RouterService implements TurnProfiles {
   /** Router settings changed: idle engines are rebuilt on the next batch. */
   settingsChanged(): void {
     this.dropIdleEngines()
+  }
+
+  /** Removes a worktree kept after its worker was removed, once the user confirmed it. */
+  discardWorktree(input: DiscardWorktree): Promise<void> {
+    this.getRouter(input.routerId)
+    return this.pool.discard(input.routerId, input.workerId)
+  }
+
+  prepare(sessionId: string): Promise<void> {
+    return this.pool.prepare(sessionId)
   }
 
   profile(sessionId: string): TurnProfile {
@@ -394,6 +413,7 @@ export class RouterService implements TurnProfiles {
         status: worker.status,
         provider: worker.provider,
         permission: worker.permission,
+        ...this.pool.place(worker),
         report: worker.report,
         context: page(worker.context),
         events: this.store.workerEvents(routerId, worker.id, 10).map((e) => `ev_${e.seq}`)

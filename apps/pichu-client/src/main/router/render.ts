@@ -32,7 +32,7 @@ function eventText(event: InboxEvent): string {
     case 'worker_stopped':
       return `[${event.seq}] worker_stopped · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker was stopped before it reported.`
     case 'worker_removed':
-      return `[${event.seq}] worker_removed · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe user removed this worker's task. Do not follow up on it.`
+      return `[${event.seq}] worker_removed · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe user removed this worker's task. Do not follow up on it.${event.branch ? ` Its unmerged work stays on branch ${escapeBatch(event.branch)}.` : ''}`
   }
 }
 
@@ -60,7 +60,8 @@ export function renderState(workers: RouterWorker[]): string {
     .sort((a, b) => a.id.localeCompare(b.id))
     .map((w) => {
       const summary = w.report ? ` — ${short(w.report.summary, 200)}` : ''
-      return `- ${w.id} · ${w.status} · ${short(w.goal, 200)}${summary}`
+      const branch = w.workspace.kind === 'worktree' ? ` · branch ${w.workspace.branch}` : ''
+      return `- ${w.id} · ${w.status}${branch} · ${short(w.goal, 200)}${summary}`
     })
     .join('\n')
 }

@@ -14,6 +14,12 @@ export const routerEn = {
   'router.noWorkers': 'No workers yet.',
   'router.openWorker': 'Open task: {{goal}}',
   'router.degraded': 'Raw worker output',
+  'router.branch': 'Branch {{branch}}',
+  'router.keptWorktrees': 'Kept worktrees',
+  'router.keptWorktreesBody':
+    'These removed tasks left uncommitted changes in their worktrees. Commits on their branches stay either way.',
+  'router.discardWorktree': 'Discard',
+  'router.discardWorktreeLabel': 'Discard the worktree for {{goal}}',
   'router.setupTitle': 'Choose a model for the Router',
   'router.setupBody':
     'The Owls Router uses its own model so it only sees coordination tools. Add an API key or a local OpenAI-compatible endpoint in Settings.',
@@ -88,6 +94,13 @@ export const routerEn = {
   'routerSettings.maxPermission': 'Highest worker permission',
   'routerSettings.workerProvider': 'Worker agent',
   'routerSettings.workerProvider.default': 'Same as default agent',
+  'routerSettings.worktrees': 'Workers that write',
+  'routerSettings.worktrees.on': 'Each in its own git worktree',
+  'routerSettings.worktrees.off': 'One at a time in your checkout',
+  'routerSettings.worktreesHelp':
+    'Each worker gets a branch named owls/<worker>, so several can change code at once. Owls never merges or pushes; you merge the branches you want. When off, these workers take turns in your checkout.',
+  'errors.worktree_failed':
+    "Owls could not prepare this worker's git worktree. Check the repository and free disk space.",
   'errors.router_model_unconfigured': 'Choose a Router model and save its API key in Settings.',
   'errors.router_auth_failed': 'The Router model rejected the API key. Check it in Settings.',
   'errors.router_unavailable':
@@ -112,6 +125,12 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'router.noWorkers': '还没有任务执行者。',
   'router.openWorker': '打开任务：{{goal}}',
   'router.degraded': 'Worker 原始输出',
+  'router.branch': '分支 {{branch}}',
+  'router.keptWorktrees': '保留的 worktree',
+  'router.keptWorktreesBody':
+    '这些任务已移除，但 worktree 中还有未提交的修改。无论是否丢弃，分支上已提交的内容都会保留。',
+  'router.discardWorktree': '丢弃',
+  'router.discardWorktreeLabel': '丢弃「{{goal}}」的 worktree',
   'router.setupTitle': '为协调者选择模型',
   'router.setupBody':
     'Owls 协调者使用独立的模型，只能看到协调工具。请在设置中添加 API key 或本地 OpenAI 兼容端点。',
@@ -183,6 +202,12 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'routerSettings.maxPermission': 'Worker 最高权限',
   'routerSettings.workerProvider': 'Worker 使用的 agent',
   'routerSettings.workerProvider.default': '与默认 agent 相同',
+  'routerSettings.worktrees': '可写的 Worker',
+  'routerSettings.worktrees.on': '各自使用独立的 git worktree',
+  'routerSettings.worktrees.off': '在你的 checkout 中依次运行',
+  'routerSettings.worktreesHelp':
+    '每个 Worker 使用一个名为 owls/<worker> 的分支，多个 Worker 可以同时改代码。Owls 不会合并或 push，由你合并需要的分支。关闭后，这些 Worker 在你的 checkout 中依次运行。',
+  'errors.worktree_failed': 'Owls 无法准备这个 Worker 的 git worktree，请检查仓库和磁盘空间。',
   'errors.router_model_unconfigured': '请在设置中选择协调者模型并保存它的 API key。',
   'errors.router_auth_failed': '协调者模型拒绝了这个 API key，请在设置中检查。',
   'errors.router_unavailable': '这个协调者引擎暂不可用，请在设置中选择其他引擎。',

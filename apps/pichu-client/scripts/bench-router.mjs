@@ -40,6 +40,17 @@ const ARMS = [
       runRouter(c, l, { engine: 'owls', passthrough: true, permission: 'workspace-write' })
   },
   {
+    id: 'worktree-writers',
+    label: 'Router + workers, writers in worktrees',
+    run: (c, l) =>
+      runRouter(c, l, {
+        engine: 'owls',
+        passthrough: true,
+        permission: 'workspace-write',
+        worktrees: true
+      })
+  },
+  {
     id: 'single-foreground',
     label: 'Single session, foreground subagents',
     run: (c, l) => runSingle(c, l, { background: false })

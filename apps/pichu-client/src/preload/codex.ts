@@ -20,6 +20,7 @@ const api: CodexAPI = {
   sendRouter: (input) => ipcRenderer.invoke('codex:router-send', input),
   interruptRouter: (id) => ipcRenderer.invoke('codex:router-interrupt', id),
   resolveBatch: (input) => ipcRenderer.invoke('codex:router-resolve-batch', input),
+  discardWorktree: (input) => ipcRenderer.invoke('codex:router-discard-worktree', input),
   routerProviders: () => ipcRenderer.invoke('codex:router-providers'),
   setRouterKey: (input) => ipcRenderer.invoke('codex:router-set-key', input),
   removeRouterKey: (providerId) => ipcRenderer.invoke('codex:router-remove-key', providerId),
