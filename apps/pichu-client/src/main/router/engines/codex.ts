@@ -47,7 +47,7 @@ type Client = Pick<CodexClient, 'request' | 'respond' | 'reject' | 'stop'>
 /** Starts an app-server; injected so tests can script one. */
 export type CodexLauncher = (
   executable: string,
-  options: { args: string[]; experimentalApi: boolean },
+  options: { args: string[]; cwd: string; experimentalApi: boolean },
   onFrame: (frame: RpcFrame) => void,
   onClose: (reason: string) => void
 ) => Promise<Client>
@@ -68,30 +68,48 @@ type ThreadListener = {
   closed(reason: string): void
 }
 
+/** One Router app-server and the threads it has open. */
+export type CodexRouterHost = {
+  readonly client: Client
+  /** Threads resumed or started in this process. */
+  readonly loaded: Set<string>
+}
+
+type RouterProcess = CodexRouterHost & {
+  executable: string
+  /** MCP servers this process turned off. */
+  servers: string[]
+}
+
 /**
- * The Router's own Codex app-server. Worker tasks keep using the user's normal
- * app-server; this one starts on first use with the flags above and serves one
- * thread per Router.
+ * The Routers' own Codex app-servers, one per project directory. Worker tasks
+ * keep using the user's normal app-server. A trusted project's
+ * `.codex/config.toml` can add MCP servers that Codex starts with every thread,
+ * and Codex accepts `-c mcp_servers.<name>` only for servers it sees at startup,
+ * so each process starts inside its project (F29).
  */
 export class CodexRouterServer {
-  private client: Client | null = null
-  private starting: Promise<Client> | null = null
-  private executable: string | null = null
+  private readonly processes = new Map<string, RouterProcess>()
+  private readonly locks = new Map<string, Promise<unknown>>()
   private readonly threads = new Map<string, ThreadListener>()
-  /** Threads resumed or started in the current process. */
-  readonly loaded = new Set<string>()
 
   constructor(private readonly launch: CodexLauncher = launchCodex) {}
 
-  ready(executable: string): Promise<Client> {
-    if (this.client && this.executable === executable) return Promise.resolve(this.client)
-    if (this.starting) return this.starting
-    this.client?.stop()
-    this.client = null
-    this.starting = this.open(executable).finally(() => {
-      this.starting = null
+  /**
+   * The process to run `threadId` in. Codex reads the project config again for
+   * each thread it resumes or starts, so before a thread loads the MCP servers
+   * are read again and the process restarts when one of them is still on.
+   */
+  host(executable: string, cwd: string, threadId: string | null): Promise<CodexRouterHost> {
+    return this.exclusive(cwd, async () => {
+      const current = this.processes.get(cwd)
+      const usable = current?.executable === executable ? current : null
+      if (usable && threadId && usable.loaded.has(threadId)) return usable
+      const servers = await this.mcpServers(executable, cwd, usable)
+      if (usable && servers.every((name) => usable.servers.includes(name))) return usable
+      if (current) this.drop(cwd, current, 'The Router Codex process restarted.')
+      return this.start(executable, cwd, servers)
     })
-    return this.starting
   }
 
   listen(threadId: string, listener: ThreadListener): () => void {
@@ -102,49 +120,74 @@ export class CodexRouterServer {
   }
 
   close(): void {
-    this.client?.stop()
-    this.client = null
-    this.loaded.clear()
+    const processes = [...this.processes.values()]
+    this.processes.clear()
+    for (const entry of processes) entry.client.stop()
   }
 
-  private async open(executable: string): Promise<Client> {
-    // A plain app-server reads the configured MCP server names; the Router's own
-    // process then turns each of them off.
+  /** The MCP servers Codex would start for a thread in `cwd`, sorted. */
+  private async mcpServers(
+    executable: string,
+    cwd: string,
+    current: RouterProcess | null
+  ): Promise<string[]> {
+    const read = async (client: Client) => {
+      const response = record(await client.request('config/read', { includeLayers: false, cwd }))
+      return Object.keys(recordSchema.catch({}).parse(record(response.config).mcp_servers)).sort()
+    }
+    if (current) return read(current.client)
+    // Server names Codex does not know make startup fail (F27), so a plain
+    // process reads them first.
     const probe = await this.launch(
       executable,
-      { args: [], experimentalApi: true },
+      { args: [], cwd, experimentalApi: true },
       () => {},
       () => {}
     )
-    let servers: string[]
     try {
-      const response = record(await probe.request('config/read', { includeLayers: false }))
-      servers = Object.keys(recordSchema.catch({}).parse(record(response.config).mcp_servers))
+      return await read(probe)
     } finally {
       probe.stop()
     }
-    this.loaded.clear()
-    const client = await this.launch(
-      executable,
-      { args: codexRouterArgs(servers), experimentalApi: true },
-      (frame) => this.onFrame(frame),
-      (reason) => {
-        if (this.client !== client) return
-        this.client = null
-        this.loaded.clear()
-        for (const listener of this.threads.values()) listener.closed(reason)
-      }
-    )
-    this.client = client
-    this.executable = executable
-    return client
   }
 
-  private onFrame(frame: RpcFrame): void {
-    const threadId = string(frame.params?.threadId)
-    const listener = this.threads.get(threadId)
+  private async start(executable: string, cwd: string, servers: string[]): Promise<RouterProcess> {
+    let entry: RouterProcess | null = null
+    const client = await this.launch(
+      executable,
+      { args: codexRouterArgs(servers), cwd, experimentalApi: true },
+      (frame) => this.onFrame(entry, frame),
+      (reason) => {
+        if (entry && this.processes.get(cwd) === entry) this.drop(cwd, entry, reason)
+      }
+    )
+    entry = { client, executable, servers, loaded: new Set() }
+    this.processes.set(cwd, entry)
+    return entry
+  }
+
+  private drop(cwd: string, entry: RouterProcess, reason: string): void {
+    this.processes.delete(cwd)
+    entry.client.stop()
+    for (const threadId of entry.loaded) this.threads.get(threadId)?.closed(reason)
+    entry.loaded.clear()
+  }
+
+  private exclusive<T>(cwd: string, work: () => Promise<T>): Promise<T> {
+    const next = (this.locks.get(cwd) ?? Promise.resolve()).catch(() => {}).then(work)
+    this.locks.set(cwd, next)
+    next
+      .finally(() => {
+        if (this.locks.get(cwd) === next) this.locks.delete(cwd)
+      })
+      .catch(() => {})
+    return next
+  }
+
+  private onFrame(entry: RouterProcess | null, frame: RpcFrame): void {
+    const listener = this.threads.get(string(frame.params?.threadId))
     if (listener) listener.frame(frame)
-    else if (frame.id !== undefined) this.client?.reject(frame.id)
+    else if (frame.id !== undefined) entry?.client.reject(frame.id)
   }
 }
 
@@ -193,13 +236,14 @@ export class CodexEngine implements RouterEngine {
       ({ engine: 'codex', threadId, promptVersion: options.promptVersion }) as const
     let release = () => {}
     try {
-      const client = await options.server.ready(options.executable)
+      const host = await options.server.host(options.executable, options.cwd, previous)
+      const { client } = host
       let threadId = previous
       let text = input.text
-      if (threadId && !options.server.loaded.has(threadId)) {
+      if (threadId && !host.loaded.has(threadId)) {
         try {
           await client.request('thread/resume', { ...this.policy(), threadId, excludeTurns: true })
-          options.server.loaded.add(threadId)
+          host.loaded.add(threadId)
         } catch {
           threadId = null
           // The service rendered this batch for a thread that knew the history.
@@ -221,7 +265,7 @@ export class CodexEngine implements RouterEngine {
           })
         )
         threadId = z.string().parse(record(response.thread).id)
-        options.server.loaded.add(threadId)
+        host.loaded.add(threadId)
       }
       this.threadId = threadId
       const outcome = new Promise<Omit<RouterBatchOutcome, 'native'>>((done) => {
@@ -264,7 +308,7 @@ export class CodexEngine implements RouterEngine {
     const turn = this.turn
     if (!turn?.turnId || turn.stopping || !this.threadId) return 'not_running'
     try {
-      const client = await this.options.server.ready(this.options.executable)
+      const { client } = await this.host()
       await client.request('turn/steer', {
         threadId: this.threadId,
         expectedTurnId: turn.turnId,
@@ -281,7 +325,15 @@ export class CodexEngine implements RouterEngine {
     if (!turn || turn.stopping) return
     turn.stopping = true
     if (turn.turnId)
-      void this.options.server.ready(this.options.executable).then((c) => this.interrupt(c, turn))
+      void this.host().then(
+        ({ client }) => this.interrupt(client, turn),
+        () => turn.done({ status: 'interrupted', error: null })
+      )
+  }
+
+  private host(): Promise<CodexRouterHost> {
+    const { server, executable, cwd } = this.options
+    return server.host(executable, cwd, this.threadId)
   }
 
   private policy() {

@@ -53,13 +53,14 @@ export class CodexClient {
   /** `args` are extra app-server flags; `experimentalApi` is needed for dynamic tools (F6). */
   async start(
     executable: string,
-    options: { args?: string[]; experimentalApi?: boolean } = {}
+    options: { args?: string[]; cwd?: string; experimentalApi?: boolean } = {}
   ): Promise<string> {
     if (this.child) throw new CodexRuntimeError('busy', 'Codex is already connected.')
     const child = spawn(
       executable,
       ['app-server', '--listen', 'stdio://', ...(options.args ?? [])],
       {
+        cwd: options.cwd,
         stdio: 'pipe',
         windowsHide: true,
         detached: process.platform !== 'win32'

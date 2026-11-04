@@ -1235,16 +1235,21 @@ test('a follow-up the user runs in a worker task reaches the Router without a ba
 function fakeCodex(script) {
   const launches = []
   const requests = []
+  const closes = []
+  // The MCP servers the config shows; a test can add one later.
+  const servers = { pencil: {}, node_repl: {} }
   let onFrame = null
-  const launch = async (_executable, options, frame, _close) => {
+  const launch = async (_executable, options, frame, close) => {
     launches.push(options)
     const index = launches.length
-    if (options.args.length) onFrame = frame
+    if (options.args.length) {
+      onFrame = frame
+      closes.push(close)
+    }
     return {
       request: async (method, params) => {
         requests.push({ process: index, method, params })
-        if (method === 'config/read')
-          return { config: { mcp_servers: { pencil: {}, node_repl: {} } } }
+        if (method === 'config/read') return { config: { mcp_servers: { ...servers } } }
         return script(method, params, (f) => onFrame(f))
       },
       respond: (id, result) =>
@@ -1253,7 +1258,7 @@ function fakeCodex(script) {
       stop: () => requests.push({ process: index, method: 'stop' })
     }
   }
-  return { launch, launches, requests }
+  return { launch, launches, requests, closes, servers }
 }
 
 test('the Codex engine runs a locked-down thread, answers tool calls, and resumes', async () => {
@@ -1360,9 +1365,11 @@ test('the Codex engine runs a locked-down thread, answers tool calls, and resume
   assert.deepEqual(first.native, { engine: 'codex', threadId: 'thread-1', promptVersion: 2 })
   assert.deepEqual(
     codex.launches[0],
-    { args: [], experimentalApi: true },
+    { args: [], cwd: PROJECT.path, experimentalApi: true },
     'a plain probe reads the config'
   )
+  assert.deepEqual(codex.requests[0].params, { includeLayers: false, cwd: PROJECT.path })
+  assert.equal(codex.launches[1].cwd, PROJECT.path, 'project MCP servers can be named')
   assert.deepEqual(codex.launches[1].args, codexRouterArgs(['node_repl', 'pencil']))
   assert.ok(codex.launches[1].args.includes('mcp_servers.node_repl.enabled=false'))
   assert.ok(codex.launches[1].args.includes('features.shell_tool=false'))
@@ -1391,12 +1398,14 @@ test('the Codex engine runs a locked-down thread, answers tool calls, and resume
   )
   assert.deepEqual(usage, [{ input: 40, output: 5, cacheRead: 60, cacheWrite: 0 }])
 
-  // Same process: the loaded thread is reused without a resume.
+  // Same process: the loaded thread is reused without a resume or a config read.
   await engine.run({ batchId: 'b_2', text: 'More', native: first.native }, sink)
   assert.equal(codex.requests.filter((r) => r.method === 'thread/resume').length, 0)
+  assert.equal(codex.requests.filter((r) => r.method === 'config/read').length, 1)
   // A restarted process resumes the thread; a lost thread starts over with the state.
-  server.loaded.clear()
+  codex.closes[0]('exited')
   await engine.run({ batchId: 'b_3', text: 'Again', native: first.native }, sink)
+  assert.equal(codex.launches.length, 4)
   assert.equal(codex.requests.filter((r) => r.method === 'thread/resume').length, 1)
   const lost = await engine.run(
     {
@@ -1415,5 +1424,55 @@ test('the Codex engine runs a locked-down thread, answers tool calls, and resume
   // New instructions need a new thread.
   const bumped = await make(3).run({ batchId: 'b_5', text: 'Hi', native: lost.native }, sink)
   assert.deepEqual(bumped.native, { engine: 'codex', threadId: 'thread-3', promptVersion: 3 })
+  server.close()
+})
+
+test('the Codex Router restarts before a thread loads when the project adds an MCP server', async () => {
+  let threads = 0
+  const codex = fakeCodex((method, params, emit) => {
+    if (method === 'thread/start') return { thread: { id: `thread-${++threads}` } }
+    if (method === 'turn/start') {
+      const { threadId } = params
+      queueMicrotask(() =>
+        emit({
+          method: 'turn/completed',
+          params: { threadId, turn: { id: 't', status: 'completed' } }
+        })
+      )
+      return { turn: { id: 't' } }
+    }
+    return {}
+  })
+  const server = new CodexRouterServer(codex.launch)
+  const engine = new CodexEngine({
+    server,
+    executable: '/bin/codex',
+    cwd: PROJECT.path,
+    model: null,
+    instructions: 'Route.',
+    promptVersion: 2,
+    tools: [],
+    state: () => ''
+  })
+  const sink = { item: () => {}, usage: () => {} }
+  const first = await engine.run({ batchId: 'b_1', text: 'Hi', native: null }, sink)
+  assert.equal(codex.launches.length, 2)
+
+  codex.servers.from_repo = {}
+  // A loaded thread keeps the MCP servers it started with.
+  await engine.run({ batchId: 'b_2', text: 'Again', native: first.native }, sink)
+  assert.equal(codex.launches.length, 2)
+  // A thread that loads again reads the config from the running process first.
+  const second = await engine.run({ batchId: 'b_3', text: 'New', native: null }, sink)
+  assert.equal(second.status, 'completed')
+  assert.equal(codex.launches.length, 3, 'no second probe while a process runs')
+  assert.deepEqual(codex.launches[2].args, codexRouterArgs(['from_repo', 'node_repl', 'pencil']))
+  assert.ok(codex.requests.some((r) => r.process === 2 && r.method === 'stop'))
+  const reads = codex.requests.filter((r) => r.method === 'config/read')
+  assert.deepEqual(
+    reads.map((r) => r.process),
+    [1, 2]
+  )
+  assert.ok(reads.every((r) => r.params.cwd === PROJECT.path))
   server.close()
 })

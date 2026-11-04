@@ -297,7 +297,7 @@ Inbox 事件来源：用户发给 Router 的消息、Worker 汇报、Worker 的�
 | --- | --- | --- |
 | Owls | 每个 Router 一个 main 进程内的 `Agent` 实例，按需创建；每个批次一次 `agent.prompt()` | 没有子进程；上下文每次请求前由 Owls 重建（9.2 节） |
 | Claude Code | 每个批次一个 query，用 `resume` 续接同一原生会话；输入流在 result 之前保持打开 | 4.2 节：进程开销不超过 0.4 秒，常驻 query 没有速度优势；与 `ClaudeService` 的模型一致 |
-| Codex | 一个 Router 专用的 app-server 进程（4.2 节的启动参数），首次使用时启动；每个 Router 一个 thread，每个批次一个 turn | Worker 使用的 app-server 进程保留用户配置，不能共用 |
+| Codex | Router 专用的 app-server 进程（4.2 节的启动参数），每个项目目录一个，首次使用时启动；每个 Router 一个 thread，每个批次一个 turn | Worker 使用的 app-server 进程保留用户配置，不能共用 |
 
 ### 8.2 追问直通（M3 实现）
 
@@ -574,7 +574,7 @@ F12–F16）：
 | --- | --- |
 | Router（Owls 引擎） | 只有 Owls 工具，不读取任何 CLI 或用户配置；上下文由 `prepareRequest` 重建（9.2 节）。这是唯一一个隔离完全由 Owls 保证的引擎 |
 | Router（Claude Code） | `tools: []` + `allowedTools` 只放 Owls 工具 + `permissionMode: 'dontAsk'` + `settingSources: []` + `strictMcpConfig: true` + 自定义 `systemPrompt`，Owls 工具 `alwaysLoad`，`cwd` 为项目路径（F24）。隔离依赖**工具白名单和严格 MCP 配置**，不依赖 settings |
-| Router（Codex） | 独立 app-server 进程（`CodexRouterServer`，所有 Router 共用，首次使用时启动）：先用一个普通进程 `config/read` 读出 MCP server 名称，再以 `-c features.<name>=false` 关闭 shell、unified exec、apps、plugins、browser、computer use、multi-agent、view_image 等 features，`web_search="disabled"`，并逐个设置 `mcp_servers.<name>.enabled=false`（F27）；`code_mode_host` 保持开启（F14）。`sandbox: read-only`、`approvalPolicy: never`，`cwd` 为项目路径。hooks 和全局 `AGENTS.md` 无法关闭，设置中向用户说明 |
+| Router（Codex） | 独立 app-server 进程（`CodexRouterServer`，每个项目目录一个，首次使用时在项目目录中启动）：先用一个普通进程以项目路径为 `cwd` 调用 `config/read`，读出包括项目配置在内的 MCP server 名称（F29），再以 `-c features.<name>=false` 关闭 shell、unified exec、apps、plugins、browser、computer use、multi-agent、view_image 等 features，`web_search="disabled"`，并逐个设置 `mcp_servers.<name>.enabled=false`（F27）；`code_mode_host` 保持开启（F14）。`sandbox: read-only`、`approvalPolicy: never`，`cwd` 为项目路径。每次 `thread/resume` 或 `thread/start` 前重新读取 MCP server，有未关闭的就重启进程。hooks 和全局 `AGENTS.md` 无法关闭，设置中向用户说明 |
 | Worker | 保留用户的开发环境配置（这正是用户期望的 agent 行为），用汇报 schema 保证输出可解析；权限取任务自身的权限设置 |
 
 其他约束：

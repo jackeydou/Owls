@@ -49,6 +49,7 @@ F18–F20 使用 pi `1.5.0`。
 | F26 | Codex 0.166 跨进程 `thread/resume` 后 dynamic tool 仍可调用 | 已确认 |
 | F27 | `-c mcp_servers.<未知名称>.enabled=false` 使 app-server 启动失败；未知 feature 只被忽略 | 已确认 |
 | F28 | Codex Router 每批次约 17.5k token 固定上下文；`tokenUsage/updated` 可能重复发送 | 已确认 |
+| F29 | 受信任项目的 `.codex/config.toml` 中的 MCP server 在 `thread/start` 时启动，不带 `cwd` 的 `config/read` 读不到 | 已确认，已修复 |
 | R1 | ClaudeService 一轮结束后立即发下一条，会被上一轮的清理误判为失败 | 已修复（#16） |
 | R2 | Claude 任务的回复标题写死为「Codex」 | 已修复（#16） |
 | R3 | `main` 上的 `pnpm-lock.yaml` 与工作区不同步 | 已修复（#16） |
@@ -353,6 +354,24 @@ Codex CLI `0.166.0`。先用独立脚本复现 RFC 4.2 节的锁定进程，再�
   Claude Code 引擎（F24 实测约 3k）的 6 倍，来自 code mode、原生指令和全局 `AGENTS.md`。
   同一请求的 `thread/tokenUsage/updated` 有时连续发送两次，`last` 完全相同。
 - 处理：Codex 引擎按 `total.totalTokens` 去重后再累计用量。上下文成本记入 RFC 开放问题 7。
+
+### F29 项目配置中的 MCP server 绕过 Codex Router 的隔离
+
+- 来源：PR #21 的 Codex 安全审查（P1）。
+- 现象：项目受信任时（`~/.codex/config.toml` 中 `trust_level = "trusted"`），项目
+  `.codex/config.toml` 声明的 MCP server 会在 `thread/start`（`cwd` 为项目路径）时作为子进程
+  启动，`sandbox: read-only` 不限制它。不带 `cwd` 的 `config/read` 只返回用户层配置，读不到这些
+  名称，所以 Router 进程没有关闭它们。打开项目并发送一条 Router 消息，就会运行仓库指定的命令。
+  另外两点：在项目外启动的 app-server 带 `-c mcp_servers.<项目中的名称>.enabled=false` 会因
+  F27 启动失败；运行中的 app-server 每次 `thread/start` 都重新读项目配置，启动后新增的 server
+  也会运行。
+- 复现：临时 `CODEX_HOME` 中信任一个临时仓库，仓库配置一个 `command = "sh"` 的 server 创建标记
+  文件；Codex 0.166.0 下按 PR #21 的方式启动，`thread/start` 后标记文件出现。
+- 处理：`config/read` 传 `cwd`（返回该目录看到的有效配置，含项目层）；每个项目目录一个 Router
+  app-server，进程的工作目录就是项目目录；每次 `thread/resume` 或 `thread/start` 之前（已加载的
+  thread 不重复检查）从运行中的进程再读一次配置，出现未关闭的 server 时重启进程。同样的实测中
+  原有 server 和中途新增的 server 都不再启动。
+- 未验证：已加载的 thread 在后续 turn 中是否会启动配置中新增的 server（需要登录才能发起 turn）。
 
 ## Claude Code runtime 接入（PR #16，2026-11-01）
 
