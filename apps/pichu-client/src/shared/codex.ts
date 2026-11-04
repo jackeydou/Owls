@@ -89,6 +89,7 @@ export const sessionSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string()
 })
+export const appLogoSchema = z.enum(['line', 'solid', 'brow'])
 export const settingsSchema = z.object({
   executablePath: z.string().nullable(),
   model: z.string().nullable(),
@@ -96,6 +97,7 @@ export const settingsSchema = z.object({
   permission: permissionSchema,
   theme: z.enum(['system', 'light', 'dark']),
   language: z.enum(['en', 'zh-CN']),
+  appLogo: appLogoSchema.default('solid'),
   provider: providerSchema.default('codex'),
   claudeExecutablePath: z.string().nullable().default(null),
   claudeModel: z.string().nullable().default(null),
@@ -136,6 +138,7 @@ export type CodexItem = z.infer<typeof itemSchema>
 export type CodexRequest = z.infer<typeof requestSchema>
 export type CodexSession = z.infer<typeof sessionSchema>
 export type CodexSettings = z.infer<typeof settingsSchema>
+export type AppLogo = z.infer<typeof appLogoSchema>
 export type CodexProject = z.infer<typeof projectSchema>
 export type CodexModel = z.infer<typeof modelSchema>
 export type CodexEffort = z.infer<typeof effortSchema>

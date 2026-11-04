@@ -13,8 +13,9 @@ import {
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexFailure } from '../../../shared/codex'
-import { settingsSchema } from '../../../shared/codex'
+import { appLogoSchema, settingsSchema } from '../../../shared/codex'
 import { RouterSettingsSection } from '../router/RouterSettings'
+import { appLogoIcons } from './AppLogo'
 import { TaskOptions } from './Controls'
 import { failureMessage, uiFailure } from './failures'
 import { useCodexStore } from './store'
@@ -314,6 +315,25 @@ export function CodexSettingsPage() {
                 <option value="zh-CN">简体中文</option>
               </Select>
             </div>
+            <fieldset className="codex-logo-field">
+              <legend>{t('appLogo')}</legend>
+              <div className="codex-logo-options">
+                {appLogoSchema.options.map((logo) => (
+                  <label className="codex-logo-option" key={logo}>
+                    <input
+                      type="radio"
+                      name="codex-app-logo"
+                      className="sr-only"
+                      checked={settings.appLogo === logo}
+                      onChange={() => void saveSettings({ ...settings, appLogo: logo })}
+                    />
+                    <img src={appLogoIcons[logo]} alt="" />
+                    <span>{t(`appLogo.${logo}`)}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="codex-note">{t('appLogoHelp')}</p>
+            </fieldset>
           </section>
         </div>
       </div>

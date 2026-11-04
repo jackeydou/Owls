@@ -20,10 +20,10 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import owlMark from '../../../../resources/pichu-home-mark.png'
 import type { CodexSession } from '../../../shared/codex'
 import { RouterView } from '../router/RouterView'
 import { useWorktreeProjects } from '../router/store'
+import { AppLogoMark } from './AppLogo'
 import { TaskOptions } from './Controls'
 import { ConversationItem, RequestCard } from './Conversation'
 import { failureMessage } from './failures'
@@ -62,7 +62,7 @@ function Sidebar() {
   return (
     <aside className="codex-sidebar">
       <div className="codex-sidebar-brand">
-        <img src={owlMark} alt="" />
+        <AppLogoMark />
         <span>Owls</span>
       </div>
       <Button variant="outline" className="codex-new-task" onClick={() => newTask()}>
@@ -270,7 +270,7 @@ function Chat() {
             <div className="codex-conversation">
               {!items.length ? (
                 <div className="codex-welcome">
-                  <img src={owlMark} alt="" />
+                  <AppLogoMark />
                   <h1>{t(connected ? 'welcome' : 'connectTitle', { agent })}</h1>
                   <p>{t(connected ? 'welcomeBody' : 'connectBody', { agent })}</p>
                   {!connected ? (
