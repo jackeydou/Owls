@@ -204,12 +204,13 @@ export class CodexService {
     if (active(session))
       throw new CodexRuntimeError('busy', 'Wait for the current task or stop it before sending.')
     this.validateSelection(session.model, session.effort)
-    // A Router worker's worktree must exist before the agent starts in it.
-    await this.profiles?.prepare(session.id)
-    if (active(session))
-      throw new CodexRuntimeError('busy', 'Wait for the current task or stop it before sending.')
     if (!this.store.acceptCommand(input.commandId, session.id, input.text)) return
+    const previous = session.status
     session.status = 'starting'
+    // A stopped turn's id would send interrupt() to that turn instead.
+    session.turnId = null
+    this.changed(session, true)
+    if (!(await this.prepared(session, previous))) return
     session.error = null
     session.diff = ''
     if (!session.title) session.title = input.text.split('\n')[0].slice(0, 90)
@@ -623,6 +624,34 @@ export class CodexService {
       error: { code: 'disconnected', message: reason }
     }
     this.emitConnection()
+  }
+  /**
+   * Creates a Router worker's worktree before the agent starts in it. The session
+   * is already starting, so it can be stopped but not removed meanwhile. False
+   * when it was stopped or lost its connection and the turn must not start.
+   */
+  private async prepared(
+    session: CodexSession,
+    previous: CodexSession['status']
+  ): Promise<boolean> {
+    try {
+      await this.profiles?.prepare(session.id)
+    } catch (error) {
+      this.cancelled.delete(session.id)
+      if (session.status === 'starting') {
+        session.status = previous
+        this.changed(session, true)
+      }
+      throw error
+    }
+    const stopped = this.cancelled.delete(session.id)
+    // disconnected() already ended and reported it.
+    if (session.status !== 'starting') return false
+    if (!stopped) return true
+    session.status = 'interrupted'
+    this.changed(session, true)
+    this.reportTurn(session, 'interrupted', null)
+    return false
   }
   /** Tells the Router how a worker's turn ended; the report is the turn's final message. */
   private reportTurn(

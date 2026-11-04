@@ -372,3 +372,75 @@ test('Claude service steers a message into the running turn', async () => {
     rmSync(project, { recursive: true, force: true })
   }
 })
+
+test('Claude service lets a worker task stop, not be removed, while its worktree is prepared', async () => {
+  const project = realpathSync(mkdtempSync(join(tmpdir(), 'owls-claude-prepare-')))
+  const sdk = fakeSdk()
+  const service = new ClaudeService(memoryStore(project), () => {}, sdk)
+  const settled = []
+  let release
+  let prepareError = null
+  service.setTurnProfiles({
+    prepare: () =>
+      new Promise((resolve, reject) => {
+        release = () => (prepareError ? reject(prepareError) : resolve())
+      }),
+    profile: () => ({ role: 'task' }),
+    settled: (sessionId, outcome) => settled.push([sessionId, outcome.status])
+  })
+  try {
+    await service.connect()
+    const session = service.createSession({
+      provider: 'claude-code',
+      cwd: project,
+      model: null,
+      effort: null,
+      permission: 'workspace-write'
+    })
+    const state = () => service.sessionList().find((s) => s.id === session.id)
+    const queries = sdk.calls.length
+    const stopped = service.send({
+      sessionId: session.id,
+      commandId: crypto.randomUUID(),
+      text: 'hello'
+    })
+    assert.equal(state().status, 'starting')
+    assert.throws(
+      () => service.archive(session.id),
+      (error) => error.code === 'busy'
+    )
+    await service.interrupt(session.id)
+    release()
+    await stopped
+    assert.equal(state().status, 'interrupted')
+    assert.deepEqual(state().items, [])
+    assert.equal(sdk.calls.length, queries)
+    assert.deepEqual(settled, [[session.id, 'interrupted']])
+
+    prepareError = Object.assign(new Error('no worktree'), { code: 'worktree_failed' })
+    const failed = service.send({
+      sessionId: session.id,
+      commandId: crypto.randomUUID(),
+      text: 'hello'
+    })
+    release()
+    await assert.rejects(failed, (error) => error.code === 'worktree_failed')
+    assert.equal(state().status, 'interrupted')
+    assert.equal(sdk.calls.length, queries)
+
+    prepareError = null
+    const started = service.send({
+      sessionId: session.id,
+      commandId: crypto.randomUUID(),
+      text: 'hello'
+    })
+    release()
+    await started
+    await until(() => state().status === 'idle')
+    assert.equal(state().items.at(-1).text, 'hello world')
+    service.archive(session.id)
+  } finally {
+    service.close()
+    rmSync(project, { recursive: true, force: true })
+  }
+})

@@ -89,8 +89,55 @@ app
       await reopened.send({ sessionId: session.id, commandId: crypto.randomUUID(), text: 'hello' })
       await until(() => reopened.snapshot().sessions[0].status === 'idle')
       assert.equal(reopened.snapshot().sessions[0].threadId, nativeThreadId)
+      // A worker's worktree is still being prepared: its task can be stopped, not removed.
+      const settled = []
+      let release
+      let prepareError = null
+      reopened.setTurnProfiles({
+        prepare: () =>
+          new Promise((resolve, reject) => {
+            release = () => (prepareError ? reject(prepareError) : resolve())
+          }),
+        profile: () => ({ role: 'task' }),
+        settled: (sessionId, outcome) => settled.push([sessionId, outcome.status])
+      })
+      const worker = reopened.createSession({
+        cwd: project.path,
+        model: 'fixture-model',
+        effort: 'medium',
+        permission: 'workspace-write'
+      })
+      const workerState = () => reopened.snapshot().sessions.find((s) => s.id === worker.id)
+      const stopped = reopened.send({
+        sessionId: worker.id,
+        commandId: crypto.randomUUID(),
+        text: 'hello'
+      })
+      assert.equal(workerState().status, 'starting')
+      assert.throws(
+        () => reopened.archive(worker.id),
+        (error) => error.code === 'busy'
+      )
+      await reopened.interrupt(worker.id)
+      release()
+      await stopped
+      assert.equal(workerState().status, 'interrupted')
+      assert.equal(workerState().threadId, null)
+      assert.deepEqual(workerState().items, [])
+      assert.deepEqual(settled, [[worker.id, 'interrupted']])
+      prepareError = Object.assign(new Error('no worktree'), { code: 'worktree_failed' })
+      const failed = reopened.send({
+        sessionId: worker.id,
+        commandId: crypto.randomUUID(),
+        text: 'hello'
+      })
+      release()
+      await assert.rejects(failed, (error) => error.code === 'worktree_failed')
+      assert.equal(workerState().status, 'interrupted')
+      assert.equal(workerState().threadId, null)
+      reopened.archive(worker.id)
       console.log(
-        'PASS: account reuse, fresh SQLite schema, streaming, deduplication, approval, interruption, persistence'
+        'PASS: account reuse, fresh SQLite schema, streaming, deduplication, approval, interruption, persistence, worktree preparation'
       )
     } finally {
       host?.close()

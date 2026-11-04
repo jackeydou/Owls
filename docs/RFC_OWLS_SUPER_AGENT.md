@@ -679,6 +679,8 @@ F12–F16）：
   `TurnProfiles.prepare(sessionId)`，由 `WorkerPool` 确认 worktree 存在：目录在就直接使用；目录不在
   但分支在，就用 `git worktree add <path> owls/<id>` 重新检出；两者都不在，就按新 Worker 创建。
   用户手动删除 worktree 目录不会让 Worker 失效，但目录中未提交的修改会随之丢失。
+  准备期间任务已经是 `starting`：用户可以停止它（停止后这一轮不开始，Worker 记为 `stopped`），
+  但不能移除它，避免 Agent 在一个已被移除的任务和正在删除的目录里启动。准备失败时任务恢复原状态。
 - 启动时对每个涉及的仓库执行一次 `git worktree prune`。已经 `removed`、但 `state` 仍为 `active`
   的 Worker（移除后清理还没完成就退出了）重新执行上面的清理。
 - 创建失败（磁盘、权限、分支名冲突、仓库被锁）时这一轮不开始：Worker 记为 `failed` 并写入
