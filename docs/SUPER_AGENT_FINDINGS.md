@@ -26,7 +26,7 @@ F18–F20 使用 pi `1.5.0`。
 | F4 | 本机 Codex 配置的默认模型不支持当前账号，选「Codex 默认」会失败 | 0.166 未复现 |
 | F5 | Codex 在用量很低时也会遇到一次性 429 | 待处理 |
 | F6 | Codex `dynamicTools` 需要 `experimentalApi`，否则明确报错 | 已确认 |
-| F7 | Codex `thread/resume` 没有 `dynamicTools` 参数，但工具定义随 thread 持久化 | 已确认，0.166 待复查 |
+| F7 | Codex `thread/resume` 没有 `dynamicTools` 参数，但工具定义随 thread 持久化 | 已确认，0.166 复查通过（F26） |
 | F8 | Claude Code 中 `allowedTools` 里的工具会绕过 `canUseTool` | 已确认 |
 | F9 | 两种引擎的运行中注入都在同一 turn 内生效 | 已确认 |
 | F10 | Claude Code 用户消息的 `priority` 字段无文档，实测不影响结果 | 已确认，复查 |
@@ -46,6 +46,10 @@ F18–F20 使用 pi `1.5.0`。
 | F23 | 本机 Ollama 实测：`qwen3.6:27b` 完成分派闭环，`qwen2.5-coder:7b` 只回复文字不调用工具 | 已确认 |
 | F24 | Claude Code Router 会把自己的工作目录写进分派目标 | 已修复（M2） |
 | F25 | `allowedTools` 覆盖 `canUseTool` 时 SDK 每次 query 打印警告；改用 `permissionMode: 'dontAsk'` | 已确认 |
+| F26 | Codex 0.166 跨进程 `thread/resume` 后 dynamic tool 仍可调用 | 已确认 |
+| F27 | `-c mcp_servers.<未知名称>.enabled=false` 使 app-server 启动失败；未知 feature 只被忽略 | 已确认 |
+| F28 | Codex Router 每批次约 17.5k token 固定上下文；`tokenUsage/updated` 可能重复发送 | 已确认 |
+| F29 | 受信任项目的 `.codex/config.toml` 中的 MCP server 在 `thread/start` 时启动，不带 `cwd` 的 `config/read` 读不到 | 已确认，已修复 |
 | R1 | ClaudeService 一轮结束后立即发下一条，会被上一轮的清理误判为失败 | 已修复（#16） |
 | R2 | Claude 任务的回复标题写死为「Codex」 | 已修复（#16） |
 | R3 | `main` 上的 `pnpm-lock.yaml` 与工作区不同步 | 已修复（#16） |
@@ -318,6 +322,56 @@ hook 和插件信息，未入库。
   SDK 每次 query 都发出 `CLAUDE_SDK_CAN_USE_TOOL_SHADOWED` 进程警告（与 F8 是同一行为）。
 - 处理：去掉 `canUseTool`，改用 `permissionMode: 'dontAsk'`：未预先批准的工具直接拒绝，不弹审批。
   `tools: []` 下本来也没有其他工具。
+
+## Codex Router 引擎实测（M3，2026-11-03）
+
+Codex CLI `0.166.0`。先用独立脚本复现 RFC 4.2 节的锁定进程，再经打包后的
+`out/main/codex/runtime.js` 运行 `CodexEngine` 和真实 `CodexRouterServer`，假的 `dispatch_task`。
+
+- 锁定进程（18 个 features 关闭、3 个配置中的 MCP server 逐个关闭、`web_search="disabled"`）：
+  没有 MCP server 启动，模型回复「无法运行命令」，`dispatch_task` 正常调用；hooks 仍运行
+  （一个 turn 中 22 个 hook 帧），`instructionSources` 仍含 `~/.codex/AGENTS.md`（F13、F15 复查）。
+- 引擎：第一批次（含两个进程启动）约 30 秒，分派一次并回复；随后关闭进程，第二批次在新进程中
+  `thread/resume` 同一 thread，约 8 秒，再次分派并正确说出两个 Worker ID。
+
+### F26 Codex 0.166 跨进程 `thread/resume` 后 dynamic tool 仍可调用
+
+- 现象：第一个 app-server 进程中用 `dynamicTools` 启动的 thread，在新进程中 `thread/resume`
+  （不传工具）后，模型仍能调用 `dispatch_task`，客户端收到 `item/tool/call`。
+- 影响：Codex 引擎重启后直接 `resume`，不需要新建 thread；F7 在 0.166 上成立。
+
+### F27 未知 MCP server 名称使 app-server 启动失败
+
+- 现象：`codex app-server -c mcp_servers.no_such_server.enabled=false` 直接退出，报
+  `invalid transport in mcp_servers.no_such_server`；`-c features.no_such_feature=false` 只打印
+  「ignoring 1 unrecognized configuration setting」，进程照常初始化。
+- 处理：MCP server 名称必须来自 `config/read`（`CodexRouterServer` 先启动一个普通进程读取）；
+  feature 列表可以写成常量，CLI 改名或删除时不会导致启动失败。
+
+### F28 Codex Router 的固定上下文与重复的用量事件
+
+- 现象：锁定进程中，每个 Router 请求约 17.5k 输入 token（第二次起大部分是缓存读取），约为
+  Claude Code 引擎（F24 实测约 3k）的 6 倍，来自 code mode、原生指令和全局 `AGENTS.md`。
+  同一请求的 `thread/tokenUsage/updated` 有时连续发送两次，`last` 完全相同。
+- 处理：Codex 引擎按 `total.totalTokens` 去重后再累计用量。上下文成本记入 RFC 开放问题 7。
+
+### F29 项目配置中的 MCP server 绕过 Codex Router 的隔离
+
+- 来源：PR #21 的 Codex 安全审查（P1）。
+- 现象：项目受信任时（`~/.codex/config.toml` 中 `trust_level = "trusted"`），项目
+  `.codex/config.toml` 声明的 MCP server 会在 `thread/start`（`cwd` 为项目路径）时作为子进程
+  启动，`sandbox: read-only` 不限制它。不带 `cwd` 的 `config/read` 只返回用户层配置，读不到这些
+  名称，所以 Router 进程没有关闭它们。打开项目并发送一条 Router 消息，就会运行仓库指定的命令。
+  另外两点：在项目外启动的 app-server 带 `-c mcp_servers.<项目中的名称>.enabled=false` 会因
+  F27 启动失败；运行中的 app-server 每次 `thread/start` 都重新读项目配置，启动后新增的 server
+  也会运行。
+- 复现：临时 `CODEX_HOME` 中信任一个临时仓库，仓库配置一个 `command = "sh"` 的 server 创建标记
+  文件；Codex 0.166.0 下按 PR #21 的方式启动，`thread/start` 后标记文件出现。
+- 处理：`config/read` 传 `cwd`（返回该目录看到的有效配置，含项目层）；每个项目目录一个 Router
+  app-server，进程的工作目录就是项目目录；每次 `thread/resume` 或 `thread/start` 之前（已加载的
+  thread 不重复检查）从运行中的进程再读一次配置，出现未关闭的 server 时重启进程。同样的实测中
+  原有 server 和中途新增的 server 都不再启动。
+- 未验证：已加载的 thread 在后续 turn 中是否会启动配置中新增的 server（需要登录才能发起 turn）。
 
 ## Claude Code runtime 接入（PR #16，2026-11-01）
 

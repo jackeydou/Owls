@@ -51,7 +51,9 @@ export class OwlsHost {
         return connection.status === 'ready' && connection.account.kind !== 'signed-out'
       },
       createSession: (input) => this.createSession(input),
-      send: (input) => this.send(input)
+      send: (input) => this.send(input),
+      steer: (sessionId, text) => this.steer(sessionId, text),
+      interrupt: (sessionId) => this.interrupt(sessionId)
     }
   }
   snapshot(): CodexSnapshot {
@@ -64,6 +66,9 @@ export class OwlsHost {
       claude: this.claude.connectionState(),
       ...(this.router?.snapshot() ?? { routers: [], workers: [] })
     }
+  }
+  codexConnection(): CodexConnection {
+    return this.codex.connectionState()
   }
   claudeConnection(): ClaudeConnection {
     return this.claude.connectionState()
@@ -95,8 +100,8 @@ export class OwlsHost {
   openRouter(projectId: string): CodexRouter {
     return this.requireRouter().open(projectId)
   }
-  sendRouter(input: SendRouterMessage): void {
-    this.requireRouter().send(input)
+  sendRouter(input: SendRouterMessage): Promise<void> {
+    return this.requireRouter().send(input)
   }
   interruptRouter(routerId: string): void {
     this.requireRouter().interrupt(routerId)
@@ -128,6 +133,11 @@ export class OwlsHost {
   }
   send(input: SendCodexMessage): Promise<void> {
     return this.claude.owns(input.sessionId) ? this.claude.send(input) : this.codex.send(input)
+  }
+  async steer(sessionId: string, text: string): Promise<'steered' | 'not_running'> {
+    return this.claude.owns(sessionId)
+      ? this.claude.steer(sessionId, text)
+      : this.codex.steer(sessionId, text)
   }
   interrupt(sessionId: string): Promise<void> {
     return this.claude.owns(sessionId)

@@ -23,6 +23,7 @@ export function RouterSettingsSection() {
   const settings = useCodexStore((s) => s.settings)
   const saveSettings = useCodexStore((s) => s.saveSettings)
   const claude = useCodexStore((s) => s.claude)
+  const codex = useCodexStore((s) => s.connection)
   async function saveRouter(router: typeof settings.router) {
     await saveSettings({ ...settings, router })
   }
@@ -43,7 +44,7 @@ export function RouterSettingsSection() {
           }
         >
           {routerEngineSchema.options.map((engine) => (
-            <option value={engine} key={engine} disabled={engine === 'codex'}>
+            <option value={engine} key={engine}>
               {t(`routerSettings.engine.${engine}`)}
             </option>
           ))}
@@ -75,6 +76,30 @@ export function RouterSettingsSection() {
           </div>
           {claude.status !== 'ready' ? (
             <p className="router-settings-help">{t('routerSettings.claudeDisconnected')}</p>
+          ) : null}
+        </>
+      ) : null}
+      {settings.router.engine === 'codex' ? (
+        <>
+          <div className="codex-setting-row">
+            <label htmlFor="router-codex-model">{t('routerSettings.codexModel')}</label>
+            <Select
+              id="router-codex-model"
+              value={settings.router.codexModel ?? ''}
+              onChange={(event) =>
+                void saveRouter({ ...settings.router, codexModel: event.target.value || null })
+              }
+            >
+              <option value="">{t('routerSettings.codexModel.default')}</option>
+              {codex.models.map((m) => (
+                <option value={m.id} key={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {codex.status !== 'ready' ? (
+            <p className="router-settings-help">{t('routerSettings.codexDisconnected')}</p>
           ) : null}
         </>
       ) : null}

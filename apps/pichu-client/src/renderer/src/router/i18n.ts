@@ -22,6 +22,9 @@ export const routerEn = {
   'router.claudeSetupTitle': 'Connect Claude Code for the Router',
   'router.claudeSetupBody':
     'The Claude Code engine uses your local Claude Code sign-in. Connect it in Settings, or choose another engine.',
+  'router.codexSetupTitle': 'Connect Codex for the Router',
+  'router.codexSetupBody':
+    'The Codex engine uses your local Codex sign-in. Connect it in Settings, or choose another engine.',
   'router.unknownBatch':
     'Owls stopped while the Router was handling {{count}} events. They may or may not have reached it.',
   'router.retryBatch': 'Send again',
@@ -49,12 +52,16 @@ export const routerEn = {
   'routerSettings.engine': 'Router engine',
   'routerSettings.engine.owls': 'Owls (built in)',
   'routerSettings.engine.claude-code': 'Claude Code',
-  'routerSettings.engine.codex': 'Codex (coming later)',
+  'routerSettings.engine.codex': 'Codex',
   'routerSettings.engineHelp.owls':
     'Only has coordination tools and loads none of your CLI configuration. It needs its own model.',
   'routerSettings.engineHelp.claude-code':
     'Uses your Claude Code sign-in. Only coordination tools are enabled, and your Claude Code settings and MCP servers are not loaded.',
-  'routerSettings.engineHelp.codex': 'Uses your Codex sign-in.',
+  'routerSettings.engineHelp.codex':
+    'Uses your Codex sign-in in a separate Codex process without shell, MCP servers, or plugins. Your Codex hooks still run and your global AGENTS.md is still loaded.',
+  'routerSettings.codexModel': 'Codex model',
+  'routerSettings.codexModel.default': 'Codex default',
+  'routerSettings.codexDisconnected': 'Codex is not connected.',
   'routerSettings.claudeModel': 'Claude Code model',
   'routerSettings.claudeModel.default': 'Claude Code default',
   'routerSettings.claudeDisconnected': 'Claude Code is not connected.',
@@ -113,6 +120,8 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'router.claudeSetupTitle': '为协调者连接 Claude Code',
   'router.claudeSetupBody':
     'Claude Code 引擎使用你本机 Claude Code 的登录。请在设置中连接，或选择其他引擎。',
+  'router.codexSetupTitle': '为协调者连接 Codex',
+  'router.codexSetupBody': 'Codex 引擎使用你本机 Codex 的登录。请在设置中连接，或选择其他引擎。',
   'router.unknownBatch': '协调者处理 {{count}} 个事件时 Owls 退出了，这些事件可能没有送达。',
   'router.retryBatch': '重新发送',
   'router.ignoreBatch': '忽略',
@@ -139,11 +148,15 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'routerSettings.engine': '协调者引擎',
   'routerSettings.engine.owls': 'Owls（内置）',
   'routerSettings.engine.claude-code': 'Claude Code',
-  'routerSettings.engine.codex': 'Codex（后续支持）',
+  'routerSettings.engine.codex': 'Codex',
   'routerSettings.engineHelp.owls': '只有协调工具，不加载你的任何 CLI 配置，需要单独配置模型。',
   'routerSettings.engineHelp.claude-code':
     '使用 Claude Code 的登录。只启用协调工具，不加载你的 Claude Code 设置和 MCP server。',
-  'routerSettings.engineHelp.codex': '使用 Codex 的登录。',
+  'routerSettings.engineHelp.codex':
+    '使用 Codex 的登录，在独立的 Codex 进程中运行，没有 shell、MCP server 和插件。你的 Codex hooks 仍会运行，全局 AGENTS.md 仍会加载。',
+  'routerSettings.codexModel': 'Codex 模型',
+  'routerSettings.codexModel.default': 'Codex 默认模型',
+  'routerSettings.codexDisconnected': 'Codex 未连接。',
   'routerSettings.claudeModel': 'Claude Code 模型',
   'routerSettings.claudeModel.default': 'Claude Code 默认模型',
   'routerSettings.claudeDisconnected': 'Claude Code 未连接。',

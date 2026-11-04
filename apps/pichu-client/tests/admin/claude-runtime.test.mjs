@@ -128,6 +128,12 @@ function fakeSdk() {
       await new Promise((resolve) => setTimeout(resolve, 100))
       yield { type: 'rate_limit_event' }
     },
+    async *steered(_options, _signal, control) {
+      yield init
+      const next = await control.next()
+      yield assistant('m5', [{ type: 'text', text: `heard: ${next.value.message.content}` }])
+      yield success
+    },
     async *long(_options, _signal, control) {
       yield init
       yield assistant('m3', [{ type: 'text', text: 'working' }])
@@ -147,10 +153,14 @@ function fakeSdk() {
     query({ prompt, options }) {
       calls.push(options)
       let interrupt
-      const control = { interrupted: new Promise((resolve) => (interrupt = resolve)) }
+      const iterator = prompt[Symbol.asyncIterator]()
+      const control = {
+        interrupted: new Promise((resolve) => (interrupt = resolve)),
+        next: () => iterator.next()
+      }
       const signal = new AbortController().signal
       const generator = (async function* () {
-        const first = await prompt[Symbol.asyncIterator]().next()
+        const first = await iterator.next()
         if (first.done) return
         yield* scripts[first.value.message.content](options, signal, control)
       })()
@@ -326,6 +336,37 @@ test('Claude service reports a missing executable without falling back', async (
     assert.equal(connection.status, 'error')
     assert.equal(connection.error.code, 'claude_not_installed')
     assert.equal(sdk.calls.length, 0)
+  } finally {
+    service.close()
+    rmSync(project, { recursive: true, force: true })
+  }
+})
+
+test('Claude service steers a message into the running turn', async () => {
+  const project = realpathSync(mkdtempSync(join(tmpdir(), 'owls-claude-steer-')))
+  const service = new ClaudeService(memoryStore(project), () => {}, fakeSdk())
+  try {
+    await service.connect()
+    const session = service.createSession({
+      provider: 'claude-code',
+      cwd: project,
+      model: null,
+      effort: null,
+      permission: 'workspace-write'
+    })
+    const state = () => service.sessionList().find((s) => s.id === session.id)
+    await service.send({ sessionId: session.id, commandId: crypto.randomUUID(), text: 'steered' })
+    assert.equal(service.steer(session.id, 'also this'), 'steered')
+    await until(() => state().status === 'idle')
+    assert.deepEqual(
+      state().items.map((i) => [i.kind, i.text]),
+      [
+        ['user', 'steered'],
+        ['user', 'also this'],
+        ['assistant', 'heard: also this']
+      ]
+    )
+    assert.equal(service.steer(session.id, 'too late'), 'not_running')
   } finally {
     service.close()
     rmSync(project, { recursive: true, force: true })

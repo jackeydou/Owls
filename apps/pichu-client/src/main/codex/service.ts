@@ -94,6 +94,9 @@ export class CodexService {
       connection: this.connection
     }
   }
+  connectionState(): CodexConnection {
+    return this.connection
+  }
   connect(): Promise<CodexConnection> {
     if (this.connecting) return this.connecting
     if ([...this.sessions.values()].some(active))
@@ -269,6 +272,23 @@ export class CodexService {
       this.reportTurn(session, 'failed', null)
       throw new CodexRuntimeError(session.error.code, session.error.message)
     }
+  }
+  /** Adds a message to the running turn with `turn/steer`; not_running when there is none. */
+  async steer(sessionId: string, text: string): Promise<'steered' | 'not_running'> {
+    const session = this.getSession(sessionId)
+    if (!active(session) || !session.threadId || !session.turnId || this.cancelled.has(sessionId))
+      return 'not_running'
+    try {
+      await this.readyClient().request('turn/steer', {
+        threadId: session.threadId,
+        expectedTurnId: session.turnId,
+        input: [{ type: 'text', text, text_elements: [] }]
+      })
+    } catch {
+      // A stale turn id or a finished turn: the caller starts a new turn instead.
+      return 'not_running'
+    }
+    return 'steered'
   }
   async interrupt(id: string): Promise<void> {
     const session = this.getSession(id)

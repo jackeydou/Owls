@@ -50,13 +50,22 @@ export class CodexClient {
     private readonly onFrame: (frame: RpcFrame) => void,
     private readonly onClose: (reason: string) => void
   ) {}
-  async start(executable: string): Promise<string> {
+  /** `args` are extra app-server flags; `experimentalApi` is needed for dynamic tools (F6). */
+  async start(
+    executable: string,
+    options: { args?: string[]; cwd?: string; experimentalApi?: boolean } = {}
+  ): Promise<string> {
     if (this.child) throw new CodexRuntimeError('busy', 'Codex is already connected.')
-    const child = spawn(executable, ['app-server', '--listen', 'stdio://'], {
-      stdio: 'pipe',
-      windowsHide: true,
-      detached: process.platform !== 'win32'
-    })
+    const child = spawn(
+      executable,
+      ['app-server', '--listen', 'stdio://', ...(options.args ?? [])],
+      {
+        cwd: options.cwd,
+        stdio: 'pipe',
+        windowsHide: true,
+        detached: process.platform !== 'win32'
+      }
+    )
     this.child = child
     this.closed = false
     const lines = createInterface({ input: child.stdout, crlfDelay: Infinity })
@@ -93,7 +102,7 @@ export class CodexClient {
     })
     const result = await this.request('initialize', {
       clientInfo: { name: 'owls', title: 'Owls', version: appPackage.version },
-      capabilities: { experimentalApi: false }
+      capabilities: { experimentalApi: options.experimentalApi === true }
     })
     this.notify('initialized', {})
     return typeof result === 'object' && result !== null && 'userAgent' in result
