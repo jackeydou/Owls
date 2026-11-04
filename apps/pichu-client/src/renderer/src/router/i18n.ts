@@ -19,6 +19,18 @@ export const routerEn = {
     'The Owls Router uses its own model so it only sees coordination tools. Add an API key or a local OpenAI-compatible endpoint in Settings.',
   'router.openSettings': 'Open Router settings',
   'router.tokens': '{{count}} Router tokens',
+  'router.claudeSetupTitle': 'Connect Claude Code for the Router',
+  'router.claudeSetupBody':
+    'The Claude Code engine uses your local Claude Code sign-in. Connect it in Settings, or choose another engine.',
+  'router.unknownBatch':
+    'Owls stopped while the Router was handling {{count}} events. They may or may not have reached it.',
+  'router.retryBatch': 'Send again',
+  'router.ignoreBatch': 'Ignore',
+  'router.engineLabel.owls': 'Owls',
+  'router.engineLabel.claude-code': 'Claude Code',
+  'router.engineLabel.codex': 'Codex',
+  'router.cliDefaultModel': 'default model',
+  'workerStatus.queued': 'Queued',
   'workerStatus.starting': 'Starting',
   'workerStatus.running': 'Running',
   'workerStatus.waiting': 'Needs approval',
@@ -26,6 +38,7 @@ export const routerEn = {
   'workerStatus.idle': 'Done',
   'workerStatus.stopped': 'Stopped',
   'workerStatus.failed': 'Failed',
+  'workerStatus.removed': 'Removed',
   'reportStatus.done': 'Done',
   'reportStatus.blocked': 'Blocked',
   'reportStatus.needs_input': 'Needs input',
@@ -35,10 +48,16 @@ export const routerEn = {
     'The Router coordinates tasks in a project. It never edits files itself; it starts Codex or Claude Code tasks and summarizes their reports.',
   'routerSettings.engine': 'Router engine',
   'routerSettings.engine.owls': 'Owls (built in)',
-  'routerSettings.engine.claude-code': 'Claude Code (coming later)',
+  'routerSettings.engine.claude-code': 'Claude Code',
   'routerSettings.engine.codex': 'Codex (coming later)',
-  'routerSettings.engineHelp':
-    'The built-in engine only has coordination tools and loads none of your CLI configuration. It needs its own model.',
+  'routerSettings.engineHelp.owls':
+    'Only has coordination tools and loads none of your CLI configuration. It needs its own model.',
+  'routerSettings.engineHelp.claude-code':
+    'Uses your Claude Code sign-in. Only coordination tools are enabled, and your Claude Code settings and MCP servers are not loaded.',
+  'routerSettings.engineHelp.codex': 'Uses your Codex sign-in.',
+  'routerSettings.claudeModel': 'Claude Code model',
+  'routerSettings.claudeModel.default': 'Claude Code default',
+  'routerSettings.claudeDisconnected': 'Claude Code is not connected.',
   'routerSettings.provider': 'Model provider',
   'routerSettings.model': 'Model',
   'routerSettings.modelPlaceholder': 'Model ID, for example llama3.1',
@@ -64,7 +83,8 @@ export const routerEn = {
   'routerSettings.workerProvider.default': 'Same as default agent',
   'errors.router_model_unconfigured': 'Choose a Router model and save its API key in Settings.',
   'errors.router_auth_failed': 'The Router model rejected the API key. Check it in Settings.',
-  'errors.router_unavailable': 'This Router engine is not available yet. Choose Owls in Settings.',
+  'errors.router_unavailable':
+    'This Router engine is not available yet. Choose another engine in Settings.',
   'errors.secure_storage_unavailable':
     'Secure storage is not available on this system, so the key was not saved.'
 }
@@ -90,6 +110,17 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
     'Owls 协调者使用独立的模型，只能看到协调工具。请在设置中添加 API key 或本地 OpenAI 兼容端点。',
   'router.openSettings': '打开协调者设置',
   'router.tokens': '协调者 {{count}} tokens',
+  'router.claudeSetupTitle': '为协调者连接 Claude Code',
+  'router.claudeSetupBody':
+    'Claude Code 引擎使用你本机 Claude Code 的登录。请在设置中连接，或选择其他引擎。',
+  'router.unknownBatch': '协调者处理 {{count}} 个事件时 Owls 退出了，这些事件可能没有送达。',
+  'router.retryBatch': '重新发送',
+  'router.ignoreBatch': '忽略',
+  'router.engineLabel.owls': 'Owls',
+  'router.engineLabel.claude-code': 'Claude Code',
+  'router.engineLabel.codex': 'Codex',
+  'router.cliDefaultModel': '默认模型',
+  'workerStatus.queued': '排队中',
   'workerStatus.starting': '正在启动',
   'workerStatus.running': '运行中',
   'workerStatus.waiting': '等待审批',
@@ -97,6 +128,7 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'workerStatus.idle': '已完成',
   'workerStatus.stopped': '已停止',
   'workerStatus.failed': '失败',
+  'workerStatus.removed': '已移除',
   'reportStatus.done': '完成',
   'reportStatus.blocked': '受阻',
   'reportStatus.needs_input': '需要输入',
@@ -106,9 +138,15 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
     '协调者在项目中统筹任务。它自己不会修改文件，而是启动 Codex 或 Claude Code 任务并汇总它们的汇报。',
   'routerSettings.engine': '协调者引擎',
   'routerSettings.engine.owls': 'Owls（内置）',
-  'routerSettings.engine.claude-code': 'Claude Code（后续支持）',
+  'routerSettings.engine.claude-code': 'Claude Code',
   'routerSettings.engine.codex': 'Codex（后续支持）',
-  'routerSettings.engineHelp': '内置引擎只有协调工具，不加载你的任何 CLI 配置，需要单独配置模型。',
+  'routerSettings.engineHelp.owls': '只有协调工具，不加载你的任何 CLI 配置，需要单独配置模型。',
+  'routerSettings.engineHelp.claude-code':
+    '使用 Claude Code 的登录。只启用协调工具，不加载你的 Claude Code 设置和 MCP server。',
+  'routerSettings.engineHelp.codex': '使用 Codex 的登录。',
+  'routerSettings.claudeModel': 'Claude Code 模型',
+  'routerSettings.claudeModel.default': 'Claude Code 默认模型',
+  'routerSettings.claudeDisconnected': 'Claude Code 未连接。',
   'routerSettings.provider': '模型提供方',
   'routerSettings.model': '模型',
   'routerSettings.modelPlaceholder': '模型 ID，例如 llama3.1',
@@ -134,6 +172,6 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'routerSettings.workerProvider.default': '与默认 agent 相同',
   'errors.router_model_unconfigured': '请在设置中选择协调者模型并保存它的 API key。',
   'errors.router_auth_failed': '协调者模型拒绝了这个 API key，请在设置中检查。',
-  'errors.router_unavailable': '这个协调者引擎暂不可用，请在设置中选择 Owls。',
+  'errors.router_unavailable': '这个协调者引擎暂不可用，请在设置中选择其他引擎。',
   'errors.secure_storage_unavailable': '当前系统不支持安全存储，key 未保存。'
 }

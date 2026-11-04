@@ -1,73 +1,48 @@
-import { createHash } from 'node:crypto'
+import type { CodexEvent, CodexFailure, CodexItem, CodexRouter } from '../../shared/codex.js'
 import type {
-  AgentProvider,
-  CodexEvent,
-  CodexFailure,
-  CodexItem,
-  CodexProject,
-  CodexRouter,
-  CodexSession,
-  CodexSettings,
-  CreateCodexSession,
-  SendCodexMessage
-} from '../../shared/codex.js'
-import type {
+  ResolveBatch,
+  RouterEngineId,
   RouterProviderInfo,
   RouterWorker,
   SendRouterMessage,
   SetRouterKey
 } from '../../shared/router.js'
 import { CodexRuntimeError } from '../codex/errors.js'
-import { safeText } from '../codex/protocol.js'
 import type { RouterCredentials } from './credentials.js'
-import type { RouterEngine, RouterSink } from './engine.js'
+import type { RouterBatchOutcome, RouterEngine, RouterSink } from './engine.js'
 import type { EngineFactory } from './engines/factory.js'
 import { builtinRouterModels, catalog, OWLS_PROVIDERS } from './engines/owls-models.js'
-import { WORKER_INSTRUCTIONS } from './prompt.js'
-import { type InboxEvent, renderBatch, renderState } from './render.js'
-import { parseReport, WORKER_REPORT_JSON_SCHEMA } from './report.js'
+import type { InboxEvent, InboxEventBody } from './events.js'
+import { ROUTER_PROMPT_VERSION } from './prompt.js'
+import { renderBatch, renderState } from './render.js'
 import type { RouterStore } from './store.js'
-import { type DispatchTaskInput, RouterToolError, routerTools } from './tools.js'
+import { routerTools } from './tools.js'
+import {
+  type TurnOutcome,
+  type TurnProfile,
+  type TurnProfiles,
+  type WorkerHost,
+  WorkerPool
+} from './workers.js'
 
-/** What a task service asks before each turn, and reports after it. */
-export type TurnProfile =
-  | { role: 'task' }
-  | { role: 'worker'; instructions: string; reportSchema: Record<string, unknown> }
-export type TurnOutcome = {
-  status: 'completed' | 'failed' | 'interrupted'
-  /** Claude Code `structured_output`; null for Codex, whose report is the final text. */
-  structured: unknown
-  text: string
-}
-export interface TurnProfiles {
-  profile(sessionId: string): TurnProfile
-  settled(sessionId: string, outcome: TurnOutcome): void
-}
+export type { TurnOutcome, TurnProfile, TurnProfiles, WorkerHost } from './workers.js'
+export { WORKER_LIMIT } from './workers.js'
 
-/** The parts of the task host a Router needs to start and observe workers. */
-export type WorkerHost = {
-  projects(): CodexProject[]
-  settings(): CodexSettings
-  providerReady(provider: AgentProvider): boolean
-  createSession(input: CreateCodexSession): CodexSession
-  send(input: SendCodexMessage): Promise<void>
-}
+type ActiveBatch = { id: string; startedAt: number; tokens: number }
 
-/** Global cap on workers that are starting, running, or waiting for approval. */
-export const WORKER_LIMIT = 4
-const PERMISSION_RANK = { 'read-only': 0, 'workspace-write': 1, 'full-access': 2 } as const
-const activeWorker = (w: RouterWorker) => ['starting', 'running', 'waiting'].includes(w.status)
-
+/**
+ * Project Routers: their conversations, the persisted Inbox, and batch
+ * delivery to the configured engine. Workers live in the WorkerPool.
+ */
 export class RouterService implements TurnProfiles {
   private readonly routers = new Map<string, CodexRouter>()
-  private readonly workers = new Map<string, RouterWorker>()
   private readonly engines = new Map<string, { engine: RouterEngine; key: string }>()
-  private readonly pending = new Map<string, InboxEvent[]>()
+  private readonly active = new Map<string, ActiveBatch>()
   /** Workers dispatched in the current batch, by goal hash, so retried calls reuse them. */
   private readonly dispatched = new Map<string, Map<string, string>>()
   private readonly dirty = new Set<string>()
+  private readonly pool: WorkerPool
   private flushTimer: ReturnType<typeof setTimeout> | null = null
-  private seq = 0
   private closed = false
 
   constructor(
@@ -78,30 +53,45 @@ export class RouterService implements TurnProfiles {
     private readonly emit: (event: CodexEvent) => void,
     private readonly createEngine: EngineFactory
   ) {
+    // A batch still sending when the app stopped may or may not have reached the model.
+    for (const batch of store.batches('sending')) store.finishBatch(batch.id, 'dispatch_unknown')
+    const unknown = store.batches('dispatch_unknown')
     for (const router of store.routers()) {
       if (router.status === 'running') {
         router.status = 'interrupted'
         router.error = { code: 'interrupted', message: '' }
         for (const item of router.items) if (item.status === 'running') item.status = 'interrupted'
-        store.saveRouter(router)
       }
+      router.unknownBatches = unknown
+        .filter((b) => b.routerId === router.id)
+        .map((b) => ({ id: b.id, events: b.eventSeqs.length, createdAt: b.createdAt }))
+      store.saveRouter(router)
       this.routers.set(router.id, router)
     }
-    for (const worker of store.workers()) {
-      if (activeWorker(worker)) {
-        worker.status = 'stopped'
-        store.saveWorker(worker)
+    this.pool = new WorkerPool(
+      store,
+      host,
+      {
+        add: (routerId, body, wake = true) => this.add(routerId, crypto.randomUUID(), body, wake),
+        settle: (routerId, match, status) =>
+          store.setEventStatus(
+            store
+              .events(routerId, 'pending')
+              .filter(match)
+              .map((e) => e.seq),
+            status
+          )
+      },
+      (worker) => {
+        if (!this.closed) this.emit({ type: 'worker', worker })
       }
-      this.workers.set(worker.id, worker)
-    }
+    )
   }
 
   snapshot(): { routers: CodexRouter[]; workers: RouterWorker[] } {
     return {
       routers: [...this.routers.values()].sort((a, b) => a.projectId.localeCompare(b.projectId)),
-      workers: [...this.workers.values()].sort(
-        (a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)
-      )
+      workers: this.pool.snapshot()
     }
   }
 
@@ -120,6 +110,8 @@ export class RouterService implements TurnProfiles {
       items: [],
       error: null,
       tokens: null,
+      native: null,
+      unknownBatches: [],
       createdAt: now,
       updatedAt: now
     }
@@ -140,20 +132,36 @@ export class RouterService implements TurnProfiles {
       turnId: null
     })
     this.changed(router)
-    const engine = this.engines.get(router.id)?.engine
-    // A running batch takes the user's message immediately; other events wait.
-    if (router.status === 'running' && engine?.steer(input.text) === 'steered') return
-    this.enqueue(router.id, {
-      seq: ++this.seq,
+    const body: InboxEventBody = {
       kind: 'user_message',
       at: new Date().toISOString(),
       text: input.text
-    })
+    }
+    // A running batch takes the user's message immediately; other events wait.
+    const batch = this.active.get(router.id)
+    if (batch && this.engines.get(router.id)?.engine.steer(input.text) === 'steered') {
+      this.store.appendEvent(router.id, input.commandId, body, batch.id)
+      return
+    }
+    this.add(router.id, input.commandId, body, true)
   }
 
   interrupt(routerId: string): void {
     const router = this.getRouter(routerId)
     if (router.status === 'running') this.engines.get(router.id)?.engine.abort()
+  }
+
+  /** Resends or dismisses a batch whose delivery is unknown after a restart. */
+  resolveBatch(input: ResolveBatch): void {
+    const router = this.getRouter(input.routerId)
+    const batch = this.store.batch(input.batchId)
+    if (!batch || batch.routerId !== router.id || batch.status !== 'dispatch_unknown')
+      throw new CodexRuntimeError('request_unavailable', 'This batch is no longer waiting.')
+    if (input.decision === 'retry') this.store.requeueBatch(batch.id)
+    else this.store.finishBatch(batch.id, 'ignored')
+    router.unknownBatches = router.unknownBatches.filter((b) => b.id !== batch.id)
+    this.changed(router)
+    if (input.decision === 'retry') queueMicrotask(() => void this.pump(router.id))
   }
 
   providers(): RouterProviderInfo[] {
@@ -183,71 +191,18 @@ export class RouterService implements TurnProfiles {
   }
 
   profile(sessionId: string): TurnProfile {
-    return this.workerBySession(sessionId)
-      ? {
-          role: 'worker',
-          instructions: WORKER_INSTRUCTIONS,
-          reportSchema: WORKER_REPORT_JSON_SCHEMA
-        }
-      : { role: 'task' }
+    return this.pool.profile(sessionId)
   }
 
   settled(sessionId: string, outcome: TurnOutcome): void {
-    const worker = this.workerBySession(sessionId)
-    if (!worker || this.closed) return
-    const at = new Date().toISOString()
-    if (outcome.status === 'completed') {
-      const { report, degraded } = parseReport(outcome.structured, outcome.text)
-      worker.report = report
-      worker.degraded = degraded
-      worker.status = 'reported'
-      this.saveWorker(worker)
-      this.enqueue(worker.routerId, {
-        seq: ++this.seq,
-        kind: 'worker_report',
-        at,
-        workerId: worker.id,
-        goal: worker.goal,
-        report
-      })
-      return
-    }
-    worker.status = outcome.status === 'interrupted' ? 'stopped' : 'failed'
-    this.saveWorker(worker)
-    this.enqueue(worker.routerId, {
-      seq: ++this.seq,
-      kind: 'worker_failed',
-      at,
-      workerId: worker.id,
-      goal: worker.goal
-    })
+    this.pool.settled(sessionId, outcome)
   }
 
-  /** Follows task events so the Router hears when a worker waits for approval. */
+  /** Follows task and connection events on behalf of the workers and engines. */
   observe(event: CodexEvent): void {
-    if (event.type !== 'session' || this.closed) return
-    const worker = this.workerBySession(event.session.id)
-    if (!worker) return
-    const { session } = event
-    if (session.status === 'waiting' && worker.status !== 'waiting') {
-      worker.status = 'waiting'
-      this.saveWorker(worker)
-      const request = session.requests.find((r) => r.status === 'pending')
-      this.enqueue(worker.routerId, {
-        seq: ++this.seq,
-        kind: 'worker_waiting',
-        at: new Date().toISOString(),
-        workerId: worker.id,
-        goal: worker.goal,
-        detail: request ? request.title || request.kind : ''
-      })
-    } else if (
-      session.status === 'running' &&
-      (worker.status === 'starting' || worker.status === 'waiting')
-    ) {
-      worker.status = 'running'
-      this.saveWorker(worker)
-    }
+    if (this.closed) return
+    if (event.type === 'claude-connection') this.dropIdleEngines()
+    this.pool.observe(event)
   }
 
   isRunning(): boolean {
@@ -256,23 +211,35 @@ export class RouterService implements TurnProfiles {
 
   close(): void {
     if (this.closed) return
+    // Stopping on quit is the user's choice, so these batches are not unknown later.
+    for (const [routerId, batch] of this.active) {
+      this.store.finishBatch(batch.id, 'delivered', {
+        tokens: batch.tokens,
+        durationMs: Date.now() - batch.startedAt
+      })
+      const router = this.routers.get(routerId)
+      if (!router) continue
+      router.status = 'interrupted'
+      for (const item of router.items) if (item.status === 'running') item.status = 'interrupted'
+      this.dirty.add(routerId)
+    }
     this.flush()
     this.closed = true
+    this.pool.close()
     for (const { engine } of this.engines.values()) engine.abort()
     this.engines.clear()
   }
 
-  private enqueue(routerId: string, event: InboxEvent): void {
-    const queue = this.pending.get(routerId) ?? []
-    queue.push(event)
-    this.pending.set(routerId, queue)
-    queueMicrotask(() => void this.pump(routerId))
+  private add(routerId: string, id: string, body: InboxEventBody, wake: boolean): void {
+    if (this.closed) return
+    this.store.appendEvent(routerId, id, body)
+    if (wake) queueMicrotask(() => void this.pump(routerId))
   }
 
   private async pump(routerId: string): Promise<void> {
     const router = this.routers.get(routerId)
     if (!router || router.status === 'running' || this.closed) return
-    const events = this.pending.get(routerId) ?? []
+    const events = this.store.events(routerId, 'pending')
     if (!events.length) return
     const engine = this.engine(router)
     if ('code' in engine) {
@@ -282,21 +249,40 @@ export class RouterService implements TurnProfiles {
       this.changed(router)
       return
     }
-    this.pending.delete(routerId)
-    for (const event of events) {
-      const worker = event.kind === 'worker_report' ? this.workers.get(event.workerId) : null
-      if (worker?.status === 'reported') {
-        worker.status = 'idle'
-        this.saveWorker(worker)
-      }
+    const settings = this.host.settings().router
+    const batch: ActiveBatch = {
+      id: `b_${crypto.randomUUID().slice(0, 8)}`,
+      startedAt: Date.now(),
+      tokens: 0
     }
-    const batchId = `b_${crypto.randomUUID().slice(0, 8)}`
+    this.store.openBatch(
+      {
+        id: batch.id,
+        routerId,
+        createdAt: new Date(batch.startedAt).toISOString(),
+        engine: settings.engine,
+        promptVersion: ROUTER_PROMPT_VERSION
+      },
+      events.map((e) => e.seq)
+    )
+    this.pool.delivered(events)
+    const state = this.needsState(router, settings.engine)
+      ? renderState(this.pool.list(routerId))
+      : null
+    this.active.set(routerId, batch)
     router.status = 'running'
     router.error = null
     this.changed(router)
-    this.dispatched.set(router.id, new Map())
-    const outcome = await engine.run(batchId, renderBatch(batchId, events, null), this.sink(router))
-    this.dispatched.delete(router.id)
+    this.dispatched.set(routerId, new Map())
+    const outcome = await this.runBatch(engine, router, batch, events, state)
+    this.dispatched.delete(routerId)
+    this.active.delete(routerId)
+    if (this.closed) return
+    this.store.finishBatch(batch.id, 'delivered', {
+      tokens: batch.tokens,
+      durationMs: Date.now() - batch.startedAt
+    })
+    router.native = outcome.native
     router.status =
       outcome.status === 'completed'
         ? 'idle'
@@ -308,7 +294,39 @@ export class RouterService implements TurnProfiles {
       if (item.status === 'running')
         item.status = outcome.status === 'completed' ? 'completed' : outcome.status
     this.changed(router)
-    if (this.pending.get(routerId)?.length) void this.pump(routerId)
+    if (this.store.events(routerId, 'pending').length) void this.pump(routerId)
+  }
+
+  private async runBatch(
+    engine: RouterEngine,
+    router: CodexRouter,
+    batch: ActiveBatch,
+    events: InboxEvent[],
+    state: string | null
+  ): Promise<RouterBatchOutcome> {
+    try {
+      return await engine.run(
+        { batchId: batch.id, text: renderBatch(batch.id, events, state), native: router.native },
+        this.sink(router, batch)
+      )
+    } catch {
+      const error: CodexFailure = { code: 'native_error', message: 'The Router engine failed.' }
+      return { status: 'failed', error, native: router.native ?? { engine: 'owls' } }
+    }
+  }
+
+  /**
+   * True when the engine starts a context that has not seen this Router's
+   * history: after an engine switch, or when Claude Code has no session to
+   * resume. The batch then opens with the current worker summary (RFC 12).
+   */
+  private needsState(router: CodexRouter, engine: RouterEngineId): boolean {
+    const native = router.native
+    const history =
+      native !== null || this.pool.list(router.id).length > 0 || this.store.hasMessages(router.id)
+    if (!history) return false
+    if (engine === 'owls') return native !== null && native.engine !== 'owls'
+    return !(native?.engine === 'claude-code' && native.sessionId)
   }
 
   private engine(router: CodexRouter): RouterEngine | CodexFailure {
@@ -319,16 +337,18 @@ export class RouterService implements TurnProfiles {
     const engine = this.createEngine({
       router,
       settings,
-      tools: routerTools({ dispatchTask: (input) => this.dispatch(router.id, input) }),
+      tools: routerTools({
+        dispatchTask: (input) => this.pool.dispatch(router, input, this.dispatched.get(router.id))
+      }),
       history: this.store.messages(router.id),
-      state: () => renderState(this.routerWorkers(router.id)),
+      state: () => renderState(this.pool.list(router.id)),
       persist: (batchId, messages) => this.store.appendMessages(router.id, batchId, messages)
     })
     if (!('code' in engine)) this.engines.set(router.id, { engine, key })
     return engine
   }
 
-  private sink(router: CodexRouter): RouterSink {
+  private sink(router: CodexRouter, batch: ActiveBatch): RouterSink {
     return {
       item: (item: CodexItem) => {
         const index = router.items.findIndex((i) => i.id === item.id)
@@ -338,80 +358,11 @@ export class RouterService implements TurnProfiles {
         this.changed(router, item.status !== 'running')
       },
       usage: (usage) => {
-        router.tokens =
-          (router.tokens ?? 0) + usage.input + usage.output + usage.cacheRead + usage.cacheWrite
+        const tokens = usage.input + usage.output + usage.cacheRead + usage.cacheWrite
+        batch.tokens += tokens
+        router.tokens = (router.tokens ?? 0) + tokens
       }
     }
-  }
-
-  private async dispatch(
-    routerId: string,
-    input: DispatchTaskInput
-  ): Promise<{ workerId: string; status: 'started' }> {
-    const router = this.getRouter(routerId)
-    const settings = this.host.settings()
-    const permission = input.permission ?? settings.permission
-    if (PERMISSION_RANK[permission] > PERMISSION_RANK[settings.router.maxPermission])
-      throw new RouterToolError(
-        'permission_not_allowed',
-        `The Router may grant at most ${settings.router.maxPermission}.`
-      )
-    const provider = input.provider ?? settings.workerProvider ?? settings.provider
-    if (!this.host.providerReady(provider))
-      throw new RouterToolError('provider_unavailable', `${provider} is not connected.`)
-    const key = createHash('sha256')
-      .update(input.goal)
-      .update('\0')
-      .update(input.context ?? '')
-      .digest('hex')
-    const batch = this.dispatched.get(routerId)
-    const repeated = batch?.get(key)
-    if (repeated) return { workerId: repeated, status: 'started' }
-    if ([...this.workers.values()].filter(activeWorker).length >= WORKER_LIMIT)
-      throw new RouterToolError(
-        'worker_limit_reached',
-        `At most ${WORKER_LIMIT} workers can run at once. Wait for one to report.`
-      )
-    const selection =
-      provider === 'claude-code'
-        ? { model: settings.claudeModel, effort: settings.claudeEffort }
-        : { model: settings.model, effort: settings.effort }
-    let session: CodexSession
-    try {
-      session = this.host.createSession({ provider, cwd: router.cwd, permission, ...selection })
-    } catch (error) {
-      throw new RouterToolError('dispatch_failed', safeText(String(error)).slice(0, 200))
-    }
-    const now = new Date().toISOString()
-    const worker: RouterWorker = {
-      id: `w_${crypto.randomUUID().slice(0, 8)}`,
-      routerId,
-      sessionId: session.id,
-      provider,
-      goal: input.goal,
-      status: 'starting',
-      report: null,
-      degraded: false,
-      createdAt: now,
-      updatedAt: now
-    }
-    // Registered before the first turn so the task service sees the worker profile.
-    this.workers.set(worker.id, worker)
-    this.saveWorker(worker)
-    batch?.set(key, worker.id)
-    const text = input.context ? `${input.goal}\n\nContext:\n${input.context}` : input.goal
-    try {
-      await this.host.send({ sessionId: session.id, commandId: crypto.randomUUID(), text })
-    } catch {
-      worker.status = 'failed'
-      this.saveWorker(worker)
-      throw new RouterToolError('dispatch_failed', 'The worker could not start its first turn.')
-    }
-    if (worker.status === 'starting') {
-      worker.status = 'running'
-      this.saveWorker(worker)
-    }
-    return { workerId: worker.id, status: 'started' }
   }
 
   private dropIdleEngines(): void {
@@ -419,23 +370,10 @@ export class RouterService implements TurnProfiles {
       if (this.routers.get(id)?.status !== 'running') this.engines.delete(id)
     }
   }
-  private routerWorkers(routerId: string): RouterWorker[] {
-    return [...this.workers.values()].filter((w) => w.routerId === routerId)
-  }
-  private workerBySession(sessionId: string): RouterWorker | undefined {
-    for (const worker of this.workers.values()) if (worker.sessionId === sessionId) return worker
-    return undefined
-  }
   private getRouter(id: string): CodexRouter {
     const router = this.routers.get(id)
     if (!router) throw new CodexRuntimeError('task_not_found', 'Router not found.')
     return router
-  }
-  private saveWorker(worker: RouterWorker): void {
-    if (this.closed) return
-    worker.updatedAt = new Date().toISOString()
-    this.store.saveWorker(worker)
-    this.emit({ type: 'worker', worker })
   }
   private changed(router: CodexRouter, immediate = true): void {
     if (this.closed) return

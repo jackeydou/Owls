@@ -10,6 +10,7 @@ import {
 import {
   openRouterSchema,
   owlsProviderSchema,
+  resolveBatchSchema,
   sendRouterSchema,
   setRouterKeySchema
 } from '../../shared/router.js'
@@ -75,6 +76,7 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
   handle('router-open', (input) => host.openRouter(openRouterSchema.parse(input)))
   handle('router-send', (input) => host.sendRouter(sendRouterSchema.parse(input)))
   handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))
+  handle('router-resolve-batch', (input) => host.resolveBatch(resolveBatchSchema.parse(input)))
   handle('router-providers', () => host.routerProviders())
   handle('router-set-key', (input) => host.setRouterKey(setRouterKeySchema.parse(input)))
   handle('router-remove-key', (input) => host.removeRouterKey(owlsProviderSchema.parse(input)))

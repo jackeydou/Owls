@@ -35,7 +35,7 @@ export const dispatchTaskInput = z
   })
   .strict()
 export type DispatchTaskInput = z.infer<typeof dispatchTaskInput>
-export type DispatchTaskResult = { workerId: string; status: 'started' }
+export type DispatchTaskResult = { workerId: string; status: 'started' | 'queued' }
 
 export type RouterToolHandlers = {
   dispatchTask(input: DispatchTaskInput): Promise<DispatchTaskResult>
@@ -46,7 +46,7 @@ export type RouterTool = {
   name: string
   label: string
   description: string
-  schema: z.ZodType
+  schema: z.ZodObject
   /** Validates `args` and returns the JSON text the model sees. Throws RouterToolError. */
   execute(args: unknown): Promise<string>
 }
@@ -57,7 +57,7 @@ export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
       name: 'dispatch_task',
       label: 'Dispatch task',
       description:
-        'Start a background worker (a Codex or Claude Code task in this project) for one piece of work. Returns immediately with the worker ID; the worker reports back in a later batch.',
+        'Start a background worker (a Codex or Claude Code task in this project) for one piece of work. Returns immediately with the worker ID and whether it started or is queued behind other workers; the worker reports back in a later batch.',
       schema: dispatchTaskInput,
       async execute(args) {
         const parsed = dispatchTaskInput.safeParse(args)

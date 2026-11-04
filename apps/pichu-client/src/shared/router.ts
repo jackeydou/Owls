@@ -29,11 +29,14 @@ export const owlsModelSchema = z.object({
 export const routerSettingsSchema = z.object({
   engine: routerEngineSchema.default('owls'),
   owls: owlsModelSchema.nullable().default(null),
+  /** Model for the Claude Code engine; null uses the CLI default. */
+  claudeModel: z.string().trim().min(1).max(200).nullable().default(null),
   maxPermission: z.enum(permissionValues).default('workspace-write')
 })
 export const defaultRouterSettings: RouterSettings = {
   engine: 'owls',
   owls: null,
+  claudeModel: null,
   maxPermission: 'workspace-write'
 }
 
@@ -46,13 +49,15 @@ export const workerReportSchema = z.object({
     .default([])
 })
 export const workerStatusSchema = z.enum([
+  'queued',
   'starting',
   'running',
   'waiting',
   'reported',
   'idle',
   'stopped',
-  'failed'
+  'failed',
+  'removed'
 ])
 export const workerSchema = z.object({
   id: z.string(),
@@ -60,6 +65,9 @@ export const workerSchema = z.object({
   sessionId: z.string(),
   provider: z.enum(providerValues),
   goal: z.string(),
+  /** Background passed to the first turn; kept so a queued worker can start later. */
+  context: z.string().nullable().default(null),
+  permission: z.enum(permissionValues).default('workspace-write'),
   status: workerStatusSchema,
   report: workerReportSchema.nullable(),
   /** True when the last report did not match the schema and was rebuilt from raw text. */
@@ -68,12 +76,28 @@ export const workerSchema = z.object({
   updatedAt: z.string()
 })
 export const routerStatusSchema = z.enum(['idle', 'running', 'failed', 'interrupted'])
+/** The engine session a Router last ran in, used to resume it or detect a switch. */
+export const routerNativeSchema = z.discriminatedUnion('engine', [
+  z.object({ engine: z.literal('owls') }),
+  z.object({ engine: z.literal('claude-code'), sessionId: z.string().nullable() })
+])
+/** A batch whose delivery is unknown after a crash; the user decides whether to resend it. */
+export const unknownBatchSchema = z.object({
+  id: z.string(),
+  events: z.number().int().nonnegative(),
+  createdAt: z.string()
+})
 
 export const openRouterSchema = z.string().min(1).max(200)
 export const sendRouterSchema = z.object({
   routerId: z.string().uuid(),
   commandId: z.string().uuid(),
   text: z.string().trim().min(1).max(8000)
+})
+export const resolveBatchSchema = z.object({
+  routerId: z.string().uuid(),
+  batchId: z.string().min(1).max(64),
+  decision: z.enum(['retry', 'ignore'])
 })
 export const setRouterKeySchema = z.object({
   providerId: owlsProviderSchema,
@@ -89,6 +113,9 @@ export type WorkerReport = z.infer<typeof workerReportSchema>
 export type WorkerStatus = z.infer<typeof workerStatusSchema>
 export type RouterWorker = z.infer<typeof workerSchema>
 export type RouterStatus = z.infer<typeof routerStatusSchema>
+export type RouterNative = z.infer<typeof routerNativeSchema>
+export type UnknownBatch = z.infer<typeof unknownBatchSchema>
+export type ResolveBatch = z.infer<typeof resolveBatchSchema>
 export type SendRouterMessage = z.infer<typeof sendRouterSchema>
 export type SetRouterKey = z.infer<typeof setRouterKeySchema>
 export type RouterProviderInfo = {

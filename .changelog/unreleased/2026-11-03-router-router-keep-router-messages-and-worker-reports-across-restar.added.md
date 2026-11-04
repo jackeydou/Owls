@@ -1,0 +1,1 @@
+- Router: keep Router messages and worker reports across restarts, offer to resend a batch interrupted by quitting, queue workers beyond the limit, and choose Claude Code as the Router engine. (#20)

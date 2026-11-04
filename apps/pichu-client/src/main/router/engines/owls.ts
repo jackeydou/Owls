@@ -8,7 +8,7 @@ import type { Api, AssistantMessage, Model } from '@earendil-works/pi-ai'
 import type { CodexFailure, CodexItem } from '../../../shared/codex.js'
 import type { OwlsThinking } from '../../../shared/router.js'
 import { safeText } from '../../codex/protocol.js'
-import type { RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
+import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
 import { ROUTER_CONTEXT_BUDGET, trimContext } from '../render.js'
 import { type RouterTool, toolErrorText, toolJsonSchema } from '../tools.js'
 
@@ -99,8 +99,12 @@ export class OwlsEngine implements RouterEngine {
     this.agent.subscribe((event) => this.onEvent(event))
   }
 
-  async run(batchId: string, input: string, sink: RouterSink): Promise<RouterBatchOutcome> {
+  async run(
+    { batchId, text: input }: RouterBatchInput,
+    sink: RouterSink
+  ): Promise<RouterBatchOutcome> {
     if (this.running) throw new Error('A Router batch is already running.')
+    const native = { engine: 'owls' } as const
     this.running = true
     this.sink = sink
     this.batchId = batchId
@@ -110,7 +114,8 @@ export class OwlsEngine implements RouterEngine {
     } catch (error) {
       return {
         status: 'failed',
-        error: { code: 'native_error', message: safeText(String(error)).slice(0, 1000) }
+        error: { code: 'native_error', message: safeText(String(error)).slice(0, 1000) },
+        native
       }
     } finally {
       this.running = false
@@ -124,10 +129,10 @@ export class OwlsEngine implements RouterEngine {
     const kept = ended ? added.filter((m) => m !== last) : added
     if (ended) this.agent.state.messages = [...this.agent.state.messages.slice(0, before), ...kept]
     this.options.persist(batchId, kept)
-    if (last?.stopReason === 'aborted') return { status: 'interrupted', error: null }
+    if (last?.stopReason === 'aborted') return { status: 'interrupted', error: null, native }
     if (last?.stopReason === 'error' || this.agent.state.errorMessage)
-      return { status: 'failed', error: failure(last, this.agent.state.errorMessage ?? '') }
-    return { status: 'completed', error: null }
+      return { status: 'failed', error: failure(last, this.agent.state.errorMessage ?? ''), native }
+    return { status: 'completed', error: null, native }
   }
 
   steer(input: string): 'steered' | 'not_running' {

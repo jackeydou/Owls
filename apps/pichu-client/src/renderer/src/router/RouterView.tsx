@@ -19,7 +19,12 @@ import { useCodexStore } from '../codex/store'
 import { useRouterStore } from './store'
 import './router.css'
 
-const SETUP_FAILURES = ['router_model_unconfigured', 'model_unavailable', 'router_unavailable']
+const SETUP_FAILURES = [
+  'router_model_unconfigured',
+  'model_unavailable',
+  'router_unavailable',
+  'claude_not_connected'
+]
 
 function WorkerCard({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
@@ -50,11 +55,14 @@ export function RouterView() {
   const projectId = useCodexStore((s) => s.routerProjectId)
   const project = useCodexStore((s) => s.projects.find((p) => p.id === projectId))
   const settings = useCodexStore((s) => s.settings)
+  const claude = useCodexStore((s) => s.claude)
   const showSettings = useCodexStore((s) => s.showSettings)
-  const { open, send, interrupt, sending, error, clearError } = useRouterStore()
+  const { open, send, interrupt, resolveBatch, sending, error, clearError } = useRouterStore()
   const router = useRouterStore((s) => s.routers.find((r) => r.projectId === projectId))
   const allWorkers = useRouterStore((s) => s.workers)
-  const workers = router ? allWorkers.filter((w) => w.routerId === router.id) : []
+  const workers = router
+    ? allWorkers.filter((w) => w.routerId === router.id && w.status !== 'removed')
+    : []
   const [text, setText] = useState('')
   const bottom = useRef<HTMLDivElement>(null)
   const textarea = useRef<HTMLTextAreaElement>(null)
@@ -69,9 +77,23 @@ export function RouterView() {
     if (items.length) bottom.current?.scrollIntoView({ block: 'end' })
   }, [items])
   const running = router?.status === 'running'
-  const needsSetup =
-    (settings.router.engine === 'owls' && !settings.router.owls) ||
-    Boolean(router?.error && SETUP_FAILURES.includes(router.error.code))
+  const engine = settings.router.engine
+  const setupError = Boolean(router?.error && SETUP_FAILURES.includes(router.error.code))
+  // Each engine has its own setup card; Owls never switches engines on its own.
+  const setup =
+    engine === 'claude-code'
+      ? claude.status !== 'ready' || setupError
+        ? 'claude'
+        : null
+      : (engine === 'owls' && !settings.router.owls) || setupError
+        ? 'owls'
+        : null
+  const model =
+    engine === 'owls'
+      ? (settings.router.owls?.model ?? null)
+      : engine === 'claude-code'
+        ? (settings.router.claudeModel ?? t('router.cliDefaultModel'))
+        : null
   const name = project?.name ?? ''
   async function submit() {
     if (!router || !text.trim() || sending) return
@@ -90,9 +112,10 @@ export function RouterView() {
           ) : null}
         </div>
         <div className="codex-topbar-actions">
-          {settings.router.owls ? (
-            <span className="router-model">{settings.router.owls.model}</span>
-          ) : null}
+          <span className="router-model">
+            {t(`router.engineLabel.${engine}`)}
+            {model ? ` · ${model}` : ''}
+          </span>
           <IconButton
             label={t('router.openSettings')}
             tooltip={t('router.openSettings')}
@@ -112,11 +135,11 @@ export function RouterView() {
           </section>
           <div className="codex-conversation-scroll">
             <div className="codex-conversation">
-              {needsSetup ? (
+              {setup ? (
                 <div className="codex-welcome">
                   <Network size={30} />
-                  <h1>{t('router.setupTitle')}</h1>
-                  <p>{t('router.setupBody')}</p>
+                  <h1>{t(setup === 'claude' ? 'router.claudeSetupTitle' : 'router.setupTitle')}</h1>
+                  <p>{t(setup === 'claude' ? 'router.claudeSetupBody' : 'router.setupBody')}</p>
                   <Button size="sm" onClick={showSettings}>
                     <Settings2 size={14} />
                     {t('router.openSettings')}
@@ -138,6 +161,30 @@ export function RouterView() {
                   {t('router.working')}
                 </div>
               ) : null}
+              {router?.unknownBatches.map((batch) => (
+                <div
+                  className="codex-inline-error router-unknown-batch"
+                  role="alert"
+                  key={batch.id}
+                >
+                  <AlertCircle size={15} />
+                  <span>{t('router.unknownBatch', { count: batch.events })}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void resolveBatch(router.id, batch.id, 'retry')}
+                  >
+                    {t('router.retryBatch')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void resolveBatch(router.id, batch.id, 'ignore')}
+                  >
+                    {t('router.ignoreBatch')}
+                  </Button>
+                </div>
+              ))}
               {router?.error && !SETUP_FAILURES.includes(router.error.code) ? (
                 <div className="codex-inline-error" role="alert">
                   <AlertCircle size={15} />
