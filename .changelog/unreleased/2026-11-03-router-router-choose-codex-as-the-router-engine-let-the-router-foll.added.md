@@ -1,0 +1,1 @@
+- Router: choose Codex as the Router engine, let the Router follow up with, stop, and list its workers, and stop waking the Router for follow-ups you run in a worker's own task. (#21)
