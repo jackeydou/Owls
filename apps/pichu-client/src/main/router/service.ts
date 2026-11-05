@@ -1,19 +1,19 @@
 import type { CodexEvent, CodexFailure, CodexItem, CodexRouter } from '../../shared/codex.js'
 import type {
-  DiscardWorktree,
   ResolveBatch,
   RouterEngineId,
   RouterProviderInfo,
   RouterWorker,
   SendRouterMessage,
-  SetRouterKey
+  SetRouterKey,
+  WorkerAction
 } from '../../shared/router.js'
 import { CodexRuntimeError } from '../codex/errors.js'
 import type { RouterCredentials } from './credentials.js'
 import type { RouterBatchOutcome, RouterEngine, RouterSink } from './engine.js'
 import type { EngineFactory } from './engines/factory.js'
 import { builtinRouterModels, catalog, OWLS_PROVIDERS } from './engines/owls-models.js'
-import type { InboxEvent, InboxEventBody } from './events.js'
+import { type InboxEvent, type InboxEventBody, isQuietEvent } from './events.js'
 import { ROUTER_PROMPT_VERSION } from './prompt.js'
 import { renderBatch, renderState } from './render.js'
 import type { RouterStore } from './store.js'
@@ -30,7 +30,13 @@ import { checkoutOnly, type WorkerWorkspaces } from './worktrees.js'
 export type { TurnOutcome, TurnProfile, TurnProfiles, WorkerHost } from './workers.js'
 export { WORKER_LIMIT } from './workers.js'
 
-type ActiveBatch = { id: string; startedAt: number; tokens: number }
+type ActiveBatch = {
+  id: string
+  startedAt: number
+  tokens: number
+  /** Workers dispatched in this batch that the conversation does not show yet. */
+  dispatches: Set<string>
+}
 /** Characters recall returns per call; longer text continues at `<id>@<offset>`. */
 const RECALL_PAGE = 4000
 
@@ -134,6 +140,7 @@ export class RouterService implements TurnProfiles {
   async send(input: SendRouterMessage): Promise<void> {
     const router = this.getRouter(input.routerId)
     if (!this.commands.acceptCommand(input.commandId, router.id, input.text)) return
+    if (input.workerId) return this.sendToWorker(router, input, input.workerId)
     router.items.push({
       id: input.commandId,
       kind: 'user',
@@ -157,6 +164,60 @@ export class RouterService implements TurnProfiles {
       return
     }
     this.add(router.id, input.commandId, body, true)
+  }
+
+  /**
+   * The user named the worker, so Owls delivers the message without a model
+   * call (RFC_OWLS_ROUTER_SHELL 4.4). The Router reads it in its next batch, and
+   * the worker's report starts that batch as usual.
+   */
+  private async sendToWorker(
+    router: CodexRouter,
+    input: SendRouterMessage,
+    workerId: string
+  ): Promise<void> {
+    await this.forUser(() => this.pool.message(router.id, { workerId, text: input.text }))
+    router.items.push({
+      id: input.commandId,
+      kind: 'user',
+      status: 'completed',
+      text: input.text,
+      detail: '',
+      turnId: null,
+      workerId
+    })
+    this.changed(router)
+    const body: InboxEventBody = {
+      kind: 'user_message',
+      at: new Date().toISOString(),
+      text: input.text,
+      workerId
+    }
+    this.add(router.id, input.commandId, body, false)
+  }
+
+  async stopWorker(input: WorkerAction): Promise<void> {
+    const router = this.getRouter(input.routerId)
+    await this.forUser(() => this.pool.stop(router.id, input.workerId, 'user'))
+  }
+
+  /** Removes a worker that is not running; the `removed` event tells the Router. */
+  removeWorker(input: WorkerAction): void {
+    const worker = this.pool.get(input.workerId)
+    if (!worker || worker.routerId !== this.getRouter(input.routerId).id)
+      throw new CodexRuntimeError('request_unavailable', 'This worker no longer exists.')
+    if (worker.status !== 'removed') this.host.remove(worker.sessionId)
+  }
+
+  /** Worker calls report model-facing errors; the user gets a stable failure instead. */
+  private async forUser<T>(call: () => Promise<T>): Promise<T> {
+    try {
+      return await call()
+    } catch (error) {
+      if (error instanceof RouterToolError)
+        throw new CodexRuntimeError('request_unavailable', 'This worker cannot take this action.')
+      throw error
+    }
   }
 
   interrupt(routerId: string): void {
@@ -204,7 +265,7 @@ export class RouterService implements TurnProfiles {
   }
 
   /** Removes a worktree kept after its worker was removed, once the user confirmed it. */
-  discardWorktree(input: DiscardWorktree): Promise<void> {
+  discardWorktree(input: WorkerAction): Promise<void> {
     this.getRouter(input.routerId)
     return this.pool.discard(input.routerId, input.workerId)
   }
@@ -276,7 +337,8 @@ export class RouterService implements TurnProfiles {
     const batch: ActiveBatch = {
       id: `b_${crypto.randomUUID().slice(0, 8)}`,
       startedAt: Date.now(),
-      tokens: 0
+      tokens: 0,
+      dispatches: new Set()
     }
     this.store.openBatch(
       {
@@ -298,6 +360,7 @@ export class RouterService implements TurnProfiles {
     this.changed(router)
     this.dispatched.set(routerId, new Map())
     const outcome = await this.runBatch(engine, router, batch, events, state)
+    this.showDispatches(router, batch)
     this.dispatched.delete(routerId)
     this.active.delete(routerId)
     if (this.closed) return
@@ -317,7 +380,8 @@ export class RouterService implements TurnProfiles {
       if (item.status === 'running')
         item.status = outcome.status === 'completed' ? 'completed' : outcome.status
     this.changed(router)
-    if (this.store.events(routerId, 'pending').length) void this.pump(routerId)
+    if (this.store.events(routerId, 'pending').some((e) => !isQuietEvent(e)))
+      void this.pump(routerId)
   }
 
   private async runBatch(
@@ -361,7 +425,11 @@ export class RouterService implements TurnProfiles {
       router,
       settings,
       tools: routerTools({
-        dispatchTask: (input) => this.pool.dispatch(router, input, this.dispatched.get(router.id)),
+        dispatchTask: async (input) => {
+          const result = await this.pool.dispatch(router, input, this.dispatched.get(router.id))
+          this.active.get(router.id)?.dispatches.add(result.workerId)
+          return result
+        },
         messageWorker: (input) => this.pool.message(router.id, input),
         stopWorker: (workerId) => this.pool.stop(router.id, workerId),
         listWorkers: (input) => ({ workers: this.pool.describe(router.id, input.status) }),
@@ -375,12 +443,37 @@ export class RouterService implements TurnProfiles {
     return engine
   }
 
+  /**
+   * Marks where workers were dispatched in the conversation, so all three
+   * engines get this without parsing their tool results. It waits for the tool
+   * item because Claude Code runs a tool before it delivers the text leading
+   * up to the call, and the dispatch must read after that text.
+   */
+  private showDispatches(router: CodexRouter, batch: ActiveBatch): void {
+    for (const workerId of batch.dispatches) {
+      const id = `dispatch:${workerId}`
+      if (router.items.some((item) => item.id === id)) continue
+      router.items.push({
+        id,
+        kind: 'worker',
+        status: 'completed',
+        text: '',
+        detail: '',
+        turnId: null,
+        workerId
+      })
+    }
+    if (batch.dispatches.size) this.changed(router)
+    batch.dispatches.clear()
+  }
+
   private sink(router: CodexRouter, batch: ActiveBatch): RouterSink {
     return {
       item: (item: CodexItem) => {
         const index = router.items.findIndex((i) => i.id === item.id)
         if (index >= 0) router.items[index] = item
         else router.items.push(item)
+        if (item.kind === 'tool') this.showDispatches(router, batch)
         // Streaming text is batched; finished items are saved at once.
         this.changed(router, item.status !== 'running')
       },
@@ -413,6 +506,7 @@ export class RouterService implements TurnProfiles {
         status: worker.status,
         provider: worker.provider,
         permission: worker.permission,
+        parent: worker.parentId,
         ...this.pool.place(worker),
         report: worker.report,
         context: page(worker.context),
@@ -438,7 +532,9 @@ export class RouterService implements TurnProfiles {
         at: event.at,
         status,
         batchId,
-        ...('workerId' in event ? { workerId: event.workerId, goal: event.goal } : {}),
+        ...(event.kind === 'user_message'
+          ? { workerId: event.workerId }
+          : { workerId: event.workerId, goal: event.goal }),
         ...(event.kind === 'worker_report'
           ? { reportStatus: event.report.status, artifacts: event.report.artifacts }
           : {}),

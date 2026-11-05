@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import {
-  type DiscardWorktree,
   type ResolveBatch,
   type RouterProviderInfo,
   type RouterWorker,
@@ -9,7 +8,8 @@ import {
   routerStatusSchema,
   type SendRouterMessage,
   type SetRouterKey,
-  unknownBatchSchema
+  unknownBatchSchema,
+  type WorkerAction
 } from './router.js'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
@@ -48,11 +48,23 @@ export const failureSchema = z.object({
 export type CodexFailure = z.infer<typeof failureSchema>
 export const itemSchema = z.object({
   id: z.string(),
-  kind: z.enum(['user', 'assistant', 'reasoning', 'command', 'files', 'plan', 'tool', 'notice']),
+  kind: z.enum([
+    'user',
+    'assistant',
+    'reasoning',
+    'command',
+    'files',
+    'plan',
+    'tool',
+    'notice',
+    'worker'
+  ]),
   status: z.enum(['running', 'completed', 'failed', 'interrupted']),
   text: z.string(),
   detail: z.string().default(''),
-  turnId: z.string().nullable()
+  turnId: z.string().nullable(),
+  /** On a `worker` item, the worker dispatched; on a `user` item, the worker addressed. */
+  workerId: z.string().optional()
 })
 export const questionSchema = z.object({
   id: z.string(),
@@ -226,7 +238,9 @@ export interface CodexAPI {
   sendRouter(input: SendRouterMessage): Promise<CodexReply<void>>
   interruptRouter(routerId: string): Promise<CodexReply<void>>
   resolveBatch(input: ResolveBatch): Promise<CodexReply<void>>
-  discardWorktree(input: DiscardWorktree): Promise<CodexReply<void>>
+  discardWorktree(input: WorkerAction): Promise<CodexReply<void>>
+  stopWorker(input: WorkerAction): Promise<CodexReply<void>>
+  removeWorker(input: WorkerAction): Promise<CodexReply<void>>
   routerProviders(): Promise<CodexReply<RouterProviderInfo[]>>
   setRouterKey(input: SetRouterKey): Promise<CodexReply<void>>
   removeRouterKey(providerId: string): Promise<CodexReply<void>>

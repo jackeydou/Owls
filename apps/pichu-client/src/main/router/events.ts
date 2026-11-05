@@ -10,7 +10,13 @@ const workerEvent = {
 }
 /** The body of one Router Inbox event, stored as the row's JSON value. */
 export const inboxEventBodySchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('user_message'), at: z.string(), text: z.string() }),
+  z.object({
+    kind: z.literal('user_message'),
+    at: z.string(),
+    text: z.string(),
+    /** Set when Owls already delivered this message to a worker; the Router only reads it. */
+    workerId: z.string().optional()
+  }),
   z.object({ kind: z.literal('worker_report'), ...workerEvent, report: workerReportSchema }),
   z.object({ kind: z.literal('worker_waiting'), ...workerEvent, detail: z.string() }),
   z.object({ kind: z.literal('worker_failed'), ...workerEvent }),
@@ -25,6 +31,9 @@ export const inboxEventBodySchema = z.discriminatedUnion('kind', [
 export type InboxEventBody = z.infer<typeof inboxEventBodySchema>
 /** One Router Inbox event. `seq` orders events across all Routers. */
 export type InboxEvent = InboxEventBody & { seq: number }
+/** An event the Router only needs to know about, so it never starts a batch by itself. */
+export const isQuietEvent = (event: InboxEventBody) =>
+  event.kind === 'user_message' && Boolean(event.workerId)
 /** `pending` events wait for a batch; the others are settled. */
 export type InboxStatus = 'pending' | 'batched' | 'superseded' | 'dropped'
 

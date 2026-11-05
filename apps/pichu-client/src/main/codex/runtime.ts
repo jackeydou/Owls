@@ -1,3 +1,4 @@
+export { buildWorkerMap } from '../../shared/worker-map.js'
 export { discoverClaudeExecutable } from '../claude/discovery.js'
 export * as claudeNormalize from '../claude/normalize.js'
 export { ClaudeService } from '../claude/service.js'

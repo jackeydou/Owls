@@ -8,12 +8,12 @@ import {
   settingsUpdateSchema
 } from '../../shared/codex.js'
 import {
-  discardWorktreeSchema,
   openRouterSchema,
   owlsProviderSchema,
   resolveBatchSchema,
   sendRouterSchema,
-  setRouterKeySchema
+  setRouterKeySchema,
+  workerActionSchema
 } from '../../shared/router.js'
 import { applyAppLogo } from './app-logo.js'
 import { codexFailure } from './errors.js'
@@ -80,7 +80,7 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
   handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))
   handle('router-resolve-batch', (input) => host.resolveBatch(resolveBatchSchema.parse(input)))
   handle('router-discard-worktree', async (input) => {
-    const request = discardWorktreeSchema.parse(input)
+    const request = workerActionSchema.parse(input)
     const chinese = host.snapshot().settings.language === 'zh-CN'
     const result = await dialog.showMessageBox({
       type: 'warning',
@@ -93,6 +93,22 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
       cancelId: 0
     })
     if (result.response === 1) await host.discardWorktree(request)
+  })
+  handle('router-stop-worker', (input) => host.stopWorker(workerActionSchema.parse(input)))
+  handle('router-remove-worker', async (input) => {
+    const request = workerActionSchema.parse(input)
+    const chinese = host.snapshot().settings.language === 'zh-CN'
+    const result = await dialog.showMessageBox({
+      type: 'question',
+      message: chinese ? '移除这个 Worker？' : 'Remove this worker?',
+      detail: chinese
+        ? '已提交到分支的内容会保留，有未提交修改的 worktree 也会保留。'
+        : 'Commits on its branch are kept, and so is a worktree with uncommitted changes.',
+      buttons: chinese ? ['取消', '移除'] : ['Cancel', 'Remove'],
+      defaultId: 0,
+      cancelId: 0
+    })
+    if (result.response === 1) host.removeWorker(request)
   })
   handle('router-providers', () => host.routerProviders())
   handle('router-set-key', (input) => host.setRouterKey(setRouterKeySchema.parse(input)))

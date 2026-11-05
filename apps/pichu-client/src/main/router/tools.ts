@@ -26,6 +26,20 @@ export class RouterToolError extends Error {
 export const dispatchTaskInput = z
   .object({
     goal: z.string().trim().min(1).max(4000).describe('What the worker should accomplish.'),
+    title: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .optional()
+      .describe("Short label the user sees, under 60 characters, in the user's language."),
+    parent: z
+      .string()
+      .trim()
+      .min(1)
+      .max(64)
+      .optional()
+      .describe('The worker whose result this task builds on. Omit for new work.'),
     context: z
       .string()
       .max(8000)
@@ -137,7 +151,7 @@ export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
     tool(
       'list_workers',
       'List workers',
-      "List this project's workers, newest first, with their goal, status, and the start of their last report.",
+      "List this project's workers, newest first, with their goal, status, parent, and the start of their last report.",
       listWorkersInput,
       (input) => handlers.listWorkers(input)
     ),

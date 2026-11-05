@@ -22,6 +22,7 @@ const {
   codexRouterArgs,
   OwlsEngine,
   RouterCredentials,
+  ROUTER_PROMPT_VERSION,
   RouterService,
   defaultEngineFactory,
   GitWorkspaces,
@@ -38,6 +39,7 @@ function fakeHost(overrides = {}) {
   const sent = []
   const steered = []
   const interrupted = []
+  const removed = []
   const turns = { profiles: null, running: new Set() }
   const settings = {
     permission: 'workspace-write',
@@ -61,6 +63,7 @@ function fakeHost(overrides = {}) {
     sent,
     steered,
     interrupted,
+    removed,
     turns,
     settings,
     host: {
@@ -71,6 +74,9 @@ function fakeHost(overrides = {}) {
         const session = { id: crypto.randomUUID(), ...input, worker: worker ?? null }
         created.push(session)
         return session
+      },
+      remove: (sessionId) => {
+        removed.push(sessionId)
       },
       // Like the task services, prepare the workspace and ask for the turn profile per turn.
       send: async (input) => {
@@ -183,7 +189,7 @@ test('message → dispatch → report → reply runs through the Owls engine', a
   assert.equal(service.profile('unrelated').role, 'task')
   assert.deepEqual(
     current().items.map((i) => i.kind),
-    ['user', 'tool', 'assistant']
+    ['user', 'tool', 'worker', 'assistant']
   )
 
   service.settled(created[0].id, {
@@ -191,7 +197,7 @@ test('message → dispatch → report → reply runs through the Owls engine', a
     structured: { status: 'done', summary: '12 files.', artifacts: [] },
     text: ''
   })
-  await waitFor(() => current().items.length >= 4 && current().status === 'idle', 'report batch')
+  await waitFor(() => current().items.length >= 5 && current().status === 'idle', 'report batch')
   assert.match(seen[1], /<owls-batch id="b_[0-9a-f]+" events="1">/)
   assert.match(seen[1], /worker_report · w_[0-9a-f]+ · .* · done/)
   assert.match(seen[1], /Goal: Count the files\n12 files\./)
@@ -563,7 +569,7 @@ test('the Inbox persists events and records each batch', async () => {
   await waitFor(() => engine.runs.length === 1 && current().status === 'idle', 'first batch')
   const [first] = store.batches('delivered')
   assert.equal(first.engine, 'owls')
-  assert.equal(first.promptVersion, 3)
+  assert.equal(first.promptVersion, ROUTER_PROMPT_VERSION)
   assert.deepEqual(
     first.eventSeqs,
     store
@@ -922,6 +928,7 @@ test('the Claude Code engine runs isolated, calls Owls tools, and resumes its se
       ['user', 'Count the files'],
       ['assistant', 'On it.'],
       ['tool', 'dispatch_task'],
+      ['worker', ''],
       ['assistant', 'bad:true']
     ]
   )
@@ -1164,6 +1171,191 @@ test('a follow-up the user runs in a worker task reaches the Router without a ba
   )
   assert.equal(sent.length, 1)
   service.close()
+})
+
+test('dispatch_task records the title, the parent, and one conversation item', async () => {
+  const { service, current, results } = await withTools(async (call, h) => {
+    const parent = await call('dispatch_task', { goal: 'Fix the login page', title: 'Fix login' })
+    const child = await call('dispatch_task', {
+      goal: 'Test the login flow',
+      title: 'x'.repeat(100),
+      parent: parent.workerId,
+      permission: 'read-only'
+    })
+    // A retried call reuses the worker, so it must not add a second item.
+    await call('dispatch_task', { goal: 'Fix the login page' })
+    const listed = await call('list_workers', {})
+    const recalled = await call('recall', { id: child.workerId })
+    h.state = { parent, child }
+    return [parent, child, listed, recalled]
+  })
+  await waitFor(() => current().status === 'idle', 'batch end')
+  const [parent, child, listed, recalled] = results
+  const workers = service.snapshot().workers
+  const byId = (id) => workers.find((w) => w.id === id)
+  assert.equal(byId(parent.workerId).title, 'Fix login')
+  assert.equal(byId(parent.workerId).parentId, null)
+  assert.equal(byId(child.workerId).title.length, 60)
+  assert.equal(byId(child.workerId).parentId, parent.workerId)
+  assert.equal(listed.workers.find((w) => w.workerId === child.workerId).parent, parent.workerId)
+  assert.equal(recalled.parent, parent.workerId)
+  assert.deepEqual(
+    current()
+      .items.filter((i) => i.kind === 'worker')
+      .map((i) => i.workerId),
+    [parent.workerId, child.workerId]
+  )
+  service.close()
+})
+
+test('dispatch_task refuses a parent that is unknown or removed', async () => {
+  const { service, results } = await withTools(async (call, h) => {
+    const unknown = await call('dispatch_task', { goal: 'A', parent: 'w_missing' })
+    const parent = await call('dispatch_task', { goal: 'B', permission: 'read-only' })
+    const worker = h.service.snapshot().workers.find((w) => w.id === parent.workerId)
+    h.service.observe({ type: 'removed', sessionId: worker.sessionId })
+    const removed = await call('dispatch_task', { goal: 'C', parent: parent.workerId })
+    return [unknown, removed]
+  })
+  assert.equal(results[0].error.code, 'worker_not_found')
+  assert.equal(results[1].error.code, 'worker_closed')
+  assert.equal(service.snapshot().workers.length, 1)
+  service.close()
+})
+
+test('a message to a running worker skips the model and reaches the Router later', async () => {
+  const { service, router, engine, current, fake } = await withTools(async (call) => [
+    await call('dispatch_task', { goal: 'Run the suite' })
+  ])
+  await waitFor(() => current().status === 'idle', 'dispatch batch')
+  const worker = service.snapshot().workers[0]
+  const commandId = crypto.randomUUID()
+  await service.send({
+    routerId: router.id,
+    commandId,
+    text: 'Add a token expiry case.',
+    workerId: worker.id
+  })
+  assert.deepEqual(fake.steered, [
+    { sessionId: worker.sessionId, text: 'Add a token expiry case.' }
+  ])
+  await new Promise((resolve) => setTimeout(resolve, 30))
+  assert.equal(engine.runs.length, 1, 'no batch for a delivered message')
+  const item = current().items.find((i) => i.id === commandId)
+  assert.equal(item.workerId, worker.id)
+  service.settled(worker.sessionId, report('Passed.'))
+  await waitFor(() => engine.runs.length === 2, 'report batch')
+  assert.match(engine.runs[1].text, new RegExp(`user_message · user · .* · to ${worker.id}\\n`))
+  assert.match(engine.runs[1].text, /worker_report · .* · done\nGoal: Run the suite\nPassed\./)
+  service.close()
+})
+
+test('a message to a finished worker starts its next turn, and the report wakes the Router', async () => {
+  const { service, router, engine, current, sent } = await withTools(async (call) => [
+    await call('dispatch_task', { goal: 'Draft the README' })
+  ])
+  const worker = service.snapshot().workers[0]
+  service.settled(worker.sessionId, report('Drafted.'))
+  await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'report batch')
+  await service.send({
+    routerId: router.id,
+    commandId: crypto.randomUUID(),
+    text: 'Add a badge.',
+    workerId: worker.id
+  })
+  assert.equal(sent.at(-1).text, 'Add a badge.')
+  service.settled(worker.sessionId, report('Badge added.'))
+  await waitFor(() => engine.runs.length === 3, 'next report batch')
+  assert.match(engine.runs[2].text, /Badge added\./)
+  service.close()
+})
+
+test('a directed message arriving during a batch does not start another one', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current } = harness([], { factory })
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length === 1)
+      await tools.find((t) => t.name === 'dispatch_task').execute({ goal: 'Long job' })
+  }
+  engine.hold = true
+  send(service, router, 'Start the job')
+  await waitFor(() => engine.release, 'held batch')
+  const [worker] = service.snapshot().workers
+  await service.send({
+    routerId: router.id,
+    commandId: crypto.randomUUID(),
+    text: 'Also check logs.',
+    workerId: worker.id
+  })
+  engine.hold = false
+  engine.release()
+  await waitFor(() => current().status === 'idle', 'batch end')
+  await new Promise((resolve) => setTimeout(resolve, 30))
+  assert.equal(engine.runs.length, 1)
+  service.close()
+})
+
+test('a message to a removed worker fails without touching the conversation', async () => {
+  const { service, router, current, engine } = await withTools(async (call) => [
+    await call('dispatch_task', { goal: 'Short job' })
+  ])
+  await waitFor(() => current().status === 'idle', 'dispatch batch')
+  const worker = service.snapshot().workers[0]
+  service.observe({ type: 'removed', sessionId: worker.sessionId })
+  await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'removal batch')
+  const commandId = crypto.randomUUID()
+  await assert.rejects(
+    service.send({ routerId: router.id, commandId, text: 'Hello?', workerId: worker.id }),
+    /cannot take this action/
+  )
+  assert.equal(
+    current().items.find((i) => i.id === commandId),
+    undefined
+  )
+  service.close()
+})
+
+test('stopping a worker from the UI tells the Router without starting a batch', async () => {
+  const { service, router, engine, current, store } = await withTools(async (call) => [
+    await call('dispatch_task', { goal: 'Write A' }),
+    await call('dispatch_task', { goal: 'Write B' })
+  ])
+  await waitFor(() => current().status === 'idle', 'dispatch batch')
+  const queued = service.snapshot().workers.find((w) => w.status === 'queued')
+  await service.stopWorker({ routerId: router.id, workerId: queued.id })
+  assert.equal(service.snapshot().workers.find((w) => w.id === queued.id).status, 'stopped')
+  await new Promise((resolve) => setTimeout(resolve, 30))
+  assert.equal(engine.runs.length, 1)
+  assert.ok(store.allEvents().some((e) => e.kind === 'worker_stopped' && e.workerId === queued.id))
+  service.close()
+})
+
+test('removing a worker goes through the host and rejects unknown workers', async () => {
+  const { service, router, current, fake } = await withTools(async (call) => [
+    await call('dispatch_task', { goal: 'Short job' })
+  ])
+  await waitFor(() => current().status === 'idle', 'dispatch batch')
+  const worker = service.snapshot().workers[0]
+  service.removeWorker({ routerId: router.id, workerId: worker.id })
+  assert.deepEqual(fake.removed, [worker.sessionId])
+  assert.throws(
+    () => service.removeWorker({ routerId: router.id, workerId: 'w_missing' }),
+    /no longer exists/
+  )
+  service.close()
+})
+
+test('batches label directed messages even when they are alone', () => {
+  const event = {
+    seq: 7,
+    kind: 'user_message',
+    at: '2026-11-04T10:00:01.000Z',
+    text: 'Use tabs.',
+    workerId: 'w_1'
+  }
+  assert.match(renderBatch('b_1', [event], null), /\[7\] user_message · user · 10:00:01 · to w_1\n/)
+  const { workerId: _workerId, ...plain } = event
+  assert.equal(renderBatch('b_1', [plain], null), 'Use tabs.')
 })
 
 /** A scripted Codex app-server pair: the config probe and the Router process. */
