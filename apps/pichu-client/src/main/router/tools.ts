@@ -151,7 +151,7 @@ export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
     tool(
       'list_workers',
       'List workers',
-      "List this project's workers, newest first, with their goal, status, parent, and the start of their last report.",
+      "List this project's workers, newest first, with their goal, status, parent, and the start of their last report. Do not use it to wait for a worker: reports arrive on their own in a later batch, after your turn ends.",
       listWorkersInput,
       (input) => handlers.listWorkers(input)
     ),
