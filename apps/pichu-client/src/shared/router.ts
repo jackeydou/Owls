@@ -95,6 +95,10 @@ export const workerSchema = z.object({
   sessionId: z.string(),
   provider: z.enum(providerValues),
   goal: z.string(),
+  /** Short label for the map and references; null falls back to the goal's first line. */
+  title: z.string().nullable().default(null),
+  /** The worker whose result led the Router to dispatch this one; null hangs off the Router. */
+  parentId: z.string().nullable().default(null),
   /** Background passed to the first turn; kept so a queued worker can start later. */
   context: z.string().nullable().default(null),
   permission: z.enum(permissionValues).default('workspace-write'),
@@ -131,14 +135,16 @@ export const openRouterSchema = z.string().min(1).max(200)
 export const sendRouterSchema = z.object({
   routerId: z.string().uuid(),
   commandId: z.string().uuid(),
-  text: z.string().trim().min(1).max(8000)
+  text: z.string().trim().min(1).max(8000),
+  /** Delivers the message straight to this worker instead of the Router's model. */
+  workerId: z.string().min(1).max(64).optional()
 })
 export const resolveBatchSchema = z.object({
   routerId: z.string().uuid(),
   batchId: z.string().min(1).max(64),
   decision: z.enum(['retry', 'ignore'])
 })
-export const discardWorktreeSchema = z.object({
+export const workerActionSchema = z.object({
   routerId: z.string().uuid(),
   workerId: z.string().min(1).max(64)
 })
@@ -156,7 +162,7 @@ export type WorkerReport = z.infer<typeof workerReportSchema>
 export type WorkerStatus = z.infer<typeof workerStatusSchema>
 export type WorktreeBase = z.infer<typeof worktreeBaseSchema>
 export type WorkerWorkspace = z.infer<typeof workerWorkspaceSchema>
-export type DiscardWorktree = z.infer<typeof discardWorktreeSchema>
+export type WorkerAction = z.infer<typeof workerActionSchema>
 export type RouterWorker = z.infer<typeof workerSchema>
 export type RouterStatus = z.infer<typeof routerStatusSchema>
 export type RouterNative = z.infer<typeof routerNativeSchema>

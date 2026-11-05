@@ -18,7 +18,7 @@ const origin = (event: { followUp?: boolean }) => (event.followUp ? ' · follow-
 function eventText(event: InboxEvent): string {
   switch (event.kind) {
     case 'user_message':
-      return `[${event.seq}] user_message · user · ${clock(event.at)}\n${escapeBatch(clip(event.text, USER_TEXT_LIMIT, event.seq))}`
+      return `[${event.seq}] user_message · user · ${clock(event.at)}${event.workerId ? ` · to ${event.workerId}` : ''}\n${escapeBatch(clip(event.text, USER_TEXT_LIMIT, event.seq))}`
     case 'worker_report': {
       const artifacts = event.report.artifacts.length
         ? `\nArtifacts: ${event.report.artifacts.map((a) => `${a.kind}:${a.ref}`).join(', ')}`
@@ -43,7 +43,7 @@ function eventText(event: InboxEvent): string {
 export function renderBatch(batchId: string, events: InboxEvent[], state: string | null): string {
   const ordered = [...events].sort((a, b) => a.seq - b.seq)
   const only = ordered[0]
-  if (ordered.length === 1 && only?.kind === 'user_message' && !state)
+  if (ordered.length === 1 && only?.kind === 'user_message' && !only.workerId && !state)
     return clip(only.text, USER_TEXT_LIMIT, only.seq)
   const header = `<owls-batch id="${batchId}" events="${ordered.length}">`
   const parts = [header]
@@ -61,7 +61,8 @@ export function renderState(workers: RouterWorker[]): string {
     .map((w) => {
       const summary = w.report ? ` — ${short(w.report.summary, 200)}` : ''
       const branch = w.workspace.kind === 'worktree' ? ` · branch ${w.workspace.branch}` : ''
-      return `- ${w.id} · ${w.status}${branch} · ${short(w.goal, 200)}${summary}`
+      const parent = w.parentId ? ` · parent ${w.parentId}` : ''
+      return `- ${w.id} · ${w.status}${parent}${branch} · ${short(w.goal, 200)}${summary}`
     })
     .join('\n')
 }

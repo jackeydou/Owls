@@ -50,6 +50,8 @@ export type WorkerHost = {
   providerReady(provider: AgentProvider): boolean
   /** `worker` marks a session whose `cwd` is a worker worktree of `projectPath`. */
   createSession(input: CreateCodexSession, worker?: { projectPath: string }): CodexSession
+  /** Removes a stopped worker's session; the `removed` event does the rest. */
+  remove(sessionId: string): void
   send(input: SendCodexMessage): Promise<void>
   steer(sessionId: string, text: string): Promise<'steered' | 'not_running'>
   interrupt(sessionId: string): Promise<void>
@@ -67,6 +69,8 @@ export type WorkerInbox = {
   ): void
 }
 
+/** Longest title kept for the UI; models sometimes write a sentence. */
+const TITLE_LIMIT = 60
 /** Global cap on workers that are starting, running, or waiting for approval. */
 export const WORKER_LIMIT = 4
 /** Dispatches beyond this many queued workers are refused. */
@@ -168,6 +172,7 @@ export class WorkerPool implements TurnProfiles {
     }
     const before = repeated()
     if (before) return before
+    if (input.parent) this.owned(router.id, input.parent)
     if ([...this.workers.values()].filter((w) => w.status === 'queued').length >= QUEUE_LIMIT)
       throw new RouterToolError(
         'worker_limit_reached',
@@ -206,6 +211,8 @@ export class WorkerPool implements TurnProfiles {
       sessionId: session.id,
       provider,
       goal: input.goal,
+      title: input.title?.slice(0, TITLE_LIMIT) ?? null,
+      parentId: input.parent ?? null,
       context: input.context ?? null,
       permission,
       next: input.context ? `${input.goal}\n\nContext:\n${input.context}` : input.goal,
@@ -253,12 +260,22 @@ export class WorkerPool implements TurnProfiles {
     return { delivered: 'started' }
   }
 
-  async stop(routerId: string, workerId: string): Promise<StopWorkerResult> {
+  /**
+   * Stops a worker for the Router or the user. A worker cancelled from the queue
+   * never settles a turn, so when the user cancels it the Router hears about it
+   * here, with its next batch.
+   */
+  async stop(
+    routerId: string,
+    workerId: string,
+    by: 'router' | 'user' = 'router'
+  ): Promise<StopWorkerResult> {
     const worker = this.owned(routerId, workerId)
     if (worker.status === 'queued') {
       worker.status = worker.report ? 'idle' : 'stopped'
       worker.next = null
       this.save(worker)
+      if (by === 'user') this.inbox.add(routerId, this.event('worker_stopped', worker), false)
       return { status: 'cancelled' }
     }
     worker.next = null
@@ -278,6 +295,7 @@ export class WorkerPool implements TurnProfiles {
         goal: w.goal,
         status: w.status,
         provider: w.provider,
+        parent: w.parentId,
         ...this.place(w),
         report: w.report
           ? { status: w.report.status, summary: w.report.summary.slice(0, 300) }

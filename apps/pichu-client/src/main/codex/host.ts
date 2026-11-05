@@ -12,11 +12,11 @@ import type {
   SendCodexMessage
 } from '../../shared/codex.js'
 import type {
-  DiscardWorktree,
   ResolveBatch,
   RouterProviderInfo,
   SendRouterMessage,
-  SetRouterKey
+  SetRouterKey,
+  WorkerAction
 } from '../../shared/router.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
@@ -55,6 +55,7 @@ export class OwlsHost {
         input.provider === 'claude-code'
           ? this.claude.createSession(input, worker)
           : this.codex.createSession(input, worker),
+      remove: (sessionId) => this.archive(sessionId),
       send: (input) => this.send(input),
       steer: (sessionId, text) => this.steer(sessionId, text),
       interrupt: (sessionId) => this.interrupt(sessionId)
@@ -113,8 +114,14 @@ export class OwlsHost {
   resolveBatch(input: ResolveBatch): void {
     this.requireRouter().resolveBatch(input)
   }
-  discardWorktree(input: DiscardWorktree): Promise<void> {
+  discardWorktree(input: WorkerAction): Promise<void> {
     return this.requireRouter().discardWorktree(input)
+  }
+  stopWorker(input: WorkerAction): Promise<void> {
+    return this.requireRouter().stopWorker(input)
+  }
+  removeWorker(input: WorkerAction): void {
+    this.requireRouter().removeWorker(input)
   }
   routerProviders(): RouterProviderInfo[] {
     return this.requireRouter().providers()

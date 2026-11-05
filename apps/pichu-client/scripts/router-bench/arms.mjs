@@ -207,6 +207,7 @@ export async function runRouter(clock, load, options) {
       sessions.set(id, { busy: false, waiting: [] })
       return { id, ...input }
     },
+    remove: () => {},
     send: async ({ sessionId, text }) => {
       await service.prepare(sessionId)
       service.profile(sessionId)
