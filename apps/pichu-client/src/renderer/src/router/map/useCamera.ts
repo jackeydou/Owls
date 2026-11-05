@@ -117,8 +117,9 @@ export function useCamera(
     () => ({
       /** New content: fits again unless the user has moved the canvas themselves. */
       update(next: Bounds) {
+        const first = !bounds.current
         bounds.current = next
-        if (!touched.current) fit(false)
+        if (!touched.current) fit(!first)
       },
       /** Fits and hands the camera back to the map. */
       reset() {

@@ -1,6 +1,7 @@
 :root {
   --owl-map-bg: #f6f6f5;
   --owl-map-dot: #1a1c1f12;
+  --owl-map-move: 340ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 [data-theme="dark"] {
   --owl-map-bg: #0d0d0d;
@@ -53,6 +54,10 @@
   stroke: var(--owl-c);
   stroke-linecap: round;
   opacity: 0.85;
+  transition:
+    d var(--owl-map-move),
+    stroke 200ms,
+    opacity 200ms;
 }
 .map-edge.d1 {
   stroke-width: 3.5;
@@ -83,6 +88,67 @@
   opacity: 0.16;
 }
 
+/* Motion only reports a state change or running work: dots flow outward along a running branch. */
+.map-flow {
+  fill: none;
+  stroke: var(--owl-map-bg);
+  stroke-dasharray: 0.01 16;
+  stroke-linecap: round;
+  transition:
+    d var(--owl-map-move),
+    opacity 200ms;
+  animation: map-flow 900ms linear infinite;
+}
+.map-flow.d1 {
+  stroke-width: 1.9;
+}
+.map-flow.d2 {
+  stroke-width: 1.4;
+}
+.map-flow.d3 {
+  stroke-width: 1;
+}
+.map-flow.dim {
+  opacity: 0.3;
+}
+@keyframes map-flow {
+  to {
+    stroke-dashoffset: -16.01;
+  }
+}
+.map-signals {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.map-signal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--owl-c);
+  box-shadow:
+    0 0 0 1.5px var(--owl-map-bg),
+    0 0 8px var(--owl-c);
+  offset-rotate: 0deg;
+}
+.map-signal.answer {
+  --owl-c: var(--owl-wait);
+}
+.map-ping {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-shadow: 0 0 0 2px var(--owl-c);
+  opacity: 0;
+}
+.map-ping.answer {
+  --owl-c: var(--owl-wait);
+}
+
 /* Nodes */
 .map-node {
   position: absolute;
@@ -91,6 +157,9 @@
   box-sizing: border-box;
   cursor: pointer;
   outline-offset: 2px;
+  transition:
+    transform var(--owl-map-move),
+    opacity 200ms;
 }
 .map-node:focus-visible {
   outline: 2px solid var(--color-codex-blue-300);
@@ -501,4 +570,14 @@
 .router-stage:has(> .router-panel) .map-filter,
 .router-stage:has(> .router-panel) .map-hud > button:last-child {
   display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-world.glide,
+  .map-node,
+  .map-edge {
+    transition: none;
+  }
+  .map-flow {
+    display: none;
+  }
 }

@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import test from 'node:test'
 
 const require = createRequire(import.meta.url)
-const { buildWorkerMap } = require('../../out/main/codex/runtime.js')
+const { buildWorkerMap, signalRoute, workerSignals } = require('../../out/main/codex/runtime.js')
 
 let clock = 0
 function worker(id, options = {}) {
@@ -239,4 +239,77 @@ test('node height follows what the node shows', () => {
   assert.ok(node(result, 'working').height > node(result, 'queued').height)
   assert.equal(node(result, 'project:empty').quiet, true)
   assert.ok(node(result, 'project:empty').height < node(result, 'project:p').height)
+})
+
+test('workerSignals announces reports and answers, not first sightings', () => {
+  const projects = [
+    project('p', [
+      worker('reported', { status: 'reported' }),
+      worker('answered', { status: 'running' }),
+      worker('stopped', { status: 'stopped' }),
+      worker('new', { status: 'reported' }),
+      worker('same', { status: 'running' })
+    ])
+  ]
+  const previous = new Map([
+    ['reported', 'running'],
+    ['answered', 'waiting'],
+    ['stopped', 'waiting'],
+    ['same', 'running']
+  ])
+  assert.deepEqual(workerSignals(previous, projects), [
+    { kind: 'report', workerId: 'reported', projectId: 'p' },
+    { kind: 'answer', workerId: 'answered', projectId: 'p' }
+  ])
+})
+
+test('workerSignals keeps both signals when updates arrive batched', () => {
+  const projects = [
+    project('p', [
+      worker('fast', { status: 'reported' }),
+      worker('read', { status: 'idle' }),
+      worker('settled', { status: 'idle' })
+    ])
+  ]
+  const previous = new Map([
+    ['fast', 'waiting'],
+    ['read', 'running'],
+    ['settled', 'reported']
+  ])
+  assert.deepEqual(workerSignals(previous, projects), [
+    { kind: 'answer', workerId: 'fast', projectId: 'p' },
+    { kind: 'report', workerId: 'fast', projectId: 'p' },
+    { kind: 'report', workerId: 'read', projectId: 'p' }
+  ])
+})
+
+test('signalRoute follows the branch and stops where the signal ends', () => {
+  const projects = [
+    project('p', [worker('a'), worker('b', { parentId: 'a' }), worker('c', { parentId: 'b' })])
+  ]
+  const result = map(projects)
+  assert.deepEqual(signalRoute(result, { kind: 'report', workerId: 'c', projectId: 'p' }), [
+    'project:p',
+    'a',
+    'b',
+    'c'
+  ])
+  assert.deepEqual(signalRoute(result, { kind: 'answer', workerId: 'b', projectId: 'p' }), [
+    'root',
+    'project:p',
+    'a',
+    'b'
+  ])
+})
+
+test('signalRoute reaches a folded worker through its finished group', () => {
+  const folded = map([project('p', [worker('a', { status: 'reported', report: done })])])
+  assert.ok(!ids(folded).includes('a'))
+  assert.deepEqual(signalRoute(folded, { kind: 'report', workerId: 'a', projectId: 'p' }), [
+    'project:p',
+    'done:p'
+  ])
+  assert.deepEqual(signalRoute(folded, { kind: 'answer', workerId: 'a', projectId: 'p' }), [])
+  const empty = map([project('p')])
+  assert.deepEqual(signalRoute(empty, { kind: 'report', workerId: 'a', projectId: 'p' }), [])
 })
