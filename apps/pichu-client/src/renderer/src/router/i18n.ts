@@ -143,8 +143,6 @@ export const routerEn = {
   'routerSettings.keyHelp':
     'Keys are encrypted with your system keychain and never shown again. Subscription sign-in is not supported for this engine.',
   'routerSettings.maxPermission': 'Highest worker permission',
-  'routerSettings.workerProvider': 'Worker agent',
-  'routerSettings.workerProvider.default': 'Same as default agent',
   'routerSettings.worktrees': 'Workers that write',
   'routerSettings.worktrees.on': 'Each in its own git worktree',
   'routerSettings.worktrees.off': 'One at a time in your checkout',
@@ -301,8 +299,6 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'routerSettings.keyHelp':
     'Key 使用系统钥匙串加密保存，保存后不再显示。此引擎不支持订阅账号登录。',
   'routerSettings.maxPermission': 'Worker 最高权限',
-  'routerSettings.workerProvider': 'Worker 使用的 agent',
-  'routerSettings.workerProvider.default': '与默认 agent 相同',
   'routerSettings.worktrees': '可写的 Worker',
   'routerSettings.worktrees.on': '各自使用独立的 git worktree',
   'routerSettings.worktrees.off': '在你的 checkout 中依次运行',

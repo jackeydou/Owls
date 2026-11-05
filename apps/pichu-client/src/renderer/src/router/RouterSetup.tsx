@@ -32,7 +32,7 @@ export function useRouterSetup(router?: CodexRouter): RouterSetupNeed | null {
     return { kind: 'claude', alternate }
   if (engine === 'codex' && (!ready('codex') || failed)) return { kind: 'codex', alternate }
   if (engine === 'owls' && (!settings.router.owls || failed)) return { kind: 'owls', alternate }
-  const provider = settings.workerProvider ?? settings.provider
+  const { provider } = settings
   if (!ready(provider))
     return { kind: 'worker', provider, alternate: AGENTS.find((a) => ready(a)) ?? null }
   return null
@@ -54,7 +54,7 @@ export function RouterSetupCard({ need }: { need: RouterSetupNeed }) {
   function switchTo(provider: AgentProvider) {
     void save(
       need.kind === 'worker'
-        ? { ...settings, provider, workerProvider: null }
+        ? { ...settings, provider }
         : { ...settings, router: { ...settings.router, engine: provider } }
     )
   }

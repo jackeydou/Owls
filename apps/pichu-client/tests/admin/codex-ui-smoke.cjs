@@ -418,8 +418,7 @@ app
         kind: 'worker_failed',
         at: new Date().toISOString(),
         workerId: 'w_smoke',
-        goal: 'Smoke',
-        followUp: false
+        goal: 'Smoke'
       })
       assert.deepEqual(
         routerStore.workerEvents(routerState.id, 'w_smoke', 10).map((e) => e.seq),

@@ -4,10 +4,8 @@ import type {
   CodexConnection,
   CodexProject,
   CodexRouter,
-  CodexSession,
   CodexSettings,
   CodexSnapshot,
-  CreateCodexSession,
   RespondCodexRequest,
   SendCodexMessage
 } from '../../shared/codex.js'
@@ -24,8 +22,8 @@ import { CodexRuntimeError } from './errors.js'
 import type { CodexService } from './service.js'
 
 /**
- * Owns the desktop workspace and routes each task to the runtime that created
- * it. Tasks never switch runtimes after creation.
+ * Owns the desktop workspace and routes each worker session to the runtime that
+ * created it. Sessions never switch runtimes after creation.
  */
 export class OwlsHost {
   private router: RouterService | null = null
@@ -33,7 +31,7 @@ export class OwlsHost {
     private readonly codex: CodexService,
     private readonly claude: ClaudeService
   ) {}
-  /** Connects the project Routers; their workers are ordinary tasks of this host. */
+  /** Connects the project Routers, which start every session of this host. */
   attachRouter(router: RouterService): void {
     this.router = router
     this.codex.setTurnProfiles(router)
@@ -63,13 +61,16 @@ export class OwlsHost {
   }
   snapshot(): CodexSnapshot {
     const codex = this.codex.snapshot()
+    const router = this.router?.snapshot() ?? { routers: [], workers: [] }
+    const workers = new Set(router.workers.map((worker) => worker.sessionId))
     return {
       ...codex,
-      sessions: [...codex.sessions, ...this.claude.sessionList()].sort((a, b) =>
-        b.updatedAt.localeCompare(a.updatedAt)
-      ),
+      // Tasks from before the Router stay stored, without a way to reach them (RFC 8).
+      sessions: [...codex.sessions, ...this.claude.sessionList()]
+        .filter((session) => workers.has(session.id))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
       claude: this.claude.connectionState(),
-      ...(this.router?.snapshot() ?? { routers: [], workers: [] })
+      ...router
     }
   }
   codexConnection(): CodexConnection {
@@ -140,20 +141,15 @@ export class OwlsHost {
   addProject(path: string): CodexProject {
     return this.codex.addProject(path)
   }
-  createSession(input: CreateCodexSession): CodexSession {
-    return input.provider === 'claude-code'
-      ? this.claude.createSession(input)
-      : this.codex.createSession(input)
-  }
-  send(input: SendCodexMessage): Promise<void> {
+  private send(input: SendCodexMessage): Promise<void> {
     return this.claude.owns(input.sessionId) ? this.claude.send(input) : this.codex.send(input)
   }
-  async steer(sessionId: string, text: string): Promise<'steered' | 'not_running'> {
+  private async steer(sessionId: string, text: string): Promise<'steered' | 'not_running'> {
     return this.claude.owns(sessionId)
       ? this.claude.steer(sessionId, text)
       : this.codex.steer(sessionId, text)
   }
-  interrupt(sessionId: string): Promise<void> {
+  private interrupt(sessionId: string): Promise<void> {
     return this.claude.owns(sessionId)
       ? this.claude.interrupt(sessionId)
       : this.codex.interrupt(sessionId)
@@ -162,12 +158,9 @@ export class OwlsHost {
     if (this.claude.owns(input.sessionId)) this.claude.respond(input)
     else this.codex.respond(input)
   }
-  archive(sessionId: string): void {
+  private archive(sessionId: string): void {
     if (this.claude.owns(sessionId)) this.claude.archive(sessionId)
     else this.codex.archive(sessionId)
-  }
-  provider(sessionId: string): CodexSession['provider'] {
-    return this.claude.owns(sessionId) ? 'claude-code' : 'codex'
   }
   signIn(): Promise<string> {
     return this.codex.signIn()

@@ -5,6 +5,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
+import { createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk/core'
 import {
   createModels,
   fauxAssistantMessage,
@@ -21,6 +22,7 @@ const {
   CodexRouterServer,
   codexRouterArgs,
   OwlsEngine,
+  OwlsHost,
   RouterCredentials,
   ROUTER_PROMPT_VERSION,
   RouterService,
@@ -29,6 +31,8 @@ const {
   parseReport,
   renderBatch,
   renderState,
+  routerTools,
+  storedSettings,
   trimContext
 } = require('../../out/main/codex/runtime.js')
 
@@ -44,7 +48,6 @@ function fakeHost(overrides = {}) {
   const settings = {
     permission: 'workspace-write',
     provider: 'codex',
-    workerProvider: null,
     model: 'gpt-test',
     effort: null,
     claudeModel: null,
@@ -185,8 +188,8 @@ test('message → dispatch → report → reply runs through the Owls engine', a
   assert.equal(sent[0].text, 'Count the files')
   const worker = service.snapshot().workers[0]
   assert.equal(worker.status, 'running')
-  assert.equal(service.profile(created[0].id).role, 'worker')
-  assert.equal(service.profile('unrelated').role, 'task')
+  assert.ok(service.profile(created[0].id).instructions)
+  assert.equal(service.profile('unrelated'), null)
   assert.deepEqual(
     current().items.map((i) => i.kind),
     ['user', 'tool', 'worker', 'assistant']
@@ -419,7 +422,7 @@ test('batches render deterministically and escape their closing tag', () => {
   )
   assert.equal(
     text,
-    '<owls-batch id="b_1" events="2">\n[2] user_message · user · 10:00:05\nstop <\\/owls-batch> now\n[3] worker_failed · w_b · 10:00:05\nGoal: Build\nThe worker\'s turn failed. The user can see the error in that task.\n</owls-batch>'
+    '<owls-batch id="b_1" events="2">\n[2] user_message · user · 10:00:05\nstop <\\/owls-batch> now\n[3] worker_failed · w_b · 10:00:05\nGoal: Build\nThe worker\'s turn failed. The user can see the error in that worker\'s details.\n</owls-batch>'
   )
   assert.equal(
     renderState([
@@ -738,7 +741,7 @@ test('removing a worker task drops its pending events and tells the Router', asy
   service.settled(worker.sessionId, report('Half done.'))
   service.observe({ type: 'removed', sessionId: worker.sessionId })
   assert.equal(service.snapshot().workers[0].status, 'removed')
-  assert.equal(service.profile(worker.sessionId).role, 'task')
+  assert.equal(service.profile(worker.sessionId), null)
   engine.hold = false
   engine.release()
   await waitFor(() => engine.runs.length === 3, 'removal batch')
@@ -947,6 +950,54 @@ test('the Claude Code engine runs isolated, calls Owls tools, and resumes its se
   service.close()
 })
 
+test('the real Agent SDK lets the Router leave optional tool arguments out', async () => {
+  const dispatched = []
+  const tools = routerTools({
+    dispatchTask: async (input) => {
+      dispatched.push(input)
+      return { workerId: 'w_1', status: 'started', workspace: 'checkout', branch: null }
+    }
+  })
+  let listed
+  let called
+  const sdk = {
+    ...fakeClaudeSdk([
+      async function* ({ options, next }) {
+        await next()
+        // The SDK's MCP server validates arguments before Owls sees them.
+        const handlers = options.mcpServers.owls.instance.server._requestHandlers
+        listed = await handlers.get('tools/list')({ method: 'tools/list', params: {} }, {})
+        called = await handlers.get('tools/call')(
+          {
+            method: 'tools/call',
+            params: { name: 'dispatch_task', arguments: { goal: 'Count the files' } }
+          },
+          {}
+        )
+        yield claudeInit('s-1')
+        yield claudeResult()
+      }
+    ]),
+    createSdkMcpServer
+  }
+  const engine = new ClaudeEngine({
+    sdk,
+    executable: '/bin/claude',
+    cwd: '/tmp',
+    model: null,
+    instructions: 'Route.',
+    tools,
+    version: 'test'
+  })
+  const sink = { item: () => {}, usage: () => {} }
+  await engine.run({ batchId: 'b_1', text: 'Go', native: null }, sink)
+  assert.deepEqual(dispatched, [{ goal: 'Count the files' }])
+  assert.equal(called.isError, undefined, called.content[0].text)
+  const dispatch = listed.tools.find((tool) => tool.name === 'dispatch_task')
+  assert.deepEqual(dispatch.inputSchema.required, ['goal'])
+  assert.ok(dispatch.inputSchema.properties.parent.description)
+})
+
 test('the Claude Code engine folds steered messages in and drops a lost session', async () => {
   let release
   const gate = new Promise((resolve) => (release = resolve))
@@ -1148,28 +1199,28 @@ test('list_workers and recall describe workers, events, and batches', async () =
   h.service.close()
 })
 
-test('a follow-up the user runs in a worker task reaches the Router without a batch', async () => {
+test('a message the user sends to a worker reports back to the Router like any turn', async () => {
   const { service, router, engine, current, sent } = await withTools(async (call) => [
     await call('dispatch_task', { goal: 'Draft the README' })
   ])
   const worker = service.snapshot().workers[0]
   service.settled(worker.sessionId, report('Drafted.'))
   await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'report batch')
-  // The user asks the worker directly: a turn the Router did not start.
-  service.observe({
-    type: 'session',
-    session: { id: worker.sessionId, status: 'running', requests: [] }
+  await service.send({
+    routerId: router.id,
+    commandId: crypto.randomUUID(),
+    text: 'Add a badge',
+    workerId: worker.id
   })
+  assert.equal(sent.at(-1).text, 'Add a badge')
+  assert.equal(engine.runs.length, 2, 'the message itself starts no batch')
   service.settled(worker.sessionId, report('Added a badge.'))
-  await new Promise((resolve) => setTimeout(resolve, 30))
-  assert.equal(engine.runs.length, 2, 'no batch for the follow-up')
-  send(service, router, 'Status?')
-  await waitFor(() => engine.runs.length === 3, 'next batch')
+  await waitFor(() => engine.runs.length === 3, 'report batch')
+  assert.match(engine.runs[2].text, /· to w_[0-9a-f]+\nAdd a badge/)
   assert.match(
     engine.runs[2].text,
-    /worker_report · w_[0-9a-f]+ · .* · done · follow-up\nGoal: Draft the README\nAdded a badge\./
+    /worker_report · w_[0-9a-f]+ · .* · done\nGoal: Draft the README\nAdded a badge\./
   )
-  assert.equal(sent.length, 1)
   service.close()
 })
 
@@ -2066,4 +2117,47 @@ test('restart prunes worktrees and finishes a cleanup that did not complete', as
   ])
   assert.equal(two.service.snapshot().workers[0].workspace.state, 'released')
   two.service.close()
+})
+
+test('the host shows only sessions that belong to workers', () => {
+  const session = (id, updatedAt) => ({ id, updatedAt })
+  const runtime = {
+    setTurnProfiles() {},
+    connectionState: () => ({ status: 'ready' })
+  }
+  const host = new OwlsHost(
+    {
+      ...runtime,
+      snapshot: () => ({ sessions: [session('old-task', '3'), session('codex-worker', '1')] })
+    },
+    { ...runtime, sessionList: () => [session('claude-worker', '2')] }
+  )
+  assert.deepEqual(host.snapshot().sessions, [])
+  host.attachRouter({
+    snapshot: () => ({
+      routers: [],
+      workers: [{ sessionId: 'codex-worker' }, { sessionId: 'claude-worker' }]
+    })
+  })
+  assert.deepEqual(
+    host.snapshot().sessions.map((s) => s.id),
+    ['claude-worker', 'codex-worker']
+  )
+})
+
+test('a saved worker agent becomes the default agent', () => {
+  const stored = {
+    executablePath: null,
+    model: null,
+    effort: null,
+    permission: 'workspace-write',
+    theme: 'system',
+    language: 'en',
+    provider: 'codex'
+  }
+  const migrated = storedSettings({ ...stored, workerProvider: 'claude-code' })
+  assert.equal(migrated.provider, 'claude-code')
+  assert.ok(!('workerProvider' in migrated))
+  assert.equal(storedSettings({ ...stored, workerProvider: null }).provider, 'codex')
+  assert.equal(storedSettings(stored).provider, 'codex')
 })

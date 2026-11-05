@@ -4,9 +4,7 @@ import { routerEngineSchema, workerReportSchema } from '../../shared/router.js'
 const workerEvent = {
   at: z.string(),
   workerId: z.string(),
-  goal: z.string(),
-  /** From a turn the user started in the worker's own task view, not from the Router. */
-  followUp: z.boolean().default(false)
+  goal: z.string()
 }
 /** The body of one Router Inbox event, stored as the row's JSON value. */
 export const inboxEventBodySchema = z.discriminatedUnion('kind', [

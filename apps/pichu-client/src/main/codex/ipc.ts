@@ -1,12 +1,6 @@
 import { type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } from 'electron'
 import { z } from 'zod'
-import {
-  type CodexReply,
-  createSessionSchema,
-  respondSchema,
-  sendSchema,
-  settingsUpdateSchema
-} from '../../shared/codex.js'
+import { type CodexReply, respondSchema, settingsUpdateSchema } from '../../shared/codex.js'
 import {
   openRouterSchema,
   owlsProviderSchema,
@@ -55,26 +49,7 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
     if (saved.appLogo !== previous.appLogo) applyAppLogo(saved.appLogo, getWindow())
     return saved
   })
-  handle('create-session', (input) => host.createSession(createSessionSchema.parse(input)))
-  handle('send', (input) => host.send(sendSchema.parse(input)))
-  handle('interrupt', (input) => host.interrupt(z.string().uuid().parse(input)))
   handle('respond', (input) => host.respond(respondSchema.parse(input)))
-  handle('archive', async (input) => {
-    const id = z.string().uuid().parse(input)
-    const chinese = host.snapshot().settings.language === 'zh-CN'
-    const agent = host.provider(id) === 'claude-code' ? 'Claude Code' : 'Codex'
-    const result = await dialog.showMessageBox({
-      type: 'question',
-      message: chinese ? '移除此任务？' : 'Remove this task?',
-      detail: chinese
-        ? `这会移除 Owls 中的任务记录，${agent} 原生历史不受影响。`
-        : `This removes the task from Owls. Native ${agent} history stays in ${agent}.`,
-      buttons: chinese ? ['取消', '移除'] : ['Cancel', 'Remove'],
-      defaultId: 0,
-      cancelId: 0
-    })
-    if (result.response === 1) host.archive(id)
-  })
   handle('router-open', (input) => host.openRouter(openRouterSchema.parse(input)))
   handle('router-send', (input) => host.sendRouter(sendRouterSchema.parse(input)))
   handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))

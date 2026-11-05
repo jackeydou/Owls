@@ -18,7 +18,7 @@ Paths after the first entry are relative to `apps/pichu-client/`.
 
 Claude Code owns its model requests, native tools, context, compaction,
 authentication, hooks, MCP servers, and native session storage. Owls owns
-project selection, task views, normalized items, settings, and approval routing.
+project selection, worker sessions, normalized items, settings, and approval routing.
 
 ## Local executable, no bundled fallback
 

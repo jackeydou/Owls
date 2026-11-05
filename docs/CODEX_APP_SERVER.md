@@ -23,7 +23,7 @@ migration proposal does not apply to this implementation.
 Paths after the first entry are relative to `apps/pichu-client/`.
 
 Codex owns its model requests, native tools, context, authentication, and native
-thread storage. Owls owns project selection, task views, normalized item history,
+thread storage. Owls owns project selection, worker sessions, normalized item history,
 settings, and live request routing. No Pi events are synthesized.
 
 ## Local account connection

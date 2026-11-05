@@ -128,8 +128,8 @@ function schedule(clock, load, tracker, send) {
 }
 
 /**
- * Owls Router + workers. `passthrough` false sends follow-ups to the Router
- * instead of the worker's task (the article's "no event passthrough" arm);
+ * Owls Router + workers. `passthrough` true delivers follow-ups straight to the
+ * worker; false sends them to the Router (the article's "no event passthrough" arm);
  * `permission` 'workspace-write' makes workers in one checkout run one at a
  * time, unless `worktrees` gives each its own git worktree.
  */
@@ -139,13 +139,12 @@ export async function runRouter(clock, load, options) {
   const policy = new Policy('router', options.permission)
   const overhead = (fixed) => Math.max(0, ENGINE_CONTEXT[options.engine] - fixed)
   const tracker = new Tracker(clock, load, (f) =>
-    options.passthrough ? userFollowUp(f) : send(`<${f.id}> ${f.text}`)
+    options.passthrough ? directed(f) : send(`<${f.id}> ${f.text}`)
   )
   const { model, streamFn } = scriptedModel(clock, policy, meter, overhead, (m) => tracker.reply(m))
   const settings = {
     permission: 'workspace-write',
     provider: 'claude-code',
-    workerProvider: null,
     model: null,
     effort: null,
     claudeModel: null,
@@ -159,59 +158,35 @@ export async function runRouter(clock, load, options) {
       worktrees: Boolean(options.worktrees)
     }
   }
-  // Worker tasks: each turn takes the simulated work time of the tags it carries.
-  const sessions = new Map()
+  // Worker turns: each takes the simulated work time of the tags it carries.
+  let sessions = 0
   const sessionOf = new Map()
   let service
-  const startTurn = (sessionId, text, followUp) => {
-    const session = sessions.get(sessionId)
+  const startTurn = (sessionId, text) => {
     const tags = [...new Set([...text.matchAll(/<([RF][\d.]+)>/g)].map((m) => m[1]))]
     for (const tag of tags) if (tag.startsWith('R')) sessionOf.set(tag, sessionId)
-    session.busy = true
     const workMs = tags.reduce((sum, tag) => sum + (load.units.get(tag)?.workMs ?? 0), 0)
     clock.after(workMs, () => {
-      session.busy = false
       const summary = tags
         .map((tag) => `<done ${tag}> ${load.units.get(tag)?.summary ?? ''}`)
         .join('\n')
-      // The user watches a follow-up in the worker's own task, so it is visible now.
-      if (followUp) for (const tag of tags) tracker.show(tag)
       service.settled(sessionId, {
         status: 'completed',
         structured: { status: 'done', summary: summary.slice(0, 1000), artifacts: [] },
         text: ''
       })
-      const waiting = session.waiting.shift()
-      if (waiting) userFollowUp(waiting)
     })
-  }
-  const userFollowUp = (f) => {
-    const sessionId = sessionOf.get(f.parent)
-    const session = sessions.get(sessionId)
-    if (session.busy) {
-      session.waiting.push(f)
-      return
-    }
-    service.observe({
-      type: 'session',
-      session: { id: sessionId, status: 'running', requests: [] }
-    })
-    startTurn(sessionId, `<${f.id}> ${f.text}`, true)
   }
   const host = {
     projects: () => [PROJECT],
     settings: () => settings,
     providerReady: () => true,
-    createSession: (input) => {
-      const id = `s${sessions.size + 1}`
-      sessions.set(id, { busy: false, waiting: [] })
-      return { id, ...input }
-    },
+    createSession: (input) => ({ id: `s${++sessions}`, ...input }),
     remove: () => {},
     send: async ({ sessionId, text }) => {
       await service.prepare(sessionId)
       service.profile(sessionId)
-      startTurn(sessionId, text, false)
+      startTurn(sessionId, text)
     },
     // Worker turns are short simulated blocks; Router follow-ups wait for the next turn.
     steer: async () => 'not_running',
@@ -241,8 +216,14 @@ export async function runRouter(clock, load, options) {
   )
   const router = service.open(PROJECT.id)
   let commandId = 0
-  const send = (text) =>
-    void service.send({ routerId: router.id, commandId: `m${++commandId}`, text })
+  const send = (text, workerId) =>
+    void service.send({ routerId: router.id, commandId: `m${++commandId}`, text, workerId })
+  // The user names the worker, as an @ message does (RFC 4.4); its report still goes to the Router.
+  const directed = (f) => {
+    const sessionId = sessionOf.get(f.parent)
+    const worker = service.snapshot().workers.find((w) => w.sessionId === sessionId)
+    send(`<${f.id}> ${f.text}`, worker.id)
+  }
   schedule(clock, load, tracker, send)
   await clock.run(24 * 60 * MINUTE)
   const batches = store.batches('delivered')

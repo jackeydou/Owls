@@ -1,0 +1,1 @@
+- Router: you now reach everything through the Router. Old task entry points are gone, tasks made before the Router stay stored but hidden, every worker report reaches the Router, and the separate worker agent setting is merged into the default agent. (#28)

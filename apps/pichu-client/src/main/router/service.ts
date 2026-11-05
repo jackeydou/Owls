@@ -284,7 +284,7 @@ export class RouterService implements TurnProfiles {
     return this.pool.prepare(sessionId)
   }
 
-  profile(sessionId: string): TurnProfile {
+  profile(sessionId: string): TurnProfile | null {
     return this.pool.profile(sessionId)
   }
 
