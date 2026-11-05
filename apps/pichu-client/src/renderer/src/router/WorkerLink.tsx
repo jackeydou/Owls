@@ -1,0 +1,52 @@
+import { createContext, type ReactNode, useContext } from 'react'
+import type { RouterWorker } from '../../../shared/router'
+import type { MarkdownExtension } from '../codex/Conversation'
+import { workerTitle, workerTone } from './activity'
+import { useRouterStore } from './store'
+
+/** The Router whose conversation is being rendered; a reference to any other worker is text. */
+export const RouterIdContext = createContext<string | null>(null)
+
+export function WorkerDot({ worker }: { worker: RouterWorker }) {
+  return <i className={`router-dot ${workerTone(worker)}`} aria-hidden />
+}
+export function WorkerLink({ worker, children }: { worker: RouterWorker; children?: ReactNode }) {
+  const showPanel = useRouterStore((s) => s.showPanel)
+  return (
+    <button
+      type="button"
+      className="router-worker-link"
+      onClick={() => showPanel({ kind: 'worker', workerId: worker.id })}
+    >
+      <WorkerDot worker={worker} />
+      <span>{children ?? workerTitle(worker)}</span>
+    </button>
+  )
+}
+function InlineWorker(props: Record<string, unknown>) {
+  const { worker: id } = props
+  const children = props.children as ReactNode
+  const routerId = useContext(RouterIdContext)
+  const worker = useRouterStore((s) =>
+    s.workers.find((w) => w.id === id && w.routerId === routerId && w.status !== 'removed')
+  )
+  return worker ? <WorkerLink worker={worker}>{children}</WorkerLink> : <span>{children}</span>
+}
+const WORKER_LINK = /\[([^\]\n]+)\]\(#worker-(w_[\w-]+)\)/g
+const escapeHtml = (text: string) => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+/**
+ * Worker references become a custom tag instead of a `components.a` override,
+ * because Streamdown's own link keeps its confirmation for external URLs that
+ * an override would lose. `worker` is not `id` since sanitizing prefixes ids.
+ */
+export const workerMarkdown: MarkdownExtension = {
+  allowedTags: { 'owls-worker': ['worker'] },
+  components: { 'owls-worker': InlineWorker },
+  literalTagContent: ['owls-worker'],
+  prepare: (text) =>
+    text.replace(
+      WORKER_LINK,
+      (_, title: string, id: string) =>
+        `<owls-worker worker="${id}">${escapeHtml(title)}</owls-worker>`
+    )
+}

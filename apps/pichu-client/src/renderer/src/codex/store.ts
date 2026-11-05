@@ -7,6 +7,7 @@ import type {
   CodexFailure,
   CodexProject,
   CodexReply,
+  CodexRouter,
   CodexSession,
   CodexSettings,
   RespondCodexRequest
@@ -36,12 +37,12 @@ function unwrap<T>(reply: CodexReply<T>): T {
 type State = {
   loaded: boolean
   error: CodexFailure | null
-  sending: boolean
-  view: 'chat' | 'settings' | 'router'
-  /** Project whose Router is shown when `view` is `router`. */
+  /** `chat` and `map` are the same space at two distances; `settings` sits on top of either. */
+  view: 'chat' | 'map' | 'settings'
+  /** Where Settings returns to. */
+  lastView: 'chat' | 'map'
+  /** The project in focus: its conversation, or the one the map composer sends to. */
   routerProjectId: string | null
-  selectedId: string | null
-  draftCwd: string | null
   sessions: CodexSession[]
   projects: CodexProject[]
   settings: CodexSettings
@@ -49,10 +50,11 @@ type State = {
   claude: ClaudeConnection
   initialize(): Promise<void>
   event(event: CodexEvent): void
-  select(id: string): void
-  newTask(cwd?: string): void
   showSettings(): void
-  showRouter(projectId: string): void
+  leaveSettings(): void
+  showChat(projectId?: string): void
+  showMap(): void
+  focusProject(projectId: string): void
   clearError(): void
   pickProject(): Promise<void>
   connect(): Promise<void>
@@ -60,10 +62,15 @@ type State = {
   connectClaude(): Promise<void>
   selectClaudeExecutable(): Promise<void>
   saveSettings(settings: CodexSettings): Promise<void>
-  send(text: string): Promise<boolean>
-  interrupt(): Promise<void>
   respond(input: RespondCodexRequest): Promise<void>
-  archive(id: string): Promise<void>
+}
+/** The most recently active Router's project, or the first project on a fresh install. */
+function startProject(projects: CodexProject[], routers: CodexRouter[]): string | null {
+  const known = (id: string) => projects.some((p) => p.id === id)
+  const [latest] = routers
+    .filter((r) => known(r.projectId))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  return latest?.projectId ?? projects[0]?.id ?? null
 }
 let connectionEvents = 0
 let claudeEvents = 0
@@ -80,11 +87,9 @@ export const useCodexStore = create<State>((set, get) => {
   return {
     loaded: false,
     error: null,
-    sending: false,
     view: 'chat',
+    lastView: 'chat',
     routerProjectId: null,
-    selectedId: null,
-    draftCwd: null,
     sessions: [],
     projects: [],
     settings: {
@@ -131,7 +136,7 @@ export const useCodexStore = create<State>((set, get) => {
         loaded: true,
         projects: snapshot.projects,
         settings: snapshot.settings,
-        draftCwd: state.draftCwd ?? snapshot.projects[0]?.path ?? null,
+        routerProjectId: state.routerProjectId ?? startProject(snapshot.projects, snapshot.routers),
         sessions: snapshot.sessions.map((s) => {
           const live = state.sessions.find((existing) => existing.id === s.id)
           return live && live.updatedAt >= s.updatedAt ? live : s
@@ -160,10 +165,7 @@ export const useCodexStore = create<State>((set, get) => {
         return
       }
       if (event.type === 'removed') {
-        set((state) => ({
-          sessions: state.sessions.filter((s) => s.id !== event.sessionId),
-          selectedId: state.selectedId === event.sessionId ? null : state.selectedId
-        }))
+        set((state) => ({ sessions: state.sessions.filter((s) => s.id !== event.sessionId) }))
         return
       }
       set((state) => ({
@@ -172,11 +174,21 @@ export const useCodexStore = create<State>((set, get) => {
         )
       }))
     },
-    select: (id) => set({ selectedId: id, view: 'chat', error: null }),
-    newTask: (cwd) =>
-      set({ selectedId: null, view: 'chat', error: null, draftCwd: cwd ?? get().draftCwd }),
-    showSettings: () => set({ view: 'settings', error: null }),
-    showRouter: (projectId) => set({ view: 'router', routerProjectId: projectId, error: null }),
+    showSettings: () =>
+      set((state) => ({
+        view: 'settings',
+        lastView: state.view === 'settings' ? state.lastView : state.view,
+        error: null
+      })),
+    leaveSettings: () => set((state) => ({ view: state.lastView, error: null })),
+    showChat: (projectId) =>
+      set((state) => ({
+        view: 'chat',
+        routerProjectId: projectId ?? state.routerProjectId,
+        error: null
+      })),
+    showMap: () => set({ view: 'map', error: null }),
+    focusProject: (projectId) => set({ routerProjectId: projectId }),
     clearError: () => set({ error: null }),
     pickProject: async () => {
       const project = await action(() => window.codex.pickProject())
@@ -185,8 +197,7 @@ export const useCodexStore = create<State>((set, get) => {
           projects: [...state.projects.filter((p) => p.id !== project.id), project].sort((a, b) =>
             a.name.localeCompare(b.name)
           ),
-          draftCwd: project.path,
-          selectedId: null,
+          routerProjectId: project.id,
           view: 'chat'
         }))
     },
@@ -230,45 +241,8 @@ export const useCodexStore = create<State>((set, get) => {
       )
       if (saved) set({ settings: saved })
     },
-    send: async (text) => {
-      if (get().sending) return false
-      set({ sending: true, error: null })
-      try {
-        let sessionId = get().selectedId
-        if (!sessionId) {
-          const cwd = get().draftCwd
-          if (!cwd) return false
-          const { settings } = get()
-          const session = unwrap(
-            await window.codex.createSession({
-              provider: settings.provider,
-              cwd,
-              ...agentSelection(settings, settings.provider),
-              permission: settings.permission
-            })
-          )
-          get().event({ type: 'session', session })
-          set({ selectedId: session.id })
-          sessionId = session.id
-        }
-        unwrap(await window.codex.send({ sessionId, commandId: crypto.randomUUID(), text }))
-        return true
-      } catch (error) {
-        set({ error: uiFailure(error) })
-        return false
-      } finally {
-        set({ sending: false })
-      }
-    },
-    interrupt: async () => {
-      const id = get().selectedId
-      if (id) await action(() => window.codex.interrupt(id))
-    },
     respond: async (input) => {
       await action(() => window.codex.respond(input))
-    },
-    archive: async (id) => {
-      await action(() => window.codex.archive(id))
     }
   }
 })

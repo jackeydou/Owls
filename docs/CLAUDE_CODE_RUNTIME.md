@@ -2,10 +2,10 @@
 
 ## Scope
 
-Owls can run tasks with the user's installed Claude Code CLI next to the
-[Codex runtime](CODEX_APP_SERVER.md). Each task chooses its agent when it is
-created and never switches afterward. Both runtimes share projects, settings,
-the task list, and `owls-codex.db`.
+Owls can run workers with the user's installed Claude Code CLI next to the
+[Codex runtime](CODEX_APP_SERVER.md). Each worker gets its agent when it is
+dispatched and never switches afterward. Both runtimes share projects, settings,
+and `owls-codex.db`.
 
 ## Entries and ownership
 

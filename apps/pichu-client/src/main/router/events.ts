@@ -33,7 +33,7 @@ export type InboxEventBody = z.infer<typeof inboxEventBodySchema>
 export type InboxEvent = InboxEventBody & { seq: number }
 /** An event the Router only needs to know about, so it never starts a batch by itself. */
 export const isQuietEvent = (event: InboxEventBody) =>
-  event.kind === 'user_message' && Boolean(event.workerId)
+  event.kind === 'worker_waiting' || (event.kind === 'user_message' && Boolean(event.workerId))
 /** `pending` events wait for a batch; the others are settled. */
 export type InboxStatus = 'pending' | 'batched' | 'superseded' | 'dropped'
 

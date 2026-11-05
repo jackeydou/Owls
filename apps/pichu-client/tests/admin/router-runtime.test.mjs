@@ -1345,6 +1345,75 @@ test('removing a worker goes through the host and rejects unknown workers', asyn
   service.close()
 })
 
+test('a worker waiting for approval reaches the Router on its next batch without starting one', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current, store } = harness([], { factory })
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length === 1) await tools[0].execute({ goal: 'Deploy' })
+  }
+  await send(service, router, 'Deploy it')
+  await waitFor(() => engine.runs.length === 1 && current().status === 'idle', 'first batch')
+  const [worker] = service.snapshot().workers
+  service.observe({
+    type: 'session',
+    session: {
+      id: worker.sessionId,
+      status: 'waiting',
+      requests: [{ id: 'r1', kind: 'command', title: 'rm -rf build', status: 'pending' }]
+    }
+  })
+  assert.equal(service.snapshot().workers[0].status, 'waiting')
+  const waiting = store.allEvents().find((e) => e.kind === 'worker_waiting')
+  assert.equal(waiting.status, 'pending')
+  assert.equal(waiting.detail, 'rm -rf build')
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.equal(engine.runs.length, 1)
+  await send(service, router, 'How is it going?')
+  await waitFor(() => engine.runs.length === 2, 'next batch')
+  assert.match(
+    engine.runs[1].text,
+    /worker_waiting .*\n.*\nWaiting for the user to approve: rm -rf/
+  )
+  service.close()
+})
+
+test('a waiting worker does not make the Router run again after a batch', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current } = harness([], { factory })
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length !== 1) return
+    await tools[0].execute({ goal: 'Deploy' })
+    const [worker] = service.snapshot().workers
+    service.observe({
+      type: 'session',
+      session: { id: worker.sessionId, status: 'waiting', requests: [] }
+    })
+  }
+  await send(service, router, 'Deploy it')
+  await waitFor(() => engine.runs.length === 1 && current().status === 'idle', 'first batch')
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.equal(engine.runs.length, 1)
+  service.close()
+})
+
+test('fixing the settings clears the failure and sends the waiting message', async () => {
+  const { engine, factory } = scriptedEngine()
+  let configured = false
+  const { service, router, current } = harness([], {
+    factory: (request) =>
+      configured ? factory(request) : { code: 'router_model_unconfigured', message: '' }
+  })
+  await send(service, router, 'Hello')
+  await waitFor(() => current().status === 'failed', 'setup failure')
+  assert.equal(current().error.code, 'router_model_unconfigured')
+  configured = true
+  service.settingsChanged()
+  await waitFor(() => engine.runs.length === 1, 'waiting message sent')
+  assert.equal(engine.runs[0].text, 'Hello')
+  assert.equal(current().error, null)
+  service.close()
+})
+
 test('batches label directed messages even when they are alone', () => {
   const event = {
     seq: 7,
