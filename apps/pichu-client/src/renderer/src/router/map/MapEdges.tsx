@@ -2,11 +2,13 @@ import type { MapEdge, MapNode, WorkerMap } from '../../../../shared/worker-map'
 import { isWaitingOnUser, isWorking, workerTone } from '../activity'
 import type { WorkerProject } from './projects'
 
-function edgePath(from: MapNode, to: MapNode): string {
-  const right = to.side > 0
-  const x1 = right ? from.x + from.width : from.x
-  const y1 = from.y + from.height / 2
-  const x2 = right ? to.x : to.x + to.width
+/** Where a branch leaves its parent. */
+export function edgeStart(from: MapNode, to: MapNode): { x: number; y: number } {
+  return { x: to.side > 0 ? from.x + from.width : from.x, y: from.y + from.height / 2 }
+}
+export function edgePath(from: MapNode, to: MapNode): string {
+  const { x: x1, y: y1 } = edgeStart(from, to)
+  const x2 = to.side > 0 ? to.x : to.x + to.width
   const y2 = to.y + to.height / 2
   const mid = (x1 + x2) / 2
   return `M${x1} ${y1} C${mid} ${y1},${mid} ${y2},${x2} ${y2}`
@@ -54,13 +56,17 @@ export function MapEdges({
         if (!from || !to) return null
         const state = edgeState(to, projects, hasChildren.has(to.id))
         const dim = lit && !lit.has(edge.to) ? ' dim' : ''
+        const depth = depthOf(edge, parents)
+        const d = edgePath(from, to)
         return (
-          <path
-            key={edge.id}
-            className={`map-edge ${state} d${depthOf(edge, parents)}${dim}`}
-            style={{ '--owl-c': hueOf(to) } as React.CSSProperties}
-            d={edgePath(from, to)}
-          />
+          <g key={edge.id} data-edge={edge.id}>
+            <path
+              className={`map-edge ${state} d${depth}${dim}`}
+              style={{ '--owl-c': hueOf(to) } as React.CSSProperties}
+              d={d}
+            />
+            {state === 'run' ? <path className={`map-flow d${depth}${dim}`} d={d} /> : null}
+          </g>
         )
       })}
     </svg>

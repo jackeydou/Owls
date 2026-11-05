@@ -117,6 +117,25 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  view-transition-name: router-stage;
+}
+/* The rail holds still; zoomBetweenViews animates the two views itself. */
+::view-transition-old(root) {
+  display: none;
+}
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-group(router-stage) {
+  overflow: clip;
+  animation: none;
+}
+::view-transition-old(router-stage),
+::view-transition-new(router-stage) {
+  height: 100%;
+  mix-blend-mode: normal;
+  animation: none;
+  object-fit: fill;
 }
 .router-chat {
   position: relative;
@@ -414,6 +433,7 @@
 
 /* Detail panel */
 .router-panel {
+  view-transition-name: router-panel;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;

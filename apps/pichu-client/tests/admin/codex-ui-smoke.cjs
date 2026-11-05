@@ -158,6 +158,43 @@ app
       evaluate(
         `window.dispatchEvent(new KeyboardEvent('keydown', ${JSON.stringify({ key, bubbles: true, ...modifiers })}))`
       )
+    // Finite animations only: a running branch's flow never ends.
+    const settled = () =>
+      waitFor(
+        "document.getAnimations().every((a) => a.effect.getTiming().iterations === Infinity || a.playState !== 'running')"
+      )
+    // Presses a key, then lists the view transition's animated layers until they are gone.
+    const zoomLayers = (key, modifiers = {}) =>
+      evaluate(`(async () => {
+        const seen = new Set()
+        window.dispatchEvent(new KeyboardEvent('keydown', ${JSON.stringify({ key, bubbles: true, ...modifiers })}))
+        for (const start = performance.now(); performance.now() - start < 200; ) {
+          await new Promise(requestAnimationFrame)
+          for (const a of document.getAnimations()) if (/old|new/.test(a.effect.pseudoElement)) seen.add(a.effect.pseudoElement)
+        }
+        return [...seen].sort()
+      })()`)
+    const watchMap = () =>
+      evaluate(`(() => {
+        window.mapMotion = { signals: [], grown: [], branches: [], reshaped: false, answerColor: null }
+        const watchBranches = () => {
+          window.mapMotion.reshaped ||= document.getAnimations().some((a) => a.transitionProperty === 'd')
+          if (document.querySelector('.map-view')) requestAnimationFrame(watchBranches)
+        }
+        watchBranches()
+        const added = (selector, record) =>
+          new MutationObserver((changes) => {
+            for (const change of changes) for (const node of change.addedNodes) record(node)
+          }).observe(document.querySelector(selector), { childList: true })
+        added('.map-signals', (node) => {
+          window.mapMotion.signals.push(node.className)
+          if (node.className === 'map-signal answer')
+            window.mapMotion.answerColor = getComputedStyle(node).backgroundColor
+        })
+        added('.map-nodes', (node) => window.mapMotion.grown.push(node.getAnimations().length))
+        added('.map-edges', (node) => window.mapMotion.branches.push(node.querySelector('path').getAnimations().length))
+      })()`)
+    const signalSeen = (name) => `window.mapMotion.signals.includes(${JSON.stringify(name)})`
     const capture = async (name) => {
       if (!captureDir) return
       mkdirSync(captureDir, { recursive: true })
@@ -472,8 +509,14 @@ app
       await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
 
       // The overview map: worker nodes, the composer following the selection, node approvals.
-      await press('j', { metaKey: true })
+      // Opening it is one zoom over the stage, while the rail and any open details hold still.
+      assert.deepEqual(await zoomLayers('j', { metaKey: true }), [
+        '::view-transition-new(router-stage)',
+        '::view-transition-old(router-stage)'
+      ])
       await waitFor("Boolean(document.querySelector('.map-view'))")
+      await settled()
+      await watchMap()
       await waitFor("Boolean(document.querySelector('.map-node.done'))")
       await evaluate("document.querySelector('.map-node.done').click()")
       const nodeOf = `document.querySelector('[data-node="${worker.id}"]')`
@@ -484,6 +527,9 @@ app
       )
       await send('tools')
       await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
+      // A report travels back along the branch and lands on the project.
+      await waitFor(signalSeen('map-signal report'))
+      await waitFor(signalSeen('map-ping report'))
       await evaluate(
         "Array.from(document.querySelectorAll('.router-tabs button')).find(el => el.textContent === '改动').click()"
       )
@@ -498,6 +544,13 @@ app
       await evaluate(`${nodeOf}.querySelector('.map-actions button').click()`)
       await waitFor(`!${nodeOf}?.querySelector('pre')`)
       await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
+      await waitFor(signalSeen('map-signal answer'))
+      assert.equal(
+        await evaluate('window.mapMotion.answerColor'),
+        await evaluate(
+          "(() => { const probe = document.createElement('i'); probe.style.color = 'var(--owl-wait)'; document.body.append(probe); const color = getComputedStyle(probe).color; probe.remove(); return color })()"
+        )
+      )
       await send('question')
       await waitFor(`${nodeOf}?.textContent.includes('需要回答')`)
       await evaluate(
@@ -511,6 +564,14 @@ app
       await evaluate('document.querySelector(\'.router-panel button[type="submit"]\').click()')
       await waitFor("!document.querySelector('.router-panel .codex-request')")
       await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
+      // Dots flow along a branch only while its worker runs.
+      await send('long')
+      const flowOf = `document.querySelector('[data-edge="${worker.id}"] .map-flow')`
+      await waitFor(`Boolean(${flowOf})`)
+      assert.equal(await evaluate(`getComputedStyle(${flowOf}).animationName`), 'map-flow')
+      await capture('map-flow')
+      await evaluate('document.querySelector(\'[aria-label="停止 Worker"]\').click()')
+      await waitFor(`!${flowOf}`)
 
       // Removing a worker asks first, closes its details, and takes it off the map.
       await evaluate('document.querySelector(\'[aria-label="移除 Worker"]\').click()')
@@ -541,6 +602,7 @@ app
       await waitFor("document.querySelectorAll('.map-node.worker').length === 4")
       assert.ok(await evaluate("Boolean(document.querySelector('.map-node.project.quiet'))"))
       assert.equal(await evaluate("document.querySelectorAll('.map-edge').length"), 7)
+      await settled()
       assert.equal(
         await evaluate(`(() => {
           const boxes = [...document.querySelectorAll('.map-node')].map((el) => el.getBoundingClientRect())
@@ -563,10 +625,88 @@ app
       await waitFor('document.activeElement?.dataset.node?.startsWith("project:")')
       await press('Enter')
       await waitFor("Boolean(document.querySelector('.router-chat'))")
-      await press('j', { metaKey: true })
+      // Open details stay in place through the zoom, on their own layer.
+      await settled()
+      await evaluate('document.querySelector(\'[aria-label="协调者详情"]\').click()')
+      await waitFor("Boolean(document.querySelector('.router-panel'))")
+      const panelLeft = "document.querySelector('.router-panel').getBoundingClientRect().left"
+      const panelStart = await evaluate(panelLeft)
+      assert.ok(
+        (await zoomLayers('j', { metaKey: true })).includes('::view-transition-new(router-panel)')
+      )
       await waitFor("Boolean(document.querySelector('.map-view'))")
+      assert.equal(await evaluate(panelLeft), panelStart)
+      await press('Escape')
+      await waitFor("!document.querySelector('.router-panel')")
+
+      // A new worker grows out of its parent, branch first, and the others make room.
+      await settled()
+      await watchMap()
+      await send('派发：新分支')
+      await waitFor('window.mapMotion.grown.length > 0 && window.mapMotion.branches.length > 0')
+      assert.ok(await evaluate('window.mapMotion.grown.every((count) => count > 0)'))
+      assert.ok(await evaluate('window.mapMotion.branches.every((count) => count > 0)'))
+      await waitFor('window.mapMotion.reshaped')
+      await waitFor(() =>
+        host.snapshot().workers.every((w) => ['idle', 'removed'].includes(w.status))
+      )
+      await settled()
+      assert.deepEqual(await zoomLayers('Escape'), [
+        '::view-transition-new(router-stage)',
+        '::view-transition-old(router-stage)'
+      ])
+      await waitFor("Boolean(document.querySelector('.router-chat'))")
+
+      // Reduced motion: the views switch directly, and nothing grows, travels, or flows.
+      const inspector = window.webContents.debugger
+      inspector.attach()
+      await inspector.sendCommand('Emulation.setEmulatedMedia', {
+        features: [{ name: 'prefers-reduced-motion', value: 'reduce' }]
+      })
+      await settled()
+      assert.deepEqual(await zoomLayers('j', { metaKey: true }), [])
+      await waitFor("Boolean(document.querySelector('.map-view'))")
+      await watchMap()
+      await send('派发：安静分支')
+      await waitFor(() => host.snapshot().workers.some((w) => w.title === '安静分支'))
+      await waitFor(() =>
+        host.snapshot().workers.every((w) => ['idle', 'removed'].includes(w.status))
+      )
+      await waitFor('window.mapMotion.grown.length > 0')
+      assert.deepEqual(
+        await evaluate(
+          '[...new Set(window.mapMotion.grown.concat(window.mapMotion.branches))].concat(window.mapMotion.signals)'
+        ),
+        [0]
+      )
+      assert.deepEqual(
+        await evaluate(`(() => {
+          const node = getComputedStyle(document.querySelector('.map-node'))
+          const edge = getComputedStyle(document.querySelector('.map-edge'))
+          return [node.transitionProperty, edge.transitionProperty]
+        })()`),
+        ['none', 'none']
+      )
+      const quiet = host.snapshot().workers.find((w) => w.title === '安静分支')
+      await evaluate(`document.querySelector('[data-node="${quiet.id}"]')?.click()`)
+      await waitFor(
+        "document.querySelector('.map-bar .router-target')?.textContent.includes('安静分支')"
+      )
+      await send('long')
+      await waitFor(`Boolean(document.querySelector('[data-edge="${quiet.id}"] .map-flow'))`)
+      assert.equal(
+        await evaluate(
+          `getComputedStyle(document.querySelector('[data-edge="${quiet.id}"] .map-flow')).display`
+        ),
+        'none'
+      )
+      await evaluate('document.querySelector(\'[aria-label="停止 Worker"]\').click()')
+      await waitFor(`!document.querySelector('[data-edge="${quiet.id}"] .map-flow')`)
+      await press('Escape')
       await press('Escape')
       await waitFor("Boolean(document.querySelector('.router-chat'))")
+      await inspector.sendCommand('Emulation.setEmulatedMedia', { features: [] })
+      inspector.detach()
 
       // Workers also run on Claude Code; requests read as that agent and activity shows up.
       assert.equal((await host.connectClaude()).status, 'ready')
@@ -610,7 +750,7 @@ app
       assert.ok(await evaluate("document.body.textContent.includes('claude@example.com')"))
       await capture('claude-settings')
       console.log(
-        'PASS: production preload + IPC + SQLite + renderer, Router home and setup, keys, Inbox recovery, engine switch, dispatch groups, worker links, details, @ messages, approval tray, overview map, node approvals, questions, worker removal, Claude Code workers, theme/language, app logo, reload'
+        'PASS: production preload + IPC + SQLite + renderer, Router home and setup, keys, Inbox recovery, engine switch, dispatch groups, worker links, details, @ messages, approval tray, overview map, node approvals, questions, worker removal, map motion, reduced motion, Claude Code workers, theme/language, app logo, reload'
       )
       if (captureDir) console.log(`UI captures: ${captureDir}`)
     } finally {

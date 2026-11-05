@@ -1,4 +1,4 @@
-import type { RouterWorker } from './router.js'
+import type { RouterWorker, WorkerStatus } from './router.js'
 
 /** Which side of the center a project branches to. */
 export type MapSide = 1 | -1
@@ -38,6 +38,8 @@ export type MapNode =
   | (Box & { kind: 'kept'; projectId: string; worker: RouterWorker })
 export type MapEdge = { id: string; from: string; to: string }
 export type WorkerMap = { nodes: MapNode[]; edges: MapEdge[]; sides: Map<string, MapSide> }
+/** A worker reported to its project, or the user's answer reached a waiting worker. */
+export type WorkerSignal = { kind: 'report' | 'answer'; workerId: string; projectId: string }
 
 const ROOT_SIZE = 92
 const PROJECT = { width: 224, height: 92 }
@@ -234,4 +236,46 @@ export function buildWorkerMap(input: WorkerMapInput): WorkerMap {
     }
   }
   return { nodes, edges, sides }
+}
+
+/** Status changes since `previous` that the map announces. Workers it has not seen stay silent. */
+export function workerSignals(
+  previous: ReadonlyMap<string, WorkerStatus>,
+  projects: MapProject[]
+): WorkerSignal[] {
+  const signals: WorkerSignal[] = []
+  for (const project of projects)
+    for (const worker of project.workers) {
+      const was = previous.get(worker.id)
+      if (!was || was === worker.status) continue
+      const to = { workerId: worker.id, projectId: project.id }
+      // Updates can arrive batched, so a fast worker may skip `running` or `reported` here.
+      const finished =
+        worker.status === 'reported' || (worker.status === 'idle' && was !== 'reported')
+      if (was === 'waiting' && (finished || worker.status === 'running'))
+        signals.push({ kind: 'answer', ...to })
+      if (finished) signals.push({ kind: 'report', ...to })
+    }
+  return signals
+}
+
+/**
+ * The node ids a signal crosses, root side first, or nothing when it has no
+ * visible path. A report can fold its worker away in the same update, so it
+ * then starts from the project's finished group.
+ */
+export function signalRoute(map: WorkerMap, signal: WorkerSignal): string[] {
+  const parents = new Map(map.edges.map((e) => [e.to, e.from]))
+  const shown = new Set(map.nodes.map((n) => n.id))
+  const report = signal.kind === 'report'
+  const folded = `done:${signal.projectId}`
+  const start = shown.has(signal.workerId) ? signal.workerId : report ? folded : null
+  if (!start || !shown.has(start)) return []
+  const stop = report ? `project:${signal.projectId}` : 'root'
+  const route = [start]
+  for (let id = parents.get(start); id; id = parents.get(id)) {
+    route.unshift(id)
+    if (id === stop) break
+  }
+  return route
 }

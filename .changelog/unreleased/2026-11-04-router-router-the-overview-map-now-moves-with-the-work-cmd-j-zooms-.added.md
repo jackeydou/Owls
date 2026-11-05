@@ -1,0 +1,1 @@
+- Router: the overview map now moves with the work. Cmd+J zooms the conversation into its project, dots flow along running branches, reports and your answers travel along the tree, and new workers grow out of their parent. Reduced motion turns all of it off. (#27)

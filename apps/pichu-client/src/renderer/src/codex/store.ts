@@ -13,6 +13,7 @@ import type {
   RespondCodexRequest
 } from '../../../shared/codex'
 import { defaultRouterSettings } from '../../../shared/router'
+import { zoomBetweenViews } from '../router/motion'
 import { useRouterStore } from '../router/store'
 import { CodexUIError, uiFailure } from './failures'
 
@@ -181,13 +182,19 @@ export const useCodexStore = create<State>((set, get) => {
         error: null
       })),
     leaveSettings: () => set((state) => ({ view: state.lastView, error: null })),
-    showChat: (projectId) =>
-      set((state) => ({
-        view: 'chat',
-        routerProjectId: projectId ?? state.routerProjectId,
-        error: null
-      })),
-    showMap: () => set({ view: 'map', error: null }),
+    showChat: (projectId) => {
+      const { view, routerProjectId } = get()
+      const target = projectId ?? routerProjectId
+      const show = () => set({ view: 'chat', routerProjectId: target, error: null })
+      if (view === 'map') zoomBetweenViews('chat', target, show)
+      else show()
+    },
+    showMap: () => {
+      const { view, routerProjectId } = get()
+      const show = () => set({ view: 'map', error: null })
+      if (view === 'chat') zoomBetweenViews('map', routerProjectId, show)
+      else show()
+    },
     focusProject: (projectId) => set({ routerProjectId: projectId }),
     clearError: () => set({ error: null }),
     pickProject: async () => {

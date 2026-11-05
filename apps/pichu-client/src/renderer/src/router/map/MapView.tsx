@@ -10,6 +10,7 @@ import { MapEdges } from './MapEdges'
 import { MapNodeView } from './MapNode'
 import { useWorkerProjects } from './projects'
 import { useCamera } from './useCamera'
+import { useMapMotion } from './useMapMotion'
 import './map.css'
 
 /** The detail panel's width, which the camera keeps nodes clear of. */
@@ -90,6 +91,7 @@ export function MapView() {
       y1: Math.max(...map.nodes.map((n) => n.y + n.height))
     })
   }, [map, camera])
+  useMapMotion(map, projects, world)
   const byId = useMemo(() => new Map(map.nodes.map((n) => [n.id, n])), [map])
   const parents = useMemo(() => new Map(map.edges.map((e) => [e.to, e.from])), [map])
   const focused = hover ?? selectedWorker
@@ -186,6 +188,7 @@ export function MapView() {
       <div className="map-stage" ref={stage}>
         <div className="map-world" ref={world}>
           <MapEdges map={map} projects={projects} lit={lit} hueOf={hueOf} />
+          <div className="map-signals" aria-hidden="true" />
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: the window listener above handles keys. */}
           <div
             className="map-nodes"
