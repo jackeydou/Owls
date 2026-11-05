@@ -262,6 +262,16 @@ export class RouterService implements TurnProfiles {
   /** Router settings changed: idle engines are rebuilt on the next batch. */
   settingsChanged(): void {
     this.dropIdleEngines()
+    // A failure from the old settings no longer applies, and messages that waited for a
+    // working engine can go out now.
+    for (const router of this.routers.values()) {
+      if (router.status !== 'failed') continue
+      router.status = 'idle'
+      router.error = null
+      this.changed(router)
+      if (this.store.events(router.id, 'pending').some((e) => !isQuietEvent(e)))
+        void this.pump(router.id)
+    }
   }
 
   /** Removes a worktree kept after its worker was removed, once the user confirmed it. */

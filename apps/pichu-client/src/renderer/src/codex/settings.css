@@ -149,7 +149,7 @@
 }
 /* The Dock artwork keeps Apple's icon margin, which reads as undersized inside the app. */
 .codex-logo-option img,
-.codex-sidebar-brand img,
+.router-rail-logo img,
 .codex-welcome > img {
   transform: scale(1.24);
 }

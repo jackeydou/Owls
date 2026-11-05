@@ -14,12 +14,25 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Streamdown } from 'streamdown'
+import { Streamdown, type StreamdownProps } from 'streamdown'
 import type { CodexItem, CodexRequest } from '../../../shared/codex'
 import { useCodexStore } from './store'
 
 const plugins = { code }
-export function ConversationItem({ item, agent }: { item: CodexItem; agent: string }) {
+/** How a caller extends assistant Markdown, such as the Router's worker references. */
+export type MarkdownExtension = Pick<
+  StreamdownProps,
+  'allowedTags' | 'components' | 'literalTagContent'
+> & { prepare(text: string): string }
+export function ConversationItem({
+  item,
+  agent,
+  markdown
+}: {
+  item: CodexItem
+  agent: string
+  markdown?: MarkdownExtension
+}) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   if (item.kind === 'user') return <div className="codex-user-message">{item.text}</div>
@@ -33,8 +46,15 @@ export function ConversationItem({ item, agent }: { item: CodexItem; agent: stri
           {agent}
         </div>
         <div className="codex-markdown">
-          <Streamdown plugins={plugins} controls={false} isAnimating={item.status === 'running'}>
-            {item.text}
+          <Streamdown
+            plugins={plugins}
+            controls={false}
+            isAnimating={item.status === 'running'}
+            allowedTags={markdown?.allowedTags}
+            components={markdown?.components}
+            literalTagContent={markdown?.literalTagContent}
+          >
+            {markdown ? markdown.prepare(item.text) : item.text}
           </Streamdown>
         </div>
         {item.status !== 'running' && item.text ? (
@@ -52,7 +72,7 @@ export function ConversationItem({ item, agent }: { item: CodexItem; agent: stri
         ) : null}
       </article>
     )
-  if (!item.text && !item.detail) return null
+  if (item.kind === 'worker' || (!item.text && !item.detail)) return null
   const Icon =
     item.kind === 'command'
       ? Terminal

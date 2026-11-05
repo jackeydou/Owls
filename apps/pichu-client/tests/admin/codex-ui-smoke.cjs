@@ -2,7 +2,7 @@ const assert = require('node:assert/strict')
 const { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } = require('node:fs')
 const { tmpdir } = require('node:os')
 const { join, resolve } = require('node:path')
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, dialog } = require('electron')
 const packageIndex = process.argv.indexOf('--packaged-app')
 const resources =
   packageIndex >= 0 ? join(resolve(process.argv[packageIndex + 1]), 'Contents/Resources') : null
@@ -82,9 +82,50 @@ const claudeSdk = {
     })
   }
 }
+// Plays the Router model: each `派发：<title>` line, with an optional ` < <parent title>`
+// from the same batch, dispatches a worker that the reply then refers to.
+const SCRIPTED_MODEL = 'smoke-scripted'
+const scriptedRuns = []
+function scriptedEngine({ tools }) {
+  return {
+    async run(input, sink) {
+      scriptedRuns.push(input.text)
+      const dispatch = tools.find((tool) => tool.name === 'dispatch_task')
+      const ids = new Map()
+      for (const [, title, parent] of input.text.matchAll(/派发：(.+?)(?: < (.+))?$/gm)) {
+        const { workerId } = JSON.parse(
+          await dispatch.execute({
+            goal: `Smoke goal for ${title}`,
+            title,
+            ...(parent ? { parent: ids.get(parent) } : {})
+          })
+        )
+        ids.set(title, workerId)
+      }
+      const links = [...ids].map(([title, id]) => `[${title}](#worker-${id})`)
+      sink.item({
+        id: `reply-${scriptedRuns.length}`,
+        kind: 'assistant',
+        status: 'completed',
+        text: links.length ? `已派出 ${links.join('、')}` : '收到',
+        detail: '',
+        turnId: input.batchId
+      })
+      return { status: 'completed', error: null, native: { engine: 'owls' } }
+    },
+    steer: async () => 'not_running',
+    abort() {}
+  }
+}
 const captureIndex = process.argv.indexOf('--capture-dir')
 const captureDir = captureIndex >= 0 ? process.argv[captureIndex + 1] : null
 app.disableHardwareAcceleration()
+// The window is hidden, so a confirmation is recorded and accepted here.
+const confirmations = []
+dialog.showMessageBox = async (...args) => {
+  confirmations.push(args)
+  return { response: 1 }
+}
 
 app
   .whenReady()
@@ -94,25 +135,34 @@ app
     let host
     let router
     const evaluate = (source) => window.webContents.executeJavaScript(source)
-    const waitFor = async (expression) => {
+    const waitFor = async (condition) => {
+      const check = typeof condition === 'function' ? condition : () => evaluate(condition)
       const deadline = Date.now() + 12_000
-      while (!(await evaluate(expression))) {
-        assert.ok(Date.now() < deadline, `Timed out waiting for UI: ${expression}`)
+      while (!(await check())) {
+        assert.ok(Date.now() < deadline, `Timed out waiting for UI: ${condition}`)
         await new Promise((resolve) => setTimeout(resolve, 30))
       }
     }
-    const send = async (text) => {
-      await evaluate(`(() => {
+    const type = (text) =>
+      evaluate(`(() => {
       const input = document.querySelector('.codex-composer textarea')
       Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, ${JSON.stringify(text)})
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })()`)
+    const send = async (text) => {
+      await type(text)
       await waitFor("document.querySelector('.codex-send')?.disabled === false")
       await evaluate("document.querySelector('.codex-send').click()")
     }
+    const press = (key, modifiers = {}) =>
+      evaluate(
+        `window.dispatchEvent(new KeyboardEvent('keydown', ${JSON.stringify({ key, bubbles: true, ...modifiers })}))`
+      )
     const capture = async (name) => {
       if (!captureDir) return
       mkdirSync(captureDir, { recursive: true })
+      // Lets the offscreen compositor catch up, or the image can show the previous state.
+      await new Promise((resolve) => setTimeout(resolve, 300))
       await evaluate(
         'new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
       )
@@ -163,19 +213,35 @@ app
       host = new OwlsHost(new CodexService(store, emit), new ClaudeService(store, emit, claudeSdk))
       const routerStore = new RouterStore(store)
       const credentials = new RouterCredentials(routerStore, testCipher)
+      const realEngines = defaultEngineFactory({
+        credentials,
+        claude: { sdk: claudeSdk, connection: () => host.claudeConnection() },
+        codex: { server: new CodexRouterServer(), connection: () => host.codexConnection() }
+      })
       const startRouter = () =>
-        new RouterService(
-          routerStore,
-          credentials,
-          store,
-          host.workerHost(),
-          emit,
-          defaultEngineFactory({
-            credentials,
-            claude: { sdk: claudeSdk, connection: () => host.claudeConnection() },
-            codex: { server: new CodexRouterServer(), connection: () => host.codexConnection() }
-          })
+        new RouterService(routerStore, credentials, store, host.workerHost(), emit, (request) =>
+          request.settings.owls?.model === SCRIPTED_MODEL
+            ? scriptedEngine(request)
+            : realEngines(request)
         )
+      const startScriptedRouter = async () => {
+        const { settings } = host.snapshot()
+        host.saveSettings({
+          ...settings,
+          router: {
+            ...settings.router,
+            engine: 'owls',
+            owls: {
+              provider: 'anthropic',
+              model: SCRIPTED_MODEL,
+              thinking: 'off',
+              baseUrl: null
+            }
+          }
+        })
+        await window.reload()
+        await waitFor("Boolean(document.querySelector('.codex-composer textarea:not(:disabled)'))")
+      }
       router = startRouter()
       host.attachRouter(router)
       host.addProject(temp)
@@ -207,45 +273,22 @@ app
       assert.equal(invalidSettings.error.code, 'invalid_request')
       assert.equal(host.snapshot().settings.executablePath, fixture)
 
-      await send('tools')
+      // Home is the Router: an unconfigured engine offers the agent that is already connected.
       await waitFor(
-        "document.querySelector('.codex-assistant-message')?.textContent.includes('hello world')"
+        "document.querySelector('.router-card button')?.textContent.includes('Use Codex')"
       )
-      assert.equal(await evaluate("document.querySelectorAll('.codex-user-message').length"), 1)
-      assert.equal(await evaluate("document.querySelectorAll('.codex-activity').length"), 3)
-      await evaluate("document.querySelector('.codex-topbar-actions button').click()")
-      await waitFor(
-        "document.querySelector('.codex-diff-pane pre')?.textContent.includes('hello world')"
-      )
-      await evaluate(
-        "Array.from(document.querySelectorAll('.codex-activity summary')).find(el => el.textContent.includes('Command')).click()"
-      )
-      await capture('chat')
-      await evaluate('document.querySelector(\'[aria-label="Close changes"]\').click()')
+      assert.equal(await evaluate("Boolean(document.querySelector('.router-chat'))"), true)
+      assert.equal(await evaluate("Boolean(document.querySelector('.router-status'))"), false)
+      await capture('router-home')
 
-      await send('approval')
-      await waitFor("Boolean(document.querySelector('.codex-request'))")
-      await capture('approval')
-      await evaluate(
-        "Array.from(document.querySelectorAll('.codex-request button')).find(el => el.textContent === 'Decline').click()"
-      )
-      await waitFor("!document.querySelector('.codex-request')")
-      await send('question')
-      await waitFor('Boolean(document.querySelector(\'.codex-request input[type="radio"]\'))')
-      await evaluate('document.querySelector(\'.codex-request input[type="radio"]\').click()')
-      await waitFor(
-        'document.querySelector(\'.codex-request button[type="submit"]\').disabled === false'
-      )
-      await evaluate('document.querySelector(\'.codex-request button[type="submit"]\').click()')
-      await waitFor("!document.querySelector('.codex-request')")
-
-      await evaluate("document.querySelector('.codex-sidebar-settings').click()")
+      await evaluate("document.querySelector('.router-rail-settings').click()")
       await waitFor("Boolean(document.querySelector('.codex-settings-content'))")
       assert.ok(
         await evaluate(
           "document.querySelector('.codex-account-info').textContent.includes('fixture@example.com')"
         )
       )
+      assert.ok(await evaluate("document.body.textContent.includes('Worker defaults')"))
       await evaluate("document.querySelector('.codex-settings-actions button').click()")
       await waitFor("document.querySelector('.codex-settings-actions button')?.disabled === false")
       await evaluate(
@@ -262,73 +305,19 @@ app
       await evaluate(
         "[...document.querySelectorAll('input[name=codex-app-logo]')].length === 3 && document.querySelectorAll('input[name=codex-app-logo]')[0].click()"
       )
-      await waitFor("document.querySelector('.codex-sidebar-brand img')?.dataset.logo === 'line'")
+      await waitFor("document.querySelector('.router-rail-logo img')?.dataset.logo === 'line'")
       assert.equal(host.snapshot().settings.appLogo, 'line')
       await capture('settings')
-
-      await window.reload()
-      await waitFor("Boolean(document.querySelector('.codex-task-select'))")
-      await evaluate("document.querySelector('.codex-task-select').click()")
-      await waitFor(
-        "document.querySelector('.codex-assistant-message')?.textContent.includes('hello world')"
-      )
-      assert.equal(await evaluate("document.querySelectorAll('.codex-user-message').length"), 3)
-      assert.equal(await evaluate("document.querySelectorAll('.codex-request').length"), 0)
-
-      assert.equal((await host.connectClaude()).status, 'ready')
-      await evaluate("document.querySelector('.codex-new-task').click()")
-      await waitFor("Boolean(document.querySelector('.codex-composer select'))")
-      await evaluate(
-        "(() => { const agent = document.querySelector('.codex-composer select'); agent.value = 'claude-code'; agent.dispatchEvent(new Event('change', { bubbles: true })) })()"
-      )
-      await waitFor(
-        "document.querySelector('.codex-composer textarea')?.placeholder.includes('Claude Code')"
-      )
-      assert.equal(host.snapshot().settings.provider, 'claude-code')
-      await send('claude hello')
-      await waitFor(
-        "document.querySelector('.codex-assistant-message')?.textContent.includes('claude says hi')"
-      )
-      assert.ok(
-        await evaluate(
-          "document.querySelector('.codex-task-row.selected small').textContent.includes('Claude Code')"
-        )
-      )
-      assert.equal(
-        await evaluate("document.querySelector('.codex-message-label').textContent"),
-        'Claude Code'
-      )
-      await send('claude approval')
-      await waitFor(
-        "document.querySelector('.codex-request-title')?.textContent.includes('Claude Code 需要授权')"
-      )
-      await capture('claude-approval')
-      await evaluate('document.querySelector(\'.codex-request button[type="submit"]\').click()')
-      await waitFor("!document.querySelector('.codex-request')")
-      await waitFor(
-        "Array.from(document.querySelectorAll('.codex-activity')).some(el => el.textContent.includes('ls -la'))"
-      )
-      const claudeSession = host.snapshot().sessions.find((s) => s.provider === 'claude-code')
-      assert.equal(claudeSession.threadId, 'claude-ui-session')
-      assert.equal(claudeSession.items.find((i) => i.id === 'claude-tool').status, 'completed')
-      await evaluate("document.querySelector('.codex-sidebar-settings').click()")
-      await waitFor(
-        "Boolean(document.querySelector('.codex-settings-content')) && document.body.textContent.includes('本机 Claude Code')"
-      )
-      assert.ok(await evaluate("document.body.textContent.includes('claude@example.com')"))
-      await capture('claude-settings')
+      await press('Escape')
+      await waitFor("Boolean(document.querySelector('.router-chat'))")
 
       // Router: an unconfigured Owls engine shows setup, and keys never come back out.
-      assert.ok(await evaluate("document.body.textContent.includes('协调者引擎')"))
-      await evaluate("document.querySelector('.codex-router-entry').click()")
-      await waitFor(
-        "Boolean(document.querySelector('.router-view')) && document.body.textContent.includes('为协调者选择模型')"
-      )
+      await waitFor("document.body.textContent.includes('为协调者选择模型')")
       await send('帮我看看项目')
       await waitFor(
-        "Array.from(document.querySelectorAll('.router-view .codex-user-message')).some(el => el.textContent.includes('帮我看看项目'))"
+        "Array.from(document.querySelectorAll('.router-chat .codex-user-message')).some(el => el.textContent.includes('帮我看看项目'))"
       )
-      await waitFor("document.querySelector('.router-view textarea')?.value === ''")
+      await waitFor("document.querySelector('.router-chat textarea')?.value === ''")
       const routerState = host.snapshot().routers[0]
       assert.equal(routerState.error.code, 'router_model_unconfigured')
       assert.equal(routerState.items[0].text, '帮我看看项目')
@@ -370,8 +359,6 @@ app
       host.attachRouter(router)
       assert.equal(routerStore.batch('b_crashed').status, 'dispatch_unknown')
       await window.reload()
-      await waitFor("Boolean(document.querySelector('.codex-router-entry'))")
-      await evaluate("document.querySelector('.codex-router-entry').click()")
       await waitFor("Boolean(document.querySelector('.router-unknown-batch'))")
       assert.ok(
         await evaluate(
@@ -403,8 +390,8 @@ app
       )
       routerStore.setEventStatus([workerEvent.seq], 'dropped')
 
-      // Choosing the Claude Code engine changes the Router header and drops the Owls fields.
-      await evaluate("document.querySelector('.codex-sidebar-settings').click()")
+      // Choosing another engine swaps the Router details and drops the Owls fields.
+      await evaluate("document.querySelector('.router-rail-settings').click()")
       await waitFor("Boolean(document.querySelector('#router-engine'))")
       await evaluate(
         "document.querySelector('#router-engine').value = 'claude-code'; document.querySelector('#router-engine').dispatchEvent(new Event('change', { bubbles: true }))"
@@ -414,10 +401,216 @@ app
       )
       assert.equal(host.snapshot().settings.router.engine, 'claude-code')
       await capture('router-claude-settings')
-      await evaluate("document.querySelector('.codex-router-entry').click()")
-      await waitFor("document.querySelector('.router-model')?.textContent.includes('Claude Code')")
+      await press('Escape')
+      // The card's button switches the Router to the connected agent in one click.
+      await waitFor(
+        "document.querySelector('.router-card button')?.textContent.includes('使用 Codex')"
+      )
+      await evaluate("document.querySelector('.router-card button').click()")
+      await waitFor(() => host.snapshot().settings.router.engine === 'codex')
+      // The message that waited for a working engine goes out without being sent again.
+      await waitFor(() => routerStore.events(routerState.id, 'pending').length === 0)
+      await waitFor(() => host.snapshot().routers[0].status !== 'running')
+      await evaluate('document.querySelector(\'[aria-label="协调者详情"]\').click()')
+      await waitFor("document.querySelector('.router-model')?.textContent.includes('Codex')")
+      await press('Escape')
+      await waitFor("!document.querySelector('.router-panel')")
+
+      // From here a scripted engine plays the Router so the worker flows run for real.
+      await startScriptedRouter()
+      await send('派发：烟雾 Worker')
+      await waitFor(
+        "document.querySelector('.router-dispatch')?.textContent.includes('烟雾 Worker')"
+      )
+      await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
+      const [worker] = host.snapshot().workers
+      assert.equal(worker.title, '烟雾 Worker')
+      assert.equal(await evaluate("document.querySelectorAll('.router-dispatch').length"), 1)
+      // The reference in the reply opens the worker; external links stay Streamdown's.
+      await evaluate(
+        "document.querySelector('.codex-assistant-message .router-worker-link').click()"
+      )
+      await waitFor("document.querySelector('.router-brief')?.textContent.includes('协调者下发')")
+      await evaluate(
+        "Array.from(document.querySelectorAll('.router-tabs button')).find(el => el.textContent === '汇报').click()"
+      )
+      await waitFor("document.querySelector('.router-report')?.textContent.includes('hello world')")
+      await capture('worker-report')
+      await press('Escape')
+      await waitFor("!document.querySelector('.router-panel')")
+
+      // `@` addresses a worker. The message reaches it with no Router model call, and an
+      // approval shows in the tray without waking the Router either.
+      const batches = () => scriptedRuns.length
+      const before = batches()
+      await type('看看 @烟')
+      await waitFor("Boolean(document.querySelector('.router-mentions button'))")
+      await evaluate(
+        "document.querySelector('.router-mentions button').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))"
+      )
+      await waitFor("document.querySelector('.router-target')?.textContent.includes('烟雾 Worker')")
+      assert.equal(await evaluate("document.querySelector('.router-chat textarea').value"), '看看 ')
+      await send('approval')
+      await waitFor("Boolean(document.querySelector('.router-tray .codex-request'))")
+      assert.ok(await evaluate("Boolean(document.querySelector('.router-directed'))"))
+      assert.equal(await evaluate("Boolean(document.querySelector('.router-target'))"), false)
+      assert.ok(
+        await evaluate("document.querySelector('.router-status').textContent.includes('1 个等你')")
+      )
+      assert.equal(batches(), before)
+      assert.ok(
+        await evaluate(
+          "document.querySelector('.router-chat textarea').getBoundingClientRect().bottom <= innerHeight"
+        ),
+        'the composer stays on screen under the tray'
+      )
+      await capture('approval-tray')
+      await evaluate(
+        "Array.from(document.querySelectorAll('.router-tray button')).find(el => el.textContent === '拒绝').click()"
+      )
+      await waitFor("!document.querySelector('.router-tray')")
+      await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
+
+      // The overview map: worker nodes, the composer following the selection, node approvals.
+      await press('j', { metaKey: true })
+      await waitFor("Boolean(document.querySelector('.map-view'))")
+      await waitFor("Boolean(document.querySelector('.map-node.done'))")
+      await evaluate("document.querySelector('.map-node.done').click()")
+      const nodeOf = `document.querySelector('[data-node="${worker.id}"]')`
+      await waitFor(`Boolean(${nodeOf})`)
+      await evaluate(`${nodeOf}.click()`)
+      await waitFor(
+        "document.querySelector('.map-bar .router-target')?.textContent.includes('烟雾 Worker')"
+      )
+      await send('tools')
+      await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
+      await evaluate(
+        "Array.from(document.querySelectorAll('.router-tabs button')).find(el => el.textContent === '改动').click()"
+      )
+      await waitFor("document.querySelector('.router-diff')?.textContent.includes('hello world')")
+      await capture('map-detail')
+      await send('approval')
+      await waitFor(`Boolean(${nodeOf}?.querySelector('pre'))`)
+      assert.equal(await evaluate(`${nodeOf}.querySelector('pre').textContent`), 'echo fixture')
+      // The input frees up while the request waits, so the worker can still be addressed.
+      await waitFor("document.querySelector('.map-bar textarea').value === ''")
+      await capture('map-approval')
+      await evaluate(`${nodeOf}.querySelector('.map-actions button').click()`)
+      await waitFor(`!${nodeOf}?.querySelector('pre')`)
+      await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
+      await send('question')
+      await waitFor(`${nodeOf}?.textContent.includes('需要回答')`)
+      await evaluate(
+        "Array.from(document.querySelectorAll('.router-tabs button')).find(el => el.textContent === '活动').click()"
+      )
+      await waitFor('Boolean(document.querySelector(\'.router-panel input[type="radio"]\'))')
+      await evaluate('document.querySelector(\'.router-panel input[type="radio"]\').click()')
+      await waitFor(
+        'document.querySelector(\'.router-panel button[type="submit"]\').disabled === false'
+      )
+      await evaluate('document.querySelector(\'.router-panel button[type="submit"]\').click()')
+      await waitFor("!document.querySelector('.router-panel .codex-request')")
+      await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
+
+      // Removing a worker asks first, closes its details, and takes it off the map.
+      await evaluate('document.querySelector(\'[aria-label="移除 Worker"]\').click()')
+      await waitFor("!document.querySelector('.router-panel')")
+      await waitFor(`!${nodeOf}`)
+      assert.equal(confirmations.length, 1)
+      assert.equal(host.snapshot().workers[0].status, 'removed')
+      await press('Escape')
+      await waitFor("Boolean(document.querySelector('.router-chat'))")
+
+      // A tree across projects: child workers branch off their parent, and a project with
+      // no conversation still has a small node to enter it from.
+      const secondProject = join(temp, 'second-project')
+      mkdirSync(secondProject)
+      host.addProject(secondProject)
+      await window.reload()
+      await waitFor("Boolean(document.querySelector('.codex-composer textarea:not(:disabled)'))")
+      await send('派发：拆分\n派发：实现 < 拆分\n派发：评审 < 拆分\n派发：收尾 < 实现')
+      await waitFor(() => host.snapshot().workers.filter((w) => w.parentId).length === 3)
+      await waitFor(() =>
+        host.snapshot().workers.every((w) => ['idle', 'removed'].includes(w.status))
+      )
+      await press('j', { metaKey: true })
+      await waitFor("Boolean(document.querySelector('.map-view'))")
+      await evaluate(
+        "Array.from(document.querySelectorAll('.map-filter button')).find(el => el.textContent === '全部').click()"
+      )
+      await waitFor("document.querySelectorAll('.map-node.worker').length === 4")
+      assert.ok(await evaluate("Boolean(document.querySelector('.map-node.project.quiet'))"))
+      assert.equal(await evaluate("document.querySelectorAll('.map-edge').length"), 7)
+      assert.equal(
+        await evaluate(`(() => {
+          const boxes = [...document.querySelectorAll('.map-node')].map((el) => el.getBoundingClientRect())
+          return boxes.filter((a, i) => boxes.some((b, j) => j > i &&
+            a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom)).length
+        })()`),
+        0
+      )
+      await capture('map-tree')
+      // Zooming stays on the canvas, F hands the camera back, and arrows walk the tree.
+      const zoomLevel = "document.querySelector('.map-zoom span').textContent"
+      const fitted = await evaluate(zoomLevel)
+      await evaluate(
+        "document.querySelector('.map-stage').dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: -20, clientX: 500, clientY: 400, bubbles: true, cancelable: true }))"
+      )
+      assert.notEqual(await evaluate(zoomLevel), fitted)
+      await press('f')
+      assert.equal(await evaluate(zoomLevel), fitted)
+      await press('ArrowRight')
+      await waitFor('document.activeElement?.dataset.node?.startsWith("project:")')
+      await press('Enter')
+      await waitFor("Boolean(document.querySelector('.router-chat'))")
+      await press('j', { metaKey: true })
+      await waitFor("Boolean(document.querySelector('.map-view'))")
+      await press('Escape')
+      await waitFor("Boolean(document.querySelector('.router-chat'))")
+
+      // Workers also run on Claude Code; requests read as that agent and activity shows up.
+      assert.equal((await host.connectClaude()).status, 'ready')
+      host.saveSettings({ ...host.snapshot().settings, provider: 'claude-code' })
+      await window.reload()
+      await waitFor("Boolean(document.querySelector('.codex-composer textarea:not(:disabled)'))")
+      await send('派发：Claude Worker')
+      await waitFor(
+        "document.querySelector('.router-dispatch:last-of-type')?.textContent.includes('Claude Worker')"
+      )
+      await waitFor(() =>
+        host.snapshot().workers.some((w) => w.title === 'Claude Worker' && w.status === 'idle')
+      )
+      const claudeWorker = host.snapshot().workers.find((w) => w.title === 'Claude Worker')
+      assert.equal(claudeWorker.provider, 'claude-code')
+      await type('@Claude')
+      await waitFor("Boolean(document.querySelector('.router-mentions button'))")
+      await evaluate(
+        "document.querySelector('.router-mentions button').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))"
+      )
+      await waitFor("Boolean(document.querySelector('.router-target'))")
+      await send('claude approval')
+      await waitFor(
+        "document.querySelector('.router-tray .codex-request-title')?.textContent.includes('Claude Code 需要授权')"
+      )
+      await capture('claude-approval')
+      await evaluate(
+        'document.querySelector(\'.router-tray .codex-request button[type="submit"]\').click()'
+      )
+      await waitFor("!document.querySelector('.router-tray')")
+      await waitFor(() =>
+        host.snapshot().workers.some((w) => w.title === 'Claude Worker' && w.status === 'idle')
+      )
+      const claudeSession = host.snapshot().sessions.find((s) => s.id === claudeWorker.sessionId)
+      assert.equal(claudeSession.threadId, 'claude-ui-session')
+      assert.equal(claudeSession.items.find((i) => i.id === 'claude-tool').status, 'completed')
+      await evaluate("document.querySelector('.router-rail-settings').click()")
+      await waitFor(
+        "Boolean(document.querySelector('.codex-settings-content')) && document.body.textContent.includes('本机 Claude Code')"
+      )
+      assert.ok(await evaluate("document.body.textContent.includes('claude@example.com')"))
+      await capture('claude-settings')
       console.log(
-        'PASS: production preload + IPC + SQLite + renderer, messages, tools/diff, approvals, questions, local account reconnect, theme/language, app logo, reload, Claude Code tasks, Router setup and keys, Router Inbox recovery, engine switch'
+        'PASS: production preload + IPC + SQLite + renderer, Router home and setup, keys, Inbox recovery, engine switch, dispatch groups, worker links, details, @ messages, approval tray, overview map, node approvals, questions, worker removal, Claude Code workers, theme/language, app logo, reload'
       )
       if (captureDir) console.log(`UI captures: ${captureDir}`)
     } finally {

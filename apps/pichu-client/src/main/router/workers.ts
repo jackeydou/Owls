@@ -459,14 +459,14 @@ export class WorkerPool implements TurnProfiles {
       worker.status = 'waiting'
       this.save(worker)
       const request = session.requests.find((r) => r.status === 'pending')
-      const followUp = !this.routerTurns.has(session.id)
+      // The user sees the request directly, so the Router only reads about it on its next batch.
       this.inbox.add(
         worker.routerId,
         {
-          ...this.event('worker_waiting', worker, followUp),
+          ...this.event('worker_waiting', worker, !this.routerTurns.has(session.id)),
           detail: request ? request.title || request.kind : ''
         },
-        !followUp
+        false
       )
     } else if (session.status === 'running' && worker.status !== 'running') {
       // Also covers a follow-up the user started in the worker's own task view.

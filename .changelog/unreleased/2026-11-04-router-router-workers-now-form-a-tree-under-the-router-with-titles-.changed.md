@@ -1,1 +1,1 @@
-- -- Router: workers now form a tree under the Router, with titles and parent links; a message to one worker goes straight to it without a Router model call, and workers can be stopped or removed directly. (#25)
+- Router: workers now form a tree under the Router, with titles and parent links; a message to one worker goes straight to it without a Router model call, and workers can be stopped or removed directly. (#25)

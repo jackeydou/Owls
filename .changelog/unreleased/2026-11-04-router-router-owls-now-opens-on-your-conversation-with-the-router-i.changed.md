@@ -1,0 +1,1 @@
+- Router: Owls now opens on your conversation with the Router instead of a task list. Workers appear as a tree behind it: a press of Cmd+J shows every project and worker on one map, with their details, approvals, and direct @ messages one click away. Older tasks stay stored but no longer appear. (#26)

@@ -149,7 +149,7 @@ export function CodexSettingsPage() {
           label={t('back')}
           tooltip={t('back')}
           icon={<ArrowLeft size={17} />}
-          onClick={() => useCodexStore.setState({ view: 'chat' })}
+          onClick={() => useCodexStore.getState().leaveSettings()}
         />
         <span>{t('settingsTitle')}</span>
       </header>

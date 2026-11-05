@@ -3,9 +3,10 @@
 A desktop workspace for your locally installed Codex.
 
 Owls runs `codex app-server` on your computer. Codex owns the agent loop,
-models, tools, permissions, and authentication. Owls provides projects, tasks,
-streaming conversations, tool activity, approval and question cards, file
-changes, and a persistent desktop workspace.
+models, tools, permissions, and authentication. Owls adds a Router you talk to
+in each project. It splits your request into workers that run in Codex or Claude
+Code, and reports back. An overview map shows every project and worker, with
+each worker's activity, file changes, and report one click away.
 
 ## Get started
 
@@ -18,9 +19,9 @@ ChatGPT sign-in flow from Settings.
 Owls does not copy tokens into its database or expose credentials to the
 renderer. Your native Codex configuration and sign-in remain owned by Codex.
 
-Open a project folder, choose the model and permissions for a new task, and send
-a message. Commands, file changes, plans, and approvals appear in the
-conversation. The Changes panel shows the current turn's unified diff.
+Open a project folder and tell the Router what you need. Approval requests wait
+above the input. Type `@` to send a message straight to one worker, and press
+`⌘J` to switch between the conversation and the overview map.
 
 Only open projects you trust. Codex can load project instructions, hooks,
 plugins, and MCP servers using its native configuration.
@@ -32,13 +33,13 @@ This is a clean break: Owls does not import or resume previous Pi conversations,
 model settings, or tool approvals. New local state uses `owls-codex.db` under
 the configured Owls data root. Native Codex sessions stay in Codex's own store.
 
-New task history and settings survive app restarts. An interrupted task can
-continue through its native Codex thread. Live approval callbacks expire when
-the owning process disconnects.
+Router conversations, workers, and settings survive app restarts. An interrupted
+worker can continue through its native Codex thread. Live approval callbacks
+expire when the owning process disconnects.
 
-Owls can also run tasks with your installed Claude Code CLI: connect it in
-**Settings → Local Claude Code**, then pick the agent when starting a task. See
-[Claude Code runtime](docs/CLAUDE_CODE_RUNTIME.md).
+Owls can also run workers with your installed Claude Code CLI: connect it in
+**Settings → Local Claude Code**, then choose the agent under **Worker defaults**.
+See [Claude Code runtime](docs/CLAUDE_CODE_RUNTIME.md).
 
 See [Codex runtime](docs/CODEX_APP_SERVER.md) for ownership, configuration,
 storage, tests, and failure handling. The broader

@@ -1,110 +1,577 @@
-.codex-project-item {
-  display: flex;
-  align-items: center;
-  border-radius: 7px;
+/* Status colors, and project hues that sit away from them on purpose. */
+:root {
+  --owl-run: #2f7a57;
+  --owl-wait: #a9740f;
+  --owl-wait-border: #c3964052;
+  --owl-bad: #c9302c;
+  --owl-queue: #1a1c1f59;
+  --owl-hue-1: oklch(0.56 0.15 262);
+  --owl-hue-2: oklch(0.56 0.15 310);
+  --owl-hue-3: oklch(0.58 0.15 215);
+  --owl-hue-4: oklch(0.58 0.14 355);
+  --owl-panel-width: 480px;
 }
-.codex-project-item:hover {
-  background: var(--color-card-muted);
+[data-theme="dark"] {
+  --owl-run: #40c977;
+  --owl-wait: #e8b04a;
+  --owl-wait-border: #e8b04a47;
+  --owl-bad: #ff6764;
+  --owl-queue: #ffffff59;
+  --owl-hue-1: oklch(0.74 0.12 262);
+  --owl-hue-2: oklch(0.74 0.12 310);
+  --owl-hue-3: oklch(0.76 0.11 215);
+  --owl-hue-4: oklch(0.76 0.11 355);
 }
-.codex-project-item .codex-project-row:hover {
-  background: transparent;
-}
-.codex-project-item.selected {
-  background: var(--color-card-muted);
-}
-.codex-router-entry {
-  flex-shrink: 0;
-  width: 25px;
-  padding: 0;
-  margin-right: 3px;
-}
-.router-model {
-  color: var(--color-muted-foreground);
-  font-size: 11px;
-}
-.router-workers {
-  display: flex;
-  gap: 8px;
-  padding: 10px 24px;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--color-border);
-}
-.router-workers > p {
-  color: var(--color-muted-foreground);
-  font-size: 11px;
-}
-.router-worker {
+
+/* One Router per project leaves nothing else to list here. */
+.router-rail {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 180px;
-  max-width: 260px;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-card);
-  text-align: left;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  width: 58px;
+  /* Clears the window controls, which sit over the rail and the title bar. */
+  padding: 50px 0 12px;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-sidebar);
+  -webkit-app-region: drag;
 }
-.router-worker:hover {
-  background: var(--color-card-muted);
+.router-rail button {
+  -webkit-app-region: no-drag;
 }
-.router-worker-head {
+.router-rail-logo {
+  margin-bottom: 8px;
+}
+.router-rail-logo img {
+  width: 24px;
+  height: 26px;
+  object-fit: contain;
+}
+.router-rail-button {
+  width: 38px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--color-muted-foreground);
+}
+.router-rail-button[aria-current="true"] {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+.router-rail-rule {
+  width: 22px;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--color-border-strong);
+}
+.router-rail-projects {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px;
+}
+.router-rail-project {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  font-weight: 600;
+}
+.router-rail-project:hover {
+  background: var(--color-sidebar-hover);
+}
+.router-rail-project[aria-current="true"] {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+  box-shadow: inset 0 0 0 1.5px var(--owl-c);
+}
+.router-rail-project > i {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-sidebar);
+  border-radius: 50%;
+}
+.router-rail-project > i.run {
+  background: var(--owl-run);
+}
+.router-rail-project > i.wait {
+  background: var(--owl-wait);
+}
+.router-rail-settings {
+  margin-top: auto;
+}
+.router-stage {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.router-chat {
+  position: relative;
+  min-height: 0;
+}
+.router-chat .codex-conversation-column {
+  min-height: 0;
+}
+.router-topbar {
+  padding-left: 30px;
+}
+.router-topbar .codex-task-title {
+  font-size: 13px;
+  font-weight: 550;
+}
+
+/* Status entry with a live thumbnail of the map */
+.router-status {
   display: flex;
   align-items: center;
   gap: 7px;
-  min-width: 0;
+  height: 32px;
+  padding: 0 9px 0 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 16px;
+  background: var(--color-card);
+  font-size: 11.5px;
+  white-space: nowrap;
 }
-.router-worker-head > i {
+.router-status:hover {
+  background: var(--color-sidebar-hover);
+}
+.router-status.wait {
+  border-color: var(--owl-wait-border);
+  color: var(--owl-wait);
+}
+.router-status kbd,
+.map-view kbd {
+  color: var(--color-muted-foreground);
+  font-family: inherit;
+  font-size: 10px;
+}
+.router-mini {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
+  color: var(--color-border-strong);
+}
+.router-mini path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+.router-mini .root {
+  fill: var(--color-muted-foreground);
+}
+.router-mini .run {
+  fill: var(--owl-run);
+}
+.router-mini .wait {
+  fill: var(--owl-wait);
+}
+.router-mini .bad {
+  fill: var(--owl-bad);
+}
+.router-mini .queue,
+.router-mini .done {
+  fill: var(--owl-queue);
+}
+
+/* A worker's status, and references to it anywhere in the conversation */
+.router-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--color-muted-foreground);
+  background: var(--owl-queue);
 }
-.router-worker.running > .router-worker-head > i,
-.router-worker.starting > .router-worker-head > i {
-  background: #458a68;
+.router-dot.run {
+  background: var(--owl-run);
 }
-.router-worker.waiting > .router-worker-head > i {
-  background: #c39640;
+.router-dot.wait {
+  background: var(--owl-wait);
 }
-.router-worker.failed > .router-worker-head > i {
-  background: #c25b4e;
+.router-dot.bad {
+  background: var(--owl-bad);
 }
-.router-worker strong {
+.router-dot.queue,
+.router-dot.hollow {
+  border: 1.5px solid var(--owl-queue);
+  background: transparent;
+}
+.router-worker-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border-radius: 5px;
+  font-weight: 500;
+  vertical-align: baseline;
+}
+.router-worker-link > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
-  font-size: 12px;
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-strong);
+  text-underline-offset: 3px;
 }
-.router-worker small {
-  color: var(--color-muted-foreground);
-  font-size: 10px;
+.router-worker-link:hover > span {
+  text-decoration-color: currentColor;
 }
-.router-worker small.router-worker-branch {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  overflow: hidden;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  white-space: nowrap;
+.router-dispatch {
+  margin: 14px 0;
+  padding: 10px 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-card);
 }
-.router-worker p {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.router-dispatch h3 {
+  margin-bottom: 6px;
   color: var(--color-muted-foreground);
   font-size: 11px;
-  line-height: 1.5;
+  font-weight: 500;
 }
-.router-view .codex-welcome > svg {
+.router-dispatch li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 3px 0;
+  font-size: 13px;
+}
+.router-dispatch small {
+  overflow: hidden;
+  flex-shrink: 1;
+  min-width: 0;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-dispatch .router-worker-link {
+  flex-shrink: 0;
+  max-width: 62%;
+}
+.router-directed {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 -6px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-card > svg {
   display: block;
   margin: 0 auto 14px;
   color: var(--color-muted-foreground);
 }
+.router-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.router-unknown-batch {
+  align-items: center;
+}
+.router-unknown-batch > span {
+  flex: 1;
+}
+
+/* Requests stay above the composer, not in the scrolling conversation. */
+.router-tray {
+  max-width: var(--pichu-composer-max-width);
+  max-height: 46vh;
+  margin: 0 auto 10px;
+  overflow-y: auto;
+}
+.router-tray-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.router-tray-head strong {
+  overflow: hidden;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-tray-head button {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-tray-head button:hover {
+  color: var(--color-foreground);
+}
+.router-tray .codex-request {
+  margin: 0;
+}
+.router-tray-more {
+  margin-top: 6px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+
+/* Composer */
+.router-composer {
+  position: relative;
+  width: 100%;
+  max-width: var(--pichu-composer-max-width);
+  margin: 0 auto;
+}
+.router-target {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  height: 26px;
+  margin: 6px 0 0 10px;
+  padding: 0 2px 0 9px;
+  border-radius: 13px;
+  background: var(--color-sidebar-hover);
+  font-size: 11.5px;
+}
+.router-target > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* One line on the map: the target, the input, and the send button side by side. */
+.router-composer.compact .codex-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 6px 7px 6px 12px;
+}
+.router-composer.compact .codex-composer textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  max-height: 120px;
+  padding: 7px 0;
+}
+.router-composer.compact .codex-composer-toolbar {
+  flex-shrink: 0;
+  padding: 0;
+}
+.router-composer.compact .codex-composer-config {
+  display: none;
+}
+.router-composer.compact .router-target {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 45%;
+  height: 30px;
+  margin: 2px 0;
+}
+.router-mentions {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, 100%);
+  padding: 5px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 11px;
+  background: var(--color-card-elevated);
+  box-shadow: 0 4px 8px rgb(0 0 0 / 0.08);
+}
+.router-mentions button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 7px;
+  font-size: 12px;
+  text-align: left;
+}
+.router-mentions button > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-mentions button[aria-selected="true"] {
+  background: var(--color-sidebar-hover);
+}
+
+/* Detail panel */
+.router-panel {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: var(--owl-panel-width);
+  max-width: 85%;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-card);
+}
+.router-panel > header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px 12px 10px 18px;
+  -webkit-app-region: drag;
+}
+.router-panel > header button {
+  -webkit-app-region: no-drag;
+}
+.router-panel > header > div {
+  flex: 1;
+  min-width: 0;
+}
+.router-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.router-panel h2 > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-panel header small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-tabs {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 0 12px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+.router-tabs button {
+  font-weight: 500;
+}
+.router-tabs button[aria-selected="true"] {
+  background: var(--color-sidebar-active);
+}
+.router-panel-body {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 18px 20px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+.router-panel-empty {
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+.router-brief {
+  margin-bottom: 14px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: var(--color-user);
+}
+.router-brief > span {
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-brief > p {
+  margin-top: 2px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.router-diff {
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.router-diff > div {
+  min-height: 17px;
+  white-space: pre;
+}
+.router-diff .added {
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+}
+.router-diff .removed {
+  background: color-mix(in srgb, var(--color-destructive) 8%, transparent);
+}
+.router-report {
+  line-height: 1.6;
+}
+.router-report h3,
+.router-kept h3 {
+  margin: 16px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.router-report-note {
+  margin-bottom: 10px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-report code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.router-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.router-facts dt {
+  color: var(--color-muted-foreground);
+}
+.router-kept > p {
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.router-kept li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+.router-kept li > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.router-kept strong,
+.router-kept small {
+  overflow: hidden;
+  font-weight: 450;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-kept small {
+  color: var(--color-muted-foreground);
+  font-size: 10px;
+}
+
+/* Settings */
 .router-settings-body,
 .router-settings-help {
   color: var(--color-muted-foreground);
@@ -129,43 +596,14 @@
 .router-input:focus-visible {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
-.router-unknown-batch {
-  align-items: center;
-}
-.router-unknown-batch > span {
-  flex: 1;
-}
-.router-kept {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 24px;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 12px;
-}
-.router-kept > p {
-  color: var(--color-muted-foreground);
-  font-size: 11px;
-}
-.router-kept li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 0;
-}
-.router-kept li > span {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.router-kept-goal,
-.router-kept small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.router-kept small {
-  color: var(--color-muted-foreground);
-  font-size: 10px;
+
+@media (max-width: 1050px) {
+  .router-panel {
+    position: absolute;
+    z-index: 10;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    box-shadow: -4px 0 8px rgb(0 0 0 / 0.06);
+  }
 }

@@ -1,6 +1,6 @@
 # RFC: 以 Router 为唯一入口的应用壳
 
-状态：M1 已实现，M2–M4 待实施。日期：2026-11-04。基线：`6391fb8`。
+状态：M1、M2 已实现，M3、M4 待实施。日期：2026-11-04。基线：`6391fb8`。
 
 交互原型：`output/router-prototype/`（未入库）。本文替换
 [RFC_OWLS_SUPER_AGENT.md](RFC_OWLS_SUPER_AGENT.md) 中「保留直接建任务」相关的决策（第 11 节），
@@ -152,9 +152,11 @@ parentId: z.string().nullable().default(null),
 Router 时间线隐藏 `tool` 条目，把相邻的 `worker` 条目合并成一个派发组。升级前的对话没有
 `worker` 条目，所以看不到派发组，但文字和 Worker 都还在。
 
-Router 回复里的 Worker 引用用 Markdown 链接 `[标题](#worker-w_xxx)`，由提示要求，renderer 用
-Streamdown 的 `components.a` 渲染成引用。ID 不属于当前 Router 时按普通文字显示。用 `#` 开头的
-相对地址，是为了避开自定义协议被链接安全策略拦截。模型漏写时只是少一个可点的引用，功能不受影响。
+Router 回复里的 Worker 引用用 Markdown 链接 `[标题](#worker-w_xxx)`，由提示要求。renderer 渲染前
+把它换成自定义标签 `<owls-worker worker="w_xxx">`，再由 Streamdown 的 `allowedTags` 和 `components`
+渲染成引用。不用 `components.a`，是因为覆盖 `a` 会同时失去 Streamdown 对外部链接的确认弹窗。属性名不用
+`id`，因为净化时会给 `id` 加前缀。ID 不属于当前 Router 时按普通文字显示。模型漏写时只是少一个可点的
+引用，功能不受影响。
 
 ### 4.4 `@` 定向消息
 
@@ -180,8 +182,9 @@ Router，由 Router 告诉用户。`routerTurns` 和 `followUp` 因此可以全�
 
 ### 4.5 审批
 
-`worker_waiting` 事件的 `wake` 改为 false，随下一批次到达。审批已经直接显示给用户，再唤醒 Router
-只会多花一次请求，并产生一条重复提示。Router 不能代批的规则不变。
+`worker_waiting` 事件的 `wake` 改为 false，随下一批次到达，也算 `isQuietEvent`，批次结束时不会因为只剩
+它而再跑一轮。审批已经直接显示给用户，再唤醒 Router 只会多花一次请求，并产生一条重复提示。Router 不能
+代批的规则不变。
 
 renderer 从 `sessions` 派生待处理请求，不需要新事件：取当前 Router 的 Worker，取其会话中
 `pending` 或 `answering` 的请求，按 Worker 的 `createdAt` 和 `id` 排序，响应仍走现有的
@@ -249,8 +252,10 @@ Worker 的 `needs_input` 汇报不进托盘：它走 Inbox，由 Router 在对�
 
 ```text
 renderer/src/router/
-  RouterShell.tsx        项目栏 + 对话或全景 + 详情面板
+  RouterShell.tsx        项目栏 + 对话或全景 + 详情面板，全局快捷键
   ProjectRail.tsx        全景入口、项目、徽标、添加、设置
+  RouterChat.tsx         首页：标题栏、时间线、托盘、输入框
+  RouterSetup.tsx        未就绪时的卡片和一键切换
   RouterTimeline.tsx     时间线，合并派发组，隐藏 tool 条目
   DispatchGroup.tsx      派发组
   WorkerLink.tsx         行内引用，含 Streamdown 的 a 组件
@@ -267,6 +272,7 @@ renderer/src/router/
     MapNode.tsx          各类节点
     MapEdges.tsx         分支和信号
     useCamera.ts         平移、缩放、适应窗口
+    projects.ts          项目、Router 和 Worker 的合并视图
 shared/
   worker-map.ts          建图、筛选、布局，纯函数
 ```
@@ -295,6 +301,7 @@ shared/
   的 Claude Code 或 Codex」目前没有实现，这里补上，否则新用户必须先有 API key 才能使用。
   新增一种情况：引擎就绪，但默认 Worker agent 未连接，同样显示卡片，否则所有派发都会以
   `provider_unavailable` 失败。
+  一键切换后，`RouterService.settingsChanged` 清除旧设置留下的失败，并发出等待中的消息，用户不用重发。
 - **设置**：`defaults` 分组改名为「Worker 默认值」，`TaskOptions` 从输入框挪到这里。
 - **无障碍**：节点容器使用 `role="tree"`，方向键移动焦点，所有操作都有键盘路径。信号和颜色都不是
   唯一的信息来源，状态同时以文字显示。
@@ -350,8 +357,7 @@ M1 和 M2 上线之间，追问直通的旧路径和定向消息短暂共存，�
    条目拆到独立的表，不提前做。Claude Code 和 Codex 引擎的原生上下文增长同样是已知问题（RFC 16 节）。
 3. **模型不遵守新约定。** 漏写 `title` 时回退到 goal 首行，漏写 `parent` 时挂在根节点下，漏写
    引用链接时显示普通文字，都只影响展示。真实模型的遵守率需要在 `verify` 阶段观察。
-4. **链接渲染。** Streamdown 2.5 带链接安全处理。`#worker-…` 能否原样到达 `components.a` 只查了
-   类型，M2 开始时先验证。
+4. **链接渲染。** 已验证并解决，见第 4.3 节。
 5. **`session` 事件频率。** 全景同时读取所有项目的会话。第 6 节的派生订阅用于控制重渲染，
    用 4 个 Worker 同时流式输出的场景确认。
 6. **全景的规模。** `WORKER_LIMIT` 是全局 4 个，但排队和已结束的节点会累积。默认筛选能控制大部分
