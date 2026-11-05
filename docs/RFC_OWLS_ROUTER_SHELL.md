@@ -237,7 +237,7 @@ Worker 的 `needs_input` 汇报不进托盘：它走 Inbox，由 Router 在对�
 | `router/service.ts` | `send` 的定向分支；写入 `worker` 条目；新增 `stopWorker`、`removeWorker`；`recall` 增加 `parent` |
 | `router/render.ts` | 删除 `origin`；用户消息增加 `· to w_xxx`；`renderState` 增加父节点 |
 | `router/events.ts` | 删除 `followUp`；`user_message` 增加可选 `workerId` |
-| `router/prompt.ts` | 见下；`ROUTER_PROMPT_VERSION` 在 M1 改为 4，M2 改为 5，M4 删除 follow-up 一句后改为 6 |
+| `router/prompt.ts` | 见下；`ROUTER_PROMPT_VERSION` 在 M1 改为 4，M2 改为 5，M4 删除 follow-up 一句后改为 6，修复 Codex 引擎轮询后改为 7 |
 | `codex/host.ts` | `snapshot` 过滤会话；删除公开的 `createSession`；`WorkerHost` 增加 `remove(sessionId)`，由它调用现有 `archive`；新增 Router 入口 |
 | `codex/ipc.ts`、`preload/codex.ts` | 第 4.6 节 |
 | `codex/service.ts`、`claude/service.ts` | 删除 `role: 'task'` 分支，所有会话都是 Worker |
@@ -365,8 +365,11 @@ shared/
   Claude Code 引擎这轮有两次 `worker_waiting`，Router 没有重复提醒审批。
 - 这次实测发现 Claude Code 引擎的 `dispatch_task` 不可用：Agent SDK 自带的 zod 会把应用 zod 建的
   raw shape 的可选字段都变成必填。现在把完整的 zod 对象交给 SDK，并用真实 SDK 加了回归测试。
-- 还没解决：Codex 引擎的 Router 派发后会反复调用 `list_workers` 等结果（一次场景 9 次），汇报到达后
-  还多回复了一次。
+- 这次实测还发现 Codex 引擎的 Router 派发后会反复调用 `list_workers` 等结果（一次场景 9 次），汇报
+  到达后还多回复了一次。重复回复也是轮询造成的，与静默事件无关：`list_workers` 在 `worker_report`
+  送达前就能看到汇报，Router 据此回复后，这些事件又唤起一个批次。现在提示说明汇报只会在回合结束后
+  到达，要求派发后结束回合，依赖结果的下一步也等汇报到达后再派。真实模型复测两步派发两次，
+  `list_workers` 都是 0 次，最终回复都是一次。
 
 M1 和 M2 上线之间，追问直通的旧路径和定向消息短暂共存，不影响行为：旧 UI 不会发送 `workerId`。
 审批相关的改动放在 M2，因为旧 UI 没有托盘，用户仍然需要 Router 提醒去打开任务。
