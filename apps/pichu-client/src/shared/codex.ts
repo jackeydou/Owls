@@ -114,9 +114,7 @@ export const settingsSchema = z.object({
   claudeExecutablePath: z.string().nullable().default(null),
   claudeModel: z.string().nullable().default(null),
   claudeEffort: effortSchema.nullable().default(null),
-  router: routerSettingsSchema.default(routerSettingsSchema.parse({})),
-  /** Agent for Router workers when `dispatch_task` names none; null follows `provider`. */
-  workerProvider: providerSchema.nullable().default(null)
+  router: routerSettingsSchema.default(routerSettingsSchema.parse({}))
 })
 export const projectSchema = z.object({ id: z.string(), name: z.string(), path: z.string() })
 export const settingsUpdateSchema = settingsSchema
@@ -198,26 +196,20 @@ export type CodexEvent =
   | { type: 'router'; router: CodexRouter }
   | { type: 'worker'; worker: RouterWorker }
 export type CodexReply<T> = { ok: true; value: T } | { ok: false; error: CodexFailure }
-export const createSessionSchema = z.object({
-  provider: providerSchema,
-  cwd: z.string().min(1).max(4096),
-  model: z.string().min(1).nullable(),
-  effort: effortSchema.nullable(),
-  permission: permissionSchema
-})
-export const sendSchema = z.object({
-  sessionId: z.string().uuid(),
-  commandId: z.string().uuid(),
-  text: z.string().trim().min(1).max(200_000)
-})
 export const respondSchema = z.object({
   sessionId: z.string().uuid(),
   requestId: z.string().uuid(),
   decision: z.enum(['accept', 'decline', 'cancel']),
   answers: z.record(z.string(), z.array(z.string())).optional()
 })
-export type CreateCodexSession = z.infer<typeof createSessionSchema>
-export type SendCodexMessage = z.infer<typeof sendSchema>
+export type CreateCodexSession = {
+  provider: AgentProvider
+  cwd: string
+  model: string | null
+  effort: CodexSettings['effort']
+  permission: CodexSettings['permission']
+}
+export type SendCodexMessage = { sessionId: string; commandId: string; text: string }
 export type RespondCodexRequest = z.infer<typeof respondSchema>
 export interface CodexAPI {
   snapshot(): Promise<CodexReply<CodexSnapshot>>
@@ -229,11 +221,7 @@ export interface CodexAPI {
   cancelSignIn(): Promise<CodexReply<void>>
   saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<CodexReply<CodexSettings>>
   pickProject(): Promise<CodexReply<CodexProject | null>>
-  createSession(input: CreateCodexSession): Promise<CodexReply<CodexSession>>
-  send(input: SendCodexMessage): Promise<CodexReply<void>>
-  interrupt(sessionId: string): Promise<CodexReply<void>>
   respond(input: RespondCodexRequest): Promise<CodexReply<void>>
-  archive(sessionId: string): Promise<CodexReply<void>>
   openRouter(projectId: string): Promise<CodexReply<CodexRouter>>
   sendRouter(input: SendRouterMessage): Promise<CodexReply<void>>
   interruptRouter(routerId: string): Promise<CodexReply<void>>

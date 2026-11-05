@@ -15,7 +15,7 @@ export function RouterChat() {
   const { t } = useTranslation()
   const projectId = useCodexStore((s) => s.routerProjectId)
   const project = useCodexStore((s) => s.projects.find((p) => p.id === projectId))
-  const agent = useCodexStore((s) => s.settings.workerProvider ?? s.settings.provider)
+  const agent = useCodexStore((s) => s.settings.provider)
   const open = useRouterStore((s) => s.open)
   const showPanel = useRouterStore((s) => s.showPanel)
   const router = useRouterStore((s) => s.routers.find((r) => r.projectId === projectId))

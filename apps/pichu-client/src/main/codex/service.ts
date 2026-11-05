@@ -16,7 +16,7 @@ import type {
   SendCodexMessage
 } from '../../shared/codex.js'
 import { questionSchema } from '../../shared/codex.js'
-import type { TurnOutcome, TurnProfile, TurnProfiles } from '../router/service.js'
+import type { TurnOutcome, TurnProfiles } from '../router/service.js'
 import { CodexClient, discoverExecutable } from './client.js'
 import { CodexRuntimeError, codexFailure } from './errors.js'
 import {
@@ -81,7 +81,7 @@ export class CodexService {
       this.store.saveSession(session)
     }
   }
-  /** Lets the Router mark its worker tasks; other tasks keep the default profile. */
+  /** Lets the Router give each worker turn its instructions and report format. */
   setTurnProfiles(profiles: TurnProfiles): void {
     this.profiles = profiles
   }
@@ -165,8 +165,8 @@ export class CodexService {
     return project
   }
   /**
-   * `worker` is main-internal (IPC never passes it): the session runs in a
-   * Router worker's worktree of a registered project, which may not exist yet.
+   * `worker` marks a session in a worker's worktree of a registered project,
+   * which may not exist yet.
    */
   createSession(input: CreateCodexSession, worker?: { projectPath: string }): CodexSession {
     const cwd = worker ? input.cwd : realpathSync(input.cwd)
@@ -223,7 +223,7 @@ export class CodexService {
       turnId: null
     })
     this.changed(session, true)
-    const profile: TurnProfile = this.profiles?.profile(session.id) ?? { role: 'task' }
+    const profile = this.profiles?.profile(session.id) ?? null
     try {
       const policy = {
         cwd: session.cwd,
@@ -231,7 +231,7 @@ export class CodexService {
         approvalPolicy: 'on-request',
         approvalsReviewer: 'user',
         sandbox: session.permission === 'full-access' ? 'danger-full-access' : session.permission,
-        ...(profile.role === 'worker' ? { developerInstructions: profile.instructions } : {})
+        ...(profile ? { developerInstructions: profile.instructions } : {})
       }
       if (!session.threadId) {
         const response = record(
@@ -262,7 +262,7 @@ export class CodexService {
           input: [{ type: 'text', text: input.text, text_elements: [] }],
           ...(session.model ? { model: session.model } : {}),
           ...(session.effort ? { effort: session.effort } : {}),
-          ...(profile.role === 'worker' ? { outputSchema: profile.reportSchema } : {})
+          ...(profile ? { outputSchema: profile.reportSchema } : {})
         })
       )
       const turn = record(response.turn)

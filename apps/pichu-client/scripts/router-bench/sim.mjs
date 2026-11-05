@@ -238,6 +238,7 @@ export class Meter {
   }
 }
 
+const DELIVERED = /user_message · user · [^\n]* · to w_[0-9a-f]+\n<(F\d+(?:\.\d+)?)>/g
 const TAG = /<([CRF])(\d+(?:\.\d+)?)>|<done ([RF]\d+(?:\.\d+)?)>/g
 function textOf(message) {
   const { content } = message
@@ -256,6 +257,9 @@ export class Policy {
   #handled = new Set()
   #workers = new Map()
   #calls = new Map()
+  #results = new Set()
+  /** Requests whose dispatch hit the queue limit, retried once a worker reports. */
+  #rejected = new Set()
 
   /** `role` is 'router' (Owls tools) or 'single' (one session with a task tool). */
   constructor(role, permission = 'read-only') {
@@ -267,8 +271,11 @@ export class Policy {
     this.#learn(context.messages)
     const texts = []
     const calls = []
+    let reported = false
     for (const message of context.messages) {
       if (message.role !== 'user' && message.role !== 'toolResult') continue
+      // A message Owls already delivered to its worker needs nothing from the Router.
+      for (const [, id] of textOf(message).matchAll(DELIVERED)) this.#handled.add(id)
       for (const match of textOf(message).matchAll(TAG)) {
         const key = match[3] ? `done ${match[3]}` : `${match[1]}${match[2]}`
         if (this.#handled.has(key)) continue
@@ -277,7 +284,12 @@ export class Policy {
         this.#handled.add(key)
         if (action.text) texts.push(action.text)
         if (action.call) calls.push(action.call)
+        if (match[3]) reported = true
       }
+    }
+    if (reported) {
+      calls.push(...[...this.#rejected].map((id) => this.#dispatch(`R${id}`)))
+      this.#rejected.clear()
     }
     const content = []
     if (texts.length) content.push(fauxText(texts.join('\n')))
@@ -292,20 +304,21 @@ export class Policy {
     if (match[1] === 'C') return { text: `ack ${id}` }
     if (this.role === 'single')
       return { call: fauxToolCall('task', { id, prompt: `Handle <${id}>.` }) }
-    if (match[1] === 'R')
-      return {
-        call: fauxToolCall('dispatch_task', {
-          goal: `<${id}> Handle this work request.`,
-          permission: this.permission
-        })
-      }
+    if (match[1] === 'R') return { call: this.#dispatch(id) }
     // A follow-up that reached the Router: forward it to the worker that owns the request.
     const workerId = this.#workers.get(id.slice(1).split('.')[0])
     if (!workerId) return null
     return { call: fauxToolCall('message_worker', { workerId, text: `<${id}> Follow-up.` }) }
   }
 
-  /** Remembers which worker each dispatched request went to. */
+  #dispatch(id) {
+    return fauxToolCall('dispatch_task', {
+      goal: `<${id}> Handle this work request.`,
+      permission: this.permission
+    })
+  }
+
+  /** Remembers which worker each dispatched request went to, and which were turned away. */
   #learn(messages) {
     for (const message of messages) {
       if (message.role === 'assistant')
@@ -313,8 +326,12 @@ export class Policy {
           if (c.type === 'toolCall' && c.name === 'dispatch_task')
             this.#calls.set(c.id, /<R(\d+)>/.exec(c.arguments.goal)?.[1])
       if (message.role === 'toolResult' && this.#calls.has(message.toolCallId)) {
+        if (this.#results.has(message.toolCallId)) continue
+        this.#results.add(message.toolCallId)
+        const id = this.#calls.get(message.toolCallId)
         const workerId = /"workerId":"([^"]+)"/.exec(textOf(message))?.[1]
-        if (workerId) this.#workers.set(this.#calls.get(message.toolCallId), workerId)
+        if (workerId) this.#workers.set(id, workerId)
+        else if (textOf(message).includes('worker_limit_reached')) this.#rejected.add(id)
       }
     }
   }

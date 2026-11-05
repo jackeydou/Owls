@@ -1,0 +1,1 @@
+- Router: the Claude Code Router no longer fails to start workers when a dispatch leaves out optional fields. (#28)

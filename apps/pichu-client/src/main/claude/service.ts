@@ -23,7 +23,7 @@ import type {
 import { CodexRuntimeError, codexFailure } from '../codex/errors.js'
 import { record, recordSchema, safeText, string } from '../codex/protocol.js'
 import type { CodexStore } from '../codex/store.js'
-import type { TurnProfile, TurnProfiles } from '../router/service.js'
+import type { TurnProfiles } from '../router/service.js'
 import { discoverClaudeExecutable } from './discovery.js'
 import { type InputStream, inputStream } from './input.js'
 import {
@@ -121,7 +121,7 @@ export class ClaudeService {
       this.store.saveSession(session)
     }
   }
-  /** Lets the Router mark its worker tasks; other tasks keep the default profile. */
+  /** Lets the Router give each worker turn its instructions and report format. */
   setTurnProfiles(profiles: TurnProfiles): void {
     this.profiles = profiles
   }
@@ -209,8 +209,8 @@ export class ClaudeService {
     }
   }
   /**
-   * `worker` is main-internal (IPC never passes it): the session runs in a
-   * Router worker's worktree of a registered project, which may not exist yet.
+   * `worker` marks a session in a worker's worktree of a registered project,
+   * which may not exist yet.
    */
   createSession(input: CreateCodexSession, worker?: { projectPath: string }): CodexSession {
     const cwd = worker ? input.cwd : realpathSync(input.cwd)
@@ -287,13 +287,13 @@ export class ClaudeService {
     const model = this.connection.models.find((m) =>
       session.model ? m.id === session.model : m.isDefault
     )
-    const profile: TurnProfile = this.profiles?.profile(session.id) ?? { role: 'task' }
+    const profile = this.profiles?.profile(session.id) ?? null
     try {
       runtime.query = this.sdk.query({
         prompt: runtime.input.stream,
         options: {
           ...this.baseOptions(executable, session.cwd, runtime),
-          ...(profile.role === 'worker'
+          ...(profile
             ? {
                 systemPrompt: {
                   type: 'preset' as const,

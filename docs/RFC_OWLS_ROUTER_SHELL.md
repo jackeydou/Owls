@@ -1,6 +1,6 @@
 # RFC: 以 Router 为唯一入口的应用壳
 
-状态：M1、M2、M3 已实现，M4 待实施。日期：2026-11-04。基线：`6391fb8`。
+状态：M1–M4 已实现。日期：2026-11-04。基线：`6391fb8`。
 
 交互原型：`output/router-prototype/`（未入库）。本文替换
 [RFC_OWLS_SUPER_AGENT.md](RFC_OWLS_SUPER_AGENT.md) 中「保留直接建任务」相关的决策（第 11 节），
@@ -185,7 +185,7 @@ Router 运行时到达，就会多花一次请求。只有它一条事件时也�
 
 和原直通的区别：用户现在不盯着 Worker 视图，所以这一轮的结果必须回到对话。Worker 汇报照常唤醒
 Router，由 Router 告诉用户。`routerTurns` 和 `followUp` 因此可以全部删除，每一轮 Worker 的处理
-完全相同。代价是比原直通多一次 Router 请求，收益需要重新跑基准确认（第 9 节 M4）。
+完全相同。基准结果见第 9 节的 M4 结果：比转给 Router 少 11% 的请求，延迟不再比转给 Router 好。
 
 ### 4.5 审批
 
@@ -237,7 +237,7 @@ Worker 的 `needs_input` 汇报不进托盘：它走 Inbox，由 Router 在对�
 | `router/service.ts` | `send` 的定向分支；写入 `worker` 条目；新增 `stopWorker`、`removeWorker`；`recall` 增加 `parent` |
 | `router/render.ts` | 删除 `origin`；用户消息增加 `· to w_xxx`；`renderState` 增加父节点 |
 | `router/events.ts` | 删除 `followUp`；`user_message` 增加可选 `workerId` |
-| `router/prompt.ts` | 见下；`ROUTER_PROMPT_VERSION` 在 M1 改为 4，M2 改为 5 |
+| `router/prompt.ts` | 见下；`ROUTER_PROMPT_VERSION` 在 M1 改为 4，M2 改为 5，M4 删除 follow-up 一句后改为 6 |
 | `codex/host.ts` | `snapshot` 过滤会话；删除公开的 `createSession`；`WorkerHost` 增加 `remove(sessionId)`，由它调用现有 `archive`；新增 Router 入口 |
 | `codex/ipc.ts`、`preload/codex.ts` | 第 4.6 节 |
 | `codex/service.ts`、`claude/service.ts` | 删除 `role: 'task'` 分支，所有会话都是 Worker |
@@ -354,6 +354,20 @@ shared/
 
 每个 MR 添加 `.changelog/unreleased` 片段。M2 改变了整个用户工作流，需要在发布说明里明确写出。
 
+**M4 结果。**
+
+- 基准（`RFC_OWLS_SUPER_AGENT.md` 14.1 节）：定向消息的 Router 请求 334，转给 Router 374，少 11%；
+  追问 p50 / p95 2.7 / 6.0 分钟，转给 Router 2.7 / 5.9 分钟。`@` 消息现在受 `WORKER_LIMIT` 和
+  写入串行限制，原直通的延迟优势没有了。
+- `verify:codex --prompt`、`verify:claude --prompt` 通过。
+- 用真实模型跑了一次两步派发加一条 `@` 消息，Claude Code 和 Codex 引擎各一次，都使用只读 Worker。
+  两个引擎都写了 `title`、第二步传了 `parent`、回复用了 Worker 链接，也都没有转发 `@` 消息。
+  Claude Code 引擎这轮有两次 `worker_waiting`，Router 没有重复提醒审批。
+- 这次实测发现 Claude Code 引擎的 `dispatch_task` 不可用：Agent SDK 自带的 zod 会把应用 zod 建的
+  raw shape 的可选字段都变成必填。现在把完整的 zod 对象交给 SDK，并用真实 SDK 加了回归测试。
+- 还没解决：Codex 引擎的 Router 派发后会反复调用 `list_workers` 等结果（一次场景 9 次），汇报到达后
+  还多回复了一次。
+
 M1 和 M2 上线之间，追问直通的旧路径和定向消息短暂共存，不影响行为：旧 UI 不会发送 `workerId`。
 审批相关的改动放在 M2，因为旧 UI 没有托盘，用户仍然需要 Router 提醒去打开任务。
 
@@ -365,7 +379,7 @@ M1 和 M2 上线之间，追问直通的旧路径和定向消息短暂共存，�
    全量发送。它现在是唯一的对话，流式输出时每 70 毫秒发生一次。M2 用一段长对话实测；变慢时再把
    条目拆到独立的表，不提前做。Claude Code 和 Codex 引擎的原生上下文增长同样是已知问题（RFC 16 节）。
 3. **模型不遵守新约定。** 漏写 `title` 时回退到 goal 首行，漏写 `parent` 时挂在根节点下，漏写
-   引用链接时显示普通文字，都只影响展示。真实模型的遵守率需要在 `verify` 阶段观察。
+   引用链接时显示普通文字，都只影响展示。第 9 节的实测中，两个引擎都遵守了约定，样本只有一个场景。
 4. **链接渲染。** 已验证并解决，见第 4.3 节。
 5. **`session` 事件频率。** 全景同时读取所有项目的会话。第 6 节的派生订阅用于控制重渲染。
    已在可见窗口用 4 个 Worker、每个每秒 30 次增量实测，对话和全景都保持 120 fps，p95 约 10 毫秒，

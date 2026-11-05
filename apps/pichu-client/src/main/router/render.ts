@@ -13,7 +13,6 @@ const short = (text: string, limit: number) =>
 /** Like `short`, but points the Router at the event that holds the full text. */
 const clip = (text: string, limit: number, seq: number) =>
   text.length > limit ? `${text.slice(0, limit)}… (truncated, recall: ev_${seq})` : text
-const origin = (event: { followUp?: boolean }) => (event.followUp ? ' · follow-up' : '')
 
 function eventText(event: InboxEvent): string {
   switch (event.kind) {
@@ -23,16 +22,16 @@ function eventText(event: InboxEvent): string {
       const artifacts = event.report.artifacts.length
         ? `\nArtifacts: ${event.report.artifacts.map((a) => `${a.kind}:${a.ref}`).join(', ')}`
         : ''
-      return `[${event.seq}] worker_report · ${event.workerId} · ${clock(event.at)} · ${event.report.status}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\n${escapeBatch(clip(event.report.summary, REPORT_TEXT_LIMIT, event.seq))}${escapeBatch(artifacts)}`
+      return `[${event.seq}] worker_report · ${event.workerId} · ${clock(event.at)} · ${event.report.status}\nGoal: ${escapeBatch(short(event.goal, 200))}\n${escapeBatch(clip(event.report.summary, REPORT_TEXT_LIMIT, event.seq))}${escapeBatch(artifacts)}`
     }
     case 'worker_waiting':
-      return `[${event.seq}] worker_waiting · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nWaiting for the user to approve: ${escapeBatch(short(event.detail, 300))}`
+      return `[${event.seq}] worker_waiting · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nWaiting for the user to approve: ${escapeBatch(short(event.detail, 300))}`
     case 'worker_failed':
-      return `[${event.seq}] worker_failed · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker's turn failed. The user can see the error in that task.`
+      return `[${event.seq}] worker_failed · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker's turn failed. The user can see the error in that worker's details.`
     case 'worker_stopped':
-      return `[${event.seq}] worker_stopped · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker was stopped before it reported.`
+      return `[${event.seq}] worker_stopped · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker was stopped before it reported.`
     case 'worker_removed':
-      return `[${event.seq}] worker_removed · ${event.workerId} · ${clock(event.at)}${origin(event)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe user removed this worker's task. Do not follow up on it.${event.branch ? ` Its unmerged work stays on branch ${escapeBatch(event.branch)}.` : ''}`
+      return `[${event.seq}] worker_removed · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe user removed this worker. Do not follow up on it.${event.branch ? ` Its unmerged work stays on branch ${escapeBatch(event.branch)}.` : ''}`
   }
 }
 

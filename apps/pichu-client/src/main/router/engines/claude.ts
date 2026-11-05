@@ -158,7 +158,9 @@ export class ClaudeEngine implements RouterEngine {
       tools: tools.map((tool) => ({
         name: tool.name,
         description: tool.description,
-        inputSchema: tool.schema.shape,
+        // The SDK's type asks for a raw shape, but its bundled zod makes every optional key
+        // of a shape built by our zod required. It takes a whole schema just as well.
+        inputSchema: tool.schema as unknown as SdkMcpToolDefinition['inputSchema'],
         handler: async (args: unknown) => {
           try {
             return { content: [{ type: 'text' as const, text: await tool.execute(args) }] }

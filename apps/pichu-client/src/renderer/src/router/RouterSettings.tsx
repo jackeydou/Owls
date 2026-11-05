@@ -3,7 +3,7 @@ import { Select } from '@renderer/components/ui/select'
 import { Check, KeyRound, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { permissionSchema, providerSchema } from '../../../shared/codex'
+import { permissionSchema } from '../../../shared/codex'
 import {
   type OwlsModelSettings,
   owlsModelSchema,
@@ -137,26 +137,6 @@ export function RouterSettingsSection() {
         </Select>
       </div>
       <p className="router-settings-help">{t('routerSettings.worktreesHelp')}</p>
-      <div className="codex-setting-row">
-        <label htmlFor="router-worker-provider">{t('routerSettings.workerProvider')}</label>
-        <Select
-          id="router-worker-provider"
-          value={settings.workerProvider ?? ''}
-          onChange={(event) =>
-            void saveSettings({
-              ...settings,
-              workerProvider: event.target.value ? providerSchema.parse(event.target.value) : null
-            })
-          }
-        >
-          <option value="">{t('routerSettings.workerProvider.default')}</option>
-          {providerSchema.options.map((p) => (
-            <option value={p} key={p}>
-              {t(`agent.${p}`)}
-            </option>
-          ))}
-        </Select>
-      </div>
     </section>
   )
 }

@@ -105,8 +105,7 @@ export const useCodexStore = create<State>((set, get) => {
       claudeExecutablePath: null,
       claudeModel: null,
       claudeEffort: null,
-      router: defaultRouterSettings,
-      workerProvider: null
+      router: defaultRouterSettings
     },
     connection: {
       status: 'disconnected',
@@ -242,8 +241,7 @@ export const useCodexStore = create<State>((set, get) => {
           provider: settings.provider,
           claudeModel: settings.claudeModel,
           claudeEffort: settings.claudeEffort,
-          router: settings.router,
-          workerProvider: settings.workerProvider
+          router: settings.router
         })
       )
       if (saved) set({ settings: saved })

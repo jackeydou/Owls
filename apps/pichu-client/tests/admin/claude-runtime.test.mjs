@@ -385,7 +385,7 @@ test('Claude service lets a worker task stop, not be removed, while its worktree
       new Promise((resolve, reject) => {
         release = () => (prepareError ? reject(prepareError) : resolve())
       }),
-    profile: () => ({ role: 'task' }),
+    profile: () => null,
     settled: (sessionId, outcome) => settled.push([sessionId, outcome.status])
   })
   try {

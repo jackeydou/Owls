@@ -27,9 +27,7 @@ import {
 import type { WorkerWorkspaces, WorktreeWorkspace } from './worktrees.js'
 
 /** What a task service asks before each turn, and reports after it. */
-export type TurnProfile =
-  | { role: 'task' }
-  | { role: 'worker'; instructions: string; reportSchema: Record<string, unknown> }
+export type TurnProfile = { instructions: string; reportSchema: Record<string, unknown> }
 export type TurnOutcome = {
   status: 'completed' | 'failed' | 'interrupted'
   /** Claude Code `structured_output`; null for Codex, whose report is the final text. */
@@ -39,7 +37,8 @@ export type TurnOutcome = {
 export interface TurnProfiles {
   /** Runs before every turn of a session, so a worker's worktree exists before the agent starts. */
   prepare(sessionId: string): Promise<void>
-  profile(sessionId: string): TurnProfile
+  /** Null once the session no longer belongs to a worker. */
+  profile(sessionId: string): TurnProfile | null
   settled(sessionId: string, outcome: TurnOutcome): void
 }
 
@@ -92,11 +91,6 @@ const worktreeOf = (w: RouterWorker): WorktreeWorkspace | null =>
  */
 export class WorkerPool implements TurnProfiles {
   private readonly workers = new Map<string, RouterWorker>()
-  /**
-   * Sessions whose current turn the Router started. Any other worker turn is a
-   * follow-up the user started in the worker's own task view.
-   */
-  private readonly routerTurns = new Set<string>()
   /** Workers the Router asked to stop, whose stop needs no new batch. */
   private readonly stopping = new Set<string>()
   private nextCodexStart = 0
@@ -152,7 +146,7 @@ export class WorkerPool implements TurnProfiles {
         'permission_not_allowed',
         `The Router may grant at most ${settings.router.maxPermission}.`
       )
-    const provider = input.provider ?? settings.workerProvider ?? settings.provider
+    const provider = input.provider ?? settings.provider
     if (!this.host.providerReady(provider))
       throw new RouterToolError('provider_unavailable', `${provider} is not connected.`)
     const key = createHash('sha256')
@@ -370,12 +364,11 @@ export class WorkerPool implements TurnProfiles {
     }
   }
 
-  profile(sessionId: string): TurnProfile {
+  profile(sessionId: string): TurnProfile | null {
     const worker = this.bySession(sessionId)
-    if (!worker || worker.status === 'removed') return { role: 'task' }
+    if (!worker || worker.status === 'removed') return null
     const tree = worktreeOf(worker)
     return {
-      role: 'worker',
       instructions: tree
         ? `${WORKER_INSTRUCTIONS}\n\n${worktreeInstructions(tree.branch)}`
         : WORKER_INSTRUCTIONS,
@@ -386,9 +379,6 @@ export class WorkerPool implements TurnProfiles {
   settled(sessionId: string, outcome: TurnOutcome): void {
     const worker = this.bySession(sessionId)
     if (!worker || worker.status === 'removed' || this.closed) return
-    // The user is already looking at a follow-up turn, so its result waits for the
-    // next batch instead of starting one (RFC 3.1, passthrough).
-    const followUp = !this.routerTurns.delete(sessionId)
     const stopped = this.stopping.delete(worker.id)
     if (outcome.status === 'completed') {
       const { report, degraded } = parseReport(outcome.structured, outcome.text)
@@ -402,21 +392,13 @@ export class WorkerPool implements TurnProfiles {
       worker.report = report
       worker.degraded = degraded
       worker.status = 'reported'
-      this.inbox.add(
-        worker.routerId,
-        { ...this.event('worker_report', worker, followUp), report },
-        !followUp
-      )
+      this.inbox.add(worker.routerId, { ...this.event('worker_report', worker), report })
     } else {
       worker.status = outcome.status === 'interrupted' ? 'stopped' : 'failed'
       this.inbox.add(
         worker.routerId,
-        this.event(
-          outcome.status === 'interrupted' ? 'worker_stopped' : 'worker_failed',
-          worker,
-          followUp
-        ),
-        !followUp && !stopped
+        this.event(outcome.status === 'interrupted' ? 'worker_stopped' : 'worker_failed', worker),
+        !stopped
       )
     }
     // A Router follow-up that arrived as the turn ended runs next.
@@ -463,13 +445,13 @@ export class WorkerPool implements TurnProfiles {
       this.inbox.add(
         worker.routerId,
         {
-          ...this.event('worker_waiting', worker, !this.routerTurns.has(session.id)),
+          ...this.event('worker_waiting', worker),
           detail: request ? request.title || request.kind : ''
         },
         false
       )
     } else if (session.status === 'running' && worker.status !== 'running') {
-      // Also covers a follow-up the user started in the worker's own task view.
+      // An answered request lets the turn go on.
       worker.status = 'running'
       this.save(worker)
     }
@@ -530,16 +512,14 @@ export class WorkerPool implements TurnProfiles {
       const at = Math.max(now, this.nextCodexStart)
       this.nextCodexStart = at + CODEX_START_GAP_MS
       if (at > now) await sleep(at - now)
-      // Removed, or started by the user from its task view, while waiting.
+      // Removed while waiting.
       if (this.closed || this.status(worker) !== 'starting') return true
     }
     const text = worker.next ?? worker.goal
     worker.next = null
-    this.routerTurns.add(worker.sessionId)
     try {
       await this.host.send({ sessionId: worker.sessionId, commandId: crypto.randomUUID(), text })
     } catch {
-      this.routerTurns.delete(worker.sessionId)
       // The task service settles turns that got far enough to start.
       if (worker.status === 'starting') {
         worker.status = 'failed'
@@ -557,10 +537,9 @@ export class WorkerPool implements TurnProfiles {
 
   private event<K extends Exclude<InboxEventBody['kind'], 'user_message'>>(
     kind: K,
-    worker: RouterWorker,
-    followUp = false
-  ): { kind: K; at: string; workerId: string; goal: string; followUp: boolean } {
-    return { kind, at: new Date().toISOString(), workerId: worker.id, goal: worker.goal, followUp }
+    worker: RouterWorker
+  ): { kind: K; at: string; workerId: string; goal: string } {
+    return { kind, at: new Date().toISOString(), workerId: worker.id, goal: worker.goal }
   }
   /** A worker of this Router that can still take instructions. */
   private owned(routerId: string, workerId: string): RouterWorker {

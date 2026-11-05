@@ -98,7 +98,7 @@ app
           new Promise((resolve, reject) => {
             release = () => (prepareError ? reject(prepareError) : resolve())
           }),
-        profile: () => ({ role: 'task' }),
+        profile: () => null,
         settled: (sessionId, outcome) => settled.push([sessionId, outcome.status])
       })
       const worker = reopened.createSession({
