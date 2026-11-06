@@ -1,0 +1,1 @@
+- Compatibility: flags, the URL scheme, and plugin fallbacks from the app's earliest name are gone. (#34)

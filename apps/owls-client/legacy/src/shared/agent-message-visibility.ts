@@ -11,9 +11,6 @@ import type {
 export const OWLS_USER_MESSAGE_ROLE = 'owlsUser'
 export const OWLS_ASSISTANT_MESSAGE_ROLE = 'owlsAssistant'
 export const OWLS_CONTEXT_SUMMARY_MESSAGE_ROLE = 'owlsContextSummary'
-const LEGACY_USER_MESSAGE_ROLE = 'pixUser'
-const LEGACY_ASSISTANT_MESSAGE_ROLE = 'pixAssistant'
-const LEGACY_CONTEXT_SUMMARY_MESSAGE_ROLE = 'pixContextSummary'
 
 export const OWLS_MESSAGE_VISIBILITIES = ['shared', 'model-only', 'ui-only'] as const
 export const OWLS_MESSAGE_KINDS = ['default', 'steer'] as const
@@ -53,27 +50,13 @@ export type OwlsAgentMessage =
   | OwlsAssistantMessage
   | OwlsContextSummaryMessage
 
-type LegacyUserMessage = Omit<OwlsUserMessage, 'role'> & { role: typeof LEGACY_USER_MESSAGE_ROLE }
-type LegacyAssistantMessage = Omit<OwlsAssistantMessage, 'role'> & {
-  role: typeof LEGACY_ASSISTANT_MESSAGE_ROLE
-}
-type LegacyContextSummaryMessage = Omit<OwlsContextSummaryMessage, 'role'> & {
-  role: typeof LEGACY_CONTEXT_SUMMARY_MESSAGE_ROLE
-}
-export type OwlsCompatibleAgentMessage =
-  | OwlsAgentMessage
-  | LegacyUserMessage
-  | LegacyAssistantMessage
-  | LegacyContextSummaryMessage
+export type OwlsCompatibleAgentMessage = OwlsAgentMessage
 
 declare module '@earendil-works/pi-agent-core' {
   interface CustomAgentMessages {
     owlsUser: OwlsUserMessage
     owlsAssistant: OwlsAssistantMessage
     owlsContextSummary: OwlsContextSummaryMessage
-    pixUser: LegacyUserMessage
-    pixAssistant: LegacyAssistantMessage
-    pixContextSummary: LegacyContextSummaryMessage
   }
 }
 
@@ -110,20 +93,20 @@ export function normalizeMessageVisibility(value: unknown, role: string): OwlsMe
 
 export function isOwlsUserMessageRole(
   role: unknown
-): role is typeof OWLS_USER_MESSAGE_ROLE | typeof LEGACY_USER_MESSAGE_ROLE {
-  return role === OWLS_USER_MESSAGE_ROLE || role === LEGACY_USER_MESSAGE_ROLE
+): role is typeof OWLS_USER_MESSAGE_ROLE {
+  return role === OWLS_USER_MESSAGE_ROLE
 }
 
 export function isOwlsAssistantMessageRole(
   role: unknown
-): role is typeof OWLS_ASSISTANT_MESSAGE_ROLE | typeof LEGACY_ASSISTANT_MESSAGE_ROLE {
-  return role === OWLS_ASSISTANT_MESSAGE_ROLE || role === LEGACY_ASSISTANT_MESSAGE_ROLE
+): role is typeof OWLS_ASSISTANT_MESSAGE_ROLE {
+  return role === OWLS_ASSISTANT_MESSAGE_ROLE
 }
 
 export function isOwlsContextSummaryMessageRole(
   role: unknown
-): role is typeof OWLS_CONTEXT_SUMMARY_MESSAGE_ROLE | typeof LEGACY_CONTEXT_SUMMARY_MESSAGE_ROLE {
-  return role === OWLS_CONTEXT_SUMMARY_MESSAGE_ROLE || role === LEGACY_CONTEXT_SUMMARY_MESSAGE_ROLE
+): role is typeof OWLS_CONTEXT_SUMMARY_MESSAGE_ROLE {
+  return role === OWLS_CONTEXT_SUMMARY_MESSAGE_ROLE
 }
 
 export function isOwlsAgentMessage(message: AgentMessage): message is OwlsCompatibleAgentMessage {
@@ -137,9 +120,7 @@ export function isOwlsAgentMessage(message: AgentMessage): message is OwlsCompat
   )
 }
 
-function owlsAssistantMessageToLlm(
-  message: OwlsAssistantMessage | LegacyAssistantMessage
-): Message | null {
+function owlsAssistantMessageToLlm(message: OwlsAssistantMessage): Message | null {
   if (!isModelVisibleMessage(message.visibility)) return null
 
   const content = [{ type: 'text' as const, text: message.content }]
@@ -164,10 +145,7 @@ function owlsAssistantMessageToLlm(
 }
 
 export function owlsAgentMessageToLlm(message: OwlsCompatibleAgentMessage): Message | null {
-  if (
-    message.role === OWLS_CONTEXT_SUMMARY_MESSAGE_ROLE ||
-    message.role === LEGACY_CONTEXT_SUMMARY_MESSAGE_ROLE
-  ) {
+  if (message.role === OWLS_CONTEXT_SUMMARY_MESSAGE_ROLE) {
     return {
       role: 'user',
       content: message.content,
@@ -175,7 +153,7 @@ export function owlsAgentMessageToLlm(message: OwlsCompatibleAgentMessage): Mess
     }
   }
 
-  if (message.role === OWLS_USER_MESSAGE_ROLE || message.role === LEGACY_USER_MESSAGE_ROLE) {
+  if (message.role === OWLS_USER_MESSAGE_ROLE) {
     if (!isModelVisibleMessage(message.visibility)) return null
     return {
       role: 'user',
@@ -184,10 +162,7 @@ export function owlsAgentMessageToLlm(message: OwlsCompatibleAgentMessage): Mess
     }
   }
 
-  if (
-    message.role === OWLS_ASSISTANT_MESSAGE_ROLE ||
-    message.role === LEGACY_ASSISTANT_MESSAGE_ROLE
-  ) {
+  if (message.role === OWLS_ASSISTANT_MESSAGE_ROLE) {
     return owlsAssistantMessageToLlm(message)
   }
 

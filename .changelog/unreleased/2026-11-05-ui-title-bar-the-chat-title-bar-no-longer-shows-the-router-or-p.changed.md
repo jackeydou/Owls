@@ -1,1 +1,1 @@
-- -- Title bar: the chat title bar no longer shows the Router or project name. (#33)
+- Title bar: the chat title bar no longer shows the Router or project name. (#33)

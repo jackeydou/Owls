@@ -1,1 +1,1 @@
-- -- Branding: every Pichu name is now Owls, including the app id, the URL scheme and the data folder. Data in ~/.pichu is not migrated, installed copies need a manual reinstall, and macOS permissions must be granted again. (#33)
+- Branding: every Pichu name is now Owls, including the app id, the URL scheme and the data folder. Data in ~/.pichu is not migrated, installed copies need a manual reinstall, and macOS permissions must be granted again. (#33)
