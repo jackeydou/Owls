@@ -156,6 +156,10 @@ app
       )
       await evaluate("document.querySelector('.router-editor-send, .codex-send').click()")
     }
+    const settingsTab = (label) =>
+      evaluate(
+        `Array.from(document.querySelectorAll('.codex-settings-nav .router-sidebar-item')).find(el => el.textContent === ${JSON.stringify(label)}).click()`
+      )
     const pressInEditor = (key, modifiers = {}) =>
       evaluate(
         `document.querySelector('.router-editor textarea').dispatchEvent(new KeyboardEvent('keydown', ${JSON.stringify({ key, bubbles: true, cancelable: true, ...modifiers })}))`
@@ -355,14 +359,21 @@ app
 
       await evaluate("document.querySelector('.router-sidebar-settings').click()")
       await waitFor("Boolean(document.querySelector('.codex-settings-content'))")
+      await settingsTab('Worker defaults')
+      await waitFor(
+        "document.querySelector('.codex-settings-content h2')?.textContent === 'Worker defaults'"
+      )
+      await settingsTab('Codex')
+      await waitFor("Boolean(document.querySelector('.codex-settings-actions button'))")
       assert.ok(
         await evaluate(
-          "document.querySelector('.codex-account-info').textContent.includes('fixture@example.com')"
+          "document.querySelector('.codex-settings-content').textContent.includes('fixture@example.com')"
         )
       )
-      assert.ok(await evaluate("document.body.textContent.includes('Worker defaults')"))
       await evaluate("document.querySelector('.codex-settings-actions button').click()")
       await waitFor("document.querySelector('.codex-settings-actions button')?.disabled === false")
+      await settingsTab('Appearance')
+      await waitFor("Boolean(document.querySelector('#codex-theme'))")
       await evaluate(
         "document.querySelector('#codex-theme').value = 'dark'; document.querySelector('#codex-theme').dispatchEvent(new Event('change', { bubbles: true }))"
       )
@@ -370,18 +381,20 @@ app
       await evaluate(
         "document.querySelector('#codex-language').value = 'zh-CN'; document.querySelector('#codex-language').dispatchEvent(new Event('change', { bubbles: true }))"
       )
-      await waitFor("document.body.textContent.includes('导入并使用本地 Codex 登录')")
+      await waitFor("document.querySelector('.codex-settings-content h2')?.textContent === '外观'")
       assert.equal(host.snapshot().settings.language, 'zh-CN')
       assert.equal(host.snapshot().settings.theme, 'dark')
       assert.equal(host.snapshot().settings.appLogo, 'solid')
       await evaluate(
         "[...document.querySelectorAll('input[name=codex-app-logo]')].length === 3 && document.querySelectorAll('input[name=codex-app-logo]')[0].click()"
       )
-      await waitFor("document.querySelector('.router-sidebar-logo img')?.dataset.logo === 'line'")
-      assert.equal(host.snapshot().settings.appLogo, 'line')
+      await waitFor(() => host.snapshot().settings.appLogo === 'line')
       await capture('settings')
+      await settingsTab('Codex')
+      await waitFor("document.body.textContent.includes('导入并使用本地 Codex 登录')")
       await press('Escape')
       await waitFor("Boolean(document.querySelector('.router-chat'))")
+      await waitFor("document.querySelector('.router-sidebar-logo img')?.dataset.logo === 'line'")
 
       // Router: an unconfigured Owls engine shows setup, and keys never come back out.
       await waitFor("document.body.textContent.includes('为协调者选择模型')")
@@ -659,8 +672,26 @@ app
       await waitFor(`Boolean(${flowOf})`)
       assert.equal(await evaluate(`getComputedStyle(${flowOf}).animationName`), 'map-flow')
       await capture('map-flow')
+      // A running worker sits under its project in the sidebar until it stops, folds away with
+      // the project's toggle, and opens its details from the row.
+      const sidebarWorker = "document.querySelector('.router-sidebar-worker')"
+      const fold = "document.querySelector('.router-project-fold')"
+      await waitFor(`${sidebarWorker}?.textContent.includes('烟雾 Worker')`)
+      assert.equal(await evaluate(`${sidebarWorker}.getAttribute('aria-current')`), 'true')
+      await capture('sidebar-workers')
+      assert.equal(await evaluate(`${fold}.getAttribute('aria-expanded')`), 'true')
+      await evaluate(`${fold}.click()`)
+      await waitFor(`!${sidebarWorker}`)
+      assert.equal(await evaluate(`${fold}.getAttribute('aria-expanded')`), 'false')
+      await evaluate(`${fold}.click()`)
+      await waitFor(`Boolean(${sidebarWorker})`)
+      await press('Escape')
+      await waitFor("!document.querySelector('.router-panel')")
+      await evaluate(`${sidebarWorker}.click()`)
+      await waitFor("Boolean(document.querySelector('.router-panel'))")
       await evaluate('document.querySelector(\'[aria-label="停止 Worker"]\').click()')
       await waitFor(`!${flowOf}`)
+      await waitFor(`!${sidebarWorker} && !${fold}`)
 
       // Removing a worker asks first, closes its details, and takes it off the map.
       await evaluate('document.querySelector(\'[aria-label="移除 Worker"]\').click()')
@@ -833,13 +864,13 @@ app
       assert.equal(claudeSession.threadId, 'claude-ui-session')
       assert.equal(claudeSession.items.find((i) => i.id === 'claude-tool').status, 'completed')
       await evaluate("document.querySelector('.router-sidebar-settings').click()")
-      await waitFor(
-        "Boolean(document.querySelector('.codex-settings-content')) && document.body.textContent.includes('本机 Claude Code')"
-      )
+      await waitFor("Boolean(document.querySelector('.codex-settings-content'))")
+      await settingsTab('Claude Code')
+      await waitFor("document.body.textContent.includes('本机 Claude Code')")
       assert.ok(await evaluate("document.body.textContent.includes('claude@example.com')"))
       await capture('claude-settings')
       console.log(
-        'PASS: production preload + IPC + SQLite + renderer, Router home and setup, keys, Inbox recovery, engine switch, dispatch groups, worker links, details, @ messages, approval tray, overview map, node approvals, questions, worker removal, map motion, reduced motion, Claude Code workers, theme/language, app logo, reload'
+        'PASS: production preload + IPC + SQLite + renderer, Router home and setup, keys, Inbox recovery, engine switch, dispatch groups, worker links, details, @ messages, approval tray, sidebar workers, overview map, node approvals, questions, worker removal, map motion, reduced motion, Claude Code workers, theme/language, app logo, reload'
       )
       if (captureDir) console.log(`UI captures: ${captureDir}`)
     } finally {

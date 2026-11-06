@@ -63,6 +63,10 @@ export const routerEn = {
   'router.noProjects': 'No projects yet',
   'router.project.run': '{{project}}, workers running',
   'router.project.wait': '{{project}}, waiting on you',
+  'router.project.workers': 'Workers in {{project}}',
+  'router.project.showWorkers': 'Show workers in {{project}}',
+  'router.project.hideWorkers': 'Hide workers in {{project}}',
+  'router.project.worker': '{{worker}}, {{state}}',
   'router.useAgent': 'Use {{agent}}',
   'router.workerSetupTitle': 'Connect {{agent}} to run workers',
   'router.workerSetupBody':
@@ -229,6 +233,10 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'router.noProjects': '还没有项目',
   'router.project.run': '{{project}}，有 Worker 在工作',
   'router.project.wait': '{{project}}，有事项等你',
+  'router.project.workers': '{{project}} 的 Worker',
+  'router.project.showWorkers': '展开 {{project}} 的 Worker',
+  'router.project.hideWorkers': '收起 {{project}} 的 Worker',
+  'router.project.worker': '{{worker}}，{{state}}',
   'router.useAgent': '使用 {{agent}}',
   'router.workerSetupTitle': '连接 {{agent}} 以运行 Worker',
   'router.workerSetupBody':

@@ -27,6 +27,8 @@ type State = {
   openDone: ReadonlySet<string>
   /** Workers whose children are folded on the map. */
   collapsed: ReadonlySet<string>
+  /** Projects whose active workers are folded away in the sidebar. */
+  foldedProjects: ReadonlySet<string>
   hydrate(routers: CodexRouter[], workers: RouterWorker[]): void
   router(router: CodexRouter): void
   worker(worker: RouterWorker): void
@@ -44,6 +46,7 @@ type State = {
   setMapFilter(filter: MapFilter): void
   toggleDone(projectId: string): void
   toggleCollapsed(workerId: string): void
+  toggleProjectFold(projectId: string): void
   loadProviders(): Promise<void>
   setKey(providerId: OwlsProviderId, key: string): Promise<boolean>
   removeKey(providerId: OwlsProviderId): Promise<void>
@@ -74,6 +77,7 @@ export const useRouterStore = create<State>((set, get) => {
     mapFilter: 'active',
     openDone: new Set(),
     collapsed: new Set(),
+    foldedProjects: new Set(),
     hydrate: (routers, workers) =>
       set((state) => ({
         routers: routers.reduce(newer, state.routers),
@@ -136,6 +140,8 @@ export const useRouterStore = create<State>((set, get) => {
     toggleDone: (projectId) => set((state) => ({ openDone: toggled(state.openDone, projectId) })),
     toggleCollapsed: (workerId) =>
       set((state) => ({ collapsed: toggled(state.collapsed, workerId) })),
+    toggleProjectFold: (projectId) =>
+      set((state) => ({ foldedProjects: toggled(state.foldedProjects, projectId) })),
     loadProviders: async () => {
       const providers = await action(() => window.codex.routerProviders())
       if (providers) set({ providers })
