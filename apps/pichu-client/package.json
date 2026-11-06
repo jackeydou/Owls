@@ -124,6 +124,7 @@
     "electron-builder": "26.8.2",
     "electron-vite": "^5.0.0",
     "node-abi": "^4.33.0",
+    "playwright-core": "1.64.1",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-scan": "^0.5.7",

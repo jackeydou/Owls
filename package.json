@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm --filter pichu-client dev --",
+    "debug:app": "node apps/pichu-client/scripts/debug-app.mjs",
     "changelog:add": "node scripts/changelog-add-unreleased.mjs",
     "changelog:check": "node scripts/changelog-check.mjs",
     "changelog:compose": "node scripts/changelog-compose-release.mjs",

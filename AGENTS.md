@@ -43,6 +43,9 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
   Passing `--pichu-data-root` overrides the data root for that launch only; pass
   it again on later launches that should use the same isolated data root.
 - Do not use environment variables for dev app profile names or data roots.
+- To run and drive the app yourself, use `pnpm debug:app` instead of `pnpm dev`:
+  it launches in the background on an isolated data root and takes one shell
+  command per step. See `.agents/skills/owls-app-debug/SKILL.md`.
 
 ### Code Style
 
@@ -264,6 +267,8 @@ Release MR flow:
 - Plugin system design and implementation: `docs/PLUGIN_SYSTEM.md` and `apps/pichu-client/src/main/plugins/`.
 - Release notes: `docs/reference/RELEASING.md` and `release-notes/`.
 - Native mac helpers: `packages/mac-*`.
+- Agent app debugging: `apps/pichu-client/scripts/debug-app.mjs` and
+  `.agents/skills/owls-app-debug/SKILL.md`.
 
 ## Implementation Rules
 

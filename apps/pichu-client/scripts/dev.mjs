@@ -13,6 +13,7 @@ const APP_ARG_NAMES = new Set([
   '--pix-dev-name',
   '--pix-data-root'
 ])
+const ELECTRON_SWITCH_NAMES = new Set(['--enable-logging'])
 const REACT_SCAN_ARG_NAME = '--react-scan'
 const PICHU_DEV_BUNDLE_ID = 'us.pichuapp.pichu.dev'
 const PICHU_DEV_APP_NAME = 'Owls Dev'
@@ -115,6 +116,11 @@ export function splitDevArgs(args) {
 
     if (arg === REACT_SCAN_ARG_NAME) {
       enableReactScan = true
+      continue
+    }
+
+    if (ELECTRON_SWITCH_NAMES.has(arg)) {
+      appArgs.push(arg)
       continue
     }
 
