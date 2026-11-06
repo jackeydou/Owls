@@ -139,14 +139,6 @@
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
-@media (max-width: 1050px) {
-  .codex-options.compact > label:first-child select {
-    max-width: 120px;
-  }
-  .codex-options.compact > label:nth-child(2) {
-    display: none;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .codex-app .animate-spin {
     animation: none;

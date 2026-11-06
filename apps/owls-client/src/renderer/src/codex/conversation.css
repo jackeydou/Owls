@@ -188,46 +188,6 @@
   color: var(--color-muted-foreground);
   font-size: 10px;
 }
-.codex-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin: 20px 0 10px;
-}
-.codex-options > label {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  flex: 1;
-  min-width: 130px;
-  font-size: 11px;
-  color: var(--color-muted-foreground);
-}
-.codex-options select {
-  font-size: 12px;
-  font-weight: 450;
-}
-.codex-options.compact {
-  gap: 3px;
-  margin: 0;
-}
-.codex-options.compact > label {
-  min-width: 0;
-  flex: initial;
-}
-.codex-options.compact > label > span {
-  display: none;
-}
-.codex-options.compact select {
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 0 3px;
-  height: 28px;
-  font-size: 10px;
-  color: var(--color-muted-foreground);
-  max-width: 160px;
-}
 .codex-request {
   padding: 19px;
   border: 1px solid color-mix(in srgb, #b8954a 45%, var(--color-border));

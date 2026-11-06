@@ -42,7 +42,6 @@ export function Sidebar() {
   const { t } = useTranslation()
   const projects = useCodexStore((s) => s.projects)
   const onMap = useCodexStore((s) => s.view === 'map')
-  const inSettings = useCodexStore((s) => s.view === 'settings')
   const { showMap, showSettings, pickProject } = useCodexStore()
   const provider = useCodexStore((s) => s.settings.provider)
   const connection = useCodexStore((s) => agentConnection(s, provider))
@@ -88,8 +87,7 @@ export function Sidebar() {
       <button
         type="button"
         className={`router-sidebar-item router-sidebar-settings ${connection.status}`}
-        aria-current={inSettings || undefined}
-        onClick={showSettings}
+        onClick={() => showSettings()}
       >
         <Settings2 size={15} />
         <span>{t('settings')}</span>

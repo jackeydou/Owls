@@ -1,40 +1,63 @@
+/* The whole window while open: navigation on the left, one tab's details on the right. */
+.codex-settings-nav .router-sidebar-head {
+  display: flex;
+  align-items: center;
+  padding-left: calc(var(--owl-toggle-left) - 10px);
+}
+.codex-settings-back {
+  gap: 5px;
+  height: var(--owl-toggle-size);
+  padding: 0 8px 0 5px;
+  border-radius: 7px;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 450;
+}
+.codex-settings-nav h1 {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  margin-bottom: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.codex-settings-nav hr {
+  flex-shrink: 0;
+  margin: 8px;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+.codex-settings-nav .router-agent-icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+.codex-settings-drag {
+  flex-shrink: 0;
+  height: var(--owl-bar-height);
+  -webkit-app-region: drag;
+}
 .codex-settings-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 .codex-settings-content {
-  max-width: 680px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 24px 32px 48px;
-}
-.codex-settings-content h1 {
-  font-size: 20px;
-  font-weight: 550;
-  letter-spacing: -0.4px;
-}
-.codex-subtitle {
-  font-size: 12px;
-  color: var(--color-muted-foreground);
-  margin: 4px 0 20px;
-}
-.codex-settings-section {
-  border-top: 1px solid var(--color-border);
-  padding: 16px 0 20px;
+  padding: 0 32px 48px;
 }
 .codex-settings-section h2 {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 }
-.codex-settings-section h3 {
-  font-size: 12px;
-  font-weight: 500;
-}
-.codex-settings-section p {
-  font-size: 11px;
+.codex-settings-section h2 + p,
+.codex-section-heading p {
+  margin-top: 4px;
   color: var(--color-muted-foreground);
+  font-size: 12px;
   line-height: 1.5;
-  margin-top: 2px;
 }
 .codex-section-heading {
   display: flex;
@@ -42,72 +65,28 @@
   justify-content: space-between;
   gap: 20px;
 }
-.codex-account {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 8px 12px 8px 8px;
-  margin: 10px 0;
-}
-.codex-account-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  background: var(--color-card-muted);
-}
-.codex-account-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  gap: 1px;
-  flex: 1;
-}
-.codex-account-info strong {
-  font-size: 12px;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.codex-account-info span {
-  font-size: 11px;
-  color: var(--color-muted-foreground);
-}
-.codex-success {
-  color: #458a68;
-}
-.codex-settings-actions {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  flex-wrap: wrap;
-}
-.codex-settings-section .codex-note {
-  font-size: 11px;
-  margin-top: 8px;
-}
-.codex-settings-section .codex-settings-actions {
-  margin-top: 8px;
-}
-.codex-account + .codex-settings-actions {
-  margin-top: 0;
-}
-.codex-settings-section .codex-inline-error {
-  margin-top: 8px;
-  padding: 8px 10px;
-}
-.codex-note a {
+.codex-connection {
   display: inline-flex;
-  gap: 3px;
+  flex-shrink: 0;
   align-items: center;
-  color: var(--color-foreground);
-  margin-left: 5px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  gap: 6px;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+.codex-connection i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--owl-queue);
+}
+.codex-connection.ready i {
+  background: var(--owl-run);
+}
+.codex-connection.connecting i {
+  background: var(--owl-wait);
+}
+.codex-connection.error i {
+  background: var(--owl-bad);
 }
 .codex-setting-row {
   display: flex;
@@ -117,16 +96,13 @@
   min-height: 30px;
   margin-top: 6px;
 }
-.codex-section-heading + .codex-setting-row,
-h2 + .codex-setting-row,
-.router-settings-body + .codex-setting-row,
-.router-settings-help + .codex-setting-row {
-  margin-top: 10px;
+.codex-setting-row > button,
+.codex-setting-row > .codex-settings-actions {
+  flex-shrink: 0;
 }
-/* A new group after a note or a button row, so it doesn't read as part of the one above. */
-.codex-note + .codex-setting-row,
-.codex-settings-actions + .codex-setting-row {
-  margin-top: 14px;
+.codex-setting-text {
+  flex: 1 1 0;
+  min-width: 0;
 }
 .codex-setting-row label {
   font-size: 12px;
@@ -142,17 +118,80 @@ h2 + .codex-setting-row,
   border-radius: 6px;
   font-size: 12px;
 }
-.codex-logo-field {
+/* Rows in a pane run edge to edge, split by a hairline; the guide reuses them without it. */
+.codex-settings-section .codex-setting-row {
+  flex-wrap: wrap;
+  row-gap: 0;
+  min-height: 56px;
+  margin: 0;
+  padding: 11px 0;
+  border-top: 1px solid var(--color-border);
+}
+.codex-settings-section h2 + p + .codex-setting-row,
+.codex-settings-section h2 + .codex-setting-row,
+.codex-section-heading + .codex-setting-row {
+  margin-top: 8px;
+  border-top: 0;
+}
+.codex-setting-text h3,
+.codex-settings-section .codex-setting-text label {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 450;
+}
+.codex-setting-text small {
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.codex-setting-text p {
+  margin-top: 2px;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.codex-setting-detail {
+  flex: 0 0 100%;
+  min-width: 0;
   margin-top: 10px;
 }
-.codex-logo-field legend {
+.codex-settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.codex-settings-section > .codex-settings-actions {
+  justify-content: flex-end;
+  padding-bottom: 12px;
+}
+.codex-settings-section > .codex-inline-error {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+}
+.codex-note {
+  margin-top: 6px;
+  color: var(--color-muted-foreground);
   font-size: 12px;
+  line-height: 1.5;
+}
+.codex-setting-row + .codex-note {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+.codex-note a {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  color: var(--color-foreground);
+  margin-left: 5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .codex-logo-options {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 6px;
 }
 .codex-logo-option {
   display: flex;
@@ -187,7 +226,6 @@ h2 + .codex-setting-row,
   padding: 6px 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  margin-top: 6px;
   font-size: 11px;
   word-break: break-all;
 }
@@ -195,16 +233,4 @@ h2 + .codex-setting-row,
   margin-top: 4px;
   font-size: 11px;
   color: var(--color-muted-foreground);
-}
-.codex-settings-section .codex-options {
-  gap: 8px;
-  margin: 10px 0 0;
-}
-.codex-settings-section .codex-options > label {
-  gap: 3px;
-}
-.codex-settings-section .codex-options select {
-  height: 30px;
-  padding: 0 8px;
-  border-radius: 6px;
 }

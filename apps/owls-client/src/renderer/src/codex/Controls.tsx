@@ -3,15 +3,11 @@ import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexSettings } from '../../../shared/codex'
 import { effortSchema, permissionSchema, providerSchema } from '../../../shared/codex'
+import { SettingRow } from './SettingRow'
 import { agentConnection, agentSelection, useCodexStore } from './store'
 
-export function TaskOptions({
-  disabled = false,
-  compact = false
-}: {
-  disabled?: boolean
-  compact?: boolean
-}) {
+/** The defaults a new worker starts with. */
+export function TaskOptions() {
   const { t } = useTranslation()
   const settings = useCodexStore((s) => s.settings)
   const provider = settings.provider
@@ -19,24 +15,22 @@ export function TaskOptions({
   const save = useCodexStore((s) => s.saveSettings)
   const id = useId()
   const agent = t(`agent.${provider}`)
+  const claudeAgent = provider === 'claude-code'
   const { model, effort } = agentSelection(settings, provider)
   const selected = models.find((m) => m.id === model)
   const efforts = selected?.efforts ?? []
   function saveSelection(next: { model: string | null; effort: string | null }) {
-    const update: CodexSettings =
-      provider === 'claude-code'
-        ? { ...settings, claudeModel: next.model, claudeEffort: next.effort }
-        : { ...settings, model: next.model, effort: next.effort }
+    const update: CodexSettings = claudeAgent
+      ? { ...settings, claudeModel: next.model, claudeEffort: next.effort }
+      : { ...settings, model: next.model, effort: next.effort }
     void save(update)
   }
   return (
-    <div className={compact ? 'codex-options compact' : 'codex-options'}>
-      <label htmlFor={`${id}-agent`}>
-        <span>{t('agent')}</span>
+    <>
+      <SettingRow label={t('agent')} htmlFor={`${id}-agent`}>
         <Select
           id={`${id}-agent`}
           value={provider}
-          disabled={disabled}
           onChange={(event) =>
             void save({ ...settings, provider: providerSchema.parse(event.target.value) })
           }
@@ -47,13 +41,18 @@ export function TaskOptions({
             </option>
           ))}
         </Select>
-      </label>
-      <label htmlFor={`${id}-model`}>
-        <span>{t('model')}</span>
+      </SettingRow>
+      <SettingRow
+        label={t('model')}
+        htmlFor={`${id}-model`}
+        description={
+          models.length ? null : t(claudeAgent ? 'claudeAccountUnavailable' : 'accountUnavailable')
+        }
+      >
         <Select
           id={`${id}-model`}
           value={model ?? '__default__'}
-          disabled={disabled || !models.length}
+          disabled={!models.length}
           onChange={(event) => {
             const next = event.target.value === '__default__' ? null : event.target.value
             saveSelection({
@@ -69,39 +68,44 @@ export function TaskOptions({
             </option>
           ))}
         </Select>
-      </label>
-      {!compact || efforts.length ? (
-        <label htmlFor={`${id}-effort`}>
-          <span>{t('effort')}</span>
-          <Select
-            id={`${id}-effort`}
-            value={effort ?? '__default__'}
-            disabled={disabled || !efforts.length}
-            onChange={(event) =>
-              saveSelection({
-                model,
-                effort:
-                  event.target.value === '__default__'
-                    ? null
-                    : effortSchema.parse(event.target.value)
-              })
-            }
-          >
-            <option value="__default__">{t('nativeDefault', { agent })}</option>
-            {efforts.map((option) => (
-              <option key={option} value={option}>
-                {t(`effort.${option}`, { defaultValue: option })}
-              </option>
-            ))}
-          </Select>
-        </label>
-      ) : null}
-      <label htmlFor={`${id}-permission`}>
-        <span>{t('permission')}</span>
+      </SettingRow>
+      <SettingRow label={t('effort')} htmlFor={`${id}-effort`}>
+        <Select
+          id={`${id}-effort`}
+          value={effort ?? '__default__'}
+          disabled={!efforts.length}
+          onChange={(event) =>
+            saveSelection({
+              model,
+              effort:
+                event.target.value === '__default__' ? null : effortSchema.parse(event.target.value)
+            })
+          }
+        >
+          <option value="__default__">{t('nativeDefault', { agent })}</option>
+          {efforts.map((option) => (
+            <option key={option} value={option}>
+              {t(`effort.${option}`, { defaultValue: option })}
+            </option>
+          ))}
+        </Select>
+      </SettingRow>
+      <SettingRow
+        label={t('permission')}
+        htmlFor={`${id}-permission`}
+        description={t(
+          settings.permission === 'full-access'
+            ? claudeAgent
+              ? 'claudeFullAccessHelp'
+              : 'fullAccessHelp'
+            : claudeAgent
+              ? 'claudePermissionHelp'
+              : 'permissionHelp'
+        )}
+      >
         <Select
           id={`${id}-permission`}
           value={settings.permission}
-          disabled={disabled}
           onChange={(event) =>
             void save({ ...settings, permission: permissionSchema.parse(event.target.value) })
           }
@@ -112,7 +116,7 @@ export function TaskOptions({
             </option>
           ))}
         </Select>
-      </label>
-    </div>
+      </SettingRow>
+    </>
   )
 }

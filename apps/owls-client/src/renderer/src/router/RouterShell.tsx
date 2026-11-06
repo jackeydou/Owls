@@ -36,7 +36,7 @@ function ActionError() {
     </div>
   )
 }
-/** Backs out one level at a time: details, then the map, then Settings. */
+/** Backs out one level at a time: Settings, then details, then the map. */
 function stepBack() {
   const { panel, showPanel } = useRouterStore.getState()
   const { view, showChat, leaveSettings } = useCodexStore.getState()
@@ -62,7 +62,8 @@ export function RouterShell() {
       }
       if (event.key.toLowerCase() === 'b') {
         event.preventDefault()
-        toggleSidebar()
+        // Settings' navigation is its only way between tabs, so it can't be hidden.
+        if (view !== 'settings') toggleSidebar()
       }
       if (event.key.toLowerCase() === 'j') {
         event.preventDefault()
@@ -73,18 +74,20 @@ export function RouterShell() {
     window.addEventListener('keydown', keydown)
     return () => window.removeEventListener('keydown', keydown)
   }, [])
+  if (view === 'settings') {
+    return (
+      <>
+        <CodexSettingsPage />
+        <ActionError />
+      </>
+    )
+  }
   return (
     <>
       {collapsed ? null : <Sidebar />}
       <div className={collapsed ? 'router-stage sidebar-hidden' : 'router-stage'}>
-        {view === 'settings' ? (
-          <CodexSettingsPage />
-        ) : view === 'map' ? (
-          <MapView />
-        ) : (
-          <RouterChat key={projectId ?? 'none'} />
-        )}
-        {view === 'settings' ? null : <Panel />}
+        {view === 'map' ? <MapView /> : <RouterChat key={projectId ?? 'none'} />}
+        <Panel />
       </div>
       {/* Stays after the stage: Chromium applies app regions in document order, whatever the
           z-index, so a title bar later in the DOM would turn this button back into a drag area. */}

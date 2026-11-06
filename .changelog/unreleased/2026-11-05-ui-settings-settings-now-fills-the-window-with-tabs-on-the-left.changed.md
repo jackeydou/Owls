@@ -1,0 +1,1 @@
+- -- Settings: Settings now fills the window, with tabs on the left and one tab's details on the right, and its links open the tab that fixes the problem. (#36)
