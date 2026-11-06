@@ -1,5 +1,4 @@
 export const SOP_GRAPH_SCHEMA = 'owls.sop_graph.v1' as const
-export const LEGACY_SOP_GRAPH_SCHEMA = 'pix.sop_graph.v1' as const
 export const SOP_INDEX_VERSION = 1 as const
 
 export type SopNodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'

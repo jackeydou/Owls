@@ -92,30 +92,6 @@ test('getDataRoot reads persisted bootstrap from Electron userData', async () =>
   }
 })
 
-test('migrateLegacyDataRoot copies existing data and renames persisted product files', async () => {
-  const root = mkdtempSync(join(process.cwd(), '.owls-paths-test-'))
-  const loaded = await loadOwlsPathsForTest()
-  try {
-    const legacyRoot = join(root, 'legacy-data')
-    const currentRoot = join(root, 'current-data')
-    mkdirSync(legacyRoot, { recursive: true })
-    writeFileSync(join(legacyRoot, 'pix.db'), 'database')
-    writeFileSync(join(legacyRoot, 'pix-settings.json'), '{}')
-    writeFileSync(join(legacyRoot, 'attachment.txt'), 'kept')
-
-    loaded.module.migrateLegacyDataRoot(legacyRoot, currentRoot)
-
-    assert.equal(readFileSync(join(currentRoot, 'owls.db'), 'utf8'), 'database')
-    assert.equal(readFileSync(join(currentRoot, 'owls-settings.json'), 'utf8'), '{}')
-    assert.equal(readFileSync(join(currentRoot, 'attachment.txt'), 'utf8'), 'kept')
-    assert.equal(existsSync(join(currentRoot, 'pix.db')), false)
-    assert.equal(existsSync(join(currentRoot, 'pix-settings.json')), false)
-  } finally {
-    loaded.cleanup()
-    rmSync(root, { recursive: true, force: true })
-  }
-})
-
 test('writeBootstrapIfMissing migrates a non-temporary legacy bootstrap into userData', async () => {
   const root = mkdtempSync(join(process.cwd(), '.owls-paths-test-'))
   const previousArgv = process.argv
