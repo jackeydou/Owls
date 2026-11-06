@@ -1,41 +1,111 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { Network, Plus, Settings2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Network, Plus, Settings2 } from 'lucide-react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexProject } from '../../../shared/codex'
+import type { RouterWorker } from '../../../shared/router'
+import { isInPlay } from '../../../shared/worker-map'
 import { AppLogoMark } from '../codex/AppLogo'
 import { agentConnection, useCodexStore } from '../codex/store'
-import { isWaitingOnUser, isWorking, projectHue } from './activity'
+import { byAge, isWaitingOnUser, isWorking, projectHue, workerState, workerTitle } from './activity'
 import { useRouterStore } from './store'
+import { WorkerDot } from './WorkerLink'
 
+function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: string }) {
+  const { t } = useTranslation()
+  const focusProject = useCodexStore((s) => s.focusProject)
+  const showPanel = useRouterStore((s) => s.showPanel)
+  const current = useRouterStore(
+    (s) => s.panel?.kind === 'worker' && s.panel.workerId === worker.id
+  )
+  const title = workerTitle(worker)
+  return (
+    <li>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="router-sidebar-worker"
+            aria-label={t('router.project.worker', {
+              worker: title,
+              state: t(`workerState.${workerState(worker)}`)
+            })}
+            aria-current={current || undefined}
+            onClick={() => {
+              focusProject(projectId)
+              showPanel({ kind: 'worker', workerId: worker.id })
+            }}
+          >
+            <WorkerDot worker={worker} />
+            <span>{title}</span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right">{title}</TooltipContent>
+      </Tooltip>
+    </li>
+  )
+}
 function ProjectRow({ project }: { project: CodexProject }) {
   const { t } = useTranslation()
   const current = useCodexStore((s) => s.view === 'chat' && s.routerProjectId === project.id)
   const showChat = useCodexStore((s) => s.showChat)
-  const state = useRouterStore((s) => {
-    const router = s.routers.find((r) => r.projectId === project.id)
-    const workers = s.workers.filter((w) => w.routerId === router?.id && w.status !== 'removed')
-    return workers.some(isWaitingOnUser) ? 'wait' : workers.some(isWorking) ? 'run' : null
-  })
+  const routerId = useRouterStore((s) => s.routers.find((r) => r.projectId === project.id)?.id)
+  const allWorkers = useRouterStore((s) => s.workers)
+  const folded = useRouterStore((s) => s.foldedProjects.has(project.id))
+  const toggleProjectFold = useRouterStore((s) => s.toggleProjectFold)
+  // Oldest first, so a row stays put while its neighbors change state.
+  const workers = useMemo(
+    () => allWorkers.filter((w) => w.routerId === routerId && isInPlay(w)).sort(byAge),
+    [allWorkers, routerId]
+  )
+  const state = workers.some(isWaitingOnUser) ? 'wait' : workers.some(isWorking) ? 'run' : null
   const label = state ? t(`router.project.${state}`, { project: project.name }) : project.name
+  const foldLabel = t(folded ? 'router.project.showWorkers' : 'router.project.hideWorkers', {
+    project: project.name
+  })
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          className="router-project"
-          style={{ '--owl-c': projectHue(project.id) } as React.CSSProperties}
-          aria-label={label}
-          aria-current={current || undefined}
-          onClick={() => showChat(project.id)}
+    <div className="router-sidebar-project">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className={workers.length ? 'router-project foldable' : 'router-project'}
+            style={{ '--owl-c': projectHue(project.id) } as React.CSSProperties}
+            aria-label={label}
+            aria-current={current || undefined}
+            onClick={() => showChat(project.id)}
+          >
+            <b aria-hidden="true">{project.name.slice(0, 1).toUpperCase()}</b>
+            <span>{project.name}</span>
+            {state ? <i className={state} aria-hidden /> : null}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right">{project.path}</TooltipContent>
+      </Tooltip>
+      {workers.length ? (
+        <IconButton
+          size="custom"
+          className="router-project-fold"
+          label={foldLabel}
+          tooltip={foldLabel}
+          tooltipSide="right"
+          aria-expanded={!folded}
+          icon={folded ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+          onClick={() => toggleProjectFold(project.id)}
+        />
+      ) : null}
+      {workers.length && !folded ? (
+        <ul
+          className="router-sidebar-workers"
+          aria-label={t('router.project.workers', { project: project.name })}
         >
-          <b aria-hidden="true">{project.name.slice(0, 1).toUpperCase()}</b>
-          <span>{project.name}</span>
-          {state ? <i className={state} aria-hidden /> : null}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="right">{project.path}</TooltipContent>
-    </Tooltip>
+          {workers.map((worker) => (
+            <WorkerRow key={worker.id} worker={worker} projectId={project.id} />
+          ))}
+        </ul>
+      ) : null}
+    </div>
   )
 }
 export function Sidebar() {

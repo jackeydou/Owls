@@ -1,0 +1,1 @@
+- Sidebar: each project now lists its active workers, and you can fold the list or open a worker from it. (#37)
