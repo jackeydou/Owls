@@ -1,0 +1,1 @@
+- -- Compatibility: the old --pix-* flags, the pix-client URL scheme, and the com.pix.app plugin fallbacks are gone. (#34)

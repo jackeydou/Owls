@@ -5,14 +5,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import electronExecutablePath from 'electron'
 
-const APP_ARG_NAMES = new Set([
-  '--owls-dev-name',
-  '--dev-name',
-  '--owls-data-root',
-  '--data-root',
-  '--pix-dev-name',
-  '--pix-data-root'
-])
+const APP_ARG_NAMES = new Set(['--owls-dev-name', '--dev-name', '--owls-data-root', '--data-root'])
 const ELECTRON_SWITCH_NAMES = new Set(['--enable-logging'])
 const REACT_SCAN_ARG_NAME = '--react-scan'
 const OWLS_DEV_BUNDLE_ID = 'us.owlsapp.owls.dev'

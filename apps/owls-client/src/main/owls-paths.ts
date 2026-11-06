@@ -1,11 +1,9 @@
 import {
   copyFileSync,
-  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
   realpathSync,
-  renameSync,
   rmSync,
   writeFileSync
 } from 'node:fs'
@@ -16,16 +14,9 @@ import { parseDataRootArg } from '../shared/startup-args.js'
 
 const STORE_FILENAME = 'owls-settings.json'
 const BOOTSTRAP_FILENAME = 'owls-bootstrap.json'
-const LEGACY_STORE_FILENAME = 'pix-settings.json'
-const LEGACY_BOOTSTRAP_FILENAME = 'pix-bootstrap.json'
-const LEGACY_DATABASE_FILENAME = 'pix.db'
 
 export function defaultDataRoot(): string {
   return join(homedir(), '.owls')
-}
-
-function legacyDefaultDataRoot(): string {
-  return join(homedir(), '.pix')
 }
 
 /** Where Router workers get their own git worktrees, one directory per repository (RFC 11.1). */
@@ -43,10 +34,6 @@ function bootstrapPath(): string {
 
 function dataRootBootstrapMirrorPath(): string {
   return join(defaultDataRoot(), BOOTSTRAP_FILENAME)
-}
-
-function legacyProductBootstrapPath(): string {
-  return join(legacyDefaultDataRoot(), LEGACY_BOOTSTRAP_FILENAME)
 }
 
 function isPathInside(parent: string, child: string): boolean {
@@ -86,9 +73,7 @@ function readBootstrapDataRoot(path: string): string | null {
 
 function readPersistedDataRoot(): string | null {
   return (
-    readBootstrapDataRoot(bootstrapPath()) ??
-    readBootstrapDataRoot(dataRootBootstrapMirrorPath()) ??
-    readBootstrapDataRoot(legacyProductBootstrapPath())
+    readBootstrapDataRoot(bootstrapPath()) ?? readBootstrapDataRoot(dataRootBootstrapMirrorPath())
   )
 }
 
@@ -160,44 +145,6 @@ export function writeBootstrapDataRoot(absPath: string): void {
   ensureBootstrapDir()
   writeBootstrapFile(bootstrapPath(), dataRoot)
   syncDataRootBootstrapMirror(dataRoot)
-}
-
-function migrateLegacyFileName(root: string, legacyName: string, currentName: string): void {
-  const legacyPath = join(root, legacyName)
-  const currentPath = join(root, currentName)
-  if (existsSync(legacyPath) && !existsSync(currentPath)) {
-    renameSync(legacyPath, currentPath)
-  }
-}
-
-function migrateLegacyDataRootFiles(root: string): void {
-  migrateLegacyFileName(root, LEGACY_STORE_FILENAME, STORE_FILENAME)
-  migrateLegacyFileName(root, LEGACY_BOOTSTRAP_FILENAME, BOOTSTRAP_FILENAME)
-  for (const suffix of ['', '-wal', '-shm']) {
-    migrateLegacyFileName(root, `${LEGACY_DATABASE_FILENAME}${suffix}`, `owls.db${suffix}`)
-  }
-}
-
-export function migrateLegacyDataRoot(
-  legacyRoot = legacyDefaultDataRoot(),
-  currentRoot = defaultDataRoot()
-): void {
-  if (normalize(legacyRoot) === normalize(currentRoot)) return
-  if (!existsSync(currentRoot) && existsSync(legacyRoot)) {
-    cpSync(legacyRoot, currentRoot, { recursive: true, errorOnExist: true })
-  }
-  if (existsSync(currentRoot)) {
-    migrateLegacyDataRootFiles(currentRoot)
-  }
-}
-
-export function ensureDataRootDir(): void {
-  const dataRoot = getDataRoot()
-  if (normalize(dataRoot) === normalize(defaultDataRoot())) {
-    migrateLegacyDataRoot()
-  }
-  mkdirSync(dataRoot, { recursive: true })
-  migrateLegacyDataRootFiles(dataRoot)
 }
 
 /** Persist the normal data root in the app profile without saving one-off startup overrides. */

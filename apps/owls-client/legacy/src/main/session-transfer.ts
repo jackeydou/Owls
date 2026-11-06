@@ -19,7 +19,6 @@ import {
 const EXPORT_FORMAT = 'owls.session.v1'
 const MAX_IMPORT_BYTES = 50 * 1024 * 1024
 const CLIENT_PROTOCOL = 'owls-client'
-const LEGACY_CLIENT_PROTOCOL = 'pix-client'
 
 type ExportHeader = {
   type: typeof EXPORT_FORMAT
@@ -337,12 +336,7 @@ function unwrapSessionImportUrl(value: string): string {
     throw new Error('Session import URL must be a valid URL')
   }
 
-  if (
-    [CLIENT_PROTOCOL, LEGACY_CLIENT_PROTOCOL].some(
-      (clientProtocol) => parsedUrl.protocol === `${clientProtocol}:`
-    ) &&
-    parsedUrl.hostname === 'session'
-  ) {
+  if (parsedUrl.protocol === `${CLIENT_PROTOCOL}:` && parsedUrl.hostname === 'session') {
     if (parsedUrl.pathname !== '/import') {
       throw new Error('Session import deeplink must point to a shared session import')
     }

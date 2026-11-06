@@ -13,7 +13,6 @@ import {
 } from './hook-types.js'
 
 const OWLS_AGENT_PLUGIN_HOOK_CONFIG_PATH = './com.owls.app/hooks/hooks.json'
-const LEGACY_AGENT_PLUGIN_HOOK_CONFIG_PATH = './com.pix.app/hooks/hooks.json'
 const HOOK_EVENT_NAMES = new Set<string>(AGENT_HOOK_EVENT_NAMES)
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -333,9 +332,7 @@ export async function loadOwlsAgentPluginHookDeclarationsAsync(
   pluginRoot: string,
   diagnostics: PluginDiagnostic[]
 ): Promise<PluginHookDeclaration[]> {
-  const configPath = (await pathExists(resolve(pluginRoot, OWLS_AGENT_PLUGIN_HOOK_CONFIG_PATH)))
-    ? OWLS_AGENT_PLUGIN_HOOK_CONFIG_PATH
-    : LEGACY_AGENT_PLUGIN_HOOK_CONFIG_PATH
+  const configPath = OWLS_AGENT_PLUGIN_HOOK_CONFIG_PATH
   if (!(await pathExists(resolve(pluginRoot, configPath)))) return []
   return await loadHookConfigPathAsync(pluginRoot, configPath, 'path', 0, diagnostics)
 }
