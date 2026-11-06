@@ -141,8 +141,11 @@ export function RouterSettingsSection() {
   )
 }
 
-/** Provider, model, and key for the built-in engine; the model is saved only when valid. */
-function OwlsModelFields() {
+/**
+ * Provider, model, and key for the built-in engine; the model is saved only when valid.
+ * `guided` saves both with one button, since a saved model ends the guide.
+ */
+export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
   const { t } = useTranslation()
   const settings = useCodexStore((s) => s.settings)
   const saveSettings = useCodexStore((s) => s.saveSettings)
@@ -172,6 +175,14 @@ function OwlsModelFields() {
     if (await setKey(draft.provider, key.trim())) setKeyText('')
     setSavingKey(false)
   }
+  async function finish() {
+    if (!valid.success) return
+    setSavingKey(true)
+    const keyed = !key.trim() || (await setKey(draft.provider, key.trim()))
+    if (keyed) await saveRouter({ ...settings.router, owls: valid.data })
+    setSavingKey(false)
+  }
+  const keyMissing = !custom && !provider?.configured && !key.trim()
   return (
     <>
       <div className="codex-setting-row">
@@ -247,16 +258,20 @@ function OwlsModelFields() {
           ))}
         </Select>
       </div>
-      <div className="codex-settings-actions">
-        <Button
-          size="sm"
-          disabled={!valid.success || unchanged}
-          onClick={() => valid.success && void saveRouter({ ...settings.router, owls: valid.data })}
-        >
-          <Check size={14} />
-          {t('routerSettings.saveModel')}
-        </Button>
-      </div>
+      {guided ? null : (
+        <div className="codex-settings-actions">
+          <Button
+            size="sm"
+            disabled={!valid.success || unchanged}
+            onClick={() =>
+              valid.success && void saveRouter({ ...settings.router, owls: valid.data })
+            }
+          >
+            <Check size={14} />
+            {t('routerSettings.saveModel')}
+          </Button>
+        </div>
+      )}
       <div className="codex-setting-row">
         <label htmlFor="router-key">
           {t('routerSettings.apiKey')}
@@ -277,17 +292,31 @@ function OwlsModelFields() {
         />
       </div>
       <p className="router-settings-help">{t('routerSettings.keyHelp')}</p>
-      <div className="codex-settings-actions">
-        <Button size="sm" disabled={!key.trim() || savingKey} onClick={() => void saveKey()}>
-          {savingKey ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
-          {t('routerSettings.saveKey')}
-        </Button>
-        {provider?.configured ? (
-          <Button size="sm" variant="outline" onClick={() => void removeKey(draft.provider)}>
-            {t('routerSettings.removeKey')}
+      {guided ? (
+        <div className="codex-settings-actions">
+          <Button
+            size="sm"
+            className="router-guide-continue"
+            disabled={!valid.success || keyMissing || savingKey}
+            onClick={() => void finish()}
+          >
+            {savingKey ? <Loader2 size={14} className="animate-spin" /> : null}
+            {t('router.guideContinue')}
           </Button>
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <div className="codex-settings-actions">
+          <Button size="sm" disabled={!key.trim() || savingKey} onClick={() => void saveKey()}>
+            {savingKey ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+            {t('routerSettings.saveKey')}
+          </Button>
+          {provider?.configured ? (
+            <Button size="sm" variant="outline" onClick={() => void removeKey(draft.provider)}>
+              {t('routerSettings.removeKey')}
+            </Button>
+          ) : null}
+        </div>
+      )}
     </>
   )
 }

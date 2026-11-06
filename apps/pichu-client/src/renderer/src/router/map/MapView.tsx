@@ -279,7 +279,6 @@ export function MapView() {
       <div className="map-bar">
         <RouterComposer
           key={`${targetProject?.id ?? 'none'}:${target?.id ?? 'router'}`}
-          compact
           projectId={targetProject?.id ?? null}
           router={targetProject?.router}
           target={target}

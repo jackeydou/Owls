@@ -18,7 +18,7 @@ Router/Worker 的运行时设计继续有效。
 4. **每个项目一个 Router**，沿用现有模型。首页是对话，左侧只保留窄项目栏。
 5. **Worker 没有输入框。** 用户想调整某个 Worker，就在 Router 的输入框里用 `@` 指向它，或在全景中选中它。
 6. **定向消息由 Owls 直接投递，不经过 Router 模型**（第 4.4 节），保留追问直通的速度和成本优势。
-7. **审批就地处理。** 对话里固定在输入框上方，全景里显示在节点上，都不需要进入 Worker 详情。
+7. **审批就地处理。** 对话里紧贴编辑行上方并在滚动时吸底，全景里显示在节点上，都不需要进入 Worker 详情。
 8. **不做向后兼容的 UI 和 IPC。** 旧入口直接删除。持久化数据按第 8 节处理。
 
 ## 2. 目标与非目标
@@ -78,7 +78,9 @@ Router/Worker 的运行时设计继续有效。
 | 已完成 N | 数量 | 展开或折叠 |
 | 保留的 worktree | 文字标记 | 打开 Router 详情，在那里丢弃 |
 
-**输入框跟随选中对象。** 底部输入框选中项目时发给它的 Router，选中 Worker 时发定向消息（第 4.4 节）。
+**首页是一篇 thread。** 进入 app 就是编辑行，没有项目时也一样：发送时才询问文件夹。消息从上到下排列，每行左侧是头像，没有底部输入框：用户在 thread 末尾的编辑行直接书写，Enter 换行，Command-Enter 发送。
+
+**全景输入框跟随选中对象。** 全景底部的单行输入框选中项目时发给它的 Router，选中 Worker 时发定向消息（第 4.4 节）。
 从全景发送后留在全景，回复显示在项目节点上。
 
 **操作。** 滚动平移，拖动空白处平移，`⌘ + 滚轮`或捏合缩放，`F` 适应窗口，`N` 跳到下一个需要处理的
@@ -199,7 +201,7 @@ renderer 从 `sessions` 派生待处理请求，不需要新事件：取当前 R
 
 | 位置 | 显示 |
 | --- | --- |
-| 对话 | 输入框上方的托盘，复用 `RequestCard`，四种请求（含密文输入）都走同一个组件。只展开第一个，其余显示数量 |
+| 对话 | 编辑行上方的托盘，滚动时吸底，复用 `RequestCard`，四种请求（含密文输入）都走同一个组件。只展开第一个，其余显示数量 |
 | 全景节点 | `command`、`files`、`permissions` 显示请求内容和批准、拒绝 |
 | 全景节点（`question`） | 问题和密文输入放不进节点，只显示「需要回答」，点击后在详情里作答 |
 | Worker 详情 | 活动页显示 `RequestCard` |
@@ -260,14 +262,17 @@ Worker 的 `needs_input` 汇报不进托盘：它走 Inbox，由 Router 在对�
 ```text
 renderer/src/router/
   RouterShell.tsx        项目栏 + 对话或全景 + 详情面板，全局快捷键
-  ProjectRail.tsx        全景入口、项目、徽标、添加、设置
-  RouterChat.tsx         首页：标题栏、时间线、托盘、输入框
+  Sidebar.tsx            全景入口、项目列表、添加、设置；默认展开，可完全隐藏
+  RouterChat.tsx         首页：标题栏、引导或时间线、托盘、编辑行
   RouterSetup.tsx        未就绪时的卡片和一键切换
   RouterTimeline.tsx     时间线，合并派发组，隐藏 tool 条目
   DispatchGroup.tsx      派发组
   WorkerLink.tsx         行内引用，含 Streamdown 的 a 组件
   RequestTray.tsx        审批托盘，复用 RequestCard
-  RouterComposer.tsx     输入框和 @ 菜单
+  RouterComposer.tsx     草稿逻辑、@ 菜单、全景输入框
+  RouterGuide.tsx        首次进入的设置引导
+  ThreadEditor.tsx       thread 末尾的编辑行
+  ThreadRow.tsx          thread 的一行：头像和正文
   StatusEntry.tsx        状态入口和缩略树
   WorkerDetail.tsx       活动、改动、汇报
   RouterDetail.tsx       引擎、模型、用量、保留的 worktree
@@ -306,10 +311,11 @@ shared/
   （RFC 第 6 节）。`degraded` 时说明内容取自原始输出。
 - **启动**：打开 `updatedAt` 最新的 Router，没有时打开第一个项目，都没有时显示选择文件夹。
   不新增设置项，也不需要记住「上次的项目」。
-- **无项目、未配置时的首页**：Router 引擎未就绪时显示设置卡片。RFC 9.7 节要求的「一键切换到已连接
-  的 Claude Code 或 Codex」目前没有实现，这里补上，否则新用户必须先有 API key 才能使用。
-  新增一种情况：引擎就绪，但默认 Worker agent 未连接，同样显示卡片，否则所有派发都会以
-  `provider_unavailable` 失败。
+- **未配置时的首页**：thread 为空且 Router 引擎未就绪时，进入 app 先走引导（`RouterGuide`），不显示
+  thread 和编辑行；选中已连接的 Claude Code 或 Codex 一步完成，否则新用户必须先有 API key 才能使用。
+  引擎就绪但默认 Worker agent 未连接时，引导进入第二步，否则所有派发都会以 `provider_unavailable`
+  失败。引导可以跳过，下次启动仍会出现。thread 已有内容或引导被跳过时，同样的提示以一条 Router 消息
+  显示在编辑行上方（`RouterSetupNotice`），保留一键切换。
   一键切换后，`RouterService.settingsChanged` 清除旧设置留下的失败，并发出等待中的消息，用户不用重发。
 - **设置**：`defaults` 分组改名为「Worker 默认值」，`TaskOptions` 从输入框挪到这里。
 - **无障碍**：节点容器使用 `role="tree"`，方向键移动焦点，所有操作都有键盘路径。信号和颜色都不是

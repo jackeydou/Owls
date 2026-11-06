@@ -41,6 +41,7 @@ export class CodexStore {
           theme: 'system',
           language: 'en',
           appLogo: 'solid',
+          sidebarCollapsed: false,
           provider: 'codex',
           claudeExecutablePath: null,
           claudeModel: null,

@@ -110,6 +110,7 @@ export const settingsSchema = z.object({
   theme: z.enum(['system', 'light', 'dark']),
   language: z.enum(['en', 'zh-CN']),
   appLogo: appLogoSchema.default('solid'),
+  sidebarCollapsed: z.boolean().default(false),
   provider: providerSchema.default('codex'),
   claudeExecutablePath: z.string().nullable().default(null),
   claudeModel: z.string().nullable().default(null),

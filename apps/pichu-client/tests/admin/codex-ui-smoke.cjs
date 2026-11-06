@@ -145,15 +145,21 @@ app
     }
     const type = (text) =>
       evaluate(`(() => {
-      const input = document.querySelector('.codex-composer textarea')
+      const input = document.querySelector('.router-editor textarea, .router-composer textarea')
       Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, ${JSON.stringify(text)})
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })()`)
     const send = async (text) => {
       await type(text)
-      await waitFor("document.querySelector('.codex-send')?.disabled === false")
-      await evaluate("document.querySelector('.codex-send').click()")
+      await waitFor(
+        "document.querySelector('.router-editor-send, .codex-send')?.disabled === false"
+      )
+      await evaluate("document.querySelector('.router-editor-send, .codex-send').click()")
     }
+    const pressInEditor = (key, modifiers = {}) =>
+      evaluate(
+        `document.querySelector('.router-editor textarea').dispatchEvent(new KeyboardEvent('keydown', ${JSON.stringify({ key, bubbles: true, cancelable: true, ...modifiers })}))`
+      )
     const press = (key, modifiers = {}) =>
       evaluate(
         `window.dispatchEvent(new KeyboardEvent('keydown', ${JSON.stringify({ key, bubbles: true, ...modifiers })}))`
@@ -277,11 +283,10 @@ app
           }
         })
         await window.reload()
-        await waitFor("Boolean(document.querySelector('.codex-composer textarea:not(:disabled)'))")
+        await waitFor("Boolean(document.querySelector('.router-editor textarea:not(:read-only)'))")
       }
       router = startRouter()
       host.attachRouter(router)
-      host.addProject(temp)
       await host.connect()
       window = new BrowserWindow({
         show: false,
@@ -298,7 +303,7 @@ app
       })
       registerCodexIpc(host, () => window)
       await window.loadFile(join(artifactRoot, 'out/renderer/index.html'))
-      await waitFor("Boolean(document.querySelector('.codex-composer textarea:not(:disabled)'))")
+      await waitFor("Boolean(document.querySelector('.router-chat'))")
       assert.equal(await evaluate('typeof window.require'), 'undefined')
       assert.equal(await evaluate('typeof window.api'), 'undefined')
       assert.equal(await evaluate('typeof window.electron'), 'undefined')
@@ -310,15 +315,45 @@ app
       assert.equal(invalidSettings.error.code, 'invalid_request')
       assert.equal(host.snapshot().settings.executablePath, fixture)
 
-      // Home is the Router: an unconfigured engine offers the agent that is already connected.
-      await waitFor(
-        "document.querySelector('.router-card button')?.textContent.includes('Use Codex')"
-      )
-      assert.equal(await evaluate("Boolean(document.querySelector('.router-chat'))"), true)
+      // First run opens on the guide, without the thread or its editor.
+      await waitFor("Boolean(document.querySelector('.router-guide-option'))")
+      assert.equal(await evaluate("Boolean(document.querySelector('.router-editor'))"), false)
       assert.equal(await evaluate("Boolean(document.querySelector('.router-status'))"), false)
+      await capture('router-guide')
+      assert.equal(
+        await evaluate("Boolean(document.querySelector('#router-provider'))"),
+        false,
+        'the built-in engine stays folded until it is picked'
+      )
+      await evaluate("Array.from(document.querySelectorAll('.router-guide-option')).at(-1).click()")
+      await waitFor("Boolean(document.querySelector('.router-guide-continue'))")
+      assert.equal(
+        await evaluate("document.querySelector('.router-guide-continue').disabled"),
+        true,
+        'the built-in engine needs a model and a key'
+      )
+      // Choosing the agent that is already connected finishes setup and opens the editor.
+      await evaluate(
+        "Array.from(document.querySelectorAll('.router-guide-option')).find(el => el.querySelector('strong').textContent === 'Codex').click()"
+      )
+      await waitFor("Boolean(document.querySelector('.router-editor textarea'))")
+      assert.equal(host.snapshot().settings.router.engine, 'codex')
+      assert.equal(await evaluate("Boolean(document.querySelector('.router-guide'))"), false)
       await capture('router-home')
+      {
+        const { settings } = host.snapshot()
+        host.saveSettings({ ...settings, router: { ...settings.router, engine: 'owls' } })
+        await window.reload()
+      }
+      // It comes back while setup is incomplete, and skipping leaves a note in the thread.
+      await waitFor("Boolean(document.querySelector('.router-guide-skip'))")
+      await evaluate("document.querySelector('.router-guide-skip').click()")
+      await waitFor("Boolean(document.querySelector('.router-editor textarea'))")
+      await waitFor(
+        "document.querySelector('.router-setup-notice button')?.textContent.includes('Use Codex')"
+      )
 
-      await evaluate("document.querySelector('.router-rail-settings').click()")
+      await evaluate("document.querySelector('.router-sidebar-settings').click()")
       await waitFor("Boolean(document.querySelector('.codex-settings-content'))")
       assert.ok(
         await evaluate(
@@ -342,7 +377,7 @@ app
       await evaluate(
         "[...document.querySelectorAll('input[name=codex-app-logo]')].length === 3 && document.querySelectorAll('input[name=codex-app-logo]')[0].click()"
       )
-      await waitFor("document.querySelector('.router-rail-logo img')?.dataset.logo === 'line'")
+      await waitFor("document.querySelector('.router-sidebar-logo img')?.dataset.logo === 'line'")
       assert.equal(host.snapshot().settings.appLogo, 'line')
       await capture('settings')
       await press('Escape')
@@ -350,11 +385,60 @@ app
 
       // Router: an unconfigured Owls engine shows setup, and keys never come back out.
       await waitFor("document.body.textContent.includes('为协调者选择模型')")
-      await send('帮我看看项目')
+      await type('帮我看看项目')
+      await waitFor("Boolean(document.querySelector('.router-editor-send'))")
+      await pressInEditor('Enter')
+      assert.equal(host.snapshot().routers[0]?.items.length ?? 0, 0, 'Enter is a new line')
+      // No project yet: sending asks for a folder, and canceling keeps the draft.
+      const pickFolder = dialog.showOpenDialog
+      let folderAsks = 0
+      dialog.showOpenDialog = async () => {
+        folderAsks += 1
+        return folderAsks === 1
+          ? { canceled: true, filePaths: [] }
+          : { canceled: false, filePaths: [temp] }
+      }
+      await pressInEditor('Enter', { metaKey: true })
+      await waitFor("Boolean(document.querySelector('.router-editor textarea:not(:read-only)'))")
+      while (!folderAsks) await new Promise((resolve) => setTimeout(resolve, 30))
+      assert.equal(
+        await evaluate("document.querySelector('.router-editor textarea').value"),
+        '帮我看看项目'
+      )
+      await pressInEditor('Enter', { metaKey: true })
       await waitFor(
         "Array.from(document.querySelectorAll('.router-chat .codex-user-message')).some(el => el.textContent.includes('帮我看看项目'))"
       )
       await waitFor("document.querySelector('.router-chat textarea')?.value === ''")
+      dialog.showOpenDialog = pickFolder
+      await waitFor(
+        "document.querySelector('.router-project')?.getAttribute('aria-current') === 'true'"
+      )
+      // The sidebar hides completely, leaves its toggle on the title bar, and remembers.
+      await evaluate("document.querySelector('.router-sidebar-toggle').click()")
+      await waitFor(
+        "!document.querySelector('.router-sidebar') && Boolean(document.querySelector('.router-sidebar-open'))"
+      )
+      assert.equal(host.snapshot().settings.sidebarCollapsed, true)
+      await capture('sidebar-hidden')
+      await evaluate("document.querySelector('.router-sidebar-open').click()")
+      await waitFor("Boolean(document.querySelector('.router-sidebar'))")
+      assert.equal(host.snapshot().settings.sidebarCollapsed, false)
+      await evaluate("document.querySelector('.router-editor textarea').focus()")
+      const editorFocused =
+        "document.activeElement === document.querySelector('.router-editor textarea')"
+      assert.ok(await evaluate(editorFocused), 'sending keeps the caret in the editor')
+      assert.equal(
+        await evaluate(
+          "getComputedStyle(document.querySelector('.router-editor textarea')).outlineStyle"
+        ),
+        'none',
+        'the focused editor has no ring'
+      )
+      await evaluate(
+        "document.activeElement.blur(); document.querySelector('.router-chat .codex-conversation').click()"
+      )
+      assert.ok(await evaluate(editorFocused), 'a click on the blank page returns to the editor')
       const routerState = host.snapshot().routers[0]
       assert.equal(routerState.error.code, 'router_model_unconfigured')
       assert.equal(routerState.items[0].text, '帮我看看项目')
@@ -427,7 +511,7 @@ app
       routerStore.setEventStatus([workerEvent.seq], 'dropped')
 
       // Choosing another engine swaps the Router details and drops the Owls fields.
-      await evaluate("document.querySelector('.router-rail-settings').click()")
+      await evaluate("document.querySelector('.router-sidebar-settings').click()")
       await waitFor("Boolean(document.querySelector('#router-engine'))")
       await evaluate(
         "document.querySelector('#router-engine').value = 'claude-code'; document.querySelector('#router-engine').dispatchEvent(new Event('change', { bubbles: true }))"
@@ -438,11 +522,11 @@ app
       assert.equal(host.snapshot().settings.router.engine, 'claude-code')
       await capture('router-claude-settings')
       await press('Escape')
-      // The card's button switches the Router to the connected agent in one click.
+      // The note's button switches the Router to the connected agent in one click.
       await waitFor(
-        "document.querySelector('.router-card button')?.textContent.includes('使用 Codex')"
+        "document.querySelector('.router-setup-notice button')?.textContent.includes('使用 Codex')"
       )
-      await evaluate("document.querySelector('.router-card button').click()")
+      await evaluate("document.querySelector('.router-setup-notice button').click()")
       await waitFor(() => host.snapshot().settings.router.engine === 'codex')
       // The message that waited for a working engine goes out without being sent again.
       await waitFor(() => routerStore.events(routerState.id, 'pending').length === 0)
@@ -498,7 +582,7 @@ app
         await evaluate(
           "document.querySelector('.router-chat textarea').getBoundingClientRect().bottom <= innerHeight"
         ),
-        'the composer stays on screen under the tray'
+        'the editor stays on screen under the tray'
       )
       await capture('approval-tray')
       await evaluate(
@@ -587,7 +671,7 @@ app
       mkdirSync(secondProject)
       host.addProject(secondProject)
       await window.reload()
-      await waitFor("Boolean(document.querySelector('.codex-composer textarea:not(:disabled)'))")
+      await waitFor("Boolean(document.querySelector('.router-editor textarea:not(:read-only)'))")
       await send('派发：拆分\n派发：实现 < 拆分\n派发：评审 < 拆分\n派发：收尾 < 实现')
       await waitFor(() => host.snapshot().workers.filter((w) => w.parentId).length === 3)
       await waitFor(() =>
@@ -711,10 +795,10 @@ app
       assert.equal((await host.connectClaude()).status, 'ready')
       host.saveSettings({ ...host.snapshot().settings, provider: 'claude-code' })
       await window.reload()
-      await waitFor("Boolean(document.querySelector('.codex-composer textarea:not(:disabled)'))")
+      await waitFor("Boolean(document.querySelector('.router-editor textarea:not(:read-only)'))")
       await send('派发：Claude Worker')
       await waitFor(
-        "document.querySelector('.router-dispatch:last-of-type')?.textContent.includes('Claude Worker')"
+        "Array.from(document.querySelectorAll('.router-dispatch')).at(-1)?.textContent.includes('Claude Worker')"
       )
       await waitFor(() =>
         host.snapshot().workers.some((w) => w.title === 'Claude Worker' && w.status === 'idle')
@@ -742,7 +826,7 @@ app
       const claudeSession = host.snapshot().sessions.find((s) => s.id === claudeWorker.sessionId)
       assert.equal(claudeSession.threadId, 'claude-ui-session')
       assert.equal(claudeSession.items.find((i) => i.id === 'claude-tool').status, 'completed')
-      await evaluate("document.querySelector('.router-rail-settings').click()")
+      await evaluate("document.querySelector('.router-sidebar-settings').click()")
       await waitFor(
         "Boolean(document.querySelector('.codex-settings-content')) && document.body.textContent.includes('本机 Claude Code')"
       )

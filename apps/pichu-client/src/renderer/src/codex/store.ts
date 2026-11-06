@@ -57,7 +57,9 @@ type State = {
   showMap(): void
   focusProject(projectId: string): void
   clearError(): void
-  pickProject(): Promise<void>
+  /** Opens the folder picker. Resolves to the project's id, or null when canceled. */
+  pickProject(): Promise<string | null>
+  toggleSidebar(): void
   connect(): Promise<void>
   selectExecutable(): Promise<void>
   connectClaude(): Promise<void>
@@ -101,6 +103,7 @@ export const useCodexStore = create<State>((set, get) => {
       theme: 'system',
       language: 'en',
       appLogo: 'solid',
+      sidebarCollapsed: false,
       provider: 'codex',
       claudeExecutablePath: null,
       claudeModel: null,
@@ -198,14 +201,19 @@ export const useCodexStore = create<State>((set, get) => {
     clearError: () => set({ error: null }),
     pickProject: async () => {
       const project = await action(() => window.codex.pickProject())
-      if (project)
-        set((state) => ({
-          projects: [...state.projects.filter((p) => p.id !== project.id), project].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          ),
-          routerProjectId: project.id,
-          view: 'chat'
-        }))
+      if (!project) return null
+      set((state) => ({
+        projects: [...state.projects.filter((p) => p.id !== project.id), project].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        ),
+        routerProjectId: project.id,
+        view: 'chat'
+      }))
+      return project.id
+    },
+    toggleSidebar: () => {
+      const { settings, saveSettings } = get()
+      void saveSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })
     },
     connect: async () => {
       const connection = await action(() => window.codex.connect())
@@ -238,6 +246,7 @@ export const useCodexStore = create<State>((set, get) => {
           theme: settings.theme,
           language: settings.language,
           appLogo: settings.appLogo,
+          sidebarCollapsed: settings.sidebarCollapsed,
           provider: settings.provider,
           claudeModel: settings.claudeModel,
           claudeEffort: settings.claudeEffort,
