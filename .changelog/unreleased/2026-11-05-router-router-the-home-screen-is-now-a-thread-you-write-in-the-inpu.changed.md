@@ -1,0 +1,1 @@
+- -- Router: the home screen is now a thread you write in. The input box is gone, Enter adds a line and Command-Enter sends, projects moved into an expanded sidebar that can hide completely, and the app opens on the editor even with no project. (#30)

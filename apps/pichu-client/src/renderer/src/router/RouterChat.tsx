@@ -1,14 +1,15 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { Info, Network } from 'lucide-react'
-import { useEffect } from 'react'
+import { Info } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCodexStore } from '../codex/store'
 import { RequestTray } from './RequestTray'
-import { RouterComposer } from './RouterComposer'
-import { NoProjectCard, RouterSetupCard, useRouterSetup } from './RouterSetup'
+import { RouterGuide } from './RouterGuide'
+import { RouterSetupNotice, useRouterSetup } from './RouterSetup'
 import { RouterTimeline } from './RouterTimeline'
 import { StatusEntry } from './StatusEntry'
 import { useRouterStore } from './store'
+import { ThreadEditor } from './ThreadEditor'
 
 /** The home screen: one project's conversation with its Router. */
 export function RouterChat() {
@@ -20,10 +21,20 @@ export function RouterChat() {
   const showPanel = useRouterStore((s) => s.showPanel)
   const router = useRouterStore((s) => s.routers.find((r) => r.projectId === projectId))
   const setup = useRouterSetup(router)
+  const guideSkipped = useRouterStore((s) => s.guideSkipped)
+  const connecting = useCodexStore(
+    (s) => s.connection.status === 'connecting' || s.claude.status === 'connecting'
+  )
+  // Agents connect as the app starts, so a working setup must not flash the guide. Later
+  // connections are the guide's own and leave it open.
+  const [settled, setSettled] = useState(!connecting)
+  useEffect(() => {
+    if (!connecting) setSettled(true)
+  }, [connecting])
+  const missing = settled ? setup : null
   useEffect(() => {
     if (projectId) void open(projectId)
   }, [projectId, open])
-  const fresh = !router?.items.length
   return (
     <main className="codex-chat router-chat">
       <header className="codex-topbar router-topbar">
@@ -41,38 +52,28 @@ export function RouterChat() {
         </div>
       </header>
       <div className="codex-conversation-column">
-        {!project ? (
-          <div className="codex-conversation-scroll">
-            <div className="codex-conversation">
-              <NoProjectCard />
-            </div>
-          </div>
-        ) : router ? (
+        {missing && !guideSkipped && !router?.items.length ? (
+          <RouterGuide need={missing} />
+        ) : (
           <RouterTimeline
             router={router}
-            intro={(hasEntries) =>
-              setup ? (
-                <RouterSetupCard need={setup} />
-              ) : hasEntries ? null : (
-                <div className="codex-welcome router-card">
-                  <Network size={30} />
-                  <h1>{t('router.welcome')}</h1>
-                  <p>{t('router.welcomeBody', { project: project.name })}</p>
-                </div>
-              )
+            editor={
+              <>
+                {missing ? <RouterSetupNotice need={missing} /> : null}
+                {router ? <RequestTray routerId={router.id} /> : null}
+                <ThreadEditor
+                  projectId={project?.id ?? null}
+                  router={router}
+                  note={
+                    router?.items.length
+                      ? undefined
+                      : t('trustFolder', { agent: t(`agent.${agent}`) })
+                  }
+                />
+              </>
             }
           />
-        ) : (
-          <div className="codex-conversation-scroll" />
         )}
-        <div className="codex-composer-area">
-          {router ? <RequestTray routerId={router.id} /> : null}
-          <RouterComposer
-            projectId={project ? projectId : null}
-            router={router}
-            note={fresh ? t('trustFolder', { agent: t(`agent.${agent}`) }) : undefined}
-          />
-        </div>
       </div>
     </main>
   )

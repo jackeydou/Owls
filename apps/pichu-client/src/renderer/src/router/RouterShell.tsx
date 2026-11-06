@@ -1,14 +1,14 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { AlertCircle, X } from 'lucide-react'
+import { AlertCircle, PanelLeftOpen, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../codex/failures'
 import { CodexSettingsPage } from '../codex/Settings'
 import { useCodexStore } from '../codex/store'
 import { MapView } from './map/MapView'
-import { ProjectRail } from './ProjectRail'
 import { RouterChat } from './RouterChat'
 import { RouterDetail } from './RouterDetail'
+import { Sidebar } from './Sidebar'
 import { useRouterStore } from './store'
 import { WorkerDetail } from './WorkerDetail'
 import './router.css'
@@ -45,16 +45,23 @@ function stepBack() {
   else if (view === 'map') showChat()
 }
 export function RouterShell() {
+  const { t } = useTranslation()
   const view = useCodexStore((s) => s.view)
+  const collapsed = useCodexStore((s) => s.settings.sidebarCollapsed)
+  const toggleSidebar = useCodexStore((s) => s.toggleSidebar)
   const projectId = useCodexStore((s) => s.routerProjectId)
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()
       if (!(event.metaKey || event.ctrlKey)) return
-      const { view, showMap, showChat, showSettings } = useCodexStore.getState()
+      const { view, showMap, showChat, showSettings, toggleSidebar } = useCodexStore.getState()
       if (event.key === ',') {
         event.preventDefault()
         showSettings()
+      }
+      if (event.key.toLowerCase() === 'b') {
+        event.preventDefault()
+        toggleSidebar()
       }
       if (event.key.toLowerCase() === 'j') {
         event.preventDefault()
@@ -67,8 +74,19 @@ export function RouterShell() {
   }, [])
   return (
     <>
-      <ProjectRail />
-      <div className="router-stage">
+      {collapsed ? (
+        <IconButton
+          className="router-sidebar-open"
+          label={t('router.showSidebar')}
+          tooltip={t('router.showSidebar')}
+          tooltipSide="bottom"
+          icon={<PanelLeftOpen size={16} />}
+          onClick={toggleSidebar}
+        />
+      ) : (
+        <Sidebar />
+      )}
+      <div className={collapsed ? 'router-stage sidebar-hidden' : 'router-stage'}>
         {view === 'settings' ? (
           <CodexSettingsPage />
         ) : view === 'map' ? (

@@ -1,0 +1,1 @@
+- -- Router: first-run setup is now a guide that picks what runs the Router and its workers, and a thread that needs setup shows a note instead of a card. (#30)

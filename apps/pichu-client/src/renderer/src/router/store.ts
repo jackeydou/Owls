@@ -31,6 +31,9 @@ type State = {
   router(router: CodexRouter): void
   worker(worker: RouterWorker): void
   open(projectId: string): Promise<CodexRouter | null>
+  /** Lasts until the app restarts: the guide comes back while setup is incomplete. */
+  guideSkipped: boolean
+  skipGuide(): void
   send(routerId: string, text: string, workerId?: string): Promise<boolean>
   interrupt(routerId: string): Promise<void>
   resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
@@ -91,6 +94,8 @@ export const useRouterStore = create<State>((set, get) => {
       get().router(router)
       return router
     },
+    guideSkipped: false,
+    skipGuide: () => set({ guideSkipped: true }),
     send: async (routerId, text, workerId) => {
       if (get().sending) return false
       set({ sending: true, error: null })

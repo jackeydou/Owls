@@ -23,93 +23,160 @@
   --owl-hue-4: oklch(0.76 0.11 355);
 }
 
-/* One Router per project leaves nothing else to list here. */
-.router-rail {
+/* Open by default, and gone entirely when hidden: only its toggle stays, on the title bar. */
+.router-sidebar {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  align-items: center;
-  gap: 6px;
-  width: 58px;
-  /* Clears the window controls, which sit over the rail and the title bar. */
-  padding: 50px 0 12px;
+  gap: 2px;
+  width: 232px;
+  padding: 0 10px 12px;
   border-right: 1px solid var(--color-border);
   background: var(--color-sidebar);
   -webkit-app-region: drag;
 }
-.router-rail button {
+.router-sidebar button {
   -webkit-app-region: no-drag;
 }
-.router-rail-logo {
-  margin-bottom: 8px;
+/* The head clears the window controls, which sit over the sidebar and the title bar. */
+.router-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  height: 62px;
 }
-.router-rail-logo img {
-  width: 24px;
-  height: 26px;
-  object-fit: contain;
-}
-.router-rail-button {
-  width: 38px;
-  height: 34px;
-  border-radius: 9px;
+.router-sidebar-toggle,
+.router-sidebar-open {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   color: var(--color-muted-foreground);
 }
-.router-rail-button[aria-current="true"] {
+.router-sidebar-open {
+  position: fixed;
+  z-index: 30;
+  top: 15px;
+  left: 78px;
+  -webkit-app-region: no-drag;
+}
+.router-sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  margin-bottom: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+.router-sidebar-logo img {
+  width: 20px;
+  height: 22px;
+  object-fit: contain;
+}
+.router-sidebar-logo strong {
+  font-weight: 600;
+}
+.router-sidebar-item,
+.router-project {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 9px;
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  text-align: left;
+}
+.router-sidebar-item:hover,
+.router-project:hover {
+  background: var(--color-sidebar-hover);
+}
+.router-sidebar-item[aria-current="true"],
+.router-project[aria-current="true"] {
   background: var(--color-sidebar-active);
   color: var(--color-foreground);
 }
-.router-rail-rule {
-  width: 22px;
-  height: 1px;
-  margin: 2px 0;
-  background: var(--color-border-strong);
+.router-sidebar-item > span,
+.router-project > span {
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.router-rail-projects {
+.router-sidebar-item kbd {
+  font-family: inherit;
+  font-size: 10px;
+}
+.router-sidebar-projects {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 14px;
+}
+.router-sidebar-projects header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 2px 0 8px;
+}
+.router-sidebar-projects h2 {
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+}
+.router-sidebar-projects p {
+  padding: 4px 8px;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+.router-sidebar-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  gap: 2px;
   min-height: 0;
   overflow-y: auto;
-  padding: 2px;
 }
-.router-rail-project {
-  position: relative;
+.router-project > b {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  color: var(--color-muted-foreground);
-  font-size: 14px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--color-sidebar-active);
+  font-size: 11px;
   font-weight: 600;
 }
-.router-rail-project:hover {
-  background: var(--color-sidebar-hover);
-}
-.router-rail-project[aria-current="true"] {
-  background: var(--color-sidebar-active);
-  color: var(--color-foreground);
+.router-project[aria-current="true"] > b {
   box-shadow: inset 0 0 0 1.5px var(--owl-c);
 }
-.router-rail-project > i {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--color-sidebar);
+.router-project > i {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
 }
-.router-rail-project > i.run {
+.router-project > i.run {
   background: var(--owl-run);
 }
-.router-rail-project > i.wait {
+.router-project > i.wait {
   background: var(--owl-wait);
 }
-.router-rail-settings {
-  margin-top: auto;
+.router-sidebar-settings {
+  margin-top: 8px;
+}
+/* The title bar makes room for the window controls and the sidebar's toggle. */
+.router-stage.sidebar-hidden .codex-topbar,
+.router-stage.sidebar-hidden .map-hud {
+  padding-left: 122px;
 }
 .router-stage {
   position: relative;
@@ -143,6 +210,9 @@
 }
 .router-chat .codex-conversation-column {
   min-height: 0;
+}
+.router-chat .codex-conversation {
+  padding-bottom: 48px;
 }
 .router-topbar {
   padding-left: 30px;
@@ -283,22 +353,10 @@
 }
 .router-directed {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
   gap: 6px;
-  margin: 12px 0 -6px;
   color: var(--color-muted-foreground);
   font-size: 11px;
-}
-.router-card > svg {
-  display: block;
-  margin: 0 auto 14px;
-  color: var(--color-muted-foreground);
-}
-.router-card-actions {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
 }
 .router-unknown-batch {
   align-items: center;
@@ -307,12 +365,16 @@
   flex: 1;
 }
 
-/* Requests stay above the composer, not in the scrolling conversation. */
+/* Requests sit just above the editor and stick to the bottom when the thread scrolls. */
 .router-tray {
-  max-width: var(--pichu-composer-max-width);
+  position: sticky;
+  z-index: 5;
+  bottom: 10px;
   max-height: 46vh;
-  margin: 0 auto 10px;
+  margin: 20px 0 0 var(--owl-thread-gutter);
+  padding: 10px 0;
   overflow-y: auto;
+  background: var(--color-background);
 }
 .router-tray-head {
   display: flex;
@@ -345,7 +407,270 @@
   font-size: 11px;
 }
 
-/* Composer */
+/* The thread reads as one document: an avatar gutter, then text. */
+.router-chat {
+  --owl-thread-gutter: 38px;
+}
+.router-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: calc(var(--owl-thread-gutter) - 24px);
+  margin-top: 20px;
+}
+.router-row:first-child {
+  margin-top: 0;
+}
+.router-row.follows {
+  margin-top: 8px;
+}
+.router-row:has(> .router-row-body:empty) {
+  display: none;
+}
+.router-row-body {
+  position: relative;
+  min-width: 0;
+}
+.router-row-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  color: var(--color-muted-foreground);
+}
+.router-row-avatar img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+.router-row.user .router-row-avatar:not(:empty) {
+  border-radius: 50%;
+  background: var(--color-card-muted);
+}
+.router-row .codex-user-message,
+.router-row .codex-markdown,
+.router-editor textarea {
+  font-size: 14px;
+  line-height: 24px;
+}
+.router-row .codex-user-message {
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.router-row .codex-assistant-message {
+  margin: 0;
+}
+.router-row .codex-message-label {
+  display: none;
+}
+.router-row .codex-message-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
+  opacity: 0;
+}
+.router-row:hover .codex-message-actions,
+.router-row .codex-message-actions:focus-within {
+  opacity: 0.55;
+}
+.router-row .router-dispatch {
+  margin: 0;
+}
+.router-row .codex-working {
+  min-height: 24px;
+  padding: 0;
+}
+.router-chat .codex-inline-error {
+  margin: 12px 0 0 var(--owl-thread-gutter);
+}
+/* The first-run guide: a quiet page, on the same left edge as the thread. */
+.router-guide {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: min(12vh, 96px) 24px 48px;
+}
+.router-guide > img {
+  width: 30px;
+  height: 34px;
+  margin-bottom: 20px;
+  object-fit: contain;
+}
+.router-guide h1 {
+  margin-bottom: 8px;
+  font-size: 22px;
+  font-weight: 550;
+  letter-spacing: -0.4px;
+}
+.router-guide > p,
+.router-guide-detail > p {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.router-guide > small {
+  margin-top: 28px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-guide h2 {
+  margin: 28px 0 12px;
+  font-size: 14px;
+  font-weight: 550;
+}
+.router-guide > small + h2 {
+  margin-top: 6px;
+}
+.router-guide-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.router-guide-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 9px;
+  text-align: left;
+}
+.router-guide-option:hover {
+  background: var(--color-sidebar-hover);
+}
+.router-guide-option[aria-pressed="true"] {
+  background: var(--color-sidebar-active);
+}
+.router-guide-option > i {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-card);
+}
+.router-guide-option > i img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.router-agent-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+.router-agent-icon.claude-code {
+  fill: #d97757;
+}
+.router-guide-option > span {
+  flex: 1;
+  min-width: 0;
+}
+.router-guide-option strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.router-guide-option small {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted-foreground);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.router-guide-option em {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  color: var(--owl-run);
+  font-size: 11.5px;
+  font-style: normal;
+}
+.router-guide-detail {
+  margin-top: 16px;
+  padding: 0 11px;
+}
+.router-guide-actions,
+.router-setup-notice > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.router-guide-detail .codex-inline-error {
+  margin-top: 10px;
+}
+.router-guide-skip {
+  align-self: flex-start;
+  margin: 28px 0 0 11px;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+.router-guide-skip:hover {
+  color: var(--color-foreground);
+}
+.router-setup-notice {
+  font-size: 13px;
+  line-height: 24px;
+}
+.router-setup-notice strong {
+  font-weight: 550;
+}
+.router-setup-notice p {
+  color: var(--color-muted-foreground);
+  line-height: 1.6;
+}
+.router-editor {
+  min-width: 0;
+}
+.router-editor textarea {
+  display: block;
+  field-sizing: content;
+  width: 100%;
+  min-height: 24px;
+  overflow: hidden;
+  resize: none;
+  outline: none;
+  background: transparent;
+}
+/* The page is the field, as in a document: the caret alone shows focus. */
+.codex-app .router-editor textarea:focus-visible {
+  outline: none;
+}
+.router-editor .router-target {
+  margin: 0 0 4px;
+}
+.router-editor .router-mentions {
+  position: static;
+  margin-top: 6px;
+}
+.router-editor-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  margin-top: 6px;
+  color: var(--color-muted-foreground);
+  font-size: 11.5px;
+}
+.router-editor-send {
+  margin-left: -12px;
+}
+.router-editor-send kbd {
+  color: var(--color-muted-foreground);
+  font-family: inherit;
+  font-size: 10px;
+}
+
+/* The map's input */
 .router-composer {
   position: relative;
   width: 100%;
@@ -371,27 +696,24 @@
   white-space: nowrap;
 }
 /* One line on the map: the target, the input, and the send button side by side. */
-.router-composer.compact .codex-composer {
+.router-composer .codex-composer {
   display: flex;
   align-items: flex-end;
   gap: 6px;
   padding: 6px 7px 6px 12px;
 }
-.router-composer.compact .codex-composer textarea {
+.router-composer .codex-composer textarea {
   flex: 1;
   min-width: 0;
   min-height: 34px;
   max-height: 120px;
   padding: 7px 0;
 }
-.router-composer.compact .codex-composer-toolbar {
+.router-composer .codex-composer-toolbar {
   flex-shrink: 0;
   padding: 0;
 }
-.router-composer.compact .codex-composer-config {
-  display: none;
-}
-.router-composer.compact .router-target {
+.router-composer .router-target {
   flex-shrink: 1;
   min-width: 0;
   max-width: 45%;

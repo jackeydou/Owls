@@ -1,5 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { IconButton } from '@renderer/components/ui/icon-button'
+import { AlertCircle, Loader2, Square } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexItem, CodexRouter } from '../../../shared/codex'
@@ -8,6 +9,7 @@ import { failureMessage } from '../codex/failures'
 import { DispatchGroup } from './DispatchGroup'
 import { isSetupFailure } from './RouterSetup'
 import { useRouterStore } from './store'
+import { ThreadRow } from './ThreadRow'
 import { RouterIdContext, WorkerLink, workerMarkdown } from './WorkerLink'
 
 type Entry = { id: string; item: CodexItem } | { id: string; workerIds: string[] }
@@ -25,6 +27,9 @@ function entriesOf(items: CodexItem[]): Entry[] {
   }
   return entries
 }
+const speakerOf = (entry: Entry) =>
+  'item' in entry && entry.item.kind === 'user' ? 'user' : 'router'
+
 function DirectedMessage({ item }: { item: CodexItem }) {
   const { t } = useTranslation()
   const worker = useRouterStore((s) => s.workers.find((w) => w.id === item.workerId))
@@ -40,26 +45,47 @@ function DirectedMessage({ item }: { item: CodexItem }) {
     </>
   )
 }
+/** A focused editor under the rest; a click on the page's blank space lands there. */
+function focusEditor(scroller: HTMLElement) {
+  if (!window.getSelection()?.isCollapsed) return
+  scroller
+    .querySelector<HTMLTextAreaElement>('.router-editor textarea')
+    ?.focus({ preventScroll: true })
+}
 export function RouterTimeline({
   router,
-  intro
+  editor
 }: {
-  router: CodexRouter
-  /** The card above the conversation; told whether there is a conversation yet. */
-  intro: (hasEntries: boolean) => ReactNode
+  /** Undefined until a project has one: the editor still works, and picks the project. */
+  router: CodexRouter | undefined
+  /** The thread's end: whatever is pending, then the line being written. */
+  editor: ReactNode
 }) {
   const { t } = useTranslation()
   const resolveBatch = useRouterStore((s) => s.resolveBatch)
-  const entries = useMemo(() => entriesOf(router.items), [router.items])
-  const bottom = useRef<HTMLDivElement>(null)
+  const interrupt = useRouterStore((s) => s.interrupt)
+  const items = router?.items
+  const entries = useMemo(() => entriesOf(items ?? []), [items])
   const scroll = useRef<HTMLDivElement>(null)
+  const content = useRef<HTMLDivElement>(null)
   const nearBottom = useRef(true)
-  const running = router.status === 'running'
+  const running = router?.status === 'running'
+  const last = entries.at(-1)
+  const lastEntrySpeaker = last ? speakerOf(last) : null
+  // Watches the size, not the entries: streaming, the tray, and the draft all grow the thread.
   useEffect(() => {
-    if (entries.length && nearBottom.current) bottom.current?.scrollIntoView({ block: 'end' })
-  }, [entries])
+    const scroller = scroll.current
+    if (!scroller || !content.current) return
+    const observer = new ResizeObserver(() => {
+      if (nearBottom.current) scroller.scrollTop = scroller.scrollHeight
+    })
+    observer.observe(content.current)
+    return () => observer.disconnect()
+  }, [])
   return (
-    <RouterIdContext.Provider value={router.id}>
+    <RouterIdContext.Provider value={router?.id ?? null}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: a pointer shortcut; Tab reaches the editor. */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: a pointer shortcut; Tab reaches the editor. */}
       <div
         className="codex-conversation-scroll"
         ref={scroll}
@@ -67,30 +93,51 @@ export function RouterTimeline({
           const el = scroll.current
           if (el) nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120
         }}
+        onClick={(event) => {
+          if (event.target === scroll.current || event.target === content.current)
+            focusEditor(event.currentTarget)
+        }}
       >
-        <div className="codex-conversation">
-          {intro(entries.length > 0)}
-          {entries.map((entry) =>
-            'workerIds' in entry ? (
-              <DispatchGroup key={entry.id} workerIds={entry.workerIds} />
-            ) : entry.item.kind === 'user' && entry.item.workerId ? (
-              <DirectedMessage key={entry.id} item={entry.item} />
-            ) : (
-              <ConversationItem
+        <div className="codex-conversation" ref={content}>
+          {entries.map((entry, index) => {
+            const speaker = speakerOf(entry)
+            const previous = entries[index - 1]
+            return (
+              <ThreadRow
                 key={entry.id}
-                item={entry.item}
-                agent={t('router.agent')}
-                markdown={workerMarkdown}
-              />
+                speaker={speaker}
+                follows={Boolean(previous) && speakerOf(previous) === speaker}
+              >
+                {'workerIds' in entry ? (
+                  <DispatchGroup workerIds={entry.workerIds} />
+                ) : entry.item.kind === 'user' && entry.item.workerId ? (
+                  <DirectedMessage item={entry.item} />
+                ) : (
+                  <ConversationItem
+                    item={entry.item}
+                    agent={t('router.agent')}
+                    markdown={workerMarkdown}
+                  />
+                )}
+              </ThreadRow>
             )
-          )}
-          {running ? (
-            <div className="codex-working" role="status">
-              <Loader2 size={13} className="animate-spin" />
-              {t('router.working')}
-            </div>
+          })}
+          {router && running ? (
+            <ThreadRow speaker="router" follows={lastEntrySpeaker === 'router'}>
+              <div className="codex-working" role="status">
+                <Loader2 size={13} className="animate-spin" />
+                {t('router.working')}
+                <IconButton
+                  size="sm"
+                  label={t('router.stop')}
+                  tooltip={t('router.stop')}
+                  icon={<Square size={11} fill="currentColor" />}
+                  onClick={() => void interrupt(router.id)}
+                />
+              </div>
+            </ThreadRow>
           ) : null}
-          {router.unknownBatches.map((batch) => (
+          {router?.unknownBatches.map((batch) => (
             <div className="codex-inline-error router-unknown-batch" role="alert" key={batch.id}>
               <AlertCircle size={15} />
               <span>{t('router.unknownBatch', { count: batch.events })}</span>
@@ -110,13 +157,13 @@ export function RouterTimeline({
               </Button>
             </div>
           ))}
-          {router.error && !isSetupFailure(router.error) ? (
+          {router?.error && !isSetupFailure(router.error) ? (
             <div className="codex-inline-error" role="alert">
               <AlertCircle size={15} />
               <span>{failureMessage(router.error)}</span>
             </div>
           ) : null}
-          <div ref={bottom} />
+          {editor}
         </div>
       </div>
     </RouterIdContext.Provider>

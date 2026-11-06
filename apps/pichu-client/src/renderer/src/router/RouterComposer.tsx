@@ -28,45 +28,37 @@ function useMentions(router: CodexRouter | undefined, query: string | null): Rou
   }, [workers, router, query])
 }
 /**
- * The one input in the app. Text goes to the project's Router unless a worker
- * is addressed, by `@` here or by `target` when the map has one selected.
+ * A message being written. Text goes to the project's Router unless a worker is
+ * addressed, by `@` here or by `target` when the map has one selected.
  */
-export function RouterComposer({
+export function useRouterDraft({
   projectId,
   router,
   target,
-  onClearTarget,
-  compact = false,
-  note
+  isSendKey,
+  chooseProject
 }: {
   projectId: string | null
   router: CodexRouter | undefined
   target?: RouterWorker | null
-  onClearTarget?: () => void
-  compact?: boolean
-  note?: string
+  isSendKey: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean
+  /** Asked for a project when the draft is sent with none. Null keeps the draft. */
+  chooseProject?: () => Promise<string | null>
 }) {
-  const { t } = useTranslation()
-  const { open, send, interrupt, sending } = useRouterStore()
+  const { open, send, sending } = useRouterStore()
   const [text, setText] = useState('')
   const [mention, setMention] = useState<RouterWorker | null>(null)
   const [caret, setCaret] = useState(0)
   const [highlight, setHighlight] = useState(0)
   const [dismissed, setDismissed] = useState(false)
   const textarea = useRef<HTMLTextAreaElement>(null)
+  const choosing = useRef(false)
   const addressed = target ?? mention
   const query = dismissed || addressed ? null : (MENTION.exec(text.slice(0, caret))?.[1] ?? null)
   const options = useMentions(router, query)
-  const running = router?.status === 'running'
-  const label = t(addressed ? 'router.promptWorker' : 'router.prompt')
   useEffect(() => {
     textarea.current?.focus()
   }, [])
-  useEffect(() => {
-    if (!textarea.current) return
-    textarea.current.style.height = 'auto'
-    if (text) textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 220)}px`
-  }, [text])
   function pick(worker: RouterWorker) {
     const before = text.slice(0, caret).replace(/@[^\s@]*$/, '')
     setText(before + text.slice(caret))
@@ -77,15 +69,19 @@ export function RouterComposer({
   }
   async function submit() {
     const message = text.trim()
-    if (!projectId || !message || sending) return
-    const current = router ?? (await open(projectId))
+    if (!message || sending || choosing.current) return
+    choosing.current = true
+    const chosen = projectId ?? (await chooseProject?.()) ?? null
+    choosing.current = false
+    if (!chosen) return
+    const current = router ?? (await open(chosen))
     if (!current) return
     if (await send(current.id, message, addressed?.id)) {
       setText('')
       setMention(null)
     }
   }
-  function keyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (options.length) {
       const step = { ArrowDown: 1, ArrowUp: -1 }[event.key]
       if (step) {
@@ -105,63 +101,125 @@ export function RouterComposer({
       }
     }
     if (event.key === 'Backspace' && !text && mention) setMention(null)
-    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+    if (isSendKey(event) && !event.nativeEvent.isComposing) {
       event.preventDefault()
       void submit()
     }
   }
+  return {
+    text,
+    sending,
+    addressed,
+    options,
+    highlight,
+    pick,
+    submit,
+    clearMention: () => setMention(null),
+    textareaProps: {
+      ref: textarea,
+      value: text,
+      onChange: (event: { target: HTMLTextAreaElement }) => {
+        setText(event.target.value)
+        setCaret(event.target.selectionStart)
+        setDismissed(false)
+      },
+      onSelect: (event: { currentTarget: HTMLTextAreaElement }) =>
+        setCaret(event.currentTarget.selectionStart),
+      onKeyDown
+    }
+  }
+}
+export function MentionMenu({
+  options,
+  highlight,
+  onPick
+}: {
+  options: RouterWorker[]
+  highlight: number
+  onPick: (worker: RouterWorker) => void
+}) {
+  const { t } = useTranslation()
+  if (!options.length) return null
   return (
-    <div className={compact ? 'router-composer compact' : 'router-composer'}>
-      {options.length ? (
-        <div className="router-mentions" role="listbox" aria-label={t('router.workers')}>
-          {options.map((worker, index) => (
-            <button
-              type="button"
-              role="option"
-              aria-selected={index === highlight}
-              key={worker.id}
-              onPointerDown={(event) => {
-                // Keeps focus and the caret in the textarea.
-                event.preventDefault()
-                pick(worker)
-              }}
-            >
-              <WorkerDot worker={worker} />
-              <span>{workerTitle(worker)}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
+    <div className="router-mentions" role="listbox" aria-label={t('router.workers')}>
+      {options.map((worker, index) => (
+        <button
+          type="button"
+          role="option"
+          aria-selected={index === highlight}
+          key={worker.id}
+          onPointerDown={(event) => {
+            // Keeps focus and the caret in the textarea.
+            event.preventDefault()
+            onPick(worker)
+          }}
+        >
+          <WorkerDot worker={worker} />
+          <span>{workerTitle(worker)}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+export function DraftTarget({ worker, onClear }: { worker: RouterWorker; onClear: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div className="router-target">
+      <WorkerDot worker={worker} />
+      <span>{workerTitle(worker)}</span>
+      <IconButton
+        size="sm"
+        label={t('router.clearTarget', { title: workerTitle(worker) })}
+        icon={<X size={12} />}
+        onClick={onClear}
+      />
+    </div>
+  )
+}
+const isEnter = (event: KeyboardEvent) => event.key === 'Enter' && !event.shiftKey
+
+/** The map's one-line input. It follows the map's selection. */
+export function RouterComposer({
+  projectId,
+  router,
+  target,
+  onClearTarget
+}: {
+  projectId: string | null
+  router: CodexRouter | undefined
+  target?: RouterWorker | null
+  onClearTarget?: () => void
+}) {
+  const { t } = useTranslation()
+  const interrupt = useRouterStore((s) => s.interrupt)
+  const draft = useRouterDraft({ projectId, router, target, isSendKey: isEnter })
+  const { text, sending, addressed, textareaProps } = draft
+  const { ref: textarea } = textareaProps
+  const running = router?.status === 'running'
+  const label = t(addressed ? 'router.promptWorker' : 'router.prompt')
+  useEffect(() => {
+    if (!textarea.current) return
+    textarea.current.style.height = 'auto'
+    if (text) textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 220)}px`
+  }, [text, textarea])
+  return (
+    <div className="router-composer">
+      <MentionMenu options={draft.options} highlight={draft.highlight} onPick={draft.pick} />
       <div className="codex-composer">
         {addressed ? (
-          <div className="router-target">
-            <WorkerDot worker={addressed} />
-            <span>{workerTitle(addressed)}</span>
-            <IconButton
-              size="sm"
-              label={t('router.clearTarget', { title: workerTitle(addressed) })}
-              icon={<X size={12} />}
-              onClick={() => (target ? onClearTarget?.() : setMention(null))}
-            />
-          </div>
+          <DraftTarget
+            worker={addressed}
+            onClear={() => (target ? onClearTarget?.() : draft.clearMention())}
+          />
         ) : null}
         <textarea
-          ref={textarea}
-          value={text}
-          onChange={(event) => {
-            setText(event.target.value)
-            setCaret(event.target.selectionStart)
-            setDismissed(false)
-          }}
-          onSelect={(event) => setCaret(event.currentTarget.selectionStart)}
-          onKeyDown={keyDown}
+          {...textareaProps}
           placeholder={label}
           aria-label={label}
-          rows={compact ? 1 : 2}
+          rows={1}
           disabled={!projectId || sending}
         />
         <div className="codex-composer-toolbar">
-          <div className="codex-composer-config" />
           {running && !addressed && router ? (
             <IconButton
               className="codex-stop"
@@ -178,16 +236,10 @@ export function RouterComposer({
             tooltip={t(addressed ? 'router.sendWorker' : 'router.send')}
             icon={sending ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={17} />}
             disabled={!projectId || !text.trim() || sending}
-            onClick={() => void submit()}
+            onClick={() => void draft.submit()}
           />
         </div>
       </div>
-      {compact ? null : (
-        <div className="codex-composer-note">
-          <span>{note ?? t('sendHint')}</span>
-          {router?.tokens ? <span>{t('router.tokens', { count: router.tokens })}</span> : null}
-        </div>
-      )}
     </div>
   )
 }

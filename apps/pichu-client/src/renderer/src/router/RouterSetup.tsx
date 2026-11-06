@@ -1,8 +1,9 @@
 import { Button } from '@renderer/components/ui/button'
-import { FolderOpen, Network, Settings2 } from 'lucide-react'
+import { Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider, CodexFailure, CodexRouter } from '../../../shared/codex'
 import { agentConnection, isAgentReady, useCodexStore } from '../codex/store'
+import { ThreadRow } from './ThreadRow'
 
 const SETUP_FAILURES = [
   'router_model_unconfigured',
@@ -44,7 +45,8 @@ const COPY = {
   worker: { title: 'router.workerSetupTitle', body: 'router.workerSetupBody' }
 } as const
 
-export function RouterSetupCard({ need }: { need: RouterSetupNeed }) {
+/** What the Router still needs, for a thread already underway or a skipped guide. */
+export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
   const { t } = useTranslation()
   const settings = useCodexStore((s) => s.settings)
   const save = useCodexStore((s) => s.saveSettings)
@@ -59,36 +61,22 @@ export function RouterSetupCard({ need }: { need: RouterSetupNeed }) {
     )
   }
   return (
-    <div className="codex-welcome router-card">
-      <Network size={30} />
-      <h1>{t(COPY[need.kind].title, { agent })}</h1>
-      <p>{t(COPY[need.kind].body, { agent })}</p>
-      <div className="router-card-actions">
-        {alternate ? (
-          <Button size="sm" onClick={() => switchTo(alternate)}>
-            {t('router.useAgent', { agent: t(`agent.${alternate}`) })}
+    <ThreadRow speaker="router">
+      <div className="router-setup-notice">
+        <strong>{t(COPY[need.kind].title, { agent })}</strong>
+        <p>{t(COPY[need.kind].body, { agent })}</p>
+        <div>
+          {alternate ? (
+            <Button size="sm" onClick={() => switchTo(alternate)}>
+              {t('router.useAgent', { agent: t(`agent.${alternate}`) })}
+            </Button>
+          ) : null}
+          <Button size="sm" variant={alternate ? 'outline' : 'default'} onClick={showSettings}>
+            <Settings2 size={14} />
+            {t('router.openSettings')}
           </Button>
-        ) : null}
-        <Button size="sm" variant={alternate ? 'outline' : 'default'} onClick={showSettings}>
-          <Settings2 size={14} />
-          {t('router.openSettings')}
-        </Button>
+        </div>
       </div>
-    </div>
-  )
-}
-export function NoProjectCard() {
-  const { t } = useTranslation()
-  const pickProject = useCodexStore((s) => s.pickProject)
-  return (
-    <div className="codex-welcome router-card">
-      <Network size={30} />
-      <h1>{t('router.noProjectTitle')}</h1>
-      <p>{t('router.noProjectBody')}</p>
-      <Button size="sm" onClick={() => void pickProject()}>
-        <FolderOpen size={14} />
-        {t('chooseFolder')}
-      </Button>
-    </div>
+    </ThreadRow>
   )
 }

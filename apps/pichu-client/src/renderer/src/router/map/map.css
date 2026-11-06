@@ -559,7 +559,7 @@
 }
 .router-stage:has(> .router-panel) .map-bar {
   left: calc((100% - var(--owl-panel-width)) / 2);
-  width: min(440px, calc(100% - var(--owl-panel-width) - 220px));
+  width: min(440px, calc(100% - var(--owl-panel-width) - 248px));
 }
 .router-stage:has(> .router-panel) .map-zoom {
   right: calc(var(--owl-panel-width) + 16px);
