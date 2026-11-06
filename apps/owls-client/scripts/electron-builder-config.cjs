@@ -51,7 +51,7 @@ module.exports = {
   protocols: [
     {
       name: 'Owls Client Auth',
-      schemes: ['owls-client', 'pix-client']
+      schemes: ['owls-client']
     }
   ],
   directories: {

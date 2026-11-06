@@ -1,7 +1,6 @@
 import type { AgentMessage } from '@earendil-works/pi-agent-core'
 
 export const CONTEXT_COMPACTION_SYSTEM_MESSAGE_PREFIX = '[[owls:context-compaction]]'
-const LEGACY_CONTEXT_COMPACTION_SYSTEM_MESSAGE_PREFIX = '[[pix:context-compaction]]'
 export const CONTEXT_COMPACTION_SUMMARY_PREFIX =
   'Another language model started to solve this problem and produced a summary of its work.'
 
@@ -30,11 +29,8 @@ export function serializeContextCompactionMarker(marker: ContextCompactionMarker
 }
 
 export function parseContextCompactionMarker(content: string): ContextCompactionMarker | null {
-  const prefix = [
-    CONTEXT_COMPACTION_SYSTEM_MESSAGE_PREFIX,
-    LEGACY_CONTEXT_COMPACTION_SYSTEM_MESSAGE_PREFIX
-  ].find((candidate) => content.startsWith(candidate))
-  if (!prefix) return null
+  const prefix = CONTEXT_COMPACTION_SYSTEM_MESSAGE_PREFIX
+  if (!content.startsWith(prefix)) return null
 
   try {
     const parsed = JSON.parse(content.slice(prefix.length)) as

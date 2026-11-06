@@ -19,8 +19,6 @@ const MANIFEST_PATH = 'plugin.json'
 const FIXED_SKILLS_PATH = './skills'
 const FIXED_MCP_PATH = './mcp.json'
 const FIXED_OWLS_HOOKS_PATH = './com.owls.app/hooks/hooks.json'
-const LEGACY_EXTENSION_NAMESPACE = 'com.pix.app'
-const LEGACY_FIXED_HOOKS_PATH = './com.pix.app/hooks/hooks.json'
 const PORTABLE_MANIFEST_FIELDS = new Set([
   '$schema',
   'name',
@@ -155,10 +153,7 @@ function owlsExtensionFromManifest(
   diagnostics: PluginDiagnostic[]
 ): Record<string, unknown> {
   if (!isRecord(raw.extensions)) return {}
-  const namespace =
-    raw.extensions[OWLS_PLUGIN_EXTENSION_NAMESPACE] !== undefined
-      ? OWLS_PLUGIN_EXTENSION_NAMESPACE
-      : LEGACY_EXTENSION_NAMESPACE
+  const namespace = OWLS_PLUGIN_EXTENSION_NAMESPACE
   const extension = raw.extensions[namespace]
   if (extension === undefined) return {}
   if (!isRecord(extension)) {
@@ -663,9 +658,7 @@ async function normalizeManifestAsync(
   const description = optionalString(raw.description) ?? ''
   const skills = await fixedPathIfPresentAsync(pluginRoot, FIXED_SKILLS_PATH)
   const mcpServers = await fixedPathIfPresentAsync(pluginRoot, FIXED_MCP_PATH)
-  const hooks =
-    (await fixedPathIfPresentAsync(pluginRoot, FIXED_OWLS_HOOKS_PATH)) ??
-    (await fixedPathIfPresentAsync(pluginRoot, LEGACY_FIXED_HOOKS_PATH))
+  const hooks = await fixedPathIfPresentAsync(pluginRoot, FIXED_OWLS_HOOKS_PATH)
   const componentPaths: PluginComponentPaths = {
     skills,
     mcpServers,

@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, realpath, rename, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, normalize, sep } from 'node:path'
 import {
-  LEGACY_SOP_GRAPH_SCHEMA,
   SOP_GRAPH_SCHEMA,
   SOP_INDEX_VERSION,
   type SopDetail,
@@ -174,7 +173,7 @@ function validateSopGraph(value: unknown): SopGraphDocument {
   if (!isRecord(value)) {
     throw new Error('SOP graph JSON must be an object.')
   }
-  if (value.$schema !== SOP_GRAPH_SCHEMA && value.$schema !== LEGACY_SOP_GRAPH_SCHEMA) {
+  if (value.$schema !== SOP_GRAPH_SCHEMA) {
     throw new Error(`SOP graph $schema must be "${SOP_GRAPH_SCHEMA}".`)
   }
 

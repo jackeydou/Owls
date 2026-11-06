@@ -1,5 +1,5 @@
-export const DATA_ROOT_ARG_NAMES = ['--owls-data-root', '--data-root', '--pix-data-root'] as const
-export const DEV_NAME_ARG_NAMES = ['--owls-dev-name', '--dev-name', '--pix-dev-name'] as const
+export const DATA_ROOT_ARG_NAMES = ['--owls-data-root', '--data-root'] as const
+export const DEV_NAME_ARG_NAMES = ['--owls-dev-name', '--dev-name'] as const
 
 type StartupArgName = (typeof DATA_ROOT_ARG_NAMES)[number] | (typeof DEV_NAME_ARG_NAMES)[number]
 
