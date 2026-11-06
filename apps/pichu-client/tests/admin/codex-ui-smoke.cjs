@@ -417,11 +417,17 @@ app
       // The sidebar hides completely, leaves its toggle on the title bar, and remembers.
       await evaluate("document.querySelector('.router-sidebar-toggle').click()")
       await waitFor(
-        "!document.querySelector('.router-sidebar') && Boolean(document.querySelector('.router-sidebar-open'))"
+        "!document.querySelector('.router-sidebar') && Boolean(document.querySelector('.router-sidebar-toggle'))"
       )
       assert.equal(host.snapshot().settings.sidebarCollapsed, true)
+      assert.ok(
+        await evaluate(
+          "Boolean(document.querySelector('.router-stage').compareDocumentPosition(document.querySelector('.router-sidebar-toggle')) & Node.DOCUMENT_POSITION_FOLLOWING)"
+        ),
+        'the toggle follows the stage, or the title bar drag region swallows its clicks'
+      )
       await capture('sidebar-hidden')
-      await evaluate("document.querySelector('.router-sidebar-open').click()")
+      await evaluate("document.querySelector('.router-sidebar-toggle').click()")
       await waitFor("Boolean(document.querySelector('.router-sidebar'))")
       assert.equal(host.snapshot().settings.sidebarCollapsed, false)
       await evaluate("document.querySelector('.router-editor textarea').focus()")

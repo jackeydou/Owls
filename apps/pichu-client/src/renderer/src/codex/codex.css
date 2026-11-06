@@ -18,7 +18,7 @@
   flex-direction: column;
 }
 .codex-topbar {
-  height: 62px;
+  height: var(--owl-bar-height);
   flex-shrink: 0;
   border-bottom: 1px solid var(--color-border);
   display: flex;
@@ -29,6 +29,11 @@
 }
 .codex-topbar button {
   -webkit-app-region: no-drag;
+}
+.codex-bar-button {
+  width: var(--owl-toggle-size);
+  height: var(--owl-toggle-size);
+  border-radius: 7px;
 }
 .codex-task-title {
   display: flex;

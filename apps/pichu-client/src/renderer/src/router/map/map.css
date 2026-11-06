@@ -444,7 +444,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 56px;
+  height: var(--owl-bar-height);
   padding: 0 16px 0 30px;
   pointer-events: none;
   -webkit-app-region: drag;

@@ -1,5 +1,5 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { AlertCircle, PanelLeftOpen, X } from 'lucide-react'
+import { AlertCircle, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../codex/failures'
@@ -50,6 +50,7 @@ export function RouterShell() {
   const collapsed = useCodexStore((s) => s.settings.sidebarCollapsed)
   const toggleSidebar = useCodexStore((s) => s.toggleSidebar)
   const projectId = useCodexStore((s) => s.routerProjectId)
+  const sidebarLabel = t(collapsed ? 'router.showSidebar' : 'router.hideSidebar')
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()
@@ -74,18 +75,7 @@ export function RouterShell() {
   }, [])
   return (
     <>
-      {collapsed ? (
-        <IconButton
-          className="router-sidebar-open"
-          label={t('router.showSidebar')}
-          tooltip={t('router.showSidebar')}
-          tooltipSide="bottom"
-          icon={<PanelLeftOpen size={16} />}
-          onClick={toggleSidebar}
-        />
-      ) : (
-        <Sidebar />
-      )}
+      {collapsed ? null : <Sidebar />}
       <div className={collapsed ? 'router-stage sidebar-hidden' : 'router-stage'}>
         {view === 'settings' ? (
           <CodexSettingsPage />
@@ -96,6 +86,16 @@ export function RouterShell() {
         )}
         {view === 'settings' ? null : <Panel />}
       </div>
+      {/* Stays after the stage: Chromium applies app regions in document order, whatever the
+          z-index, so a title bar later in the DOM would turn this button back into a drag area. */}
+      <IconButton
+        className="router-sidebar-toggle"
+        label={sidebarLabel}
+        tooltip={sidebarLabel}
+        tooltipSide="bottom"
+        icon={collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        onClick={toggleSidebar}
+      />
       <ActionError />
     </>
   )

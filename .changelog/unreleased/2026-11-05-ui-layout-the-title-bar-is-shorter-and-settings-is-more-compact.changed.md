@@ -1,0 +1,1 @@
+- Layout: the title bar is shorter, and Settings is more compact, with one control width and tighter rows. (#31)

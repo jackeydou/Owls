@@ -1,0 +1,1 @@
+- Title bar: the sidebar toggle works while the sidebar is hidden and stays in one place, lined up with the window controls. (#31)
