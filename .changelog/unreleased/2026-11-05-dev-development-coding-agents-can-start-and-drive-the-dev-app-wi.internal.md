@@ -1,0 +1,1 @@
+- Development: coding agents can start and drive the dev app with `pnpm debug:app`, and the dev window now reloads when Vite asks it to. (#32)

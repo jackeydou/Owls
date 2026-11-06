@@ -90,7 +90,11 @@ function createWindow(): void {
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
     return { action: 'deny' }
   })
-  window.webContents.on('will-navigate', (event) => event.preventDefault())
+  window.webContents.on('will-navigate', (event) => {
+    // Vite reloads the page after an edit it cannot hot update.
+    if (is.dev && event.url === window?.webContents.getURL()) return
+    event.preventDefault()
+  })
   window.on('closed', () => {
     window = null
   })
