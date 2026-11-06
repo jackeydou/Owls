@@ -115,8 +115,6 @@ const en = {
   live: 'Live',
   accountUnavailable: 'Connect Codex to load available models.',
   localOnly: 'Local runtime',
-  trustFolder:
-    'Only open projects you trust. {{agent}} may load project instructions, hooks, and MCP servers.',
   'errors.not_installed': 'Codex was not found. Choose your local executable in Settings.',
   'errors.not_connected': 'Connect local Codex in Settings to continue.',
   'errors.busy': 'Stop the running workers before making this change.',
@@ -251,7 +249,6 @@ const zh: Record<keyof typeof en, string> = {
   live: '实时',
   accountUnavailable: '连接 Codex 后即可加载可用模型。',
   localOnly: '本机运行',
-  trustFolder: '请仅打开可信项目。{{agent}} 可能会加载项目指令、hooks 和 MCP 服务。',
   'errors.not_installed': '未找到 Codex，请在设置中选择本机可执行文件。',
   'errors.not_connected': '请先在设置中连接本机 Codex。',
   'errors.busy': '请先停止正在运行的 Worker。',

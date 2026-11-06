@@ -1,0 +1,1 @@
+- Router: the input no longer shows the note about opening only trusted projects. (#36)
