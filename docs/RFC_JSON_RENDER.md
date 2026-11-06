@@ -84,11 +84,11 @@ Json Render 是 Owls Client 中面向结构化 JSON 数据的通用只读 UI 渲
 
 现有实现可复用的部分：
 
-- Renderer 入口：`apps/pichu-client/src/renderer/src/components/approval/ApprovalJsonRender.tsx`。
-- Component registry：`apps/pichu-client/src/renderer/src/components/approval/json-render-registry.tsx`。
-- Spec validation：`apps/pichu-client/src/renderer/src/components/approval/json-render-validation.ts`。
-- Tool approval schema：`apps/pichu-client/src/shared/tool-approval.ts`。
-- automation runtime result UI snapshot：`apps/pichu-client/src/main/automation-runtime/result-ui.ts`。
+- Renderer 入口：`apps/owls-client/src/renderer/src/components/approval/ApprovalJsonRender.tsx`。
+- Component registry：`apps/owls-client/src/renderer/src/components/approval/json-render-registry.tsx`。
+- Spec validation：`apps/owls-client/src/renderer/src/components/approval/json-render-validation.ts`。
+- Tool approval schema：`apps/owls-client/src/shared/tool-approval.ts`。
+- automation runtime result UI snapshot：`apps/owls-client/src/main/automation-runtime/result-ui.ts`。
 
 当前 schema 在不同调用点里仍带有场景痕迹，例如 approval 使用 `state`，automation runtime result UI 直接把结果数据写入 `state`。本 RFC 将它统一为 `state_source`，由 json-render 协议层负责解析为 renderer state。
 

@@ -1,5 +1,5 @@
 {
-  "name": "@pichu/local-rpc-client",
+  "name": "@owls/local-rpc-client",
   "version": "0.1.0",
   "description": "Node.js client for Owls Client local JSON-RPC control plane.",
   "private": true,

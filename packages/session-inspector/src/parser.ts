@@ -48,7 +48,7 @@ export type PromptBlock = {
 }
 
 export type SessionFile = {
-  source?: 'codex' | 'pichu' | 'trajectory'
+  source?: 'codex' | 'owls' | 'trajectory'
   key?: string
   path: string
   name: string

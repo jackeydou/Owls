@@ -1,0 +1,27 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "computer-use",
+  "version": "0.1.0",
+  "description": "Guidance for inspecting and controlling Mac apps through Owls Computer Use tools.",
+  "author": {
+    "name": "Owls"
+  },
+  "keywords": ["computer-use", "screen-capture", "macos", "automation"],
+  "extensions": {
+    "com.owls.app": {
+      "interface": {
+        "displayName": "Computer Use",
+        "shortDescription": "Inspect and control Mac apps without bringing them to the foreground.",
+        "developerName": "Owls",
+        "category": "Automation",
+        "icon": "./assets/icon.png",
+        "logo": "./assets/logo.png",
+        "capabilities": ["Skill"],
+        "defaultPrompt": [
+          "Use Computer Use to inspect my screen.",
+          "Use Computer Use to operate Safari."
+        ]
+      }
+    }
+  }
+}

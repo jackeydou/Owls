@@ -58,18 +58,18 @@ pnpm dev
 For an isolated development profile:
 
 ```bash
-pnpm dev --pichu-dev-name "Codex Orchestrator" \
-  --pichu-data-root ~/.pichu-dev/codex-orchestrator
+pnpm dev --owls-dev-name "Codex Orchestrator" \
+  --owls-data-root ~/.owls-dev/codex-orchestrator
 ```
 
 Runtime settings are persisted; there are no Owls environment-variable overrides
 for the agent executable, model, account, or data root.
 
 ```bash
-pnpm --filter pichu-client typecheck
-pnpm --filter pichu-client test:codex
-pnpm --filter pichu-client test:codex:desktop
-pnpm --filter pichu-client test:codex:ui
+pnpm --filter owls-client typecheck
+pnpm --filter owls-client test:codex
+pnpm --filter owls-client test:codex:desktop
+pnpm --filter owls-client test:codex:ui
 ```
 
 After a build, verify a real local installation. The first command only reads
@@ -77,9 +77,9 @@ account and model metadata. The other commands use the native account to run
 small, isolated live tests.
 
 ```bash
-pnpm --filter pichu-client verify:codex
-pnpm --filter pichu-client verify:codex --prompt
-pnpm --filter pichu-client verify:codex --tools
+pnpm --filter owls-client verify:codex
+pnpm --filter owls-client verify:codex --prompt
+pnpm --filter owls-client verify:codex --tools
 ```
 
 Development changes target `main` through pull requests. Read

@@ -1,5 +1,5 @@
 {
-  "name": "@pichu/browser-use",
+  "name": "@owls/browser-use",
   "version": "0.1.0",
   "description": "Browser Use runtime for Owls Client session browser automation.",
   "private": true,
@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@pichu/local-rpc-client": "workspace:*"
+    "@owls/local-rpc-client": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",

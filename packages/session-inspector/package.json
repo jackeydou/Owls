@@ -1,5 +1,5 @@
 {
-  "name": "@pichu/session-inspector",
+  "name": "@owls/session-inspector",
   "version": "0.1.0",
   "description": "Local Codex and Owls session trace inspector.",
   "private": true,

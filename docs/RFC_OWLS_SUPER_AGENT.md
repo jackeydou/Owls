@@ -99,7 +99,7 @@ Router 另有一个召回通道：`recall(id)` 按 ID 逐跳展开 Worker、事�
 
 证据：
 
-- 回放 fixtures：`apps/pichu-client/tests/fixtures/providers/`（已脱敏，说明见其 README）。
+- 回放 fixtures：`apps/owls-client/tests/fixtures/providers/`（已脱敏，说明见其 README）。
 - 每条发现的复现方式、影响和后续：[实测发现记录](SUPER_AGENT_FINDINGS.md)。
 - 所有 M0 探针在一次运行中全部通过。Codex 首次运行遇到两个环境问题：本机配置的默认模型
   不支持该账号（`model_not_found`），以及一次性的 `429`（账号周用量 8%，未达上限）。
@@ -444,7 +444,7 @@ type TurnOutcome = {
 
 ### 9.5 代码布局
 
-| 路径（相对 `apps/pichu-client/`） | 职责 |
+| 路径（相对 `apps/owls-client/`） | 职责 |
 | --- | --- |
 | `src/main/router/service.ts` | `RouterService`：Router 生命周期、引擎选择、批次调度、Worker 注册、汇报接入、实现 `TurnProfiles` |
 | `src/main/router/engines/owls.ts` | Owls 引擎（9.2 节） |
@@ -605,8 +605,8 @@ F12–F16）：
 
 **位置。** `<dataRoot>/worktrees/<repoKey>/<workerId>`：
 
-- `<dataRoot>` 是 `pichu-paths.ts` 的 `getDataRoot()`，沿用现有的 bootstrap 和设置流程。
-  `pichu-paths.ts` 新增 `workerWorktreesRoot()`，由 main 启动时传给 `WorkerPool`。不新增路径设置，
+- `<dataRoot>` 是 `owls-paths.ts` 的 `getDataRoot()`，沿用现有的 bootstrap 和设置流程。
+  `owls-paths.ts` 新增 `workerWorktreesRoot()`，由 main 启动时传给 `WorkerPool`。不新增路径设置，
   不读环境变量。
 - `repoKey` 是仓库顶层目录名加上其规范路径 SHA-256 的前 8 位，同名仓库不会冲突。
 - 不放在项目目录中，避免 worktree 出现在项目文件树里、被工具扫描，或者需要修改 `.gitignore`；
@@ -743,13 +743,13 @@ F12–F16）：
 | 层次 | 内容 | 入口 |
 | --- | --- | --- |
 | 纯函数 | 批次渲染的排序、截断、转义；上下文预算裁剪；汇报解析与降级；工具输入校验与去重 | `tests/admin/router-*.test.mjs` |
-| Owls 引擎 | 用 pi-ai 的 `fauxProvider` 驱动：消息 → 分派 → 汇报 → 回复；运行中注入；工具失败；`prepareRequest` 的上下文内容；重启后从 `codex_router_messages` 重建 | `pnpm --filter pichu-client test:router`（新增脚本） |
+| Owls 引擎 | 用 pi-ai 的 `fauxProvider` 驱动：消息 → 分派 → 汇报 → 回复；运行中注入；工具失败；`prepareRequest` 的上下文内容；重启后从 `codex_router_messages` 重建 | `pnpm --filter owls-client test:router`（新增脚本） |
 | Claude Code 与 Codex 引擎 | 脚本化 SDK 和 Codex 进程 fixture；用 `tests/fixtures/providers/` 校验原生帧解析 | 同上 |
 | 凭据 | 用替身 `safeStorage` 测试加密存储、加密不可用时拒绝、`list()` 不含密钥、无凭据时不发请求 | 同上 |
 | Worker | `ClaudeService` 与 `CodexService` 的 worker profile、`steer`、`settled` 回调 | `test:claude`、`test:codex` |
-| UI 冒烟 | Router 入口、设置卡片、引擎切换、Worker 卡片、汇报卡片和中英文切换；确认 renderer 拿不到 key | `pnpm --filter pichu-client test:codex:ui` |
-| 实机 | `verify:router --engine owls\|claude-code\|codex` 各跑一次完整流程，检查只暴露 Owls 工具和 token 用量；`owls` 需要用户已配置模型，否则跳过并说明 | `pnpm --filter pichu-client verify:router`（新增脚本） |
-| 消融实验 | 14.1 节的 M4 基准：真实 `RouterService`、`WorkerPool`、Owls 引擎，脚本化模型，虚拟时钟 | `pnpm --filter pichu-client bench:router` |
+| UI 冒烟 | Router 入口、设置卡片、引擎切换、Worker 卡片、汇报卡片和中英文切换；确认 renderer 拿不到 key | `pnpm --filter owls-client test:codex:ui` |
+| 实机 | `verify:router --engine owls\|claude-code\|codex` 各跑一次完整流程，检查只暴露 Owls 工具和 token 用量；`owls` 需要用户已配置模型，否则跳过并说明 | `pnpm --filter owls-client verify:router`（新增脚本） |
+| 消融实验 | 14.1 节的 M4 基准：真实 `RouterService`、`WorkerPool`、Owls 引擎，脚本化模型，虚拟时钟 | `pnpm --filter owls-client bench:router` |
 
 `verify:router` 在临时目录运行，结束后删除临时目录及其原生会话记录（避免 F11 的残留）。
 
@@ -758,7 +758,7 @@ F12–F16）：
 **做法。** 复现文章 7.1 节的设置：每次约 300 条消息，其中 260 条闲聊（需要回复，不需要干活）、
 20 条工作请求；每个请求在结果可见后有 0–2 条追问（评审意见、CI 结果，共约 26 条），每组 5 个
 种子（1001–1005）取平均。时间按文章的 1/4 缩放：一小时内到达，工作耗时中位数 6 分钟
-（2–18 分钟），追问工作 1–4 分钟。脚本 `apps/pichu-client/scripts/bench-router.mjs`：
+（2–18 分钟），追问工作 1–4 分钟。脚本 `apps/owls-client/scripts/bench-router.mjs`：
 
 - Router 各组直接运行打包后的 `RouterService`、`WorkerPool`、Owls 引擎和真实的
   `ROUTER_INSTRUCTIONS`；只有模型和 Worker 任务是模拟的。单会话组用同一个 pi `Agent`，
@@ -864,7 +864,7 @@ worktree 模式不受写入串行影响。基准的模型脚本已按这个行�
 
 仍开放：
 
-1. **旧 pi 代码的去留（R6）。** 旧代码现在作为 legacy 保留在 `apps/pichu-client/legacy/`，不参与
+1. **旧 pi 代码的去留（R6）。** 旧代码现在作为 legacy 保留在 `apps/owls-client/legacy/`，不参与
    构建、类型检查、lint 和测试。它依赖的 pi `0.84.1` 已升级为 `1.5.0`，因此 legacy 代码无法直接编译；
    要复用其中某部分时，需要移回 `src/` 并移植到当前运行时。
 2. **默认引擎的首次使用成本。** Owls 引擎是默认值，首次使用 Router 必须先配置 key 或本地模型。

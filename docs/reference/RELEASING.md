@@ -50,7 +50,7 @@ release tags use the same string as the actual version.
 
 ## Version Files
 
-`apps/pichu-client/package.json` is the Electron app version source. Keep the
+`apps/owls-client/package.json` is the Electron app version source. Keep the
 root `package.json` version aligned so repo-level tooling and app packaging do
 not disagree.
 
@@ -194,8 +194,8 @@ read-only from each DMG before uploading any release assets. Mounted images are
 detached on success or failure. To inspect a built or installed app manually:
 
 ```bash
-pnpm --dir apps/pichu-client run verify:packaged /Applications/Owls.app
-pnpm --filter pichu-client test:packaging
+pnpm --dir apps/owls-client run verify:packaged /Applications/Owls.app
+pnpm --filter owls-client test:packaging
 ```
 
 The build step raises only its soft open-file limit to 65,536, preserving the
@@ -245,13 +245,13 @@ at minimum:
 pnpm run changelog:check
 pnpm run release-notes:check --version <version>
 pnpm run release:check --version <version>
-pnpm --dir apps/pichu-client run build
+pnpm --dir apps/owls-client run build
 ```
 
 For macOS artifacts:
 
 ```bash
-pnpm --dir apps/pichu-client run build:mac
+pnpm --dir apps/owls-client run build:mac
 ```
 
 Run Windows and Linux package builds when the release includes those platforms.

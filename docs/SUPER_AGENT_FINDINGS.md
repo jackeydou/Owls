@@ -14,7 +14,7 @@
 实测环境（除非条目另有说明）：macOS arm64，Codex CLI `0.148.0`（ChatGPT `prolite` 账号），
 Claude Code `2.1.316`，Agent SDK `0.3.316`。F12 起的补充实测使用 Codex CLI `0.166.0`；
 F18–F20 使用 pi `1.5.0`。
-回放证据位于 `apps/pichu-client/tests/fixtures/providers/`。
+回放证据位于 `apps/owls-client/tests/fixtures/providers/`。
 
 ## 速查
 
@@ -273,7 +273,7 @@ hook 和插件信息，未入库。
   npm 上的最新版本是 `1.5.0`，1.x 用 `createModels()` 取代了全局 `getModel()` 等 API。
 - 影响：直接升级会让旧代码无法通过类型检查。
 - 处理：#18 尝试直接删除，后按维护者要求关闭。改为把构建入口不可达的 338 个源文件和覆盖它们的
-  31 个测试与 fixture 移到 `apps/pichu-client/legacy/`，保留原目录结构；legacy 不参与构建、类型检查、
+  31 个测试与 fixture 移到 `apps/owls-client/legacy/`，保留原目录结构；legacy 不参与构建、类型检查、
   lint 和测试。pi 升级到 `1.5.0`，`pi-coding-agent` 和它带来的 photon wasm 复制步骤移除。
 
 ### F21 pi 的 OpenAI 兼容请求在没有 API key 时直接失败
@@ -379,7 +379,7 @@ Codex CLI `0.166.0`。先用独立脚本复现 RFC 4.2 节的锁定进程，再�
 
 ## M4 消融实验（2026-11-03）
 
-`pnpm --filter pichu-client bench:router`，设置与完整结果见 RFC 14.1 节。打包后的
+`pnpm --filter owls-client bench:router`，设置与完整结果见 RFC 14.1 节。打包后的
 `RouterService`、`WorkerPool` 和 Owls 引擎由脚本化的 pi faux provider 驱动，时间走虚拟时钟；
 以下数字是 5 个种子的平均，单种子的数字会标明。
 

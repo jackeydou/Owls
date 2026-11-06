@@ -1,0 +1,3 @@
+provider: generic
+url: ''
+updaterCacheDirName: owls-updater

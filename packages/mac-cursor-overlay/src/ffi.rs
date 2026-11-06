@@ -29,19 +29,19 @@ pub(crate) struct NativeOverlayState {
 }
 
 unsafe extern "C" {
-    pub(crate) fn pichu_cursor_overlay_show(bounds: NativeRect, level: i32) -> bool;
-    pub(crate) fn pichu_cursor_overlay_hide() -> bool;
-    pub(crate) fn pichu_cursor_overlay_set_bounds(bounds: NativeRect) -> bool;
-    pub(crate) fn pichu_cursor_overlay_set_level(level: i32) -> bool;
-    pub(crate) fn pichu_cursor_overlay_set_attached_window_id(window_id: u32) -> bool;
-    pub(crate) fn pichu_cursor_overlay_jump_cursor(point: NativePoint) -> bool;
-    pub(crate) fn pichu_cursor_overlay_flash_click(point: NativePoint) -> bool;
-    pub(crate) fn pichu_cursor_overlay_set_cursor_visible(visible: bool) -> bool;
-    pub(crate) fn pichu_cursor_overlay_set_cursor_pressed(pressed: bool) -> bool;
-    pub(crate) fn pichu_cursor_overlay_set_debug_backdrop(
+    pub(crate) fn owls_cursor_overlay_show(bounds: NativeRect, level: i32) -> bool;
+    pub(crate) fn owls_cursor_overlay_hide() -> bool;
+    pub(crate) fn owls_cursor_overlay_set_bounds(bounds: NativeRect) -> bool;
+    pub(crate) fn owls_cursor_overlay_set_level(level: i32) -> bool;
+    pub(crate) fn owls_cursor_overlay_set_attached_window_id(window_id: u32) -> bool;
+    pub(crate) fn owls_cursor_overlay_jump_cursor(point: NativePoint) -> bool;
+    pub(crate) fn owls_cursor_overlay_flash_click(point: NativePoint) -> bool;
+    pub(crate) fn owls_cursor_overlay_set_cursor_visible(visible: bool) -> bool;
+    pub(crate) fn owls_cursor_overlay_set_cursor_pressed(pressed: bool) -> bool;
+    pub(crate) fn owls_cursor_overlay_set_debug_backdrop(
         visible: bool,
         label: *const c_char,
     ) -> bool;
-    pub(crate) fn pichu_cursor_overlay_get_state() -> NativeOverlayState;
-    pub(crate) fn pichu_cursor_overlay_dispose() -> bool;
+    pub(crate) fn owls_cursor_overlay_get_state() -> NativeOverlayState;
+    pub(crate) fn owls_cursor_overlay_dispose() -> bool;
 }

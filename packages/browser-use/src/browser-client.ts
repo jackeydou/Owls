@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createPichuLocalRpcClient } from '@pichu/local-rpc-client'
+import { createOwlsLocalRpcClient } from '@owls/local-rpc-client'
 
 const DEFAULT_TIMEOUT_MS = 120_000
 const DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
@@ -76,7 +76,7 @@ function expandHome(path: string): string {
 }
 
 async function defaultDataRoot(): Promise<string> {
-  const bootstrapPath = join(homedir(), '.pichu', 'pichu-bootstrap.json')
+  const bootstrapPath = join(homedir(), '.owls', 'owls-bootstrap.json')
   try {
     const parsed = JSON.parse(await readFile(bootstrapPath, 'utf8')) as { dataRoot?: unknown }
     if (typeof parsed.dataRoot === 'string' && parsed.dataRoot.trim()) {
@@ -86,11 +86,11 @@ async function defaultDataRoot(): Promise<string> {
   } catch {
     // First-run and default-root installs may not have a bootstrap file yet.
   }
-  return join(homedir(), '.pichu')
+  return join(homedir(), '.owls')
 }
 
 function sessionIdFromEnv(): string {
-  const sessionId = process.env.PICHU_SESSION_ID
+  const sessionId = process.env.OWLS_SESSION_ID
   if (!sessionId?.trim()) {
     throw new Error('Missing required browser session_id')
   }
@@ -165,7 +165,7 @@ class DocumentationCollection {
 }
 
 class RpcBrowserClient {
-  private clientPromise: ReturnType<typeof createPichuLocalRpcClient> | null = null
+  private clientPromise: ReturnType<typeof createOwlsLocalRpcClient> | null = null
   private visible = true
 
   isVisible(): boolean {
@@ -178,7 +178,7 @@ class RpcBrowserClient {
 
   async call<TResult>(method: string, params: Record<string, unknown>): Promise<TResult> {
     if (!this.clientPromise) {
-      this.clientPromise = createPichuLocalRpcClient({
+      this.clientPromise = createOwlsLocalRpcClient({
         dataRoot: await defaultDataRoot(),
         timeoutMs: DEFAULT_TIMEOUT_MS,
         maxResponseBytes: DEFAULT_MAX_RESPONSE_BYTES

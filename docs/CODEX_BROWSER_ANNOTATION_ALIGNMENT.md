@@ -49,7 +49,7 @@ The payload carries:
 
 The Browser panel keeps submitted annotations pending until the user clicks
 `Send`. The composer then receives each payload through the existing
-`pichu:add-chat-comment` event. The prompt path uses existing message part
+`owls:add-chat-comment` event. The prompt path uses existing message part
 projection. The implementation must not append full page text into the input
 box.
 

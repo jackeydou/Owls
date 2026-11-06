@@ -11,7 +11,7 @@ migration proposal does not apply to this implementation.
 
 ## Entries and ownership
 
-- Main: `apps/pichu-client/src/main/codex/desktop.ts`.
+- Main: `apps/owls-client/src/main/codex/desktop.ts`.
 - Native client: `src/main/codex/client.ts`.
 - Session orchestration: `src/main/codex/service.ts`.
 - Persistence: `src/main/codex/store.ts` and `schema.ts`.
@@ -20,7 +20,7 @@ migration proposal does not apply to this implementation.
 - Preload: `src/preload/codex.ts`.
 - Renderer: `src/renderer/src/codex/`.
 
-Paths after the first entry are relative to `apps/pichu-client/`.
+Paths after the first entry are relative to `apps/owls-client/`.
 
 Codex owns its model requests, native tools, context, authentication, and native
 thread storage. Owls owns project selection, worker sessions, normalized item history,
@@ -95,10 +95,10 @@ Text updates are batched, while requests and terminal state are saved immediatel
 ## Verification
 
 ```bash
-pnpm --filter pichu-client typecheck
-pnpm --filter pichu-client test:codex
-pnpm --filter pichu-client test:codex:desktop
-pnpm --filter pichu-client test:codex:ui
+pnpm --filter owls-client typecheck
+pnpm --filter owls-client test:codex
+pnpm --filter owls-client test:codex:desktop
+pnpm --filter owls-client test:codex:ui
 ```
 
 The transport tests use a process fixture. The Electron smoke test exercises
@@ -116,9 +116,9 @@ Simplified Chinese UI messages; native Codex errors retain redacted details.
 After building:
 
 ```bash
-pnpm --filter pichu-client verify:codex
-pnpm --filter pichu-client verify:codex --prompt
-pnpm --filter pichu-client verify:codex --tools
+pnpm --filter owls-client verify:codex
+pnpm --filter owls-client verify:codex --prompt
+pnpm --filter owls-client verify:codex --tools
 ```
 
 Live tests use the local account. Prompt/tool tests create an isolated temporary
@@ -133,7 +133,7 @@ After a macOS package build, run the same UI flow against its actual ASAR,
 preload, and packaged migrations without opening the user's real data root:
 
 ```bash
-pnpm --filter pichu-client exec electron tests/admin/codex-ui-smoke.cjs \
+pnpm --filter owls-client exec electron tests/admin/codex-ui-smoke.cjs \
   --packaged-app dist/mac-arm64/Owls.app
 ```
 

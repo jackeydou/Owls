@@ -1,6 +1,6 @@
 # Changelog
 
-Pichu's public release history starts with the current codebase. Earlier
+Owls' public release history starts with the current codebase. Earlier
 development history is intentionally not carried forward.
 
 ## Unreleased

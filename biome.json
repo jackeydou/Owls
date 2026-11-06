@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!!apps/pichu-client/legacy"]
+    "includes": ["**", "!!apps/owls-client/legacy"]
   },
   "formatter": {
     "enabled": true,

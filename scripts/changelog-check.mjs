@@ -209,7 +209,7 @@ function validateChangedFiles(base, changelogNa) {
   const isReleaseChange =
     changedFiles.includes('CHANGELOG.md') &&
     changedFiles.some((file) => file.startsWith('release-notes/')) &&
-    changedFiles.includes('apps/pichu-client/package.json')
+    changedFiles.includes('apps/owls-client/package.json')
 
   const exemptOnly = changedFiles.length > 0 && changedFiles.every(isFragmentExemptFile)
 

@@ -9,14 +9,14 @@
 typedef struct {
   double x;
   double y;
-} PichuPoint;
+} OwlsPoint;
 
 typedef struct {
   double x;
   double y;
   double width;
   double height;
-} PichuRect;
+} OwlsRect;
 
 typedef struct {
   bool has_window;
@@ -24,31 +24,31 @@ typedef struct {
   bool cursor_visible;
   bool debug_backdrop_visible;
   int level;
-  PichuRect bounds;
-  PichuPoint cursor_position;
-} PichuOverlayState;
+  OwlsRect bounds;
+  OwlsPoint cursor_position;
+} OwlsOverlayState;
 
-typedef NS_ENUM(NSInteger, PichuOverlayLevel) {
-  PichuOverlayLevelNormal = 0,
-  PichuOverlayLevelFloating = 1,
-  PichuOverlayLevelTornOffMenu = 2,
-  PichuOverlayLevelModalPanel = 3,
-  PichuOverlayLevelMainMenu = 4,
-  PichuOverlayLevelStatus = 5,
-  PichuOverlayLevelPopUpMenu = 6,
-  PichuOverlayLevelScreenSaver = 7
+typedef NS_ENUM(NSInteger, OwlsOverlayLevel) {
+  OwlsOverlayLevelNormal = 0,
+  OwlsOverlayLevelFloating = 1,
+  OwlsOverlayLevelTornOffMenu = 2,
+  OwlsOverlayLevelModalPanel = 3,
+  OwlsOverlayLevelMainMenu = 4,
+  OwlsOverlayLevelStatus = 5,
+  OwlsOverlayLevelPopUpMenu = 6,
+  OwlsOverlayLevelScreenSaver = 7
 };
 
-static const CGFloat kPichuCursorSize = 24.0;
-static const CGFloat kPichuDebugHudInset = 16.0;
-static const CGFloat kPichuCursorForwardAngle = 0.0;
-static const CGPoint kPichuCursorHotspot = { 5.0, 3.5 };
-static NSString *const kPichuClickRippleLayerName = @"pichu-click-ripple";
+static const CGFloat kOwlsCursorSize = 24.0;
+static const CGFloat kOwlsDebugHudInset = 16.0;
+static const CGFloat kOwlsCursorForwardAngle = 0.0;
+static const CGPoint kOwlsCursorHotspot = { 5.0, 3.5 };
+static NSString *const kOwlsClickRippleLayerName = @"owls-click-ripple";
 
-@interface PichuCursorOverlayView : NSView
+@interface OwlsCursorOverlayView : NSView
 @end
 
-@implementation PichuCursorOverlayView
+@implementation OwlsCursorOverlayView
 
 - (BOOL)isFlipped {
   return YES;
@@ -56,10 +56,10 @@ static NSString *const kPichuClickRippleLayerName = @"pichu-click-ripple";
 
 @end
 
-@interface PichuCursorOverlayManager : NSObject
+@interface OwlsCursorOverlayManager : NSObject
 
 @property(nonatomic, strong) NSPanel *window;
-@property(nonatomic, strong) PichuCursorOverlayView *view;
+@property(nonatomic, strong) OwlsCursorOverlayView *view;
 @property(nonatomic, strong) CALayer *rootLayer;
 @property(nonatomic, strong) CALayer *debugBackdropLayer;
 @property(nonatomic, strong) CATextLayer *debugTextLayer;
@@ -85,12 +85,12 @@ static NSString *const kPichuClickRippleLayerName = @"pichu-click-ripple";
 - (BOOL)setCursorPressedValue:(BOOL)pressed;
 - (BOOL)setDebugBackdropVisible:(BOOL)visible label:(NSString *)label;
 - (void)removeClickRipples;
-- (PichuOverlayState)overlayState;
+- (OwlsOverlayState)overlayState;
 - (BOOL)disposeOverlay;
 
 @end
 
-static void PichuRunOnMainThreadSync(dispatch_block_t block) {
+static void OwlsRunOnMainThreadSync(dispatch_block_t block) {
   if ([NSThread isMainThread]) {
     block();
     return;
@@ -98,30 +98,30 @@ static void PichuRunOnMainThreadSync(dispatch_block_t block) {
   dispatch_sync(dispatch_get_main_queue(), block);
 }
 
-static NSInteger PichuWindowLevelForOverlayLevel(NSInteger level) {
+static NSInteger OwlsWindowLevelForOverlayLevel(NSInteger level) {
   switch (level) {
-    case PichuOverlayLevelNormal:
+    case OwlsOverlayLevelNormal:
       return CGWindowLevelForKey(kCGNormalWindowLevelKey);
-    case PichuOverlayLevelFloating:
+    case OwlsOverlayLevelFloating:
       return CGWindowLevelForKey(kCGFloatingWindowLevelKey);
-    case PichuOverlayLevelTornOffMenu:
+    case OwlsOverlayLevelTornOffMenu:
       return CGWindowLevelForKey(kCGTornOffMenuWindowLevelKey);
-    case PichuOverlayLevelModalPanel:
+    case OwlsOverlayLevelModalPanel:
       return CGWindowLevelForKey(kCGModalPanelWindowLevelKey);
-    case PichuOverlayLevelMainMenu:
+    case OwlsOverlayLevelMainMenu:
       return CGWindowLevelForKey(kCGMainMenuWindowLevelKey);
-    case PichuOverlayLevelStatus:
+    case OwlsOverlayLevelStatus:
       return CGWindowLevelForKey(kCGStatusWindowLevelKey);
-    case PichuOverlayLevelPopUpMenu:
+    case OwlsOverlayLevelPopUpMenu:
       return CGWindowLevelForKey(kCGPopUpMenuWindowLevelKey);
-    case PichuOverlayLevelScreenSaver:
+    case OwlsOverlayLevelScreenSaver:
       return CGWindowLevelForKey(kCGScreenSaverWindowLevelKey);
     default:
       return CGWindowLevelForKey(kCGFloatingWindowLevelKey);
   }
 }
 
-static CGPathRef PichuCreateCursorPath(void) {
+static CGPathRef OwlsCreateCursorPath(void) {
   CGMutablePathRef path = CGPathCreateMutable();
   CGPathMoveToPoint(path, NULL, 5.0, 3.5);
   CGPathAddLineToPoint(path, NULL, 5.0, 21.5);
@@ -134,14 +134,14 @@ static CGPathRef PichuCreateCursorPath(void) {
   return path;
 }
 
-static void PichuApplyDisabledActions(void (^block)(void)) {
+static void OwlsApplyDisabledActions(void (^block)(void)) {
   [CATransaction begin];
   [CATransaction setDisableActions:YES];
   block();
   [CATransaction commit];
 }
 
-static CGFloat PichuIntersectionArea(CGRect a, CGRect b) {
+static CGFloat OwlsIntersectionArea(CGRect a, CGRect b) {
   CGRect intersection = CGRectIntersection(a, b);
   if (CGRectIsNull(intersection) || CGRectIsEmpty(intersection)) {
     return 0.0;
@@ -149,7 +149,7 @@ static CGFloat PichuIntersectionArea(CGRect a, CGRect b) {
   return intersection.size.width * intersection.size.height;
 }
 
-static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
+static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   NSArray<NSScreen *> *screens = NSScreen.screens;
   NSScreen *bestScreen = nil;
   CGRect bestQuartzFrame = CGRectZero;
@@ -162,7 +162,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
     }
     CGDirectDisplayID displayId = (CGDirectDisplayID) screenNumber.unsignedIntValue;
     CGRect displayQuartzFrame = CGDisplayBounds(displayId);
-    CGFloat area = PichuIntersectionArea(quartzRect, displayQuartzFrame);
+    CGFloat area = OwlsIntersectionArea(quartzRect, displayQuartzFrame);
     if (area > bestArea) {
       bestArea = area;
       bestScreen = screen;
@@ -188,17 +188,17 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
   );
 }
 
-@implementation PichuCursorOverlayManager
+@implementation OwlsCursorOverlayManager
 
 + (instancetype)sharedManager {
-  static PichuCursorOverlayManager *manager = nil;
+  static OwlsCursorOverlayManager *manager = nil;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
-    manager = [[PichuCursorOverlayManager alloc] init];
-    manager.level = PichuOverlayLevelFloating;
+    manager = [[OwlsCursorOverlayManager alloc] init];
+    manager.level = OwlsOverlayLevelFloating;
     manager.bounds = CGRectMake(0.0, 0.0, 1.0, 1.0);
     manager.cursorPosition = CGPointMake(-200.0, -200.0);
-    manager.cursorHeading = kPichuCursorForwardAngle;
+    manager.cursorHeading = kOwlsCursorForwardAngle;
     manager.attachedWindowId = 0;
   });
   return manager;
@@ -223,13 +223,13 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
   window.hasShadow = NO;
   window.backgroundColor = [NSColor clearColor];
   window.ignoresMouseEvents = YES;
-  window.level = PichuWindowLevelForOverlayLevel(self.level);
+  window.level = OwlsWindowLevelForOverlayLevel(self.level);
   window.collectionBehavior =
     NSWindowCollectionBehaviorCanJoinAllSpaces |
     NSWindowCollectionBehaviorFullScreenAuxiliary |
     NSWindowCollectionBehaviorStationary;
 
-  PichuCursorOverlayView *view = [[PichuCursorOverlayView alloc] initWithFrame:window.contentView.bounds];
+  OwlsCursorOverlayView *view = [[OwlsCursorOverlayView alloc] initWithFrame:window.contentView.bounds];
   view.wantsLayer = YES;
   view.layer = [CALayer layer];
   view.layer.frame = view.bounds;
@@ -245,7 +245,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
   [view.layer addSublayer:debugBackdropLayer];
 
   CATextLayer *debugTextLayer = [CATextLayer layer];
-  debugTextLayer.frame = CGRectMake(kPichuDebugHudInset, kPichuDebugHudInset, 360.0, 28.0);
+  debugTextLayer.frame = CGRectMake(kOwlsDebugHudInset, kOwlsDebugHudInset, 360.0, 28.0);
   debugTextLayer.foregroundColor = NSColor.whiteColor.CGColor;
   debugTextLayer.backgroundColor = [NSColor colorWithSRGBRed:0.06 green:0.09 blue:0.16 alpha:0.82].CGColor;
   debugTextLayer.cornerRadius = 8.0;
@@ -258,7 +258,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
   [view.layer addSublayer:debugTextLayer];
 
   CAShapeLayer *cursorLayer = [CAShapeLayer layer];
-  cursorLayer.bounds = CGRectMake(0.0, 0.0, kPichuCursorSize, kPichuCursorSize);
+  cursorLayer.bounds = CGRectMake(0.0, 0.0, kOwlsCursorSize, kOwlsCursorSize);
   cursorLayer.anchorPoint = CGPointMake(0.5, 0.5);
   cursorLayer.position = self.cursorPosition;
   cursorLayer.fillColor = [NSColor colorWithSRGBRed:0.02 green:0.02 blue:0.02 alpha:1.0].CGColor;
@@ -272,7 +272,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
   cursorLayer.shadowOffset = CGSizeMake(0.0, 3.0);
   cursorLayer.opacity = self.cursorVisible ? 1.0 : 0.0;
 
-  CGPathRef cursorPath = PichuCreateCursorPath();
+  CGPathRef cursorPath = OwlsCreateCursorPath();
   cursorLayer.path = cursorPath;
   CGPathRelease(cursorPath);
   [view.layer addSublayer:cursorLayer];
@@ -290,23 +290,23 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
 - (void)applyBounds:(CGRect)bounds {
   self.bounds = bounds;
   [self ensureWindowIfNeeded];
-  CGRect windowFrame = PichuCocoaRectFromQuartzRect(bounds);
-  PichuApplyDisabledActions(^{
+  CGRect windowFrame = OwlsCocoaRectFromQuartzRect(bounds);
+  OwlsApplyDisabledActions(^{
     [self removeClickRipples];
     [self.window setFrame:windowFrame display:NO];
     self.view.frame = CGRectMake(0.0, 0.0, bounds.size.width, bounds.size.height);
     self.rootLayer.frame = self.view.bounds;
     self.debugBackdropLayer.frame = self.view.bounds;
-    self.debugTextLayer.frame = CGRectMake(kPichuDebugHudInset, kPichuDebugHudInset, 360.0, 28.0);
+    self.debugTextLayer.frame = CGRectMake(kOwlsDebugHudInset, kOwlsDebugHudInset, 360.0, 28.0);
   });
 }
 
 - (void)applyLevel:(NSInteger)level {
   self.level = level;
   [self ensureWindowIfNeeded];
-  NSInteger effectiveLevel = self.attachedWindowId > 0 ? PichuOverlayLevelNormal : level;
+  NSInteger effectiveLevel = self.attachedWindowId > 0 ? OwlsOverlayLevelNormal : level;
   self.window.floatingPanel = self.attachedWindowId <= 0;
-  self.window.level = PichuWindowLevelForOverlayLevel(effectiveLevel);
+  self.window.level = OwlsWindowLevelForOverlayLevel(effectiveLevel);
 }
 
 - (BOOL)showWithBounds:(CGRect)bounds level:(NSInteger)level {
@@ -348,9 +348,9 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
   [self ensureWindowIfNeeded];
   self.cursorPosition = point;
   self.cursorVisible = YES;
-  CGFloat rotation = self.cursorHeading - kPichuCursorForwardAngle;
-  CGPoint center = CGPointMake(kPichuCursorSize / 2.0, kPichuCursorSize / 2.0);
-  CGPoint hotspotFromCenter = CGPointMake(kPichuCursorHotspot.x - center.x, kPichuCursorHotspot.y - center.y);
+  CGFloat rotation = self.cursorHeading - kOwlsCursorForwardAngle;
+  CGPoint center = CGPointMake(kOwlsCursorSize / 2.0, kOwlsCursorSize / 2.0);
+  CGPoint hotspotFromCenter = CGPointMake(kOwlsCursorHotspot.x - center.x, kOwlsCursorHotspot.y - center.y);
   CGFloat cosRotation = cos(rotation);
   CGFloat sinRotation = sin(rotation);
   CGPoint rotatedHotspotFromCenter = CGPointMake(
@@ -361,7 +361,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
     point.x - rotatedHotspotFromCenter.x,
     point.y - rotatedHotspotFromCenter.y
   );
-  PichuApplyDisabledActions(^{
+  OwlsApplyDisabledActions(^{
     self.cursorLayer.position = layerPosition;
     self.cursorLayer.transform = CATransform3DMakeRotation(rotation, 0.0, 0.0, 1.0);
     self.cursorLayer.opacity = 1.0;
@@ -369,7 +369,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
 }
 
 - (BOOL)jumpCursorTo:(CGPoint)point {
-  self.cursorHeading = kPichuCursorForwardAngle;
+  self.cursorHeading = kOwlsCursorForwardAngle;
   [self applyCursorPoseAt:point];
   return YES;
 }
@@ -378,7 +378,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
   [self ensureWindowIfNeeded];
 
   CAShapeLayer *rippleLayer = [CAShapeLayer layer];
-  rippleLayer.name = kPichuClickRippleLayerName;
+  rippleLayer.name = kOwlsClickRippleLayerName;
   rippleLayer.bounds = CGRectMake(0.0, 0.0, 24.0, 24.0);
   rippleLayer.position = point;
   rippleLayer.fillColor = [NSColor colorWithSRGBRed:0.02 green:0.02 blue:0.02 alpha:opacity * 0.25].CGColor;
@@ -416,7 +416,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
 - (void)removeClickRipples {
   NSArray<CALayer *> *sublayers = [self.rootLayer.sublayers copy];
   for (CALayer *layer in sublayers) {
-    if ([layer.name isEqualToString:kPichuClickRippleLayerName]) {
+    if ([layer.name isEqualToString:kOwlsClickRippleLayerName]) {
       [layer removeFromSuperlayer];
     }
   }
@@ -443,7 +443,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
 - (BOOL)setCursorVisibleValue:(BOOL)visible {
   [self ensureWindowIfNeeded];
   self.cursorVisible = visible;
-  PichuApplyDisabledActions(^{
+  OwlsApplyDisabledActions(^{
     self.cursorLayer.opacity = visible ? 1.0 : 0.0;
   });
   return YES;
@@ -456,9 +456,9 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
     return YES;
   }
   [self.cursorLayer removeAnimationForKey:@"press"];
-  PichuApplyDisabledActions(^{
+  OwlsApplyDisabledActions(^{
     self.cursorLayer.transform = CATransform3DMakeRotation(
-      self.cursorHeading - kPichuCursorForwardAngle,
+      self.cursorHeading - kOwlsCursorForwardAngle,
       0.0,
       0.0,
       1.0
@@ -481,15 +481,15 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
   return YES;
 }
 
-- (PichuOverlayState)overlayState {
-  PichuOverlayState state;
+- (OwlsOverlayState)overlayState {
+  OwlsOverlayState state;
   state.has_window = self.window != nil;
   state.window_visible = self.window != nil ? self.window.visible : false;
   state.cursor_visible = self.cursorVisible;
   state.debug_backdrop_visible = self.debugBackdropVisible;
   state.level = (int) self.level;
-  state.bounds = (PichuRect){ self.bounds.origin.x, self.bounds.origin.y, self.bounds.size.width, self.bounds.size.height };
-  state.cursor_position = (PichuPoint){ self.cursorPosition.x, self.cursorPosition.y };
+  state.bounds = (OwlsRect){ self.bounds.origin.x, self.bounds.origin.y, self.bounds.size.width, self.bounds.size.height };
+  state.cursor_position = (OwlsPoint){ self.cursorPosition.x, self.cursorPosition.y };
   return state;
 }
 
@@ -505,7 +505,7 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
   self.debugTextLayer = nil;
   self.cursorLayer = nil;
   self.cursorPosition = CGPointMake(-200.0, -200.0);
-  self.cursorHeading = kPichuCursorForwardAngle;
+  self.cursorHeading = kOwlsCursorForwardAngle;
   self.cursorVisible = NO;
   self.debugBackdropVisible = NO;
   return YES;
@@ -513,102 +513,102 @@ static CGRect PichuCocoaRectFromQuartzRect(CGRect quartzRect) {
 
 @end
 
-bool pichu_cursor_overlay_show(PichuRect bounds, int level) {
+bool owls_cursor_overlay_show(OwlsRect bounds, int level) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager]
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager]
       showWithBounds:CGRectMake(bounds.x, bounds.y, bounds.width, bounds.height)
               level:level];
   });
   return success;
 }
 
-bool pichu_cursor_overlay_hide(void) {
+bool owls_cursor_overlay_hide(void) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager] hideOverlay];
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager] hideOverlay];
   });
   return success;
 }
 
-bool pichu_cursor_overlay_set_bounds(PichuRect bounds) {
+bool owls_cursor_overlay_set_bounds(OwlsRect bounds) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager]
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager]
       setBoundsRect:CGRectMake(bounds.x, bounds.y, bounds.width, bounds.height)];
   });
   return success;
 }
 
-bool pichu_cursor_overlay_set_level(int level) {
+bool owls_cursor_overlay_set_level(int level) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager] setWindowLevel:level];
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager] setWindowLevel:level];
   });
   return success;
 }
 
-bool pichu_cursor_overlay_set_attached_window_id(uint32_t window_id) {
+bool owls_cursor_overlay_set_attached_window_id(uint32_t window_id) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager] setAttachedWindowIdValue:(NSInteger) window_id];
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager] setAttachedWindowIdValue:(NSInteger) window_id];
   });
   return success;
 }
 
-bool pichu_cursor_overlay_jump_cursor(PichuPoint point) {
+bool owls_cursor_overlay_jump_cursor(OwlsPoint point) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager] jumpCursorTo:CGPointMake(point.x, point.y)];
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager] jumpCursorTo:CGPointMake(point.x, point.y)];
   });
   return success;
 }
 
-bool pichu_cursor_overlay_flash_click(PichuPoint point) {
+bool owls_cursor_overlay_flash_click(OwlsPoint point) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager] flashClickAt:CGPointMake(point.x, point.y)];
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager] flashClickAt:CGPointMake(point.x, point.y)];
   });
   return success;
 }
 
-bool pichu_cursor_overlay_set_cursor_visible(bool visible) {
+bool owls_cursor_overlay_set_cursor_visible(bool visible) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager] setCursorVisibleValue:visible];
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager] setCursorVisibleValue:visible];
   });
   return success;
 }
 
-bool pichu_cursor_overlay_set_cursor_pressed(bool pressed) {
+bool owls_cursor_overlay_set_cursor_pressed(bool pressed) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager] setCursorPressedValue:pressed];
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager] setCursorPressedValue:pressed];
   });
   return success;
 }
 
-bool pichu_cursor_overlay_set_debug_backdrop(bool visible, const char *label) {
+bool owls_cursor_overlay_set_debug_backdrop(bool visible, const char *label) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
+  OwlsRunOnMainThreadSync(^{
     NSString *message = label != NULL ? [NSString stringWithUTF8String:label] : nil;
-    success = [[PichuCursorOverlayManager sharedManager] setDebugBackdropVisible:visible label:message];
+    success = [[OwlsCursorOverlayManager sharedManager] setDebugBackdropVisible:visible label:message];
   });
   return success;
 }
 
-PichuOverlayState pichu_cursor_overlay_get_state(void) {
-  __block PichuOverlayState state = { 0 };
-  PichuRunOnMainThreadSync(^{
-    state = [[PichuCursorOverlayManager sharedManager] overlayState];
+OwlsOverlayState owls_cursor_overlay_get_state(void) {
+  __block OwlsOverlayState state = { 0 };
+  OwlsRunOnMainThreadSync(^{
+    state = [[OwlsCursorOverlayManager sharedManager] overlayState];
   });
   return state;
 }
 
-bool pichu_cursor_overlay_dispose(void) {
+bool owls_cursor_overlay_dispose(void) {
   __block BOOL success = YES;
-  PichuRunOnMainThreadSync(^{
-    success = [[PichuCursorOverlayManager sharedManager] disposeOverlay];
+  OwlsRunOnMainThreadSync(^{
+    success = [[OwlsCursorOverlayManager sharedManager] disposeOverlay];
   });
   return success;
 }

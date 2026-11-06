@@ -1,11 +1,11 @@
 use crate::conversions::{level_from_native, level_to_native, to_native_point, to_native_rect};
 use crate::ffi::{
-    pichu_cursor_overlay_dispose, pichu_cursor_overlay_flash_click, pichu_cursor_overlay_get_state,
-    pichu_cursor_overlay_hide, pichu_cursor_overlay_jump_cursor,
-    pichu_cursor_overlay_set_attached_window_id, pichu_cursor_overlay_set_bounds,
-    pichu_cursor_overlay_set_cursor_pressed, pichu_cursor_overlay_set_cursor_visible,
-    pichu_cursor_overlay_set_debug_backdrop, pichu_cursor_overlay_set_level,
-    pichu_cursor_overlay_show,
+    owls_cursor_overlay_dispose, owls_cursor_overlay_flash_click, owls_cursor_overlay_get_state,
+    owls_cursor_overlay_hide, owls_cursor_overlay_jump_cursor,
+    owls_cursor_overlay_set_attached_window_id, owls_cursor_overlay_set_bounds,
+    owls_cursor_overlay_set_cursor_pressed, owls_cursor_overlay_set_cursor_visible,
+    owls_cursor_overlay_set_debug_backdrop, owls_cursor_overlay_set_level,
+    owls_cursor_overlay_show,
 };
 use crate::types::{OverlayBounds, OverlayLevel, OverlayPoint, OverlayState};
 use napi::bindgen_prelude::*;
@@ -27,21 +27,21 @@ fn ensure(success: bool, action: &str) -> Result<()> {
 pub fn show_overlay(bounds: OverlayBounds, level: OverlayLevel) -> Result<()> {
     let bounds = to_native_rect(bounds)?;
     ensure(
-        unsafe { pichu_cursor_overlay_show(bounds, level_to_native(&level)) },
+        unsafe { owls_cursor_overlay_show(bounds, level_to_native(&level)) },
         "showOverlay",
     )
 }
 
 #[napi]
 pub fn hide_overlay() -> Result<()> {
-    ensure(unsafe { pichu_cursor_overlay_hide() }, "hideOverlay")
+    ensure(unsafe { owls_cursor_overlay_hide() }, "hideOverlay")
 }
 
 #[napi]
 pub fn set_overlay_bounds(bounds: OverlayBounds) -> Result<()> {
     let bounds = to_native_rect(bounds)?;
     ensure(
-        unsafe { pichu_cursor_overlay_set_bounds(bounds) },
+        unsafe { owls_cursor_overlay_set_bounds(bounds) },
         "setOverlayBounds",
     )
 }
@@ -49,7 +49,7 @@ pub fn set_overlay_bounds(bounds: OverlayBounds) -> Result<()> {
 #[napi]
 pub fn set_overlay_level(level: OverlayLevel) -> Result<()> {
     ensure(
-        unsafe { pichu_cursor_overlay_set_level(level_to_native(&level)) },
+        unsafe { owls_cursor_overlay_set_level(level_to_native(&level)) },
         "setOverlayLevel",
     )
 }
@@ -57,7 +57,7 @@ pub fn set_overlay_level(level: OverlayLevel) -> Result<()> {
 #[napi]
 pub fn set_attached_window_id(window_id: Option<u32>) -> Result<()> {
     ensure(
-        unsafe { pichu_cursor_overlay_set_attached_window_id(window_id.unwrap_or(0)) },
+        unsafe { owls_cursor_overlay_set_attached_window_id(window_id.unwrap_or(0)) },
         "setAttachedWindowId",
     )
 }
@@ -66,7 +66,7 @@ pub fn set_attached_window_id(window_id: Option<u32>) -> Result<()> {
 pub fn jump_cursor(point: OverlayPoint) -> Result<()> {
     let point = to_native_point(point)?;
     ensure(
-        unsafe { pichu_cursor_overlay_jump_cursor(point) },
+        unsafe { owls_cursor_overlay_jump_cursor(point) },
         "jumpCursor",
     )
 }
@@ -75,7 +75,7 @@ pub fn jump_cursor(point: OverlayPoint) -> Result<()> {
 pub fn flash_click(point: OverlayPoint) -> Result<()> {
     let point = to_native_point(point)?;
     ensure(
-        unsafe { pichu_cursor_overlay_flash_click(point) },
+        unsafe { owls_cursor_overlay_flash_click(point) },
         "flashClick",
     )
 }
@@ -83,7 +83,7 @@ pub fn flash_click(point: OverlayPoint) -> Result<()> {
 #[napi]
 pub fn set_cursor_visible(visible: bool) -> Result<()> {
     ensure(
-        unsafe { pichu_cursor_overlay_set_cursor_visible(visible) },
+        unsafe { owls_cursor_overlay_set_cursor_visible(visible) },
         "setCursorVisible",
     )
 }
@@ -91,7 +91,7 @@ pub fn set_cursor_visible(visible: bool) -> Result<()> {
 #[napi]
 pub fn set_cursor_pressed(pressed: bool) -> Result<()> {
     ensure(
-        unsafe { pichu_cursor_overlay_set_cursor_pressed(pressed) },
+        unsafe { owls_cursor_overlay_set_cursor_pressed(pressed) },
         "setCursorPressed",
     )
 }
@@ -109,7 +109,7 @@ pub fn set_debug_backdrop(visible: bool, label: Option<String>) -> Result<()> {
     };
     ensure(
         unsafe {
-            pichu_cursor_overlay_set_debug_backdrop(
+            owls_cursor_overlay_set_debug_backdrop(
                 visible,
                 c_label
                     .as_ref()
@@ -123,7 +123,7 @@ pub fn set_debug_backdrop(visible: bool, label: Option<String>) -> Result<()> {
 
 #[napi]
 pub fn get_overlay_state() -> OverlayState {
-    let state = unsafe { pichu_cursor_overlay_get_state() };
+    let state = unsafe { owls_cursor_overlay_get_state() };
     OverlayState {
         has_window: state.has_window,
         window_visible: state.window_visible,
@@ -145,5 +145,5 @@ pub fn get_overlay_state() -> OverlayState {
 
 #[napi]
 pub fn dispose_overlay() -> Result<()> {
-    ensure(unsafe { pichu_cursor_overlay_dispose() }, "disposeOverlay")
+    ensure(unsafe { owls_cursor_overlay_dispose() }, "disposeOverlay")
 }

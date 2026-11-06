@@ -23,7 +23,7 @@ Pi Coding Agent extension runtime.
 4. Owls retains ownership of local installation, catalog discovery, enablement,
    updates,
    trust, permissions, sandboxing, authentication, diagnostics, and UI.
-5. Owls-specific metadata and files use the stable `com.pichu.app` client
+5. Owls-specific metadata and files use the stable `com.owls.app` client
    extension namespace.
 6. Owls client extensions are Agent Plugins namespaced data. They are not Pi CLI
    Extensions and do not execute through Pi Coding Agent.
@@ -88,7 +88,7 @@ portable component. Owls-only behavior must stay outside the portable core.
 | Agent Plugin | A portable directory conforming to a recognized Agent Plugins schema. |
 | Plugin root | The filesystem-resolved directory containing root `plugin.json`. |
 | Portable component | A skill or MCP server discovered at its Agent Plugins fixed location. |
-| Owls client extension | Owls-owned data under `extensions.com.pichu.app` or files under `com.pichu.app/`. |
+| Owls client extension | Owls-owned data under `extensions.com.owls.app` or files under `com.owls.app/`. |
 | Plugin cache | Rebuildable installed package contents for one resolved plugin version. |
 | Plugin data | Persistent writable state for one installed plugin instance. |
 | MCP manager | Owls host service that validates, starts, connects, monitors, and stops MCP servers. |
@@ -108,7 +108,7 @@ my-plugin/
   mcp.json
   bin/
     review-server
-  com.pichu.app/
+  com.owls.app/
     hooks/
       hooks.json
 ```
@@ -119,7 +119,7 @@ Rules:
 - `skills/` and `mcp.json` are optional fixed component locations.
 - Skills are only the immediate child directories of `skills/` containing a
   regular `SKILL.md`. Owls does not recursively discover nested skills.
-- Owls-specific files live under `com.pichu.app/`.
+- Owls-specific files live under `com.owls.app/`.
 - Every discovered, read, or executed package path must remain inside the
   filesystem-resolved plugin root after symlink, junction, and reparse-point
   resolution.
@@ -153,7 +153,7 @@ Full Owls-compatible example:
   "license": "MIT",
   "keywords": ["review", "repository"],
   "extensions": {
-    "com.pichu.app": {
+    "com.owls.app": {
       "displayName": "Repository Reviewer",
       "category": "Engineering"
     }
@@ -187,16 +187,16 @@ network.
 ## Owls Client Extension
 
 Portable Agent Plugins deliberately leave client-specific behavior undefined.
-Owls uses the reverse-domain namespace `com.pichu.app`.
+Owls uses the reverse-domain namespace `com.owls.app`.
 
-Manifest data under `extensions.com.pichu.app` may provide presentation and
+Manifest data under `extensions.com.owls.app` may provide presentation and
 compatibility metadata validated by a versioned Owls schema. Executable behavior
 must not be embedded as code in the manifest.
 
-Files under `com.pichu.app/` may contain Owls-owned declarative contracts:
+Files under `com.owls.app/` may contain Owls-owned declarative contracts:
 
 ```text
-com.pichu.app/
+com.owls.app/
   hooks/
     hooks.json
   interface.json
@@ -257,7 +257,7 @@ Owls and do not modify an installed plugin.
       "type": "streamable-http",
       "url": "https://review.example.com/mcp",
       "headers": {
-        "X-Client": "pichu"
+        "X-Client": "owls"
       }
     }
   }
@@ -524,7 +524,7 @@ Migration policy:
 
 1. Convert every bundled Owls plugin to root `plugin.json`, fixed `skills/`, and
    root `mcp.json` where executable capabilities are required.
-2. Move hooks and presentation/auth metadata into `com.pichu.app`.
+2. Move hooks and presentation/auth metadata into `com.owls.app`.
 3. Replace manifest-declared scripts and CLI tools with MCP servers or
    explicitly Owls-owned host capabilities.
 4. Update local catalog entries to resolve Agent Plugin directories without
@@ -541,7 +541,7 @@ Migration policy:
 ### Phase 0: Contract and Inventory
 
 - Bundle and verify Agent Plugins 1.0 plugin and MCP schemas.
-- Define the `com.pichu.app` manifest and file schemas.
+- Define the `com.owls.app` manifest and file schemas.
 - Inventory bundled plugins and map skills, hooks, scripts, CLI tools, auth, and
   UI metadata to the new package model.
 - Record current install, enable, skill, hook, and local catalog behavior in tests.
@@ -624,7 +624,7 @@ Migration policy:
 - Install, update, enable, disable, uninstall, and plugin-data retention.
 - Local catalog source and integrity handling.
 - Skill list and invocation.
-- Hook execution through `com.pichu.app`.
+- Hook execution through `com.owls.app`.
 - MCP status, authentication, reconnect, diagnostics, and tool rendering.
 - Existing SQLite messages, search, approvals, artifacts, and human-input flows
   remain unchanged.
@@ -648,7 +648,7 @@ Production activation is blocked unless:
 
 ## Open Questions
 
-- Should Owls publish its `com.pichu.app` client-extension schemas for other
+- Should Owls publish its `com.owls.app` client-extension schemas for other
   clients to inspect, even though only Owls executes them?
 - Which MCP resources and prompts should be user-visible in the first release?
 - Should legacy HTTP+SSE ever be supported, or remain intentionally absent?

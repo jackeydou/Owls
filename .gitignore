@@ -8,8 +8,8 @@ out/
 .vite/
 .pnpm-store/
 .owls-debug/
-apps/pichu-client/build/generated/
-apps/pichu-client/resources/plugins/plugins/sites/
+apps/owls-client/build/generated/
+apps/owls-client/resources/plugins/plugins/sites/
 apps/website/
 .env
 .env.*

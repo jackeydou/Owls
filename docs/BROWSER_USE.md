@@ -150,7 +150,7 @@ actionable error instead of using a global shared browser.
 The built runtime script is delivered from:
 
 ```text
-apps/pichu-client/resources/plugins/plugins/in-app-browser-use/scripts/browser-client.mjs
+apps/owls-client/resources/plugins/plugins/in-app-browser-use/scripts/browser-client.mjs
 ```
 
 Agents load it with an absolute path from the bundled skill:
@@ -284,7 +284,7 @@ preserve these rules:
 The bundled `in-app-browser-use` plugin should:
 
 - Provide the Browser Use skill that explains when and how to load the runtime.
-- Provide the built `@pichu/browser-use` runtime script as an
+- Provide the built `@owls/browser-use` runtime script as an
   Owls-controlled plugin script shipped from App resources.
 - Avoid deciding whether Browser Use runtime exists. The App owns runtime
   availability; the plugin owns guidance and script delivery.
@@ -293,7 +293,7 @@ The bundled `in-app-browser-use` plugin should:
 
 1. Add local RPC methods for Browser Use actions.
 2. Keep Browser Use runtime state in the App main process.
-3. Add `packages/browser-use` as the `@pichu/browser-use` runtime package.
+3. Add `packages/browser-use` as the `@owls/browser-use` runtime package.
 4. Build `browser-client.mjs` from that package and sync it into the bundled
    plugin scripts directory.
 5. Update the Browser Use skill to load the runtime first.
@@ -315,10 +315,10 @@ Add focused coverage for:
 Use targeted package checks for implementation changes:
 
 ```bash
-pnpm --filter @pichu/browser-use typecheck
-pnpm --filter @pichu/browser-use build
-pnpm --filter pichu-client typecheck:node
-pnpm --filter pichu-client test:plugins
+pnpm --filter @owls/browser-use typecheck
+pnpm --filter @owls/browser-use build
+pnpm --filter owls-client typecheck:node
+pnpm --filter owls-client test:plugins
 ```
 
 Do not run local Electron or Playwright E2E in the shared worktree unless the

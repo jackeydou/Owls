@@ -28,7 +28,7 @@ import './styles.css'
 
 const samplePath =
   '/Users/example/.codex/sessions/2026/05/07/rollout-2026-05-07T13-16-02-example.jsonl'
-export const latestPichuSessionPath = 'pichu://latest'
+export const latestOwlsSessionPath = 'owls://latest'
 const initialVisibleEvents = 320
 const visibleEventBatchSize = 320
 
@@ -46,7 +46,7 @@ const categories = [
 
 type CategoryFilter = (typeof categories)[number]
 type DetailMode = 'event' | 'prompt' | 'raw' | 'compare'
-type SourceFilter = 'all' | 'codex' | 'pichu' | 'trajectory'
+type SourceFilter = 'all' | 'codex' | 'owls' | 'trajectory'
 type CompareSide = 'left' | 'right'
 type CompareSlot = {
   event: NormalizedEvent
@@ -61,16 +61,16 @@ function loadStoredPath() {
   return window.localStorage.getItem('session-inspector:path') || samplePath
 }
 
-function isLegacyLatestPichuPath(value: string): boolean {
+function isLegacyLatestOwlsPath(value: string): boolean {
   return (
-    value.endsWith('/.pichu/pichu.db') ||
-    value.endsWith('\\.pichu\\pichu.db') ||
-    value.endsWith('pichu.db')
+    value.endsWith('/.owls/owls.db') ||
+    value.endsWith('\\.owls\\owls.db') ||
+    value.endsWith('owls.db')
   )
 }
 
-function isLatestPichuPath(value: string): boolean {
-  return value === latestPichuSessionPath || isLegacyLatestPichuPath(value)
+function isLatestOwlsPath(value: string): boolean {
+  return value === latestOwlsSessionPath || isLegacyLatestOwlsPath(value)
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -140,7 +140,7 @@ export type InspectorAppProps = {
 }
 
 function shortPath(value: string) {
-  if (value.startsWith('pichu://')) return value
+  if (value.startsWith('owls://')) return value
   return value.split(/[\\/]/).filter(Boolean).slice(-3).join('/')
 }
 
@@ -148,13 +148,12 @@ function sessionSourceFor(path: string, view: SessionView | null) {
   const source = (view?.meta.source || '').toLowerCase()
   const originator = (view?.meta.originator || '').toLowerCase()
   if (
-    path.includes('/.pichu/model-trajectories/') ||
+    path.includes('/.owls/model-trajectories/') ||
     source === 'trajectory' ||
     originator.includes('trajectory')
   )
     return 'trajectory'
-  if (path.startsWith('pichu://') || source === 'pichu' || originator.includes('pichu'))
-    return 'pichu'
+  if (path.startsWith('owls://') || source === 'owls' || originator.includes('owls')) return 'owls'
   return 'codex'
 }
 
@@ -223,25 +222,25 @@ export function InspectorApp({
       setLoading(true)
       setError('')
       try {
-        if (isLatestPichuPath(nextPath)) {
+        if (isLatestOwlsPath(nextPath)) {
           const result = await dataSource.listSessions({ includeOptional: false, limit: 160 })
-          const latestPichu = result.sessions.find(
-            (session) => session.source === 'pichu' && session.sessionId
+          const latestOwls = result.sessions.find(
+            (session) => session.source === 'owls' && session.sessionId
           )
           if (!isCurrentRequest()) return
           setSessions(result.sessions)
-          if (!latestPichu?.sessionId) {
+          if (!latestOwls?.sessionId) {
             setText('')
             setView(null)
             setSelectedId('')
             setSelectedPromptId('')
             setDetailMode('event')
             setVisibleEventCount(initialVisibleEvents)
-            setPath(latestPichuSessionPath)
-            window.localStorage.setItem('session-inspector:path', latestPichuSessionPath)
+            setPath(latestOwlsSessionPath)
+            window.localStorage.setItem('session-inspector:path', latestOwlsSessionPath)
             return
           }
-          nextPath = `pichu://${latestPichu.sessionId}`
+          nextPath = `owls://${latestOwls.sessionId}`
         }
         const readStart = performance.now()
         const { body, title } = await dataSource.readSessionText(nextPath)
@@ -280,9 +279,7 @@ export function InspectorApp({
 
   async function loadSession(session: SessionFile) {
     const nextPath =
-      session.source === 'pichu' && session.sessionId
-        ? `pichu://${session.sessionId}`
-        : session.path
+      session.source === 'owls' && session.sessionId ? `owls://${session.sessionId}` : session.path
     await loadPath(nextPath)
   }
 
@@ -704,7 +701,7 @@ function SessionPicker({
       counts[session.source || 'codex'] += 1
       return counts
     },
-    { codex: 0, pichu: 0, trajectory: 0 } as Record<'codex' | 'pichu' | 'trajectory', number>
+    { codex: 0, owls: 0, trajectory: 0 } as Record<'codex' | 'owls' | 'trajectory', number>
   )
 
   return (
@@ -716,7 +713,7 @@ function SessionPicker({
       {open && (
         <>
           <div className="source-filter">
-            {(['all', 'codex', 'pichu', 'trajectory'] as const).map((source) => (
+            {(['all', 'codex', 'owls', 'trajectory'] as const).map((source) => (
               <button
                 type="button"
                 key={source}
@@ -739,7 +736,7 @@ function SessionPicker({
               >
                 <span>{session.name}</span>
                 <small>
-                  {session.source === 'pichu'
+                  {session.source === 'owls'
                     ? `${session.messageCount || 0} msgs`
                     : formatBytes(session.size)}
                 </small>

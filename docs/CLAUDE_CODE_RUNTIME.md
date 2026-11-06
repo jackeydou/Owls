@@ -9,12 +9,12 @@ and `owls-codex.db`.
 
 ## Entries and ownership
 
-- Host routing: `apps/pichu-client/src/main/codex/host.ts`.
+- Host routing: `apps/owls-client/src/main/codex/host.ts`.
 - Discovery: `src/main/claude/discovery.ts`.
 - Session orchestration: `src/main/claude/service.ts`.
 - Event, tool, and permission normalization: `src/main/claude/normalize.ts`.
 
-Paths after the first entry are relative to `apps/pichu-client/`.
+Paths after the first entry are relative to `apps/owls-client/`.
 
 Claude Code owns its model requests, native tools, context, compaction,
 authentication, hooks, MCP servers, and native session storage. Owls owns
@@ -69,11 +69,11 @@ sends an SDK interrupt and aborts the process if the turn does not end.
 ## Verification
 
 ```bash
-pnpm --filter pichu-client test:claude
-pnpm --filter pichu-client test:codex:ui
-pnpm --filter pichu-client verify:claude
-pnpm --filter pichu-client verify:claude --prompt
-pnpm --filter pichu-client verify:claude --tools
+pnpm --filter owls-client test:claude
+pnpm --filter owls-client test:codex:ui
+pnpm --filter owls-client verify:claude
+pnpm --filter owls-client verify:claude --prompt
+pnpm --filter owls-client verify:claude --tools
 ```
 
 `test:claude` drives the service through a scripted SDK. The UI smoke covers the

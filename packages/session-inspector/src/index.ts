@@ -2,7 +2,7 @@ export { httpSessionInspectorDataSource } from './httpDataSource'
 export {
   InspectorApp,
   type InspectorAppProps,
-  latestPichuSessionPath,
+  latestOwlsSessionPath,
   type SessionInspectorDataSource,
   type SessionListResult,
   type SessionText

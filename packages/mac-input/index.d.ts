@@ -110,7 +110,7 @@ export interface AxPressNodeResult {
 export declare function backgroundClick(options: BackgroundClickOptions): void
 
 export interface BackgroundClickOptions {
-  /** Target process pid (e.g. `MacWindow.ownerPid` from @pichu/mac-window-list). */
+  /** Target process pid (e.g. `MacWindow.ownerPid` from @owls/mac-window-list). */
   pid: number
   /** CoreGraphics window id of the target window (`MacWindow.windowId`). */
   windowId: number
