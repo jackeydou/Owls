@@ -47,9 +47,9 @@ writeModule(
     "export const OWLS_ASSISTANT_MESSAGE_ROLE = 'assistant'",
     "export const OWLS_CONTEXT_SUMMARY_MESSAGE_ROLE = 'context_summary'",
     "export const OWLS_USER_MESSAGE_ROLE = 'user'",
-    "export function isOwlsAssistantMessageRole(role) { return role === 'assistant' || role === 'pixAssistant' }",
-    "export function isOwlsContextSummaryMessageRole(role) { return role === 'context_summary' || role === 'pixContextSummary' }",
-    "export function isOwlsUserMessageRole(role) { return role === 'user' || role === 'pixUser' }"
+    "export function isOwlsAssistantMessageRole(role) { return role === 'assistant' }",
+    "export function isOwlsContextSummaryMessageRole(role) { return role === 'context_summary' }",
+    "export function isOwlsUserMessageRole(role) { return role === 'user' }"
   ].join('\n')
 )
 writeModule('shared/tool-approval.ts', '')
