@@ -38,7 +38,6 @@ export function RouterChat() {
   return (
     <main className="codex-chat router-chat">
       <header className="codex-topbar router-topbar">
-        <div className="codex-task-title">{project?.name ?? t('router.title')}</div>
         <div className="codex-topbar-actions">
           <StatusEntry />
           {project ? (
