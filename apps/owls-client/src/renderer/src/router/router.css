@@ -79,6 +79,7 @@ html[data-platform="darwin"] {
   font-weight: 600;
 }
 .router-sidebar-item,
+.router-thread,
 .router-project {
   display: flex;
   align-items: center;
@@ -93,15 +94,18 @@ html[data-platform="darwin"] {
   text-align: left;
 }
 .router-sidebar-item:hover,
+.router-thread:hover,
 .router-project:hover {
   background: var(--color-sidebar-hover);
 }
 .router-sidebar-item[aria-current="true"],
+.router-thread[aria-current="true"],
 .router-project[aria-current="true"] {
   background: var(--color-sidebar-active);
   color: var(--color-foreground);
 }
 .router-sidebar-item > span,
+.router-thread > span,
 .router-project > span {
   overflow: hidden;
   flex: 1;
@@ -113,13 +117,21 @@ html[data-platform="darwin"] {
   font-family: inherit;
   font-size: 10px;
 }
+.router-sidebar-threads,
 .router-sidebar-projects {
   display: flex;
-  flex: 1;
   flex-direction: column;
   min-height: 0;
   margin-top: 14px;
 }
+.router-sidebar-threads {
+  flex: 1;
+}
+/* Projects are few, so threads take the height and the projects keep a short list. */
+.router-sidebar-projects {
+  flex: 0 1 30%;
+}
+.router-sidebar-threads header,
 .router-sidebar-projects header {
   display: flex;
   align-items: center;
@@ -128,11 +140,13 @@ html[data-platform="darwin"] {
   height: 28px;
   padding: 0 2px 0 8px;
 }
+.router-sidebar-threads h2,
 .router-sidebar-projects h2 {
   color: var(--color-muted-foreground);
   font-size: 11px;
   font-weight: 500;
 }
+.router-sidebar-threads p,
 .router-sidebar-projects p {
   padding: 4px 8px;
   color: var(--color-muted-foreground);
@@ -159,15 +173,18 @@ html[data-platform="darwin"] {
 .router-project[aria-current="true"] > b {
   box-shadow: inset 0 0 0 1.5px var(--owl-c);
 }
+.router-thread > i,
 .router-project > i {
   flex-shrink: 0;
   width: 7px;
   height: 7px;
   border-radius: 50%;
 }
+.router-thread > i.run,
 .router-project > i.run {
   background: var(--owl-run);
 }
+.router-thread > i.wait,
 .router-project > i.wait {
   background: var(--owl-wait);
 }
@@ -276,6 +293,25 @@ html[data-platform="darwin"] {
 .router-topbar .codex-task-title {
   font-size: 13px;
   font-weight: 550;
+}
+.router-thread-heading {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+.router-thread-heading strong {
+  overflow: hidden;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-thread-heading span {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
 }
 
 /* Status entry with a live thumbnail of the map */
@@ -485,6 +521,122 @@ html[data-platform="darwin"] {
 .router-row-body {
   position: relative;
   min-width: 0;
+}
+.router-row-body > .router-row-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  opacity: 0;
+}
+.router-row:hover .router-row-action,
+.router-row-action:focus-visible {
+  opacity: 1;
+}
+.router-forwarded {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border-left: 2px solid var(--color-border);
+  border-radius: 0 8px 8px 0;
+  background: var(--color-card-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+.router-forwarded button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+.router-forwarded p {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+}
+.router-forwarded code {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+.router-editor-project {
+  height: 26px;
+  margin-right: auto;
+  padding: 0 6px;
+  font-size: 12px;
+}
+.router-forward h2 {
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.router-forward blockquote {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-card-muted);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+.router-forward fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 240px;
+  margin-bottom: 12px;
+  overflow-y: auto;
+}
+.router-forward legend {
+  margin-bottom: 6px;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+.router-forward label {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.router-forward label:hover {
+  background: var(--color-sidebar-hover);
+}
+.router-forward label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-forward fieldset select {
+  flex-shrink: 0;
+  margin: 2px 0 6px 28px;
+}
+.router-forward textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  line-height: 20px;
+  resize: none;
+  outline: none;
+}
+.router-forward footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
 }
 .router-row-avatar {
   display: flex;

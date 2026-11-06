@@ -3,6 +3,7 @@ import { Info } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCodexStore } from '../codex/store'
+import { threadTitle, useThreadTitle } from './activity'
 import { RequestTray } from './RequestTray'
 import { RouterGuide } from './RouterGuide'
 import { RouterSetupNotice, useRouterSetup } from './RouterSetup'
@@ -11,14 +12,15 @@ import { StatusEntry } from './StatusEntry'
 import { useRouterStore } from './store'
 import { ThreadEditor } from './ThreadEditor'
 
-/** The home screen: one project's conversation with its Router. */
+/** The home screen: one thread with its Router, or a new thread's first line. */
 export function RouterChat() {
   const { t } = useTranslation()
-  const projectId = useCodexStore((s) => s.routerProjectId)
-  const project = useCodexStore((s) => s.projects.find((p) => p.id === projectId))
-  const open = useRouterStore((s) => s.open)
+  const threadId = useCodexStore((s) => s.threadId)
   const showPanel = useRouterStore((s) => s.showPanel)
-  const router = useRouterStore((s) => s.routers.find((r) => r.projectId === projectId))
+  const loadItems = useRouterStore((s) => s.loadItems)
+  const router = useRouterStore((s) => s.routers.find((r) => r.id === threadId))
+  const projectName = useCodexStore((s) => s.projects.find((p) => p.id === router?.projectId)?.name)
+  const untitled = useThreadTitle()
   const setup = useRouterSetup(router)
   const guideSkipped = useRouterStore((s) => s.guideSkipped)
   const connecting = useCodexStore(
@@ -32,26 +34,32 @@ export function RouterChat() {
   }, [connecting])
   const missing = settled ? setup : null
   useEffect(() => {
-    if (projectId) void open(projectId)
-  }, [projectId, open])
+    if (threadId) void loadItems(threadId)
+  }, [threadId, loadItems])
   return (
     <main className="codex-chat router-chat">
       <header className="codex-topbar router-topbar">
+        {router ? (
+          <div className="router-thread-heading">
+            <strong>{threadTitle(router, untitled)}</strong>
+            {projectName ? <span>{projectName}</span> : null}
+          </div>
+        ) : null}
         <div className="codex-topbar-actions">
           <StatusEntry />
-          {project ? (
+          {router ? (
             <IconButton
               className="codex-bar-button"
               label={t('router.details')}
               tooltip={t('router.details')}
               icon={<Info size={16} />}
-              onClick={() => showPanel({ kind: 'router' })}
+              onClick={() => showPanel({ kind: 'router', routerId: router.id })}
             />
           ) : null}
         </div>
       </header>
       <div className="codex-conversation-column">
-        {missing && !guideSkipped && !router?.items.length ? (
+        {missing && !guideSkipped && !router?.itemCount ? (
           <RouterGuide need={missing} />
         ) : (
           <RouterTimeline
@@ -60,7 +68,7 @@ export function RouterChat() {
               <>
                 {missing ? <RouterSetupNotice need={missing} /> : null}
                 {router ? <RequestTray routerId={router.id} /> : null}
-                <ThreadEditor projectId={project?.id ?? null} router={router} />
+                <ThreadEditor router={router} />
               </>
             }
           />

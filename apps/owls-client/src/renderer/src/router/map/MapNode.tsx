@@ -24,10 +24,8 @@ type WorkerNode = Extract<MapNode, { kind: 'worker' }>
 type ProjectNode = Extract<MapNode, { kind: 'project' }>
 
 function routerLine(project: WorkerProject | undefined): string | null {
-  const items = project?.router?.items ?? []
-  for (let i = items.length - 1; i >= 0; i--)
-    if (items[i].kind === 'assistant' && items[i].text) return plainLine(items[i].text)
-  return null
+  const preview = project?.router?.preview
+  return preview ? plainLine(preview) : null
 }
 function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerProject }) {
   const { t } = useTranslation()

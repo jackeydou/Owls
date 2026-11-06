@@ -6,7 +6,7 @@ import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { ClaudeConnection, CodexEvent } from '../../shared/codex.js'
 import { ClaudeService } from '../claude/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
-import { getDataRoot, workerWorktreesRoot } from '../owls-paths.js'
+import { getDataRoot, routerThreadHome, workerWorktreesRoot } from '../owls-paths.js'
 import { RouterCredentials, type SecretCipher } from '../router/credentials.js'
 import { CodexRouterServer } from '../router/engines/codex.js'
 import { defaultEngineFactory } from '../router/engines/factory.js'
@@ -108,7 +108,11 @@ void app
     const root = getDataRoot()
     mkdirSync(root, { recursive: true })
     const store = new CodexStore(join(root, 'owls-codex.db'), migrationsFolder())
-    service = new OwlsHost(new CodexService(store, emit), new ClaudeService(store, emit, { query }))
+    service = new OwlsHost(
+      new CodexService(store, emit),
+      new ClaudeService(store, emit, { query }),
+      routerThreadHome(root)
+    )
     const routerStore = new RouterStore(store)
     const credentials = new RouterCredentials(routerStore, safeStorageCipher)
     router = new RouterService(

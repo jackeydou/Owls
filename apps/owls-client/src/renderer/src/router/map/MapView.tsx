@@ -122,7 +122,7 @@ export function MapView() {
         showPanel(null)
       } else if (node.kind === 'kept') {
         focusProject(node.projectId)
-        showPanel({ kind: 'router' })
+        showPanel({ kind: 'router', routerId: node.worker.routerId })
       } else {
         focusProject(node.projectId)
         showPanel({ kind: 'worker', workerId: node.id })
@@ -183,6 +183,9 @@ export function MapView() {
   const focusProjectData = projects.find((p) => p.id === projectId)
   const target = workers.find((w) => w.id === selectedWorker) ?? null
   const targetProject = target ? projects.find((p) => p.workers.includes(target)) : focusProjectData
+  const targetRouter = useRouterStore((s) =>
+    target ? s.routers.find((r) => r.id === target.routerId) : targetProject?.router
+  )
   return (
     <main className="map-view">
       <div className="map-stage" ref={stage}>
@@ -280,7 +283,7 @@ export function MapView() {
         <RouterComposer
           key={`${targetProject?.id ?? 'none'}:${target?.id ?? 'router'}`}
           projectId={targetProject?.id ?? null}
-          router={targetProject?.router}
+          router={targetRouter}
           target={target}
           onClearTarget={() => showPanel(null)}
         />

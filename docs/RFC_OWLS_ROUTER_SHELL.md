@@ -2,6 +2,9 @@
 
 状态：M1–M4 已实现。日期：2026-11-04。基线：`6391fb8`。
 
+全局 thread 已替换本文「每个项目一个 Router」的模型和第 8 节的持久化说明，见
+[RFC_OWLS_GLOBAL_THREADS.md](RFC_OWLS_GLOBAL_THREADS.md)。
+
 交互原型：`output/router-prototype/`（未入库）。本文替换
 [RFC_OWLS_SUPER_AGENT.md](RFC_OWLS_SUPER_AGENT.md) 中「保留直接建任务」相关的决策（第 11 节），
 Router/Worker 的运行时设计继续有效。
@@ -32,10 +35,8 @@ Router/Worker 的运行时设计继续有效。
 
 非目标：
 
-- 全局 Router、跨项目调度。全景跨项目展示，但每条消息仍然只发给一个项目的 Router。
 - 手动拖动节点、自定义布局。节点位置完全由程序计算。
 - Worker 派生 Worker。父子关系仍由 Router 决定，Worker 之间继续互不感知。
-- 一个项目多段 Router 对话。
 - 把 Router 决策过程（批次、Inbox）做成用户功能。第一版的 Router 根节点详情不展示批次列表，
   否则要多一个 IPC，而用户场景尚不明确。
 - 详情面板拖动调宽、多窗口。

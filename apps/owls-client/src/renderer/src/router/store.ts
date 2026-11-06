@@ -1,6 +1,11 @@
 import { create } from 'zustand'
-import type { CodexFailure, CodexReply, CodexRouter } from '../../../shared/codex'
-import type { OwlsProviderId, RouterProviderInfo, RouterWorker } from '../../../shared/router'
+import type { CodexFailure, CodexReply, CodexRouter, ThreadItem } from '../../../shared/codex'
+import type {
+  ForwardMessage,
+  OwlsProviderId,
+  RouterProviderInfo,
+  RouterWorker
+} from '../../../shared/router'
 import type { MapFilter } from '../../../shared/worker-map'
 import { CodexUIError, uiFailure } from '../codex/failures'
 
@@ -9,7 +14,15 @@ function unwrap<T>(reply: CodexReply<T>): T {
   return reply.value
 }
 /** What the right-hand panel shows. Never persisted; a restart opens the conversation. */
-export type RouterPanel = { kind: 'worker'; workerId: string } | { kind: 'router' }
+export type RouterPanel =
+  | { kind: 'worker'; workerId: string }
+  | { kind: 'router'; routerId: string }
+/** What the forward dialog is sending; `preview` and `projectId` only fill it in. */
+export type Forwarding = {
+  source: ForwardMessage['source']
+  preview: string
+  projectId: string | null
+}
 const toggled = (set: ReadonlySet<string>, id: string) => {
   const next = new Set(set)
   if (!next.delete(id)) next.add(id)
@@ -18,6 +31,11 @@ const toggled = (set: ReadonlySet<string>, id: string) => {
 type State = {
   routers: CodexRouter[]
   workers: RouterWorker[]
+  /** Items by thread, kept in position order. */
+  items: Record<string, ThreadItem[]>
+  /** Threads whose whole history has arrived, as opposed to only live changes. */
+  itemsLoaded: Record<string, boolean>
+  forwarding: Forwarding | null
   providers: RouterProviderInfo[]
   sending: boolean
   error: CodexFailure | null
@@ -32,7 +50,13 @@ type State = {
   hydrate(routers: CodexRouter[], workers: RouterWorker[]): void
   router(router: CodexRouter): void
   worker(worker: RouterWorker): void
-  open(projectId: string): Promise<CodexRouter | null>
+  threadItems(routerId: string, items: ThreadItem[]): void
+  loadItems(routerId: string): Promise<void>
+  createThread(projectId: string | null): Promise<CodexRouter | null>
+  startForward(forwarding: Forwarding): void
+  cancelForward(): void
+  /** Sends what the dialog holds and resolves to the thread that received it. */
+  forward(target: ForwardMessage['target'], note: string): Promise<CodexRouter | null>
   /** Lasts until the app restarts: the guide comes back while setup is incomplete. */
   guideSkipped: boolean
   skipGuide(): void
@@ -57,6 +81,34 @@ const newer = <T extends { id: string; updatedAt: string }>(list: T[], next: T) 
   if (current && current.updatedAt > next.updatedAt) return list
   return [next, ...list.filter((x) => x.id !== next.id)]
 }
+const newerThread = (list: CodexRouter[], next: CodexRouter) => {
+  const current = list.find((x) => x.id === next.id)
+  if (current && current.rev > next.rev) return list
+  return [next, ...list.filter((x) => x.id !== next.id)]
+}
+/**
+ * Applies items over what is held. `live` changes always win. A loaded page can
+ * be older than a change that arrived while it was on its way, so it never
+ * replaces an unsaved item or a higher version.
+ */
+function mergeItems(held: ThreadItem[], next: ThreadItem[], live: boolean): ThreadItem[] {
+  const merged = [...held]
+  const at = new Map(merged.map((entry, index) => [entry.item.id, index]))
+  let appended = false
+  for (const entry of next) {
+    const index = at.get(entry.item.id)
+    if (index === undefined) {
+      at.set(entry.item.id, merged.length)
+      merged.push(entry)
+      appended = true
+      continue
+    }
+    const current = merged[index]
+    const stale = !live && (current.rev === null || (entry.rev !== null && entry.rev < current.rev))
+    if (!stale) merged[index] = entry
+  }
+  return appended ? merged.sort((a, b) => a.position - b.position) : merged
+}
 export const useRouterStore = create<State>((set, get) => {
   async function action<T>(fn: () => Promise<CodexReply<T>>): Promise<T | undefined> {
     try {
@@ -70,6 +122,9 @@ export const useRouterStore = create<State>((set, get) => {
   return {
     routers: [],
     workers: [],
+    items: {},
+    itemsLoaded: {},
+    forwarding: null,
     providers: [],
     sending: false,
     error: null,
@@ -80,10 +135,10 @@ export const useRouterStore = create<State>((set, get) => {
     foldedProjects: new Set(),
     hydrate: (routers, workers) =>
       set((state) => ({
-        routers: routers.reduce(newer, state.routers),
+        routers: routers.reduce(newerThread, state.routers),
         workers: workers.reduce(newer, state.workers)
       })),
-    router: (router) => set((state) => ({ routers: newer(state.routers, router) })),
+    router: (router) => set((state) => ({ routers: newerThread(state.routers, router) })),
     worker: (worker) =>
       set((state) => {
         const closing =
@@ -92,10 +147,47 @@ export const useRouterStore = create<State>((set, get) => {
           state.panel.workerId === worker.id
         return { workers: newer(state.workers, worker), panel: closing ? null : state.panel }
       }),
-    open: async (projectId) => {
-      const router = await action(() => window.codex.openRouter(projectId))
+    threadItems: (routerId, items) =>
+      set((state) => ({
+        items: {
+          ...state.items,
+          [routerId]: mergeItems(state.items[routerId] ?? [], items, true)
+        }
+      })),
+    loadItems: async (routerId) => {
+      if (get().itemsLoaded[routerId]) return
+      const items = await action(() => window.codex.threadItems({ routerId }))
+      if (!items) return
+      set((state) => ({
+        items: {
+          ...state.items,
+          [routerId]: mergeItems(state.items[routerId] ?? [], items, false)
+        },
+        itemsLoaded: { ...state.itemsLoaded, [routerId]: true }
+      }))
+    },
+    createThread: async (projectId) => {
+      const router = await action(() => window.codex.createThread({ projectId }))
       if (!router) return null
       get().router(router)
+      return router
+    },
+    startForward: (forwarding) => set({ forwarding }),
+    cancelForward: () => set({ forwarding: null }),
+    forward: async (target, note) => {
+      const { forwarding } = get()
+      if (!forwarding) return null
+      const router = await action(() =>
+        window.codex.forward({
+          commandId: crypto.randomUUID(),
+          source: forwarding.source,
+          target,
+          note: note.trim() || null
+        })
+      )
+      if (!router) return null
+      get().router(router)
+      set({ forwarding: null })
       return router
     },
     guideSkipped: false,

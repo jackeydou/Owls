@@ -1,0 +1,1 @@
+- -- Router: writers in the same checkout now wait for each other across threads. (#38)

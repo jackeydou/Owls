@@ -1,0 +1,1 @@
+- -- Threads: threads are now global, you can start a new one with Command-N, and a thread can dispatch work to any project. (#38)

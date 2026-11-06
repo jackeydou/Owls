@@ -1,4 +1,5 @@
 import { Button } from '@renderer/components/ui/button'
+import { Select } from '@renderer/components/ui/select'
 import { Loader2 } from 'lucide-react'
 import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,19 +13,23 @@ const isCommandEnter = (event: KeyboardEvent) =>
 
 /**
  * Where the user writes next: the thread's last line, not a box under it. Enter
- * is a new line, as in any editor; Command-Enter sends. With no project open,
- * sending asks for the folder first.
+ * is a new line, as in any editor; Command-Enter sends. A new thread picks its
+ * default project here, and with no projects at all, sending asks for a folder.
  */
-export function ThreadEditor({
-  projectId,
-  router
-}: {
-  projectId: string | null
-  router: CodexRouter | undefined
-}) {
+export function ThreadEditor({ router }: { router: CodexRouter | undefined }) {
   const { t } = useTranslation()
-  const chooseProject = useCodexStore((s) => s.pickProject)
-  const draft = useRouterDraft({ projectId, router, isSendKey: isCommandEnter, chooseProject })
+  const projects = useCodexStore((s) => s.projects)
+  const projectId = useCodexStore((s) => s.routerProjectId)
+  const focusProject = useCodexStore((s) => s.focusProject)
+  const pickProject = useCodexStore((s) => s.pickProject)
+  const showThread = useCodexStore((s) => s.showThread)
+  const draft = useRouterDraft({
+    projectId,
+    router,
+    isSendKey: isCommandEnter,
+    chooseProject: projects.length ? undefined : pickProject,
+    onThread: showThread
+  })
   const { text, sending, addressed, textareaProps } = draft
   return (
     <ThreadRow speaker="user">
@@ -39,6 +44,21 @@ export function ThreadEditor({
         />
         <MentionMenu options={draft.options} highlight={draft.highlight} onPick={draft.pick} />
         <div className="router-editor-foot">
+          {!router && projects.length ? (
+            <Select
+              className="router-editor-project"
+              aria-label={t('thread.project')}
+              value={projectId ?? ''}
+              onChange={(event) => focusProject(event.target.value || null)}
+            >
+              <option value="">{t('thread.noProject')}</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </Select>
+          ) : null}
           {text.trim() ? (
             <Button
               size="sm"

@@ -27,15 +27,15 @@ export const owlsModelSchema = z.object({
     .default(null)
 })
 export const routerSettingsSchema = z.object({
-  engine: routerEngineSchema.default('owls'),
-  owls: owlsModelSchema.nullable().default(null),
+  engine: routerEngineSchema,
+  owls: owlsModelSchema.nullable(),
   /** Model for the Claude Code engine; null uses the CLI default. */
-  claudeModel: z.string().trim().min(1).max(200).nullable().default(null),
+  claudeModel: z.string().trim().min(1).max(200).nullable(),
   /** Model for the Codex engine; null uses the Codex default. */
-  codexModel: z.string().trim().min(1).max(200).nullable().default(null),
-  maxPermission: z.enum(permissionValues).default('workspace-write'),
+  codexModel: z.string().trim().min(1).max(200).nullable(),
+  maxPermission: z.enum(permissionValues),
   /** Workers that can write run in their own git worktree when the project is a repository. */
-  worktrees: z.boolean().default(true)
+  worktrees: z.boolean()
 })
 export const defaultRouterSettings: RouterSettings = {
   engine: 'owls',
@@ -65,8 +65,8 @@ export const workerStatusSchema = z.enum([
   'failed',
   'removed'
 ])
-/** Where a worker's worktree starts: the user's checkout HEAD, or the remote default branch. */
-export const worktreeBaseSchema = z.enum(['head', 'default-branch'])
+/** Where a worker's worktree starts: the checkout HEAD, the remote default, or its parent's branch. */
+export const worktreeBaseSchema = z.enum(['head', 'default-branch', 'parent'])
 /**
  * Where a worker runs. `checkout` is the project directory itself; a
  * `worktree` is a linked git worktree Owls created for this worker (RFC 11.1).
@@ -84,6 +84,8 @@ export const workerWorkspaceSchema = z.discriminatedUnion('kind', [
     cwd: z.string(),
     branch: z.string(),
     base: worktreeBaseSchema,
+    /** The parent worker's branch when `base` is `parent`. */
+    baseBranch: z.string().nullable(),
     /** The commit the branch started from; null until the worktree exists. */
     baseCommit: z.string().nullable(),
     state: z.enum(['active', 'kept', 'released'])
@@ -92,23 +94,25 @@ export const workerWorkspaceSchema = z.discriminatedUnion('kind', [
 export const workerSchema = z.object({
   id: z.string(),
   routerId: z.string(),
+  /** The project this worker runs in. Threads are global, so it is set per dispatch. */
+  projectId: z.string(),
   sessionId: z.string(),
   provider: z.enum(providerValues),
   goal: z.string(),
   /** Short label for the map and references; null falls back to the goal's first line. */
-  title: z.string().nullable().default(null),
+  title: z.string().nullable(),
   /** The worker whose result led the Router to dispatch this one; null hangs off the Router. */
-  parentId: z.string().nullable().default(null),
+  parentId: z.string().nullable(),
   /** Background passed to the first turn; kept so a queued worker can start later. */
-  context: z.string().nullable().default(null),
-  permission: z.enum(permissionValues).default('workspace-write'),
+  context: z.string().nullable(),
+  permission: z.enum(permissionValues),
   /** The message a queued worker sends when it starts: its first turn or a Router follow-up. */
-  next: z.string().nullable().default(null),
+  next: z.string().nullable(),
   status: workerStatusSchema,
-  workspace: workerWorkspaceSchema.default({ kind: 'checkout' }),
+  workspace: workerWorkspaceSchema,
   report: workerReportSchema.nullable(),
   /** True when the last report did not match the schema and was rebuilt from raw text. */
-  degraded: z.boolean().default(false),
+  degraded: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string()
 })
@@ -131,13 +135,42 @@ export const unknownBatchSchema = z.object({
   createdAt: z.string()
 })
 
-export const openRouterSchema = z.string().min(1).max(200)
+export const createThreadSchema = z.object({
+  /** Where workers run by default; null leaves the Router to name a project per dispatch. */
+  projectId: z.string().min(1).max(200).nullable()
+})
+export const threadItemsSchema = z.object({
+  routerId: z.string().uuid(),
+  /** Returns items changed after this version; 0 for the whole thread. */
+  after: z.number().int().nonnegative().default(0)
+})
 export const sendRouterSchema = z.object({
   routerId: z.string().uuid(),
   commandId: z.string().uuid(),
   text: z.string().trim().min(1).max(8000),
   /** Delivers the message straight to this worker instead of the Router's model. */
   workerId: z.string().min(1).max(64).optional()
+})
+export const forwardSchema = z.object({
+  commandId: z.string().uuid(),
+  source: z.discriminatedUnion('kind', [
+    z.object({
+      kind: z.literal('item'),
+      routerId: z.string().uuid(),
+      itemId: z.string().min(1).max(200)
+    }),
+    z.object({
+      kind: z.literal('worker'),
+      routerId: z.string().uuid(),
+      workerId: z.string().min(1).max(64)
+    })
+  ]),
+  target: z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('thread'), routerId: z.string().uuid() }),
+    z.object({ kind: z.literal('new'), projectId: z.string().min(1).max(200).nullable() })
+  ]),
+  /** What the user wants done with it; the only part the Router takes as an instruction. */
+  note: z.string().trim().max(8000).nullable().default(null)
 })
 export const resolveBatchSchema = z.object({
   routerId: z.string().uuid(),
@@ -169,6 +202,9 @@ export type RouterNative = z.infer<typeof routerNativeSchema>
 export type UnknownBatch = z.infer<typeof unknownBatchSchema>
 export type ResolveBatch = z.infer<typeof resolveBatchSchema>
 export type SendRouterMessage = z.infer<typeof sendRouterSchema>
+export type CreateThread = z.infer<typeof createThreadSchema>
+export type ThreadItemsRequest = z.input<typeof threadItemsSchema>
+export type ForwardMessage = z.input<typeof forwardSchema>
 export type SetRouterKey = z.infer<typeof setRouterKeySchema>
 export type RouterProviderInfo = {
   id: OwlsProviderId

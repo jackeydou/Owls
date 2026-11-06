@@ -3,21 +3,11 @@ import Database from 'better-sqlite3'
 import { desc, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import { z } from 'zod'
 import type { CodexProject, CodexSession, CodexSettings } from '../../shared/codex.js'
-import { projectSchema, providerSchema, sessionSchema, settingsSchema } from '../../shared/codex.js'
+import { projectSchema, sessionSchema, settingsSchema } from '../../shared/codex.js'
 import { defaultRouterSettings } from '../../shared/router.js'
 import { CodexRuntimeError } from './errors.js'
 import { codexCommands, codexProjects, codexSessions, codexSettings } from './schema.js'
-
-const legacySettingsSchema = z.object({ workerProvider: providerSchema.nullish() })
-
-/** Reads stored settings. A saved worker agent becomes `provider`, which replaced it. */
-export function storedSettings(value: unknown): CodexSettings {
-  const settings = settingsSchema.parse(value)
-  const provider = legacySettingsSchema.safeParse(value).data?.workerProvider
-  return provider ? { ...settings, provider } : settings
-}
 
 export class CodexStore {
   private readonly sqlite: Database.Database
@@ -32,7 +22,7 @@ export class CodexStore {
   settings(): CodexSettings {
     const row = this.db.select().from(codexSettings).get()
     return row
-      ? storedSettings(row.value)
+      ? settingsSchema.parse(row.value)
       : {
           executablePath: null,
           model: null,

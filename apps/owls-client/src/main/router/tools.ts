@@ -5,6 +5,7 @@ import { workerStatusSchema, worktreeBaseSchema } from '../../shared/router.js'
 /** Model-facing error codes. Messages are short English sentences without paths or secrets. */
 export type RouterToolErrorCode =
   | 'invalid_request'
+  | 'project_required'
   | 'permission_not_allowed'
   | 'provider_unavailable'
   | 'worker_limit_reached'
@@ -40,6 +41,15 @@ export const dispatchTaskInput = z
       .max(64)
       .optional()
       .describe('The worker whose result this task builds on. Omit for new work.'),
+    project: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .optional()
+      .describe(
+        "The project to work in, by name or ID. Omit to use the parent's project, or else the thread's default."
+      ),
     context: z
       .string()
       .max(8000)
@@ -50,7 +60,7 @@ export const dispatchTaskInput = z
       .describe('Coding agent to run the task. Omit to use the default agent.'),
     permission: permissionSchema
       .optional()
-      .describe('Access the worker needs. Omit to use the project default.'),
+      .describe('Access the worker needs. Omit to use the default.'),
     workspace: z
       .enum(['worktree', 'checkout'])
       .optional()
@@ -60,7 +70,7 @@ export const dispatchTaskInput = z
     base: worktreeBaseSchema
       .optional()
       .describe(
-        "What a worktree starts from: head (the user's current branch, the default) or default-branch (the remote default branch)."
+        "What a worktree starts from: head (the user's current branch, the default), default-branch (the remote default branch), or parent (the parent worker's branch)."
       )
   })
   .strict()
@@ -144,14 +154,14 @@ export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
     tool(
       'dispatch_task',
       'Dispatch task',
-      'Start a background worker (a Codex or Claude Code task in this project) for one piece of work. Returns immediately with the worker ID and whether it started or is queued behind other workers; the worker reports back in a later batch.',
+      "Start a background worker (a Codex or Claude Code task in one of the user's projects) for one piece of work. Returns immediately with the worker ID and whether it started or is queued behind other workers; the worker reports back in a later batch.",
       dispatchTaskInput,
       (input) => handlers.dispatchTask(input)
     ),
     tool(
       'list_workers',
       'List workers',
-      "List this project's workers, newest first, with their goal, status, parent, and the start of their last report. Do not use it to wait for a worker: reports arrive on their own in a later batch, after your turn ends.",
+      "List this thread's workers, newest first, with their project, goal, status, parent, and the start of their last report. Do not use it to wait for a worker: reports arrive on their own in a later batch, after your turn ends.",
       listWorkersInput,
       (input) => handlers.listWorkers(input)
     ),

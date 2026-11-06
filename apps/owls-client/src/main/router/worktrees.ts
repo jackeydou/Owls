@@ -104,6 +104,7 @@ export class GitWorkspaces implements WorkerWorkspaces {
       cwd: repo.subdir ? join(path, repo.subdir) : path,
       branch: workerBranch(workerId),
       base,
+      baseBranch: null,
       baseCommit: null,
       state: 'active'
     }
@@ -132,7 +133,7 @@ export class GitWorkspaces implements WorkerWorkspaces {
       if (await succeeds(repo, ['rev-parse', '--verify', '--quiet', ref])) {
         await git(repo, ['worktree', 'add', path, branch])
       } else {
-        baseCommit = await this.baseCommit(repo, workspace.base)
+        baseCommit = await this.baseCommit(repo, workspace)
         await git(repo, ['worktree', 'add', '-b', branch, path, baseCommit])
       }
       if (!existsSync(workspace.cwd))
@@ -169,9 +170,21 @@ export class GitWorkspaces implements WorkerWorkspaces {
     })
   }
 
-  /** HEAD, or the remote default branch after a best-effort fetch; HEAD when there is none. */
-  private async baseCommit(repo: string, base: WorktreeBase): Promise<string> {
-    if (base === 'default-branch') {
+  /**
+   * HEAD, the parent's branch, or the remote default branch after a best-effort
+   * fetch. Falls back to HEAD: a parent's branch that is gone held nothing HEAD lacks.
+   */
+  private async baseCommit(repo: string, workspace: WorktreeWorkspace): Promise<string> {
+    if (workspace.baseBranch) {
+      const commit = await git(repo, [
+        'rev-parse',
+        '--verify',
+        '--quiet',
+        `refs/heads/${workspace.baseBranch}^{commit}`
+      ]).catch(() => null)
+      if (commit) return commit
+    }
+    if (workspace.base === 'default-branch') {
       const remote = await git(repo, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']).catch(
         () => null
       )

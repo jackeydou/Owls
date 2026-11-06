@@ -1,12 +1,22 @@
-import type { CodexEvent, CodexFailure, CodexItem, CodexRouter } from '../../shared/codex.js'
 import type {
+  CodexEvent,
+  CodexFailure,
+  CodexItem,
+  CodexRouter,
+  ForwardOrigin,
+  ThreadItem
+} from '../../shared/codex.js'
+import type {
+  CreateThread,
+  ForwardMessage,
   ResolveBatch,
   RouterEngineId,
   RouterProviderInfo,
   RouterWorker,
   SendRouterMessage,
   SetRouterKey,
-  WorkerAction
+  WorkerAction,
+  WorkerReport
 } from '../../shared/router.js'
 import { CodexRuntimeError } from '../codex/errors.js'
 import type { RouterCredentials } from './credentials.js'
@@ -15,8 +25,9 @@ import type { EngineFactory } from './engines/factory.js'
 import { builtinRouterModels, catalog, OWLS_PROVIDERS } from './engines/owls-models.js'
 import { type InboxEvent, type InboxEventBody, isQuietEvent } from './events.js'
 import { ROUTER_PROMPT_VERSION } from './prompt.js'
-import { renderBatch, renderState } from './render.js'
+import { renderBatch, renderProjects, renderState } from './render.js'
 import type { RouterStore } from './store.js'
+import { ThreadLog } from './thread-log.js'
 import { RouterToolError, routerTools } from './tools.js'
 import {
   type TurnOutcome,
@@ -39,18 +50,31 @@ type ActiveBatch = {
 }
 /** Characters recall returns per call; longer text continues at `<id>@<offset>`. */
 const RECALL_PAGE = 4000
+const TITLE_LIMIT = 60
+const PREVIEW_LIMIT = 200
+
+/** A short thread title: the first line with text, on one line. */
+function titleOf(text: string): string {
+  const line = text.split('\n').find((l) => l.trim()) ?? text
+  return line.trim().replace(/\s+/g, ' ').slice(0, TITLE_LIMIT)
+}
 
 /**
- * Project Routers: their conversations, the persisted Inbox, and batch
- * delivery to the configured engine. Workers live in the WorkerPool.
+ * Global threads, each with its own Router: their conversations, the persisted
+ * Inbox, and batch delivery to the configured engine. Workers live in the
+ * WorkerPool. A thread's items load on first use and are saved one by one.
  */
 export class RouterService implements TurnProfiles {
   private readonly routers = new Map<string, CodexRouter>()
+  private readonly logs = new Map<string, ThreadLog>()
   private readonly engines = new Map<string, { engine: RouterEngine; key: string }>()
   private readonly active = new Map<string, ActiveBatch>()
   /** Workers dispatched in the current batch, by goal hash, so retried calls reuse them. */
   private readonly dispatched = new Map<string, Map<string, string>>()
+  /** Threads whose record changed since the last flush. */
   private readonly dirty = new Set<string>()
+  /** Changed items by thread since the last flush, streaming ones included. */
+  private readonly dirtyItems = new Map<string, Set<string>>()
   private readonly pool: WorkerPool
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private closed = false
@@ -68,16 +92,22 @@ export class RouterService implements TurnProfiles {
     for (const batch of store.batches('sending')) store.finishBatch(batch.id, 'dispatch_unknown')
     const unknown = store.batches('dispatch_unknown')
     for (const router of store.routers()) {
-      if (router.status === 'running') {
-        router.status = 'interrupted'
-        router.error = { code: 'interrupted', message: '' }
-        for (const item of router.items) if (item.status === 'running') item.status = 'interrupted'
-      }
-      router.unknownBatches = unknown
+      this.routers.set(router.id, router)
+      const unknownBatches = unknown
         .filter((b) => b.routerId === router.id)
         .map((b) => ({ id: b.id, events: b.eventSeqs.length, createdAt: b.createdAt }))
-      store.saveRouter(router)
-      this.routers.set(router.id, router)
+      const interrupted = router.status === 'running'
+      if (!interrupted && !unknownBatches.length && !router.unknownBatches.length) continue
+      router.unknownBatches = unknownBatches
+      const saved: ThreadItem[] = []
+      if (interrupted) {
+        router.status = 'interrupted'
+        router.error = { code: 'interrupted', message: '' }
+        const log = this.log(router)
+        for (const item of log.running()) saved.push(log.put({ ...item, status: 'interrupted' }))
+      }
+      router.rev = store.saveThread(router, saved)
+      for (const entry of saved) entry.rev = router.rev
     }
     this.pool = new WorkerPool(
       store,
@@ -107,24 +137,31 @@ export class RouterService implements TurnProfiles {
 
   snapshot(): { routers: CodexRouter[]; workers: RouterWorker[] } {
     return {
-      routers: [...this.routers.values()].sort((a, b) => a.projectId.localeCompare(b.projectId)),
+      routers: [...this.routers.values()].sort(
+        (a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)
+      ),
       workers: this.pool.snapshot()
     }
   }
 
-  open(projectId: string): CodexRouter {
-    const existing = [...this.routers.values()].find((r) => r.projectId === projectId)
-    if (existing) return existing
-    const project = this.host.projects().find((p) => p.id === projectId)
-    if (!project)
-      throw new CodexRuntimeError('project_required', 'Choose a project before opening its Router.')
+  /** Starts an empty thread. `id` lets a forward stay idempotent. */
+  createThread(input: CreateThread, id: string = crypto.randomUUID()): CodexRouter {
+    const project = input.projectId
+      ? this.host.projects().find((p) => p.id === input.projectId)
+      : null
+    if (input.projectId && !project)
+      throw new CodexRuntimeError('project_required', 'This project no longer exists.')
     const now = new Date().toISOString()
     const router: CodexRouter = {
-      id: crypto.randomUUID(),
-      projectId,
-      cwd: project.path,
+      id,
+      title: null,
+      projectId: project?.id ?? null,
+      cwd: project?.path ?? this.host.threadHome(),
       status: 'idle',
-      items: [],
+      rev: 0,
+      itemCount: 0,
+      preview: null,
+      projectsShown: null,
       error: null,
       tokens: null,
       native: null,
@@ -133,15 +170,22 @@ export class RouterService implements TurnProfiles {
       updatedAt: now
     }
     this.routers.set(router.id, router)
+    this.logs.set(router.id, new ThreadLog([]))
     this.changed(router)
     return router
+  }
+
+  /** A thread's items changed after version `after`, in position order. */
+  items(routerId: string, after = 0): ThreadItem[] {
+    return this.log(this.getRouter(routerId)).after(after)
   }
 
   async send(input: SendRouterMessage): Promise<void> {
     const router = this.getRouter(input.routerId)
     if (!this.commands.acceptCommand(input.commandId, router.id, input.text)) return
     if (input.workerId) return this.sendToWorker(router, input, input.workerId)
-    router.items.push({
+    router.title ??= titleOf(input.text)
+    this.put(router, {
       id: input.commandId,
       kind: 'user',
       status: 'completed',
@@ -149,7 +193,6 @@ export class RouterService implements TurnProfiles {
       detail: '',
       turnId: null
     })
-    this.changed(router)
     const body: InboxEventBody = {
       kind: 'user_message',
       at: new Date().toISOString(),
@@ -177,7 +220,7 @@ export class RouterService implements TurnProfiles {
     workerId: string
   ): Promise<void> {
     await this.forUser(() => this.pool.message(router.id, { workerId, text: input.text }))
-    router.items.push({
+    this.put(router, {
       id: input.commandId,
       kind: 'user',
       status: 'completed',
@@ -186,7 +229,6 @@ export class RouterService implements TurnProfiles {
       turnId: null,
       workerId
     })
-    this.changed(router)
     const body: InboxEventBody = {
       kind: 'user_message',
       at: new Date().toISOString(),
@@ -194,6 +236,89 @@ export class RouterService implements TurnProfiles {
       workerId
     }
     this.add(router.id, input.commandId, body, false)
+  }
+
+  /**
+   * Copies content into another thread and starts the Router there. The copy is
+   * frozen, so it does not depend on the source thread afterwards, and it goes
+   * through the Inbox, so every engine gets it the same way. Returns the thread
+   * that received it; `commandId` names a new one so a repeated call finds it.
+   */
+  forward(input: ForwardMessage): CodexRouter {
+    const source = this.getRouter(input.source.routerId)
+    const targetId = input.target.kind === 'thread' ? input.target.routerId : input.commandId
+    if (targetId === source.id)
+      throw new CodexRuntimeError('invalid_request', 'This content is already in that thread.')
+    if (input.target.kind === 'thread') this.getRouter(targetId)
+    const content = this.forwardContent(input, source)
+    const note = input.note || null
+    const accepted = this.commands.acceptCommand(
+      input.commandId,
+      source.id,
+      JSON.stringify([input.source, input.target, note])
+    )
+    if (!accepted) return this.getRouter(targetId)
+    const target =
+      input.target.kind === 'thread'
+        ? this.getRouter(targetId)
+        : this.createThread({ projectId: input.target.projectId }, targetId)
+    target.title ??= titleOf(note ?? content.text)
+    const { goal, artifacts, ...origin } = content.origin
+    this.put(target, {
+      id: input.commandId,
+      kind: 'forward',
+      status: 'completed',
+      text: content.text,
+      detail: note ?? '',
+      turnId: null,
+      forward: origin
+    })
+    this.add(
+      target.id,
+      input.commandId,
+      {
+        kind: 'forwarded',
+        at: new Date().toISOString(),
+        from: source.title,
+        note,
+        text: content.text,
+        ...(origin.workerId ? { workerId: origin.workerId, goal } : {}),
+        branch: origin.branch,
+        artifacts
+      },
+      true
+    )
+    return target
+  }
+
+  /** The text to freeze and where it came from. Refuses anything with nothing to forward. */
+  private forwardContent(
+    input: ForwardMessage,
+    source: CodexRouter
+  ): {
+    text: string
+    origin: ForwardOrigin & { goal?: string; artifacts: WorkerReport['artifacts'] }
+  } {
+    const base = { routerId: source.id, title: source.title, artifacts: [] }
+    const unavailable = () =>
+      new CodexRuntimeError('request_unavailable', 'This content can no longer be forwarded.')
+    if (input.source.kind === 'item') {
+      const item = this.log(source).get(input.source.itemId)?.item
+      if (!item?.text || !['user', 'assistant', 'forward'].includes(item.kind)) throw unavailable()
+      return { text: item.text, origin: { ...base, workerId: null, branch: null } }
+    }
+    const worker = this.pool.get(input.source.workerId)
+    if (worker?.routerId !== source.id || !worker.report) throw unavailable()
+    return {
+      text: worker.report.summary,
+      origin: {
+        ...base,
+        workerId: worker.id,
+        branch: this.pool.place(worker).branch,
+        goal: worker.goal,
+        artifacts: worker.report.artifacts
+      }
+    }
   }
 
   async stopWorker(input: WorkerAction): Promise<void> {
@@ -314,7 +439,7 @@ export class RouterService implements TurnProfiles {
       const router = this.routers.get(routerId)
       if (!router) continue
       router.status = 'interrupted'
-      for (const item of router.items) if (item.status === 'running') item.status = 'interrupted'
+      this.finishItems(router, 'interrupted')
       this.dirty.add(routerId)
     }
     this.flush()
@@ -361,15 +486,17 @@ export class RouterService implements TurnProfiles {
       events.map((e) => e.seq)
     )
     this.pool.delivered(events)
-    const state = this.needsState(router, settings.engine)
-      ? renderState(this.pool.list(routerId))
-      : null
+    const state = this.needsState(router, settings.engine) ? this.stateOf(router) : null
+    const projects = renderProjects(this.host.projects(), router.projectId)
+    // A context that gets the state reads the list there.
+    const newProjects = !state && projects !== router.projectsShown ? projects : null
+    router.projectsShown = projects
     this.active.set(routerId, batch)
     router.status = 'running'
     router.error = null
     this.changed(router)
     this.dispatched.set(routerId, new Map())
-    const outcome = await this.runBatch(engine, router, batch, events, state)
+    const outcome = await this.runBatch(engine, router, batch, events, state, newProjects)
     this.showDispatches(router, batch)
     this.dispatched.delete(routerId)
     this.active.delete(routerId)
@@ -386,9 +513,7 @@ export class RouterService implements TurnProfiles {
           ? 'failed'
           : 'interrupted'
     router.error = outcome.error
-    for (const item of router.items)
-      if (item.status === 'running')
-        item.status = outcome.status === 'completed' ? 'completed' : outcome.status
+    this.finishItems(router, outcome.status)
     this.changed(router)
     if (this.store.events(routerId, 'pending').some((e) => !isQuietEvent(e)))
       void this.pump(routerId)
@@ -399,11 +524,16 @@ export class RouterService implements TurnProfiles {
     router: CodexRouter,
     batch: ActiveBatch,
     events: InboxEvent[],
-    state: string | null
+    state: string | null,
+    projects: string | null
   ): Promise<RouterBatchOutcome> {
     try {
       return await engine.run(
-        { batchId: batch.id, text: renderBatch(batch.id, events, state), native: router.native },
+        {
+          batchId: batch.id,
+          text: renderBatch(batch.id, events, state, projects),
+          native: router.native
+        },
         this.sink(router, batch)
       )
     } catch {
@@ -446,7 +576,7 @@ export class RouterService implements TurnProfiles {
         recall: (id) => this.recall(router.id, id)
       }),
       history: this.store.messages(router.id),
-      state: () => renderState(this.pool.list(router.id)),
+      state: () => this.stateOf(router),
       persist: (batchId, messages) => this.store.appendMessages(router.id, batchId, messages)
     })
     if (!('code' in engine)) this.engines.set(router.id, { engine, key })
@@ -462,8 +592,8 @@ export class RouterService implements TurnProfiles {
   private showDispatches(router: CodexRouter, batch: ActiveBatch): void {
     for (const workerId of batch.dispatches) {
       const id = `dispatch:${workerId}`
-      if (router.items.some((item) => item.id === id)) continue
-      router.items.push({
+      if (this.log(router).get(id)) continue
+      this.put(router, {
         id,
         kind: 'worker',
         status: 'completed',
@@ -473,19 +603,14 @@ export class RouterService implements TurnProfiles {
         workerId
       })
     }
-    if (batch.dispatches.size) this.changed(router)
     batch.dispatches.clear()
   }
 
   private sink(router: CodexRouter, batch: ActiveBatch): RouterSink {
     return {
       item: (item: CodexItem) => {
-        const index = router.items.findIndex((i) => i.id === item.id)
-        if (index >= 0) router.items[index] = item
-        else router.items.push(item)
+        this.put(router, item)
         if (item.kind === 'tool') this.showDispatches(router, batch)
-        // Streaming text is batched; finished items are saved at once.
-        this.changed(router, item.status !== 'running')
       },
       usage: (usage) => {
         const tokens = usage.input + usage.output + usage.cacheRead + usage.cacheWrite
@@ -515,6 +640,7 @@ export class RouterService implements TurnProfiles {
         goal: worker.goal,
         status: worker.status,
         provider: worker.provider,
+        project: this.pool.projectName(worker),
         permission: worker.permission,
         parent: worker.parentId,
         ...this.pool.place(worker),
@@ -529,7 +655,7 @@ export class RouterService implements TurnProfiles {
       if (!found || found.routerId !== routerId) throw missing()
       const { event, status, batchId } = found
       const text =
-        event.kind === 'user_message'
+        event.kind === 'user_message' || event.kind === 'forwarded'
           ? event.text
           : event.kind === 'worker_report'
             ? event.report.summary
@@ -545,9 +671,14 @@ export class RouterService implements TurnProfiles {
         ...(event.kind === 'user_message'
           ? { workerId: event.workerId }
           : { workerId: event.workerId, goal: event.goal }),
+        ...(event.kind === 'forwarded'
+          ? { from: event.from, note: event.note, branch: event.branch }
+          : {}),
         ...(event.kind === 'worker_report'
           ? { reportStatus: event.report.status, artifacts: event.report.artifacts }
-          : {}),
+          : event.kind === 'forwarded'
+            ? { artifacts: event.artifacts }
+            : {}),
         ...page(text)
       }
     }
@@ -575,22 +706,66 @@ export class RouterService implements TurnProfiles {
     if (!router) throw new CodexRuntimeError('task_not_found', 'Router not found.')
     return router
   }
-  private changed(router: CodexRouter, immediate = true): void {
+  private log(router: CodexRouter): ThreadLog {
+    let log = this.logs.get(router.id)
+    if (!log) {
+      log = new ThreadLog(this.store.items(router.id))
+      this.logs.set(router.id, log)
+    }
+    return log
+  }
+  /** The workers, and the projects when there are several, for a context that lacks them. */
+  private stateOf(router: CodexRouter): string {
+    const projects = renderProjects(this.host.projects(), router.projectId)
+    const workers = renderState(this.pool.list(router.id), (worker) =>
+      projects ? this.pool.projectName(worker) : null
+    )
+    return projects ? `${workers}\n\n${projects}` : workers
+  }
+  /** Inserts or replaces an item. Streaming only reaches the UI; a finished item is saved. */
+  private put(router: CodexRouter, item: CodexItem): void {
+    if (this.closed) return
+    const log = this.log(router)
+    log.put(item)
+    router.itemCount = log.length
+    const changed = this.dirtyItems.get(router.id) ?? new Set()
+    this.dirtyItems.set(router.id, changed.add(item.id))
+    if (item.status === 'running') {
+      this.flushTimer ??= setTimeout(() => this.flush(), 70)
+      return
+    }
+    if (item.kind === 'assistant' && item.text) router.preview = item.text.slice(-PREVIEW_LIMIT)
+    this.changed(router)
+  }
+  private finishItems(router: CodexRouter, status: RouterBatchOutcome['status']): void {
+    for (const item of this.log(router).running()) this.put(router, { ...item, status })
+  }
+  private changed(router: CodexRouter): void {
     if (this.closed) return
     router.updatedAt = new Date().toISOString()
     this.dirty.add(router.id)
-    if (immediate) this.flush()
-    else if (!this.flushTimer) this.flushTimer = setTimeout(() => this.flush(), 70)
+    this.flush()
   }
   private flush(): void {
     if (this.flushTimer) clearTimeout(this.flushTimer)
     this.flushTimer = null
-    for (const id of this.dirty) {
+    for (const id of new Set([...this.dirty, ...this.dirtyItems.keys()])) {
       const router = this.routers.get(id)
       if (!router) continue
-      this.store.saveRouter(router)
-      this.emit({ type: 'router', router })
+      const log = this.log(router)
+      const changed = [...(this.dirtyItems.get(id) ?? [])]
+        .flatMap((itemId) => log.get(itemId) ?? [])
+        .sort((a, b) => a.position - b.position)
+      const finished = changed.filter((e) => e.item.status !== 'running')
+      if (this.dirty.has(id) || finished.length) {
+        router.rev = this.store.saveThread(router, finished)
+        for (const entry of finished) entry.rev = router.rev
+        this.emit({ type: 'router', router })
+      }
+      if (changed.length)
+        this.emit({ type: 'thread-items', routerId: id, items: changed.map((e) => ({ ...e })) })
     }
     this.dirty.clear()
+    this.dirtyItems.clear()
   }
 }

@@ -24,6 +24,11 @@ export function workerWorktreesRoot(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'worktrees')
 }
 
+/** The working directory of Router engines in threads with no default project. */
+export function routerThreadHome(dataRoot = getDataRoot()): string {
+  return join(dataRoot, 'router-threads')
+}
+
 export function defaultWorkspaceRoot(): string {
   return join(homedir(), 'Documents', 'Owls')
 }

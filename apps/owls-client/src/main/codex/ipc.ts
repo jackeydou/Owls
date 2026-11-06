@@ -2,11 +2,13 @@ import { type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } f
 import { z } from 'zod'
 import { type CodexReply, respondSchema, settingsUpdateSchema } from '../../shared/codex.js'
 import {
-  openRouterSchema,
+  createThreadSchema,
+  forwardSchema,
   owlsProviderSchema,
   resolveBatchSchema,
   sendRouterSchema,
   setRouterKeySchema,
+  threadItemsSchema,
   workerActionSchema
 } from '../../shared/router.js'
 import { applyAppLogo } from './app-logo.js'
@@ -50,8 +52,10 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
     return saved
   })
   handle('respond', (input) => host.respond(respondSchema.parse(input)))
-  handle('router-open', (input) => host.openRouter(openRouterSchema.parse(input)))
+  handle('router-create', (input) => host.createThread(createThreadSchema.parse(input)))
+  handle('router-items', (input) => host.threadItems(threadItemsSchema.parse(input)))
   handle('router-send', (input) => host.sendRouter(sendRouterSchema.parse(input)))
+  handle('router-forward', (input) => host.forward(forwardSchema.parse(input)))
   handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))
   handle('router-resolve-batch', (input) => host.resolveBatch(resolveBatchSchema.parse(input)))
   handle('router-discard-worktree', async (input) => {

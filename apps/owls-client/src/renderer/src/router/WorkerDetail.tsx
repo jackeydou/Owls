@@ -1,6 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { AlertCircle, GitBranch, Loader2, Square, Trash2, X } from 'lucide-react'
+import { AlertCircle, Forward, GitBranch, Loader2, Square, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexItem, CodexSession } from '../../../shared/codex'
@@ -78,10 +78,11 @@ function Report({ worker, projectPath }: { worker: RouterWorker; projectPath: st
 export function WorkerDetail({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
   const session = useCodexStore((s) => s.sessions.find((x) => x.id === worker.sessionId))
-  const projectPath = useRouterStore(
-    (s) => s.routers.find((r) => r.id === worker.routerId)?.cwd ?? ''
+  const projectPath = useCodexStore(
+    (s) => s.projects.find((p) => p.id === worker.projectId)?.path ?? ''
   )
-  const { stopWorker, removeWorker, showPanel } = useRouterStore()
+  const { stopWorker, removeWorker, showPanel, startForward } = useRouterStore()
+  const { report } = worker
   const [tab, setTab] = useState<Tab>('activity')
   const title = workerTitle(worker)
   return (
@@ -122,6 +123,21 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             onClick={() => void removeWorker(worker.routerId, worker.id)}
           />
         )}
+        {report ? (
+          <IconButton
+            size="sm"
+            label={t('forward.action')}
+            tooltip={t('forward.action')}
+            icon={<Forward size={13} />}
+            onClick={() =>
+              startForward({
+                source: { kind: 'worker', routerId: worker.routerId, workerId: worker.id },
+                preview: report.summary,
+                projectId: worker.projectId
+              })
+            }
+          />
+        ) : null}
         <IconButton
           size="sm"
           label={t('worker.close')}

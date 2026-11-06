@@ -28,15 +28,17 @@ function useMentions(router: CodexRouter | undefined, query: string | null): Rou
   }, [workers, router, query])
 }
 /**
- * A message being written. Text goes to the project's Router unless a worker is
- * addressed, by `@` here or by `target` when the map has one selected.
+ * A message being written. Text goes to the thread's Router, creating the thread
+ * on the first send, unless a worker is addressed, by `@` here or by `target`
+ * when the map has one selected.
  */
 export function useRouterDraft({
   projectId,
   router,
   target,
   isSendKey,
-  chooseProject
+  chooseProject,
+  onThread
 }: {
   projectId: string | null
   router: CodexRouter | undefined
@@ -44,8 +46,12 @@ export function useRouterDraft({
   isSendKey: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean
   /** Asked for a project when the draft is sent with none. Null keeps the draft. */
   chooseProject?: () => Promise<string | null>
+  /** Told which thread took the first message of a new one. */
+  onThread?: (threadId: string) => void
 }) {
-  const { open, send, sending } = useRouterStore()
+  const { createThread, send, sending } = useRouterStore()
+  /** A thread made by a send that failed, so trying again does not leave another. */
+  const created = useRef<CodexRouter | null>(null)
   const [text, setText] = useState('')
   const [mention, setMention] = useState<RouterWorker | null>(null)
   const [caret, setCaret] = useState(0)
@@ -71,14 +77,17 @@ export function useRouterDraft({
     const message = text.trim()
     if (!message || sending || choosing.current) return
     choosing.current = true
-    const chosen = projectId ?? (await chooseProject?.()) ?? null
+    const chosen = router ? null : (projectId ?? (await chooseProject?.()) ?? null)
     choosing.current = false
-    if (!chosen) return
-    const current = router ?? (await open(chosen))
+    if (!router && !chosen && chooseProject) return
+    const current = router ?? created.current ?? (await createThread(chosen))
     if (!current) return
+    created.current = router ? null : current
     if (await send(current.id, message, addressed?.id)) {
       setText('')
       setMention(null)
+      created.current = null
+      if (!router) onThread?.(current.id)
     }
   }
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {

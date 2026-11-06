@@ -1,0 +1,1 @@
+- -- Storage: thread items are saved one at a time and load when a thread opens, and the database was reset, so existing local databases must be removed. (#38)

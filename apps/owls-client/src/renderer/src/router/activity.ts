@@ -1,4 +1,5 @@
-import type { CodexItem, CodexRequest, CodexSession } from '../../../shared/codex'
+import { useTranslation } from 'react-i18next'
+import type { CodexItem, CodexRequest, CodexRouter, CodexSession } from '../../../shared/codex'
 import type { RouterWorker } from '../../../shared/router'
 import { isInPlay } from '../../../shared/worker-map'
 
@@ -84,6 +85,14 @@ export function liveLine(session?: CodexSession): LiveLine | null {
   return null
 }
 /** Removes Markdown a one-line preview cannot show, keeping a worker link's title. */
+/** Most recently active first. */
+export const byRecent = (a: CodexRouter, b: CodexRouter) =>
+  b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)
+export const threadTitle = (thread: CodexRouter, untitled: string) => thread.title ?? untitled
+/** The label for a thread with no message yet. */
+export function useThreadTitle(): string {
+  return useTranslation().t('thread.untitled')
+}
 export function plainLine(text: string): string {
   return (
     text

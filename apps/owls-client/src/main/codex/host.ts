@@ -1,3 +1,4 @@
+import { mkdirSync } from 'node:fs'
 import type {
   AgentProvider,
   ClaudeConnection,
@@ -7,13 +8,17 @@ import type {
   CodexSettings,
   CodexSnapshot,
   RespondCodexRequest,
-  SendCodexMessage
+  SendCodexMessage,
+  ThreadItem
 } from '../../shared/codex.js'
 import type {
+  CreateThread,
+  ForwardMessage,
   ResolveBatch,
   RouterProviderInfo,
   SendRouterMessage,
   SetRouterKey,
+  ThreadItemsRequest,
   WorkerAction
 } from '../../shared/router.js'
 import type { ClaudeService } from '../claude/service.js'
@@ -29,9 +34,10 @@ export class OwlsHost {
   private router: RouterService | null = null
   constructor(
     private readonly codex: CodexService,
-    private readonly claude: ClaudeService
+    private readonly claude: ClaudeService,
+    private readonly threadHome: string
   ) {}
-  /** Connects the project Routers, which start every session of this host. */
+  /** Connects the Routers, which start every session of this host. */
   attachRouter(router: RouterService): void {
     this.router = router
     this.codex.setTurnProfiles(router)
@@ -41,6 +47,10 @@ export class OwlsHost {
   workerHost(): WorkerHost {
     return {
       projects: () => this.codex.snapshot().projects,
+      threadHome: () => {
+        mkdirSync(this.threadHome, { recursive: true })
+        return this.threadHome
+      },
       settings: () => this.codex.snapshot().settings,
       providerReady: (provider: AgentProvider) => {
         const connection =
@@ -62,13 +72,11 @@ export class OwlsHost {
   snapshot(): CodexSnapshot {
     const codex = this.codex.snapshot()
     const router = this.router?.snapshot() ?? { routers: [], workers: [] }
-    const workers = new Set(router.workers.map((worker) => worker.sessionId))
     return {
       ...codex,
-      // Tasks from before the Router stay stored, without a way to reach them (RFC 8).
-      sessions: [...codex.sessions, ...this.claude.sessionList()]
-        .filter((session) => workers.has(session.id))
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+      sessions: [...codex.sessions, ...this.claude.sessionList()].sort((a, b) =>
+        b.updatedAt.localeCompare(a.updatedAt)
+      ),
       claude: this.claude.connectionState(),
       ...router
     }
@@ -103,11 +111,17 @@ export class OwlsHost {
     if (routerChanged) this.router?.settingsChanged()
     return saved
   }
-  openRouter(projectId: string): CodexRouter {
-    return this.requireRouter().open(projectId)
+  createThread(input: CreateThread): CodexRouter {
+    return this.requireRouter().createThread(input)
+  }
+  threadItems(input: ThreadItemsRequest): ThreadItem[] {
+    return this.requireRouter().items(input.routerId, input.after)
   }
   sendRouter(input: SendRouterMessage): Promise<void> {
     return this.requireRouter().send(input)
+  }
+  forward(input: ForwardMessage): CodexRouter {
+    return this.requireRouter().forward(input)
   }
   interruptRouter(routerId: string): void {
     this.requireRouter().interrupt(routerId)

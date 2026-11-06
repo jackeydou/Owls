@@ -6,12 +6,14 @@
 /** In-memory stand-in for RouterStore with the same method surface. */
 export function memoryRouterStore() {
   const routers = new Map()
+  const threadItems = new Map()
   const workers = new Map()
   const messages = new Map()
   const credentials = new Map()
   const events = []
   const batches = new Map()
   let seq = 0
+  let rev = 0
   const publicEvent = (e) => ({ ...structuredClone(e.body), seq: e.seq })
   return {
     events: (routerId, status) =>
@@ -77,7 +79,19 @@ export function memoryRouterStore() {
         .slice(-limit)
         .map(publicEvent),
     routers: () => [...routers.values()].map((r) => structuredClone(r)),
-    saveRouter: (r) => routers.set(r.id, structuredClone(r)),
+    saveThread(router, items = []) {
+      rev++
+      routers.set(router.id, structuredClone({ ...router, rev }))
+      const stored = threadItems.get(router.id) ?? new Map()
+      for (const { item, position } of items)
+        stored.set(item.id, structuredClone({ item, position, rev }))
+      threadItems.set(router.id, stored)
+      return rev
+    },
+    items: (id) =>
+      [...(threadItems.get(id)?.values() ?? [])]
+        .sort((a, b) => a.position - b.position)
+        .map((entry) => structuredClone(entry)),
     workers: () => [...workers.values()].map((w) => structuredClone(w)),
     saveWorker: (w) => workers.set(w.id, structuredClone(w)),
     messages: (id) => structuredClone(messages.get(id) ?? []),

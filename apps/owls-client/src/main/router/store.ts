@@ -1,12 +1,20 @@
 import { and, asc, desc, eq, inArray, max, sql } from 'drizzle-orm'
-import { type CodexRouter, routerSchema } from '../../shared/codex.js'
+import {
+  type CodexItem,
+  type CodexRouter,
+  itemSchema,
+  routerSchema,
+  type ThreadItem
+} from '../../shared/codex.js'
 import { type RouterWorker, workerSchema } from '../../shared/router.js'
 import {
   codexCredentials,
   codexInboxEvents,
   codexRouterBatches,
   codexRouterMessages,
-  codexRouters,
+  codexSyncState,
+  codexThreadItems,
+  codexThreads,
   codexWorkers
 } from '../codex/schema.js'
 import type { CodexStore } from '../codex/store.js'
@@ -27,6 +35,8 @@ const toEvent = (row: EventRow): InboxEvent => ({
   ...inboxEventBodySchema.parse(row.value),
   seq: row.seq
 })
+/** The row in `codex_sync_state` holding the change version. */
+const SYNC_ROW = 'account'
 const toBatch = (row: BatchRow): RouterBatch => ({
   ...batchValueSchema.parse(row.value),
   id: row.id,
@@ -44,18 +54,60 @@ export class RouterStore {
   routers(): CodexRouter[] {
     return this.db
       .select()
-      .from(codexRouters)
+      .from(codexThreads)
+      .orderBy(desc(codexThreads.updatedAt), asc(codexThreads.id))
       .all()
       .map((row) => routerSchema.parse(row.value))
-      .sort((a, b) => a.projectId.localeCompare(b.projectId))
   }
-  saveRouter(value: CodexRouter): void {
-    const router = routerSchema.parse(value)
-    this.db
-      .insert(codexRouters)
-      .values({ id: router.id, projectId: router.projectId, value: router })
-      .onConflictDoUpdate({ target: codexRouters.id, set: { value: router } })
-      .run()
+  /**
+   * Saves a thread and the given items under one new change version, which it
+   * returns. Writes go through this one connection, so versions commit in order
+   * and a reader that asks for what came after its last version misses nothing.
+   */
+  saveThread(value: CodexRouter, items: { item: CodexItem; position: number }[] = []): number {
+    return this.db.transaction((tx) => {
+      const { rev } = tx
+        .insert(codexSyncState)
+        .values({ id: SYNC_ROW, rev: 1 })
+        .onConflictDoUpdate({
+          target: codexSyncState.id,
+          set: { rev: sql`${codexSyncState.rev} + 1` }
+        })
+        .returning()
+        .get()
+      const router = routerSchema.parse({ ...value, rev })
+      tx.insert(codexThreads)
+        .values({ id: router.id, rev, updatedAt: router.updatedAt, value: router })
+        .onConflictDoUpdate({
+          target: codexThreads.id,
+          set: { rev, updatedAt: router.updatedAt, value: router }
+        })
+        .run()
+      for (const { item, position } of items) {
+        const parsed = itemSchema.parse(item)
+        tx.insert(codexThreadItems)
+          .values({ threadId: router.id, itemId: parsed.id, position, rev, value: parsed })
+          .onConflictDoUpdate({
+            target: [codexThreadItems.threadId, codexThreadItems.itemId],
+            set: { rev, value: parsed }
+          })
+          .run()
+      }
+      return rev
+    })
+  }
+  items(routerId: string): ThreadItem[] {
+    return this.db
+      .select()
+      .from(codexThreadItems)
+      .where(eq(codexThreadItems.threadId, routerId))
+      .orderBy(asc(codexThreadItems.position))
+      .all()
+      .map((row) => ({
+        item: itemSchema.parse(row.value),
+        position: row.position,
+        rev: row.rev
+      }))
   }
   workers(): RouterWorker[] {
     return this.db
