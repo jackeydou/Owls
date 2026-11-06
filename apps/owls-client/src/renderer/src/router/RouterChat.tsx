@@ -16,7 +16,6 @@ export function RouterChat() {
   const { t } = useTranslation()
   const projectId = useCodexStore((s) => s.routerProjectId)
   const project = useCodexStore((s) => s.projects.find((p) => p.id === projectId))
-  const agent = useCodexStore((s) => s.settings.provider)
   const open = useRouterStore((s) => s.open)
   const showPanel = useRouterStore((s) => s.showPanel)
   const router = useRouterStore((s) => s.routers.find((r) => r.projectId === projectId))
@@ -61,15 +60,7 @@ export function RouterChat() {
               <>
                 {missing ? <RouterSetupNotice need={missing} /> : null}
                 {router ? <RequestTray routerId={router.id} /> : null}
-                <ThreadEditor
-                  projectId={project?.id ?? null}
-                  router={router}
-                  note={
-                    router?.items.length
-                      ? undefined
-                      : t('trustFolder', { agent: t(`agent.${agent}`) })
-                  }
-                />
+                <ThreadEditor projectId={project?.id ?? null} router={router} />
               </>
             }
           />

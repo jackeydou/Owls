@@ -101,7 +101,7 @@ function AgentConnect({ provider, body }: { provider: AgentProvider; body: strin
           {busy ? <Loader2 size={14} className="animate-spin" /> : null}
           {t('router.guideConnect', { agent: t(`agent.${provider}`) })}
         </Button>
-        <Button size="sm" variant="outline" onClick={showSettings}>
+        <Button size="sm" variant="outline" onClick={() => showSettings(provider)}>
           {t('router.openSettings')}
         </Button>
       </div>

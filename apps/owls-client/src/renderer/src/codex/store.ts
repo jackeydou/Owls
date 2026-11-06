@@ -35,13 +35,17 @@ function unwrap<T>(reply: CodexReply<T>): T {
   if (!reply.ok) throw new CodexUIError(reply.error)
   return reply.value
 }
+export type SettingsTab = 'router' | 'workers' | 'claude-code' | 'codex' | 'appearance'
+
 type State = {
   loaded: boolean
   error: CodexFailure | null
-  /** `chat` and `map` are the same space at two distances; `settings` sits on top of either. */
+  /** `chat` and `map` are the same space at two distances; `settings` replaces the whole window. */
   view: 'chat' | 'map' | 'settings'
   /** Where Settings returns to. */
   lastView: 'chat' | 'map'
+  /** Survives leaving Settings, so reopening lands where the user was. */
+  settingsTab: SettingsTab
   /** The project in focus: its conversation, or the one the map composer sends to. */
   routerProjectId: string | null
   sessions: CodexSession[]
@@ -51,7 +55,7 @@ type State = {
   claude: ClaudeConnection
   initialize(): Promise<void>
   event(event: CodexEvent): void
-  showSettings(): void
+  showSettings(tab?: SettingsTab): void
   leaveSettings(): void
   showChat(projectId?: string): void
   showMap(): void
@@ -92,6 +96,7 @@ export const useCodexStore = create<State>((set, get) => {
     error: null,
     view: 'chat',
     lastView: 'chat',
+    settingsTab: 'router',
     routerProjectId: null,
     sessions: [],
     projects: [],
@@ -177,10 +182,11 @@ export const useCodexStore = create<State>((set, get) => {
         )
       }))
     },
-    showSettings: () =>
+    showSettings: (tab) =>
       set((state) => ({
         view: 'settings',
         lastView: state.view === 'settings' ? state.lastView : state.view,
+        settingsTab: tab ?? state.settingsTab,
         error: null
       })),
     leaveSettings: () => set((state) => ({ view: state.lastView, error: null })),

@@ -2,7 +2,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider, CodexFailure, CodexRouter } from '../../../shared/codex'
-import { agentConnection, isAgentReady, useCodexStore } from '../codex/store'
+import { agentConnection, isAgentReady, type SettingsTab, useCodexStore } from '../codex/store'
 import { ThreadRow } from './ThreadRow'
 
 const SETUP_FAILURES = [
@@ -19,6 +19,12 @@ export type RouterSetupNeed =
   | { kind: 'worker'; provider: AgentProvider; alternate: AgentProvider | null }
 
 const AGENTS: AgentProvider[] = ['claude-code', 'codex']
+/** The Settings tab that resolves a need. */
+function settingsTabFor(need: RouterSetupNeed): SettingsTab {
+  if (need.kind === 'worker') return need.provider
+  if (need.kind === 'owls') return 'router'
+  return need.kind === 'claude' ? 'claude-code' : 'codex'
+}
 /** What stands between the user and a working Router, or null when nothing does. */
 export function useRouterSetup(router?: CodexRouter): RouterSetupNeed | null {
   const settings = useCodexStore((s) => s.settings)
@@ -71,7 +77,11 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
               {t('router.useAgent', { agent: t(`agent.${alternate}`) })}
             </Button>
           ) : null}
-          <Button size="sm" variant={alternate ? 'outline' : 'default'} onClick={showSettings}>
+          <Button
+            size="sm"
+            variant={alternate ? 'outline' : 'default'}
+            onClick={() => showSettings(settingsTabFor(need))}
+          >
             <Settings2 size={14} />
             {t('router.openSettings')}
           </Button>

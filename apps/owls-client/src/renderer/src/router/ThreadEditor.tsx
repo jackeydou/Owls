@@ -17,12 +17,10 @@ const isCommandEnter = (event: KeyboardEvent) =>
  */
 export function ThreadEditor({
   projectId,
-  router,
-  note
+  router
 }: {
   projectId: string | null
   router: CodexRouter | undefined
-  note?: string
 }) {
   const { t } = useTranslation()
   const chooseProject = useCodexStore((s) => s.pickProject)
@@ -55,7 +53,6 @@ export function ThreadEditor({
               <kbd>⌘ ↵</kbd>
             </Button>
           ) : null}
-          {note ? <span>{note}</span> : null}
         </div>
       </div>
     </ThreadRow>

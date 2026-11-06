@@ -916,18 +916,11 @@ html[data-platform="darwin"] {
 }
 
 /* Settings */
-.router-settings-body,
-.router-settings-help {
-  color: var(--color-muted-foreground);
-  font-size: 12px;
-  line-height: 1.6;
-}
 .router-settings-help {
   margin: 2px 0 10px;
+  color: var(--color-muted-foreground);
   font-size: 11px;
-}
-.codex-settings-section .router-settings-help {
-  margin: 2px 0 0;
+  line-height: 1.6;
 }
 .router-input {
   height: 36px;

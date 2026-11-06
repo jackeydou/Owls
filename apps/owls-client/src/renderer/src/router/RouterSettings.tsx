@@ -11,6 +11,7 @@ import {
   owlsThinkingSchema,
   routerEngineSchema
 } from '../../../shared/router'
+import { SettingRow } from '../codex/SettingRow'
 import { useCodexStore } from '../codex/store'
 import { useRouterStore } from './store'
 
@@ -30,9 +31,12 @@ export function RouterSettingsSection() {
   return (
     <section className="codex-settings-section">
       <h2>{t('routerSettings.title')}</h2>
-      <p className="router-settings-body">{t('routerSettings.body')}</p>
-      <div className="codex-setting-row">
-        <label htmlFor="router-engine">{t('routerSettings.engine')}</label>
+      <p>{t('routerSettings.body')}</p>
+      <SettingRow
+        label={t('routerSettings.engine')}
+        htmlFor="router-engine"
+        description={t(`routerSettings.engineHelp.${settings.router.engine}`)}
+      >
         <Select
           id="router-engine"
           value={settings.router.engine}
@@ -49,63 +53,55 @@ export function RouterSettingsSection() {
             </option>
           ))}
         </Select>
-      </div>
-      <p className="router-settings-help">
-        {t(`routerSettings.engineHelp.${settings.router.engine}`)}
-      </p>
+      </SettingRow>
       {settings.router.engine === 'claude-code' ? (
-        <>
-          <div className="codex-setting-row">
-            <label htmlFor="router-claude-model">{t('routerSettings.claudeModel')}</label>
-            <Select
-              id="router-claude-model"
-              value={settings.router.claudeModel ?? ''}
-              onChange={(event) =>
-                void saveRouter({ ...settings.router, claudeModel: event.target.value || null })
-              }
-            >
-              <option value="">{t('routerSettings.claudeModel.default')}</option>
-              {claude.models
-                .filter((m) => !m.isDefault)
-                .map((m) => (
-                  <option value={m.id} key={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-            </Select>
-          </div>
-          {claude.status !== 'ready' ? (
-            <p className="router-settings-help">{t('routerSettings.claudeDisconnected')}</p>
-          ) : null}
-        </>
-      ) : null}
-      {settings.router.engine === 'codex' ? (
-        <>
-          <div className="codex-setting-row">
-            <label htmlFor="router-codex-model">{t('routerSettings.codexModel')}</label>
-            <Select
-              id="router-codex-model"
-              value={settings.router.codexModel ?? ''}
-              onChange={(event) =>
-                void saveRouter({ ...settings.router, codexModel: event.target.value || null })
-              }
-            >
-              <option value="">{t('routerSettings.codexModel.default')}</option>
-              {codex.models.map((m) => (
+        <SettingRow
+          label={t('routerSettings.claudeModel')}
+          htmlFor="router-claude-model"
+          description={claude.status === 'ready' ? null : t('routerSettings.claudeDisconnected')}
+        >
+          <Select
+            id="router-claude-model"
+            value={settings.router.claudeModel ?? ''}
+            onChange={(event) =>
+              void saveRouter({ ...settings.router, claudeModel: event.target.value || null })
+            }
+          >
+            <option value="">{t('routerSettings.claudeModel.default')}</option>
+            {claude.models
+              .filter((m) => !m.isDefault)
+              .map((m) => (
                 <option value={m.id} key={m.id}>
                   {m.name}
                 </option>
               ))}
-            </Select>
-          </div>
-          {codex.status !== 'ready' ? (
-            <p className="router-settings-help">{t('routerSettings.codexDisconnected')}</p>
-          ) : null}
-        </>
+          </Select>
+        </SettingRow>
+      ) : null}
+      {settings.router.engine === 'codex' ? (
+        <SettingRow
+          label={t('routerSettings.codexModel')}
+          htmlFor="router-codex-model"
+          description={codex.status === 'ready' ? null : t('routerSettings.codexDisconnected')}
+        >
+          <Select
+            id="router-codex-model"
+            value={settings.router.codexModel ?? ''}
+            onChange={(event) =>
+              void saveRouter({ ...settings.router, codexModel: event.target.value || null })
+            }
+          >
+            <option value="">{t('routerSettings.codexModel.default')}</option>
+            {codex.models.map((m) => (
+              <option value={m.id} key={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </Select>
+        </SettingRow>
       ) : null}
       {settings.router.engine === 'owls' ? <OwlsModelFields /> : null}
-      <div className="codex-setting-row">
-        <label htmlFor="router-permission">{t('routerSettings.maxPermission')}</label>
+      <SettingRow label={t('routerSettings.maxPermission')} htmlFor="router-permission">
         <Select
           id="router-permission"
           value={settings.router.maxPermission}
@@ -122,9 +118,12 @@ export function RouterSettingsSection() {
             </option>
           ))}
         </Select>
-      </div>
-      <div className="codex-setting-row">
-        <label htmlFor="router-worktrees">{t('routerSettings.worktrees')}</label>
+      </SettingRow>
+      <SettingRow
+        label={t('routerSettings.worktrees')}
+        htmlFor="router-worktrees"
+        description={t('routerSettings.worktreesHelp')}
+      >
         <Select
           id="router-worktrees"
           value={settings.router.worktrees ? 'on' : 'off'}
@@ -135,8 +134,7 @@ export function RouterSettingsSection() {
           <option value="on">{t('routerSettings.worktrees.on')}</option>
           <option value="off">{t('routerSettings.worktrees.off')}</option>
         </Select>
-      </div>
-      <p className="router-settings-help">{t('routerSettings.worktreesHelp')}</p>
+      </SettingRow>
     </section>
   )
 }
@@ -185,8 +183,7 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
   const keyMissing = !custom && !provider?.configured && !key.trim()
   return (
     <>
-      <div className="codex-setting-row">
-        <label htmlFor="router-provider">{t('routerSettings.provider')}</label>
+      <SettingRow label={t('routerSettings.provider')} htmlFor="router-provider">
         <Select
           id="router-provider"
           value={draft.provider}
@@ -204,10 +201,9 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
             </option>
           ))}
         </Select>
-      </div>
+      </SettingRow>
       {custom ? (
-        <div className="codex-setting-row">
-          <label htmlFor="router-base-url">{t('routerSettings.baseUrl')}</label>
+        <SettingRow label={t('routerSettings.baseUrl')} htmlFor="router-base-url">
           <input
             id="router-base-url"
             className="router-input"
@@ -215,10 +211,9 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
             placeholder="http://127.0.0.1:11434/v1"
             onChange={(event) => setDraft({ ...draft, baseUrl: event.target.value || null })}
           />
-        </div>
+        </SettingRow>
       ) : null}
-      <div className="codex-setting-row">
-        <label htmlFor="router-model">{t('routerSettings.model')}</label>
+      <SettingRow label={t('routerSettings.model')} htmlFor="router-model">
         {custom ? (
           <input
             id="router-model"
@@ -241,9 +236,8 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
             ))}
           </Select>
         )}
-      </div>
-      <div className="codex-setting-row">
-        <label htmlFor="router-thinking">{t('routerSettings.thinking')}</label>
+      </SettingRow>
+      <SettingRow label={t('routerSettings.thinking')} htmlFor="router-thinking">
         <Select
           id="router-thinking"
           value={draft.thinking}
@@ -257,7 +251,7 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
             </option>
           ))}
         </Select>
-      </div>
+      </SettingRow>
       {guided ? null : (
         <div className="codex-settings-actions">
           <Button
@@ -272,11 +266,16 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
           </Button>
         </div>
       )}
-      <div className="codex-setting-row">
-        <label htmlFor="router-key">
-          {t('routerSettings.apiKey')}
-          {custom ? <small> · {t('routerSettings.apiKeyOptional')}</small> : null}
-        </label>
+      <SettingRow
+        label={
+          <>
+            {t('routerSettings.apiKey')}
+            {custom ? <small> · {t('routerSettings.apiKeyOptional')}</small> : null}
+          </>
+        }
+        htmlFor="router-key"
+        description={guided ? null : t('routerSettings.keyHelp')}
+      >
         <input
           id="router-key"
           className="router-input"
@@ -290,8 +289,8 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
           }
           onChange={(event) => setKeyText(event.target.value)}
         />
-      </div>
-      <p className="router-settings-help">{t('routerSettings.keyHelp')}</p>
+      </SettingRow>
+      {guided ? <p className="router-settings-help">{t('routerSettings.keyHelp')}</p> : null}
       {guided ? (
         <div className="codex-settings-actions">
           <Button

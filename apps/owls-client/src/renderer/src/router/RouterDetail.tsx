@@ -57,7 +57,7 @@ export function RouterDetail({ router }: { router: CodexRouter | undefined }) {
             </>
           ) : null}
         </dl>
-        <Button size="sm" variant="outline" onClick={showSettings}>
+        <Button size="sm" variant="outline" onClick={() => showSettings('router')}>
           <Settings2 size={14} />
           {t('router.openSettings')}
         </Button>
