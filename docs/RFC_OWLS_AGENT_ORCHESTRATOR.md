@@ -28,7 +28,7 @@ Claude Code 和 Codex 负责模型请求、agent loop、原生工具、上下文
 8. 分阶段替换所有 pi 执行入口，最终移除 pi 运行时依赖。开发兼容层不成为长期第三个 provider。
 9. 正式稳定版必须通过现有功能迁移验收。需要删除或暂停的现有功能先作产品评审，不在实现中静默下线。
 
-本文获接受后，应取代 [旧 runtime RFC](RFC_PICHU_AGENT_RUNTIME.md) 中“自主管理完整 agent runtime”的目标。插件格式、历史数据和发布协议仍需按既有对外契约逐项迁移。
+本文获接受后，应取代 [旧 runtime RFC](RFC_OWLS_AGENT_RUNTIME.md) 中“自主管理完整 agent runtime”的目标。插件格式、历史数据和发布协议仍需按既有对外契约逐项迁移。
 
 ## 2. 产品范围
 
@@ -75,7 +75,7 @@ Claude Code 和 Codex 负责模型请求、agent loop、原生工具、上下文
 | `workbench/*`、`sop/*`、附件、artifacts | 产品能力，部分工具外壳依赖 pi | 保留服务，去除 pi tool 类型 |
 | `tools/image-generation.ts` | 独立图片配置，tool 外壳依赖 pi | 保留服务和凭证边界，改 MCP |
 
-main 路径相对 `apps/pichu-client/src/main/`。pi 类型还出现在 shared、preload 和 renderer，整改不止替换 `new Agent()`。
+main 路径相对 `apps/owls-client/src/main/`。pi 类型还出现在 shared、preload 和 renderer，整改不止替换 `new Agent()`。
 
 当前项目索引主要是设置中的路径记录。产品级 workspace/worktree 所有权需要新增模型，不能把开发 profile 的 worktree 识别当成已有工作区管理。
 
@@ -454,7 +454,7 @@ ready、error。版本存在不等于账号可用，无法无副作用确认时�
 
 ### 9.2 Settings
 
-新增 agentProviders、defaultAgentProvider、项目默认引擎、provider selection 和兼容性记录，走 settings store，路径走 pichu-paths.ts。
+新增 agentProviders、defaultAgentProvider、项目默认引擎、provider selection 和兼容性记录，走 settings store，路径走 owls-paths.ts。
 
 不新增 OWLS_CODEX_PATH、OWLS_AGENT_BACKEND 等环境变量，不通过 env 改写 CLI home、端点、模型或凭证。操作系统子进程环境的必要继承不是新的配置 API，相关环境值不进入普通诊断。
 
@@ -705,7 +705,7 @@ Owls 编排任务创建独立 Session/Run，选择引擎和工作区，经过 ha
 
 用现有 persisted gate/settings 开放测试，不加 env。按 runtimeKind 路由，同一 Session 不混用执行引擎。
 
-- 内部验证：`pnpm dev --pichu-dev-name "Agent Orchestrator" --pichu-data-root ~/.pichu-dev/agent-orchestrator`。
+- 内部验证：`pnpm dev --owls-dev-name "Agent Orchestrator" --owls-data-root ~/.owls-dev/agent-orchestrator`。
 - 核心 Beta：两引擎聊天、审批、恢复、工作区和关键 bridge，明确未迁移项。
 - 稳定版：现有功能已迁移或获明确取舍确认，再切默认并停止新 pi Run。
 - 清理：移除 pi 执行依赖，保留不依赖 pi 包的历史 reader。
@@ -821,11 +821,11 @@ tests/fixtures/providers/<provider>/，入口继续在既有目录，不迁测�
 ```bash
 pnpm run lint:fix -- <owned-paths>
 pnpm run format -- <owned-paths>
-pnpm --filter pichu-client typecheck
-pnpm --filter pichu-client test:admin
-pnpm --filter pichu-client test:plugins
-pnpm --filter pichu-client test:packaging
-pnpm --filter pichu-client build:unpack
+pnpm --filter owls-client typecheck
+pnpm --filter owls-client test:admin
+pnpm --filter owls-client test:plugins
+pnpm --filter owls-client test:packaging
+pnpm --filter owls-client build:unpack
 git diff --check
 ```
 
@@ -891,7 +891,7 @@ P1–P7 按相同 fixture 对比；不能拿模型网络时延掩盖本地阻塞
 实施到对应阶段同步更新：
 
 - README/app README：定位、安装、账号和存储归属。
-- RFC_PICHU_AGENT_RUNTIME：接受新方向后标为被替代，保留背景。
+- RFC_OWLS_AGENT_RUNTIME：接受新方向后标为被替代，保留背景。
 - PLUGIN_SYSTEM：安装契约不变，更新 exposure/权限/MCP 托管。
 - CODEX_AGENT_HOOKS：当前为 Owls 自实现，名字相近不代表原生事件保证。
 - HUMAN_IN_THE_LOOP：live request 失联、多 pending、消息回答。
@@ -919,4 +919,4 @@ P1–P7 按相同 fixture 对比；不能拿模型网络时延掩盖本地阻塞
 
 本仓库调研依据：src/main/agent、tools、plugins、multi-agent、cron、db/schema、
 stores、local-rpc、src/preload、src/shared、renderer stores/session、package/scripts
-及上文列出的设计文档。路径相对 apps/pichu-client。
+及上文列出的设计文档。路径相对 apps/owls-client。

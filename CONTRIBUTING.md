@@ -24,12 +24,12 @@ pnpm install
 pnpm dev
 ```
 
-Normal app data is stored under `~/.pichu`. Use an isolated profile when a
+Normal app data is stored under `~/.owls`. Use an isolated profile when a
 development task should not touch your regular sessions:
 
 ```bash
-pnpm dev --pichu-dev-name "Contribution" \
-  --pichu-data-root ~/.pichu-dev/contribution
+pnpm dev --owls-dev-name "Contribution" \
+  --owls-data-root ~/.owls-dev/contribution
 ```
 
 Do not add environment-variable runtime configuration. New runtime settings
@@ -75,19 +75,19 @@ Run the checks that match the changed surface:
 
 ```bash
 # Main process, database, plugins, packaging, and Node-side code
-pnpm --filter pichu-client typecheck:node
+pnpm --filter owls-client typecheck:node
 
 # Renderer and preload code
-pnpm --filter pichu-client typecheck:web
+pnpm --filter owls-client typecheck:web
 
 # Broad or cross-process changes
-pnpm --filter pichu-client typecheck
+pnpm --filter owls-client typecheck
 
 # Plugin manifest validation
-pnpm --filter @pichu/sites-plugin test
+pnpm --filter @owls/sites-plugin test
 
 # Agent, tool, and admin behavior
-pnpm --filter pichu-client test:admin
+pnpm --filter owls-client test:admin
 
 ```
 

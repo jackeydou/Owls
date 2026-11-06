@@ -1,4 +1,4 @@
-# @pichu/mac-window-list
+# @owls/mac-window-list
 
 Native (Rust + napi-rs) helper that wraps macOS `CGWindowListCopyWindowInfo`,
 returning each on-screen window with its **owner application**, title, bounds,
@@ -15,7 +15,7 @@ heuristics.
 
 ```bash
 pnpm install
-pnpm --filter @pichu/mac-window-list build
+pnpm --filter @owls/mac-window-list build
 ```
 
 The output is `mac-window-list.<platform>-<arch>.node` next to `index.js`.
@@ -23,13 +23,13 @@ The output is `mac-window-list.<platform>-<arch>.node` next to `index.js`.
 For a universal mac binary used by `electron-builder`:
 
 ```bash
-pnpm --filter @pichu/mac-window-list build:universal
+pnpm --filter @owls/mac-window-list build:universal
 ```
 
 ## Usage
 
 ```ts
-import { listWindows } from '@pichu/mac-window-list'
+import { listWindows } from '@owls/mac-window-list'
 
 const windows = listWindows({ onScreenOnly: true })
 for (const w of windows) {

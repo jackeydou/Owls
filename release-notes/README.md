@@ -3,7 +3,7 @@
 This directory stores user-facing release notes for Electron auto-update metadata.
 
 Each release file must be named after the exact Owls release version from
-`apps/pichu-client/package.json`:
+`apps/owls-client/package.json`:
 
 ```text
 release-notes/<version>.md

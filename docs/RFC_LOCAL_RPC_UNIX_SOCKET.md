@@ -36,7 +36,7 @@ port or exposing generic internal APIs.
 
 Useful callers include:
 
-- A future `pichu` CLI that opens sessions, sends prompts, or focuses the app.
+- A future `owls` CLI that opens sessions, sends prompts, or focuses the app.
 - Local helper processes that notify the App when work is ready.
 - Test or automation scripts that need a narrow, stable App control surface.
 - A secondary App launch that forwards structured requests to the primary
@@ -73,11 +73,11 @@ Relevant existing implementation:
 
 | Area | Current implementation | Notes |
 | --- | --- | --- |
-| Main startup | `apps/pichu-client/src/main/index.ts` | `app.whenReady()` initializes settings, IPC handlers, plugins, windows, auth, auto update, and shutdown handlers. |
-| Data root | `apps/pichu-client/src/main/pichu-paths.ts` | `getDataRoot()` resolves the persisted data root through the bootstrap path flow. |
-| Renderer IPC | `apps/pichu-client/src/preload/index.ts` | Exposes narrow `window.api.*` methods backed by `ipcMain` handlers. |
-| Agent IPC | `apps/pichu-client/src/main/agent/index.ts` | Registers agent, settings, sessions, messages, artifacts, and tool approval IPC handlers. |
-| Local daemon precedent | `apps/pichu-client/src/main/browser/daemon.ts` | Existing HTTP and WebSocket local bridge for the browser extension, currently disabled at startup. |
+| Main startup | `apps/owls-client/src/main/index.ts` | `app.whenReady()` initializes settings, IPC handlers, plugins, windows, auth, auto update, and shutdown handlers. |
+| Data root | `apps/owls-client/src/main/owls-paths.ts` | `getDataRoot()` resolves the persisted data root through the bootstrap path flow. |
+| Renderer IPC | `apps/owls-client/src/preload/index.ts` | Exposes narrow `window.api.*` methods backed by `ipcMain` handlers. |
+| Agent IPC | `apps/owls-client/src/main/agent/index.ts` | Registers agent, settings, sessions, messages, artifacts, and tool approval IPC handlers. |
+| Local daemon precedent | `apps/owls-client/src/main/browser/daemon.ts` | Existing HTTP and WebSocket local bridge for the browser extension, currently disabled at startup. |
 
 The local RPC control plane should follow the same ownership boundaries:
 
@@ -92,7 +92,7 @@ The local RPC control plane should follow the same ownership boundaries:
 Add a new main-process module group:
 
 ```text
-apps/pichu-client/src/main/local-rpc/
+apps/owls-client/src/main/local-rpc/
   index.ts
   transport.ts
   unix-socket-transport.ts
@@ -186,10 +186,10 @@ This keeps future Windows support contained to a new transport implementation:
 
 ```text
 macOS/Linux:
-  {getDataRoot()}/run/pichu.sock
+  {getDataRoot()}/run/owls.sock
 
 Windows:
-  \\.\pipe\pichu-{stable-user-or-install-id}
+  \\.\pipe\owls-{stable-user-or-install-id}
 ```
 
 Node's `net.createServer()` supports both Unix sockets and Windows named pipes,
@@ -208,13 +208,13 @@ configuration should follow the existing data-root policy.
 Recommended path:
 
 ```text
-{getDataRoot()}/run/pichu.sock
+{getDataRoot()}/run/owls.sock
 ```
 
 Example:
 
 ```text
-/Users/alice/.pichu/run/pichu.sock
+/Users/alice/.owls/run/owls.sock
 ```
 
 The server should also write a metadata file next to the socket so external
@@ -230,7 +230,7 @@ Example metadata:
 {
   "version": 1,
   "transport": "unix",
-  "endpoint": "/Users/alice/.pichu/run/pichu.sock",
+  "endpoint": "/Users/alice/.owls/run/owls.sock",
   "protocol": "jsonrpc-2.0",
   "framing": "ndjson",
   "pid": 12345,
@@ -546,7 +546,7 @@ Returns local RPC server state:
 ```json
 {
   "enabled": true,
-  "endpoint": "/Users/alice/.pichu/run/pichu.sock",
+  "endpoint": "/Users/alice/.owls/run/owls.sock",
   "clientCount": 1,
   "pendingRequests": 0,
   "startedAt": "2026-05-29T17:00:00.000Z"
@@ -1069,13 +1069,13 @@ Command tests:
 For implementation changes touching the main process, run:
 
 ```bash
-pnpm --filter pichu-client typecheck:node
+pnpm --filter owls-client typecheck:node
 ```
 
 If shared types or renderer diagnostics are added, also run:
 
 ```bash
-pnpm --filter pichu-client typecheck:web
+pnpm --filter owls-client typecheck:web
 ```
 
 For docs-only changes to this RFC, `git diff --check` is sufficient.

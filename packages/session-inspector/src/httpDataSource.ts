@@ -24,9 +24,9 @@ export const httpSessionInspectorDataSource: SessionInspectorDataSource = {
   },
 
   async readSessionText(path: string): Promise<SessionText> {
-    if (path.startsWith('pichu://')) {
-      const sessionId = path.slice('pichu://'.length)
-      const response = await fetch(`/api/pichu/session?id=${encodeURIComponent(sessionId)}`)
+    if (path.startsWith('owls://')) {
+      const sessionId = path.slice('owls://'.length)
+      const response = await fetch(`/api/owls/session?id=${encodeURIComponent(sessionId)}`)
       if (!response.ok) {
         const body = await response.json().catch(() => null)
         throw new Error(body?.error || `Failed to read Owls session ${sessionId}`)

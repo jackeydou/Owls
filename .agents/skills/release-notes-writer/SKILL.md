@@ -10,8 +10,8 @@ Use this skill when the user asks to prepare release notes for a version.
 ## Source And Output
 
 - Source of truth: `CHANGELOG.md`.
-- Release version source: `apps/pichu-client/package.json`.
-- Primary source section: `## <version>`, where `<version>` exactly matches `apps/pichu-client/package.json`.
+- Release version source: `apps/owls-client/package.json`.
+- Primary source section: `## <version>`, where `<version>` exactly matches `apps/owls-client/package.json`.
 - Do not generate release notes from `## Unreleased` or raw
   `.changelog/unreleased` fragments during release prep. Run
   `pnpm run changelog:compose --version <version>` first, then review the
@@ -20,7 +20,7 @@ Use this skill when the user asks to prepare release notes for a version.
   stable release to the current stable release. If beta versions exist between
   those two stable versions, include their user-facing changes too.
 - Output directory: `release-notes/`.
-- Output file: `release-notes/<version>.md`, where `<version>` exactly matches the release version in `apps/pichu-client/package.json`.
+- Output file: `release-notes/<version>.md`, where `<version>` exactly matches the release version in `apps/owls-client/package.json`.
 
 ## Writing Rules
 
@@ -36,7 +36,7 @@ Use this skill when the user asks to prepare release notes for a version.
 
 ## Workflow
 
-1. Read `apps/pichu-client/package.json` and use its `version` as `<version>`.
+1. Read `apps/owls-client/package.json` and use its `version` as `<version>`.
 2. Read `CHANGELOG.md`.
 3. Find `## <version>`. If it is missing, stop and ask to run
    `pnpm run changelog:compose --version <version>` first.

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "test-hooks-plugin",
+  "version": "0.1.0",
+  "description": "Local test plugin for validating Codex-compatible hook behavior in Owls.",
+  "author": {
+    "name": "Owls"
+  },
+  "keywords": ["hooks", "codex", "testing"],
+  "extensions": {
+    "com.owls.app": {
+      "interface": {
+        "displayName": "Test Hooks Plugin",
+        "shortDescription": "Exercise UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, and Stop hooks.",
+        "developerName": "Owls",
+        "category": "Developer Tools",
+        "capabilities": ["Hooks", "Testing"],
+        "defaultPrompt": [
+          "Run this shell command: echo hook-rewrite",
+          "Run this shell command: echo hook-deny"
+        ]
+      }
+    }
+  }
+}

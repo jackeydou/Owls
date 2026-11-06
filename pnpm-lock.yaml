@@ -30,7 +30,7 @@ importers:
         specifier: ^2.4.9
         version: 2.4.9
 
-  apps/pichu-client:
+  apps/owls-client:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':
         specifier: 0.3.316
@@ -74,19 +74,19 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
         version: 1.29.0(zod@4.4.3)
-      '@pichu/mac-cursor-overlay':
+      '@owls/mac-cursor-overlay':
         specifier: workspace:*
         version: link:../../packages/mac-cursor-overlay
-      '@pichu/mac-input':
+      '@owls/mac-input':
         specifier: workspace:*
         version: link:../../packages/mac-input
-      '@pichu/mac-process-limits':
+      '@owls/mac-process-limits':
         specifier: workspace:*
         version: link:../../packages/mac-process-limits
-      '@pichu/mac-window-list':
+      '@owls/mac-window-list':
         specifier: workspace:*
         version: link:../../packages/mac-window-list
-      '@pichu/session-inspector':
+      '@owls/session-inspector':
         specifier: workspace:*
         version: link:../../packages/session-inspector
       '@radix-ui/react-dropdown-menu':
@@ -276,7 +276,7 @@ importers:
 
   packages/browser-use:
     dependencies:
-      '@pichu/local-rpc-client':
+      '@owls/local-rpc-client':
         specifier: workspace:*
         version: link:../local-rpc-client
     devDependencies:
@@ -323,7 +323,7 @@ importers:
         specifier: ^3.6.2
         version: 3.6.2(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.1)(node-addon-api@7.1.1)
 
-  packages/pichu-sites-plugin: {}
+  packages/owls-sites-plugin: {}
 
   packages/session-inspector:
     devDependencies:

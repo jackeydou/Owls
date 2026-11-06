@@ -1,5 +1,5 @@
 {
-  "name": "@pichu/mac-process-limits",
+  "name": "@owls/mac-process-limits",
   "version": "0.1.0",
   "description": "Raise macOS process resource limits for Owls child processes. Internal Owls package.",
   "private": true,

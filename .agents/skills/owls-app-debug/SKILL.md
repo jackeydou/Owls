@@ -112,12 +112,12 @@ pnpm --silent debug:app run ./flow.mjs
 
 ## Sessions And Data
 
-- A session defaults to `~/.pichu-dev/agent-debug-<checkout>`, so it never
-  touches the real `~/.pichu`. State carries across runs.
+- A session defaults to `~/.owls-dev/agent-debug-<checkout>`, so it never
+  touches the real `~/.owls`. State carries across runs.
 - Use `--name <name>` on every command to run a second app alongside the first.
   A new name also gives a clean first-run state.
 - Two checkouts must not share one `--name`: they would open the same database.
-- Pass `--data-root ~/.pichu` only when the user asks to debug real data.
+- Pass `--data-root ~/.owls` only when the user asks to debug real data.
 - Logs and screenshots live in `.owls-debug/<session>/`, which Git ignores.
 
 ## Before You Act

@@ -1,5 +1,5 @@
 {
-  "name": "@pichu/mac-window-list",
+  "name": "@owls/mac-window-list",
   "version": "0.1.0",
   "description": "Enumerate on-screen macOS windows via CGWindowListCopyWindowInfo. Internal Owls package.",
   "private": true,

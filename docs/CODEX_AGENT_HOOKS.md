@@ -4,7 +4,7 @@
 
 Owls Client 采用 Agent Plugins 1.0 作为 portable plugin package 规范。该规范的
 portable core 只包含 `skills/` 和根目录 `mcp.json`；Owls hooks 属于 Owls client
-extension，固定放在 `com.pichu.app/hooks/hooks.json`。它不是 Pi CLI
+extension，固定放在 `com.owls.app/hooks/hooks.json`。它不是 Pi CLI
 Extension，也不通过 Pi Coding Agent 执行。Codex hooks 是一个命令型 agent loop
 扩展机制，允许在 session、prompt、tool、permission 和 stop 等阶段运行外部 hook。
 
@@ -15,7 +15,7 @@ Extension，也不通过 Pi Coding Agent 执行。Codex hooks 是一个命令型
 ## 目标
 
 - 分阶段对齐 Codex 当前公开的 hook 事件名、配置形态和 wire format。
-- 支持 Agent Plugin 的 `com.pichu.app` extension 声明 lifecycle config，并在
+- 支持 Agent Plugin 的 `com.owls.app` extension 声明 lifecycle config，并在
   plugin installed 且 enabled 时进入 Owls hook runtime。
 - 在 agent session、用户 prompt、tool execution 和 stop 阶段提供明确拦截点。
 - 所有 hook 执行都可审计、可取消、可诊断，并可通过内部总闸显式关闭。
@@ -111,7 +111,7 @@ Agent Plugins 的 root `plugin.json` 是 closed portable manifest，不能添加
 `hooks`。Owls 只从 client-extension fixed path 发现 hooks：
 
 ```text
-<plugin-root>/com.pichu.app/hooks/hooks.json
+<plugin-root>/com.owls.app/hooks/hooks.json
 ```
 
 文件缺失表示该 plugin 没有 Owls hooks，不是错误。路径必须在 filesystem-resolved
@@ -166,7 +166,7 @@ JSON 文件内容应优先支持 Codex 标准形态：
 
 ```mermaid
 flowchart TD
-  pichuExtension["com.pichu.app/hooks/hooks.json"] --> hookConfigLoader["Hook config loader"]
+  owlsExtension["com.owls.app/hooks/hooks.json"] --> hookConfigLoader["Hook config loader"]
   hookConfigLoader --> hookRegistry["Enabled hook registry"]
   hookRegistry --> sessionInterceptor["SessionStart"]
   hookRegistry --> promptInterceptor["UserPromptSubmit"]
@@ -182,22 +182,22 @@ flowchart TD
 
 建议新增模块：
 
-- `apps/pichu-client/src/main/plugins/hooks/hook-types.ts`
-- `apps/pichu-client/src/main/plugins/hooks/hook-config-loader.ts`
-- `apps/pichu-client/src/main/plugins/hooks/hook-runner.ts`
-- `apps/pichu-client/src/main/plugins/hooks/tool-wrapper.ts`
-- `apps/pichu-client/src/main/plugins/hooks/hook-audit.ts`
+- `apps/owls-client/src/main/plugins/hooks/hook-types.ts`
+- `apps/owls-client/src/main/plugins/hooks/hook-config-loader.ts`
+- `apps/owls-client/src/main/plugins/hooks/hook-runner.ts`
+- `apps/owls-client/src/main/plugins/hooks/tool-wrapper.ts`
+- `apps/owls-client/src/main/plugins/hooks/hook-audit.ts`
 
 现有接入文件：
 
-- `apps/pichu-client/src/main/plugins/plugin-types.ts`
-- `apps/pichu-client/src/main/plugins/manifest-loader.ts`
-- `apps/pichu-client/src/main/plugins/plugin-validator.ts`
-- `apps/pichu-client/src/main/plugins/plugin-registry.ts`
-- `apps/pichu-client/src/main/tools/index.ts`
-- `apps/pichu-client/src/main/agent/index.ts`
-- `apps/pichu-client/src/main/multi-agent/team-manager.ts`
-- `apps/pichu-client/src/main/admin/explore-agent.ts`
+- `apps/owls-client/src/main/plugins/plugin-types.ts`
+- `apps/owls-client/src/main/plugins/manifest-loader.ts`
+- `apps/owls-client/src/main/plugins/plugin-validator.ts`
+- `apps/owls-client/src/main/plugins/plugin-registry.ts`
+- `apps/owls-client/src/main/tools/index.ts`
+- `apps/owls-client/src/main/agent/index.ts`
+- `apps/owls-client/src/main/multi-agent/team-manager.ts`
+- `apps/owls-client/src/main/admin/explore-agent.ts`
 
 ## Hook 输入输出
 
@@ -468,7 +468,7 @@ discovery；portable root `plugin.json` 不允许这些 top-level fields。
   validation diagnostic 类型。
 - [x] 使用 derived hook declarations，让 runtime 不依赖 raw manifest fields。
 - [x] 删除 manifest `hooks` string、array 和 inline object loader。
-- [x] 只发现 `./com.pichu.app/hooks/hooks.json`。
+- [x] 只发现 `./com.owls.app/hooks/hooks.json`。
 - [x] 对 hook config 文件执行现有插件路径安全检查。
 - [x] 校验事件名，只允许 Codex 对齐事件。
 - [x] 校验 hook handler `type`，首版只允许 `command`。
@@ -489,17 +489,17 @@ discovery；portable root `plugin.json` 不允许这些 top-level fields。
 - [x] 增加 default `./hooks/hooks.json` discovery 测试。
 - [x] 增加 inline object 和 array declaration 测试。
 - [x] 增加 invalid matcher regex diagnostic 测试。
-- [x] 运行 `pnpm --filter pichu-client test:plugins`。
-- [x] 运行 `pnpm --filter pichu-client typecheck:node`。
+- [x] 运行 `pnpm --filter owls-client test:plugins`。
+- [x] 运行 `pnpm --filter owls-client typecheck:node`。
 
 Agent Plugins target todos：
 
-- [ ] 只从 `<plugin-root>/com.pichu.app/hooks/hooks.json` 发现 Owls hooks。
+- [ ] 只从 `<plugin-root>/com.owls.app/hooks/hooks.json` 发现 Owls hooks。
 - [ ] 使用 Agent Plugins filesystem-resolved root 执行 containment 检查。
 - [ ] 删除 `NormalizedPluginManifest.hooks` 和 `manifest.raw.hooks` runtime dependency。
 - [ ] 删除 manifest inline object、array 和 `./hooks/hooks.json` fallback discovery。
 - [ ] 保留现有 `AgentHookConfig` 内容 schema、event validation 和 matcher diagnostics。
-- [ ] 更新 plugin details UI，标记 hooks 为 `com.pichu.app` client extension。
+- [ ] 更新 plugin details UI，标记 hooks 为 `com.owls.app` client extension。
 - [ ] 增加 portable skills、MCP servers 和 Owls hooks 互相独立的 failure-boundary tests。
 
 ## Phase 2: Core Runtime Preview 默认开启
@@ -551,8 +551,8 @@ session runtime。
   Stop continuation。
 - [x] 将测试 hooks plugin 放入 `resources/internal-plugins` 内测 marketplace，beta 包可安装，
   stable 包不打包。
-- [x] 运行 `pnpm --filter pichu-client test:plugins`。
-- [x] 运行 `pnpm --filter pichu-client typecheck:node`。
+- [x] 运行 `pnpm --filter owls-client test:plugins`。
+- [x] 运行 `pnpm --filter owls-client typecheck:node`。
 - [ ] 手动验证 chat session：启用测试插件后 prompt hook 能追加 context。
 - [ ] 手动验证 tool hook：测试工具被 block 时 UI 和 transcript 可读。
 
@@ -701,9 +701,9 @@ sequenceDiagram
 - [x] 增加 approval engine 单测：无 metadata 默认不请求审批、tool-defined prompt、
   deny、prompt-unavailable。
 - [ ] 增加 runtime path 测试：main agent、detached agent、human-input continuation。
-- [x] 运行 `pnpm --filter pichu-client test:plugins`。
-- [x] 运行 `pnpm --filter pichu-client typecheck:node`。
-- [x] 运行 `pnpm --filter pichu-client typecheck:web`。
+- [x] 运行 `pnpm --filter owls-client test:plugins`。
+- [x] 运行 `pnpm --filter owls-client typecheck:node`。
+- [x] 运行 `pnpm --filter owls-client typecheck:web`。
 
 ## Phase 4: PermissionRequest 和 Codex Tool Parity
 
@@ -730,8 +730,8 @@ names、MCP tool matcher 和审批聚合语义。
   falls through。
 - [ ] 增加无需审批工具不触发 PermissionRequest 的测试。
 - [x] 增加 tool alias matcher 测试：`apply_patch`、`Edit`、`Write`。
-- [x] 运行 `pnpm --filter pichu-client test:plugins`。
-- [x] 运行 `pnpm --filter pichu-client typecheck:node`。
+- [x] 运行 `pnpm --filter owls-client test:plugins`。
+- [x] 运行 `pnpm --filter owls-client typecheck:node`。
 
 ## Phase 5: Runtime Parity Hardening
 
@@ -772,18 +772,18 @@ names、MCP tool matcher 和审批聚合语义。
   并从 internal marketplace 安装到 `internal-plugins/installed.json`。
 - [x] 更新 `docs/PLUGIN_SYSTEM.md`，将 hooks 从 Post-MVP 更新为 staged runtime capability。
 - [ ] 更新 release/changelog fragment，说明该能力的用户可见行为和默认开启策略。
-- [x] 运行 `pnpm --filter pichu-client test:plugins`。
-- [x] 运行 `pnpm --filter pichu-client typecheck:node`。
-- [ ] 对跨进程或 UI 修改运行 `pnpm --filter pichu-client typecheck`。
+- [x] 运行 `pnpm --filter owls-client test:plugins`。
+- [x] 运行 `pnpm --filter owls-client typecheck:node`。
+- [ ] 对跨进程或 UI 修改运行 `pnpm --filter owls-client typecheck`。
 
 ## 验证矩阵
 
 | Surface | Checks |
 | --- | --- |
-| Plugin parser | `pnpm --filter pichu-client test:plugins` |
-| Main runtime | `pnpm --filter pichu-client typecheck:node` |
-| Renderer UI | `pnpm --filter pichu-client typecheck:web` |
-| Cross-process changes | `pnpm --filter pichu-client typecheck` |
+| Plugin parser | `pnpm --filter owls-client test:plugins` |
+| Main runtime | `pnpm --filter owls-client typecheck:node` |
+| Renderer UI | `pnpm --filter owls-client typecheck:web` |
+| Cross-process changes | `pnpm --filter owls-client typecheck` |
 | Docs-only updates | `git diff --check` |
 
 ## 开放问题

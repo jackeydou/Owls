@@ -305,10 +305,10 @@ automation runtime stage 类型应拆分为：
 
 模块拆分：
 
-- `apps/pichu-client/src/shared/form-render.ts`
+- `apps/owls-client/src/shared/form-render.ts`
   - 定义 `FormRenderDocument`、`FormRenderField` 和 runtime guards。
   - 校验 document shape、字段类型、options、`initial_state`。
-- `apps/pichu-client/src/renderer/src/components/form-render/FormRender.tsx`
+- `apps/owls-client/src/renderer/src/components/form-render/FormRender.tsx`
   - 使用 `useForm` 初始化动态字段。
   - 用 `register` 处理 text、textarea、number、select、date、datetime、json。
   - 用 `Controller` 处理 boolean、multi_select、file 等非纯文本输入。

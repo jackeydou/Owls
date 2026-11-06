@@ -204,42 +204,42 @@ export const PLUGIN_ADMIN_RPC_TIMEOUT_MS = 120_000
 
 let nextRequestId = 1
 
-export class PichuLocalRpcError extends Error {
+export class OwlsLocalRpcError extends Error {
   readonly code: number
   readonly data?: unknown
 
   constructor(error: JsonRpcErrorPayload) {
     super(error.message)
-    this.name = 'PichuLocalRpcError'
+    this.name = 'OwlsLocalRpcError'
     this.code = error.code
     this.data = error.data
   }
 }
 
-export class PichuLocalRpcConnectionError extends Error {
+export class OwlsLocalRpcConnectionError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options)
-    this.name = 'PichuLocalRpcConnectionError'
+    this.name = 'OwlsLocalRpcConnectionError'
   }
 }
 
-export function defaultPichuDataRoot(): string {
-  return join(homedir(), '.pichu')
+export function defaultOwlsDataRoot(): string {
+  return join(homedir(), '.owls')
 }
 
-export function localRpcMetadataPath(dataRoot = defaultPichuDataRoot()): string {
+export function localRpcMetadataPath(dataRoot = defaultOwlsDataRoot()): string {
   return join(dataRoot, 'run', 'local-rpc.json')
 }
 
 function createRequestId(): string {
   const id = nextRequestId
   nextRequestId += 1
-  return `pichu-local-rpc-${Date.now()}-${id}`
+  return `owls-local-rpc-${Date.now()}-${id}`
 }
 
 function assertRecord(value: unknown, message: string): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new PichuLocalRpcConnectionError(message)
+    throw new OwlsLocalRpcConnectionError(message)
   }
   return value as Record<string, unknown>
 }
@@ -252,7 +252,7 @@ export async function readLocalRpcMetadata(
   try {
     parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
   } catch (error) {
-    throw new PichuLocalRpcConnectionError(
+    throw new OwlsLocalRpcConnectionError(
       `Failed to read Owls local RPC metadata at ${metadataPath}`,
       { cause: error }
     )
@@ -260,12 +260,12 @@ export async function readLocalRpcMetadata(
 
   const metadata = assertRecord(parsed, 'Invalid Owls local RPC metadata')
   if (metadata.transport !== 'unix') {
-    throw new PichuLocalRpcConnectionError(
+    throw new OwlsLocalRpcConnectionError(
       `Unsupported Owls local RPC transport: ${String(metadata.transport)}`
     )
   }
   if (typeof metadata.endpoint !== 'string' || !metadata.endpoint.trim()) {
-    throw new PichuLocalRpcConnectionError('Owls local RPC metadata is missing endpoint')
+    throw new OwlsLocalRpcConnectionError('Owls local RPC metadata is missing endpoint')
   }
 
   return {
@@ -284,18 +284,18 @@ function parseJsonRpcResponse(frame: string): unknown {
   try {
     parsed = JSON.parse(frame) as unknown
   } catch (error) {
-    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC response from Owls Client', {
+    throw new OwlsLocalRpcConnectionError('Invalid JSON-RPC response from Owls Client', {
       cause: error
     })
   }
 
   const response = assertRecord(parsed, 'Invalid JSON-RPC response from Owls Client')
   if (response.jsonrpc !== '2.0') {
-    throw new PichuLocalRpcConnectionError('Invalid JSON-RPC version from Owls Client')
+    throw new OwlsLocalRpcConnectionError('Invalid JSON-RPC version from Owls Client')
   }
   if ('error' in response) {
     const error = assertRecord(response.error, 'Invalid JSON-RPC error from Owls Client')
-    throw new PichuLocalRpcError({
+    throw new OwlsLocalRpcError({
       code: typeof error.code === 'number' ? error.code : -32603,
       message: typeof error.message === 'string' ? error.message : 'Owls local RPC error',
       data: error.data
@@ -304,7 +304,7 @@ function parseJsonRpcResponse(frame: string): unknown {
   return response.result
 }
 
-export class PichuLocalRpcClient {
+export class OwlsLocalRpcClient {
   private readonly socketPath?: string
   private readonly metadataPath?: string
   private readonly dataRoot?: string
@@ -337,7 +337,7 @@ export class PichuLocalRpcClient {
     options: LocalRpcCallOptions = {}
   ): Promise<TResult> {
     if (typeof method !== 'string' || !method.trim()) {
-      throw new PichuLocalRpcConnectionError('Local RPC method is required')
+      throw new OwlsLocalRpcConnectionError('Local RPC method is required')
     }
     const socketPath = await this.endpoint()
     const request: JsonRpcRequest = {
@@ -418,18 +418,16 @@ export class PichuLocalRpcClient {
   }
 }
 
-export function createPichuLocalRpcClient(
-  options: LocalRpcClientOptions = {}
-): PichuLocalRpcClient {
-  return new PichuLocalRpcClient(options)
+export function createOwlsLocalRpcClient(options: LocalRpcClientOptions = {}): OwlsLocalRpcClient {
+  return new OwlsLocalRpcClient(options)
 }
 
-export function callPichuLocalRpc<TResult = unknown>(
+export function callOwlsLocalRpc<TResult = unknown>(
   method: string,
   params: unknown = {},
   options: LocalRpcClientOptions & LocalRpcCallOptions = {}
 ): Promise<TResult> {
-  return new PichuLocalRpcClient(options).call<TResult>(method, params, options)
+  return new OwlsLocalRpcClient(options).call<TResult>(method, params, options)
 }
 
 function sendJsonRpcRequest<TResult>(
@@ -462,9 +460,7 @@ function sendJsonRpcRequest<TResult>(
     }
 
     timer = setTimeout(() => {
-      fail(
-        new PichuLocalRpcConnectionError(`Owls local RPC timed out after ${options.timeoutMs}ms`)
-      )
+      fail(new OwlsLocalRpcConnectionError(`Owls local RPC timed out after ${options.timeoutMs}ms`))
     }, options.timeoutMs)
 
     socket.setEncoding('utf8')
@@ -475,7 +471,7 @@ function sendJsonRpcRequest<TResult>(
       const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8')
       responseBytes += Buffer.byteLength(text)
       if (responseBytes > options.maxResponseBytes) {
-        fail(new PichuLocalRpcConnectionError('Owls local RPC response exceeded maxResponseBytes'))
+        fail(new OwlsLocalRpcConnectionError('Owls local RPC response exceeded maxResponseBytes'))
         return
       }
 
@@ -497,14 +493,14 @@ function sendJsonRpcRequest<TResult>(
     })
     socket.on('error', (error) => {
       fail(
-        new PichuLocalRpcConnectionError('Failed to connect to Owls local RPC socket', {
+        new OwlsLocalRpcConnectionError('Failed to connect to Owls local RPC socket', {
           cause: error
         })
       )
     })
     socket.on('end', () => {
       if (!settled) {
-        fail(new PichuLocalRpcConnectionError('Owls local RPC socket closed before a response'))
+        fail(new OwlsLocalRpcConnectionError('Owls local RPC socket closed before a response'))
       }
     })
   })

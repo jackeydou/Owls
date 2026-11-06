@@ -49,7 +49,7 @@ function unreleasedFragments() {
 try {
   const { version: requestedVersion, allowUnreleased } = parseArgs(process.argv.slice(2))
   const rootPackage = readJson('package.json')
-  const appPackage = readJson('apps/pichu-client/package.json')
+  const appPackage = readJson('apps/owls-client/package.json')
   const version = requestedVersion ?? appPackage.version
   const errors = []
 
@@ -59,7 +59,7 @@ try {
 
   if (appPackage.version !== version) {
     errors.push(
-      `apps/pichu-client/package.json version is ${appPackage.version}, expected ${version}.`
+      `apps/owls-client/package.json version is ${appPackage.version}, expected ${version}.`
     )
   }
 

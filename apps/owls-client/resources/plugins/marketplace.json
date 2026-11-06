@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0",
+  "name": "local-owls-plugins",
+  "interface": {
+    "displayName": "Local Owls Plugins"
+  },
+  "plugins": [
+    {
+      "name": "in-app-browser-use",
+      "source": {
+        "type": "local",
+        "path": "./plugins/plugins/in-app-browser-use"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT"
+      },
+      "category": "Browser"
+    },
+    {
+      "name": "computer-use",
+      "source": {
+        "type": "local",
+        "path": "./plugins/plugins/computer-use"
+      },
+      "policy": {
+        "installation": "NOT_AVAILABLE"
+      },
+      "category": "Automation"
+    },
+    {
+      "name": "sites",
+      "source": {
+        "type": "local",
+        "path": "./plugins/plugins/sites"
+      },
+      "policy": {
+        "installation": "NOT_AVAILABLE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

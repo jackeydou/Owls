@@ -42,8 +42,8 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('node:fs')
-          const pkg = require('./apps/pichu-client/package.json')
-          if (!pkg.scripts?.['verify:packaged'] || !fs.existsSync('apps/pichu-client/scripts/verify-packaged-runtime.cjs')) {
+          const pkg = require('./apps/owls-client/package.json')
+          if (!pkg.scripts?.['verify:packaged'] || !fs.existsSync('apps/owls-client/scripts/verify-packaged-runtime.cjs')) {
             console.error('::error::The selected source is missing the packaged runtime gate. Include both the verify:packaged package script and scripts/verify-packaged-runtime.cjs before running this workflow.')
             process.exit(1)
           }
@@ -54,7 +54,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          package_version="$(node -p "require('./apps/pichu-client/package.json').version")"
+          package_version="$(node -p "require('./apps/owls-client/package.json').version")"
           if [[ ! "$package_version" =~ ^[0-9]{4}\.[0-9]{1,2}\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
             echo "Unsupported package version: $package_version"
             exit 1
@@ -114,7 +114,7 @@ jobs:
           # Preserve the hard limit so the packaging hook can size the soft limit to the bundle.
           ulimit -S -n 65536
           echo "Open-file limit: $(ulimit -n)"
-          pnpm --dir apps/pichu-client run build:mac
+          pnpm --dir apps/owls-client run build:mac
         env:
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
@@ -125,7 +125,7 @@ jobs:
 
       - name: Verify packaged runtime, signature, and notarization ticket
         shell: bash
-        working-directory: apps/pichu-client
+        working-directory: apps/owls-client
         run: |
           set -euo pipefail
           app_path="$(find dist -maxdepth 3 -type d -name 'Owls.app' -print -quit)"
@@ -137,7 +137,7 @@ jobs:
 
       - name: Verify the app inside each DMG
         shell: bash
-        working-directory: apps/pichu-client
+        working-directory: apps/owls-client
         run: |
           set -euo pipefail
           for disk_image in dist/*.dmg; do
@@ -161,7 +161,7 @@ jobs:
 
       - name: Create checksums
         shell: bash
-        working-directory: apps/pichu-client
+        working-directory: apps/owls-client
         run: shasum -a 256 dist/*.dmg dist/*.zip > dist/SHA256SUMS.txt
 
       - name: Prepare release notes with build source
@@ -188,11 +188,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$RELEASE_VERSION" \
-            apps/pichu-client/dist/*.dmg \
-            apps/pichu-client/dist/*.zip \
-            apps/pichu-client/dist/*-mac.yml \
-            apps/pichu-client/dist/*.blockmap \
-            apps/pichu-client/dist/SHA256SUMS.txt \
+            apps/owls-client/dist/*.dmg \
+            apps/owls-client/dist/*.zip \
+            apps/owls-client/dist/*-mac.yml \
+            apps/owls-client/dist/*.blockmap \
+            apps/owls-client/dist/SHA256SUMS.txt \
             --target "$RELEASE_COMMIT" \
             --draft \
             --title "Owls $RELEASE_VERSION" \
@@ -205,11 +205,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$RELEASE_VERSION" \
-            apps/pichu-client/dist/*.dmg \
-            apps/pichu-client/dist/*.zip \
-            apps/pichu-client/dist/*-mac.yml \
-            apps/pichu-client/dist/*.blockmap \
-            apps/pichu-client/dist/SHA256SUMS.txt \
+            apps/owls-client/dist/*.dmg \
+            apps/owls-client/dist/*.zip \
+            apps/owls-client/dist/*-mac.yml \
+            apps/owls-client/dist/*.blockmap \
+            apps/owls-client/dist/SHA256SUMS.txt \
             --target "$RELEASE_COMMIT" \
             --draft \
             --prerelease \

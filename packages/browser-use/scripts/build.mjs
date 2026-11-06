@@ -9,11 +9,11 @@ const distDir = join(packageRoot, 'dist')
 const packageDocsDir = join(packageRoot, 'docs')
 const resourceScriptPath = join(
   repoRoot,
-  'apps/pichu-client/resources/plugins/plugins/in-app-browser-use/scripts/browser-client.mjs'
+  'apps/owls-client/resources/plugins/plugins/in-app-browser-use/scripts/browser-client.mjs'
 )
 const resourceDocsDir = join(
   repoRoot,
-  'apps/pichu-client/resources/plugins/plugins/in-app-browser-use/docs'
+  'apps/owls-client/resources/plugins/plugins/in-app-browser-use/docs'
 )
 const syncResource = process.argv.includes('--sync-resource')
 

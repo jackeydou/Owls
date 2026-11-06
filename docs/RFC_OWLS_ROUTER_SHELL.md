@@ -353,7 +353,7 @@ shared/
 
 | 阶段 | 内容 | 验证 |
 | --- | --- | --- |
-| M1 契约 | `title`、`parentId`、`worker` 条目、取消排队事件、`shared/worker-map.ts`、`stop-worker`、`remove-worker`、定向消息、提示 v4（不含审批措辞） | `pnpm --filter pichu-client test:admin`；`router-runtime.test.mjs` 增加父节点校验、去重、定向投递、`to` 事件头、取消排队；布局测试覆盖节点不重叠、两侧不换边、结果确定 |
+| M1 契约 | `title`、`parentId`、`worker` 条目、取消排队事件、`shared/worker-map.ts`、`stop-worker`、`remove-worker`、定向消息、提示 v4（不含审批措辞） | `pnpm --filter owls-client test:admin`；`router-runtime.test.mjs` 增加父节点校验、去重、定向投递、`to` 事件头、取消排队；布局测试覆盖节点不重叠、两侧不换边、结果确定 |
 | M2 应用壳和全景 | 第 6 节组件，替换 `App.tsx`，删除任务 UI；全景的布局、相机、节点审批、跟随输入框；`worker_waiting` 不唤醒和审批提示随托盘一起上线（提示 v5） | `typecheck`；`test:codex:ui` 重写任务相关步骤（第 262–320 行等），覆盖首页、全景、详情、审批托盘、节点批准、`@`、中英文；`router-runtime.test.mjs` 新增 `worker_waiting` 不发起批次的用例（目前没有覆盖） |
 | M3 动效 | 对话和全景的缩放过渡、分支流动、信号、新节点生长 | 在可见窗口里实际操作；开启减少动态效果后确认全部关闭；4 个 Worker 同时流式输出时确认帧率 |
 | M4 收尾 | 删除 `create-session`、`send`、`interrupt`、`archive` 通道，`role: 'task'`、`followUp`、`routerTurns`、`workerProvider`；`snapshot` 过滤；更新基准和 `codex-desktop-smoke.cjs` 中对 `host.createSession` 的调用 | `test:admin`、`test:codex:desktop`、`bench:router`，记录新的追问 p50 / p95 和请求数；`verify:codex`、`verify:claude` 真实 CLI 各跑一次；更新 RFC |

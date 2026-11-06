@@ -62,7 +62,7 @@ ship:
   `human_input_requests` row `resolved` must happen in one transaction. A split
   write can leave the one-open-interrupt guard permanently blocked after a
   completed tool result.
-- **Suspension filtering:** an internal `PICHU_HUMAN_INPUT_REQUIRED` suspension
+- **Suspension filtering:** an internal `OWLS_HUMAN_INPUT_REQUIRED` suspension
   must not be persisted or rendered as a normal failed tool result. Filtering
   only the SQLite write is insufficient; the in-memory runtime transcript and
   renderer completion path must also treat it as a waiting state.
@@ -353,7 +353,7 @@ inside their own implementation, as long as they provide stable
 
 The helper is similar in spirit to LangGraph `interrupt`. On the first
 execution, it creates a pending request and suspends with
-`PICHU_HUMAN_INPUT_REQUIRED`. After the user submits or cancels, the agent
+`OWLS_HUMAN_INPUT_REQUIRED`. After the user submits or cancels, the agent
 resume path re-enters the same tool call. The helper then reads the stored
 request state by `interruptKey` and returns the submitted value, so tool code
 after the interrupt can continue.
@@ -436,7 +436,7 @@ waits.
 
 Phase 1 should enforce at most one pending human input request per session. This
 matches the current suspension mechanism, where the first
-`PICHU_HUMAN_INPUT_REQUIRED` stops the run before sibling parallel tool calls can
+`OWLS_HUMAN_INPUT_REQUIRED` stops the run before sibling parallel tool calls can
 reliably create their own requests. If a second interrupt is attempted while the
 session already has a pending request, return a stable tool error that tells the
 model to wait for the existing user input.
@@ -481,7 +481,7 @@ stable marker shape shared by both paths, for example:
 ```ts
 class HumanInputRequiredError extends Error {
   readonly name = 'HumanInputRequiredError'
-  readonly code = 'PICHU_HUMAN_INPUT_REQUIRED'
+  readonly code = 'OWLS_HUMAN_INPUT_REQUIRED'
   constructor(
     readonly sessionId: string,
     readonly requestId: string,
@@ -498,7 +498,7 @@ treat it as `waiting_for_user`, not as a normal failure.
 
 ### 3. Agent Run Suspends
 
-On the `PICHU_HUMAN_INPUT_REQUIRED` marker:
+On the `OWLS_HUMAN_INPUT_REQUIRED` marker:
 
 - Flush any assistant draft.
 - Set run state to `waiting_for_user`.
@@ -517,7 +517,7 @@ normal tool-result handling. The discriminator must be stable and explicit:
 
 ```ts
 type HumanInputSuspensionMarker = {
-  code: 'PICHU_HUMAN_INPUT_REQUIRED'
+  code: 'OWLS_HUMAN_INPUT_REQUIRED'
   requestId: string
   sessionId: string
   toolCallId: string
@@ -530,7 +530,7 @@ error result contains this marker, so it does not overwrite the pending
 map the matching tool widget to `waiting_for_user`, not `complete` or `error`.
 The wrapper must prevent any `toolResult` message, synthetic message end,
 turn-end completion, or agent-end completion from being appended to the in-memory
-runtime transcript for `PICHU_HUMAN_INPUT_REQUIRED`. Filtering only the database
+runtime transcript for `OWLS_HUMAN_INPUT_REQUIRED`. Filtering only the database
 write is not enough; manual continuation depends on the restored tool row still
 being unresolved.
 The initial `tool_execution_start` for the suspending tool is allowed to remain;
@@ -940,10 +940,10 @@ Run state, suspension, and continuation:
 - [x] Replace the boolean-only run state with
   `idle | running | waiting_for_user`, while keeping `runningSessionIds` for
   compatibility.
-- [x] Detect `PICHU_HUMAN_INPUT_REQUIRED` in chat and detached run handling,
+- [x] Detect `OWLS_HUMAN_INPUT_REQUIRED` in chat and detached run handling,
   flush drafts, clean up runtime state without broadcasting idle, and emit
   `waiting_for_user`.
-- [x] Filter `PICHU_HUMAN_INPUT_REQUIRED` events before tool-result
+- [x] Filter `OWLS_HUMAN_INPUT_REQUIRED` events before tool-result
   persistence, renderer completion handling, in-memory transcript mutation, and
   generic error UI.
 - [x] Rebuild runtime state from persisted messages before continuation without
@@ -978,8 +978,8 @@ Compaction, import/export, and verification:
   suspension filtering, automation cancellation, compaction safety, IPC
   validation, and renderer reload recovery.
 - [x] Run scoped final checks:
-  `pnpm --filter pichu-client typecheck:node`,
-  `pnpm --filter pichu-client typecheck:web`, and relevant package tests.
+  `pnpm --filter owls-client typecheck:node`,
+  `pnpm --filter owls-client typecheck:web`, and relevant package tests.
   Local store tests currently skip when the installed `better-sqlite3` native
   module targets Electron's ABI instead of the host Node ABI.
 
@@ -1020,9 +1020,9 @@ Main-process tests:
   or already have a tool result.
 - Missing tool row marks the request expired.
 - Automation runs receive a non-interactive cancellation result.
-- Internal `PICHU_HUMAN_INPUT_REQUIRED` suspension events do not write an error
+- Internal `OWLS_HUMAN_INPUT_REQUIRED` suspension events do not write an error
   `tool_call_result`.
-- Internal `PICHU_HUMAN_INPUT_REQUIRED` suspension does not append a synthetic
+- Internal `OWLS_HUMAN_INPUT_REQUIRED` suspension does not append a synthetic
   `toolResult`, message end, turn end, or agent end to the runtime transcript.
 - Context compaction does not compact across an unresolved interrupted tool row.
 
@@ -1038,9 +1038,9 @@ Renderer tests:
 Verification commands should be scoped to touched surfaces:
 
 ```bash
-pnpm --filter pichu-client typecheck:node
-pnpm --filter pichu-client typecheck:web
-pnpm --filter pichu-client test:plugins
+pnpm --filter owls-client typecheck:node
+pnpm --filter owls-client typecheck:web
+pnpm --filter owls-client test:plugins
 ```
 
 Run database migration checks if the final implementation adds the schema above.
