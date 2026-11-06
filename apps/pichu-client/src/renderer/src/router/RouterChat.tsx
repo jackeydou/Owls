@@ -43,6 +43,7 @@ export function RouterChat() {
           <StatusEntry />
           {project ? (
             <IconButton
+              className="codex-bar-button"
               label={t('router.details')}
               tooltip={t('router.details')}
               icon={<Info size={16} />}

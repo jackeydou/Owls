@@ -1,6 +1,6 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { Network, PanelLeftClose, Plus, Settings2 } from 'lucide-react'
+import { Network, Plus, Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { CodexProject } from '../../../shared/codex'
 import { AppLogoMark } from '../codex/AppLogo'
@@ -43,21 +43,12 @@ export function Sidebar() {
   const projects = useCodexStore((s) => s.projects)
   const onMap = useCodexStore((s) => s.view === 'map')
   const inSettings = useCodexStore((s) => s.view === 'settings')
-  const { showMap, showSettings, pickProject, toggleSidebar } = useCodexStore()
+  const { showMap, showSettings, pickProject } = useCodexStore()
   const provider = useCodexStore((s) => s.settings.provider)
   const connection = useCodexStore((s) => agentConnection(s, provider))
   return (
     <nav className="router-sidebar" aria-label={t('router.sidebar')}>
-      <div className="router-sidebar-head">
-        <IconButton
-          className="router-sidebar-toggle"
-          label={t('router.hideSidebar')}
-          tooltip={t('router.hideSidebar')}
-          tooltipSide="right"
-          icon={<PanelLeftClose size={16} />}
-          onClick={toggleSidebar}
-        />
-      </div>
+      <div className="router-sidebar-head" />
       <div className="router-sidebar-logo">
         <AppLogoMark />
         <strong>Owls</strong>

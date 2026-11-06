@@ -49,7 +49,7 @@ function ClaudeSection() {
       </div>
       <div className="codex-account">
         <div className="codex-account-icon">
-          <Terminal size={22} />
+          <Terminal size={15} />
         </div>
         <div className="codex-account-info">
           <strong>
@@ -67,7 +67,7 @@ function ClaudeSection() {
               : t('nativeRuntime')}
           </span>
         </div>
-        {claude.status === 'ready' ? <Check size={18} className="codex-success" /> : null}
+        {claude.status === 'ready' ? <Check size={15} className="codex-success" /> : null}
       </div>
       <div className="codex-settings-actions">
         <Button size="sm" disabled={busy || running} onClick={() => void connectClaude()}>
@@ -146,9 +146,10 @@ export function CodexSettingsPage() {
     <main className="codex-settings-page">
       <header className="codex-topbar">
         <IconButton
+          className="codex-bar-button"
           label={t('back')}
           tooltip={t('back')}
-          icon={<ArrowLeft size={17} />}
+          icon={<ArrowLeft size={16} />}
           onClick={() => useCodexStore.getState().leaveSettings()}
         />
         <span>{t('settingsTitle')}</span>
@@ -170,7 +171,7 @@ export function CodexSettingsPage() {
             </div>
             <div className="codex-account">
               <div className="codex-account-icon">
-                <Terminal size={22} />
+                <Terminal size={15} />
               </div>
               <div className="codex-account-info">
                 <strong>
@@ -189,7 +190,7 @@ export function CodexSettingsPage() {
                 </span>
               </div>
               {connected && account.kind !== 'signed-out' ? (
-                <Check size={18} className="codex-success" />
+                <Check size={15} className="codex-success" />
               ) : null}
             </div>
             <div className="codex-settings-actions">

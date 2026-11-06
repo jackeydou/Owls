@@ -73,7 +73,7 @@ function createWindow(): void {
     backgroundColor: '#181818',
     title: app.getName(),
     ...(process.platform === 'darwin'
-      ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 18, y: 19 } }
+      ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 18, y: 15 } }
       : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
