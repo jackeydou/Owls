@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { GitHubAccount, WorkerGitHubStatus } from './github.js'
 import {
   type ResolveBatch,
   type RouterProviderInfo,
@@ -41,6 +42,7 @@ export const failureSchema = z.object({
     'router_auth_failed',
     'router_unavailable',
     'secure_storage_unavailable',
+    'github_unavailable',
     'worktree_failed'
   ]),
   message: z.string()
@@ -188,6 +190,7 @@ export type CodexSnapshot = {
   claude: ClaudeConnection
   routers: CodexRouter[]
   workers: RouterWorker[]
+  github: GitHubAccount
 }
 export type CodexEvent =
   | { type: 'connection'; connection: CodexConnection }
@@ -196,6 +199,8 @@ export type CodexEvent =
   | { type: 'removed'; sessionId: string }
   | { type: 'router'; router: CodexRouter }
   | { type: 'worker'; worker: RouterWorker }
+  | { type: 'github-account'; account: GitHubAccount }
+  | { type: 'worker-github'; workerId: string; status: WorkerGitHubStatus }
 export type CodexReply<T> = { ok: true; value: T } | { ok: false; error: CodexFailure }
 export const respondSchema = z.object({
   sessionId: z.string().uuid(),
@@ -233,5 +238,12 @@ export interface CodexAPI {
   routerProviders(): Promise<CodexReply<RouterProviderInfo[]>>
   setRouterKey(input: SetRouterKey): Promise<CodexReply<void>>
   removeRouterKey(providerId: string): Promise<CodexReply<void>>
+  gitHubSignIn(): Promise<CodexReply<GitHubAccount>>
+  gitHubConnectCli(): Promise<CodexReply<GitHubAccount>>
+  gitHubConnectToken(token: string): Promise<CodexReply<GitHubAccount>>
+  gitHubCancelSignIn(): Promise<CodexReply<void>>
+  gitHubSignOut(): Promise<CodexReply<void>>
+  watchWorkerGitHub(input: WorkerAction): Promise<CodexReply<void>>
+  unwatchWorkerGitHub(input: WorkerAction): Promise<CodexReply<void>>
   onEvent(listener: (event: CodexEvent) => void): () => void
 }

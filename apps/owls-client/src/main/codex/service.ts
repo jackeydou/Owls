@@ -85,7 +85,7 @@ export class CodexService {
   setTurnProfiles(profiles: TurnProfiles): void {
     this.profiles = profiles
   }
-  snapshot(): Omit<CodexSnapshot, 'claude' | 'routers' | 'workers'> {
+  snapshot(): Omit<CodexSnapshot, 'claude' | 'github' | 'routers' | 'workers'> {
     this.flush()
     return {
       sessions: [...this.sessions.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),

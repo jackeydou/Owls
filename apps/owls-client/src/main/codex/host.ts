@@ -9,6 +9,7 @@ import type {
   RespondCodexRequest,
   SendCodexMessage
 } from '../../shared/codex.js'
+import type { GitHubAccount } from '../../shared/github.js'
 import type {
   ResolveBatch,
   RouterProviderInfo,
@@ -17,7 +18,9 @@ import type {
   WorkerAction
 } from '../../shared/router.js'
 import type { ClaudeService } from '../claude/service.js'
+import type { GitHubAuth } from '../github/auth.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
+import type { WorkerGitHub } from '../router/worker-github.js'
 import { CodexRuntimeError } from './errors.js'
 import type { CodexService } from './service.js'
 
@@ -27,6 +30,7 @@ import type { CodexService } from './service.js'
  */
 export class OwlsHost {
   private router: RouterService | null = null
+  private github: { auth: GitHubAuth; workers: WorkerGitHub } | null = null
   constructor(
     private readonly codex: CodexService,
     private readonly claude: ClaudeService
@@ -36,6 +40,9 @@ export class OwlsHost {
     this.router = router
     this.codex.setTurnProfiles(router)
     this.claude.setTurnProfiles(router)
+  }
+  attachGitHub(github: { auth: GitHubAuth; workers: WorkerGitHub }): void {
+    this.github = github
   }
   /** The narrow view of this host that Routers use to start workers. */
   workerHost(): WorkerHost {
@@ -70,6 +77,7 @@ export class OwlsHost {
         .filter((session) => workers.has(session.id))
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
       claude: this.claude.connectionState(),
+      github: this.github?.auth.account() ?? { status: 'signed-out', failure: null },
       ...router
     }
   }
@@ -133,6 +141,31 @@ export class OwlsHost {
   removeRouterKey(providerId: SetRouterKey['providerId']): void {
     this.requireRouter().removeKey(providerId)
   }
+  gitHubSignIn(): Promise<GitHubAccount> {
+    return this.requireGitHub().auth.signIn()
+  }
+  gitHubConnectCli(): Promise<GitHubAccount> {
+    return this.requireGitHub().auth.connectGhCli()
+  }
+  gitHubConnectToken(token: string): Promise<GitHubAccount> {
+    return this.requireGitHub().auth.connectToken(token)
+  }
+  gitHubCancelSignIn(): void {
+    this.requireGitHub().auth.cancelSignIn()
+  }
+  gitHubSignOut(): void {
+    this.requireGitHub().auth.signOut()
+  }
+  watchWorkerGitHub(input: WorkerAction): void {
+    this.requireGitHub().workers.watch(input)
+  }
+  unwatchWorkerGitHub(input: WorkerAction): void {
+    this.requireGitHub().workers.unwatch(input)
+  }
+  private requireGitHub(): NonNullable<OwlsHost['github']> {
+    if (!this.github) throw new CodexRuntimeError('github_unavailable', 'GitHub is not available.')
+    return this.github
+  }
   private requireRouter(): RouterService {
     if (!this.router)
       throw new CodexRuntimeError('router_unavailable', 'The Router is not available.')
@@ -176,6 +209,8 @@ export class OwlsHost {
     )
   }
   close(): void {
+    this.github?.workers.close()
+    this.github?.auth.close()
     this.router?.close()
     this.claude.close()
     // The Codex service closes the shared store last.

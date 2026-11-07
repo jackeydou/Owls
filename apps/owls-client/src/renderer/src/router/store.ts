@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { CodexFailure, CodexReply, CodexRouter } from '../../../shared/codex'
+import type { WorkerGitHubStatus } from '../../../shared/github'
 import type { OwlsProviderId, RouterProviderInfo, RouterWorker } from '../../../shared/router'
 import type { MapFilter } from '../../../shared/worker-map'
 import { CodexUIError, uiFailure } from '../codex/failures'
@@ -18,6 +19,8 @@ const toggled = (set: ReadonlySet<string>, id: string) => {
 type State = {
   routers: CodexRouter[]
   workers: RouterWorker[]
+  /** GitHub status by worker, for the workers whose panels have been open. */
+  gitHub: Record<string, WorkerGitHubStatus>
   providers: RouterProviderInfo[]
   sending: boolean
   error: CodexFailure | null
@@ -32,6 +35,9 @@ type State = {
   hydrate(routers: CodexRouter[], workers: RouterWorker[]): void
   router(router: CodexRouter): void
   worker(worker: RouterWorker): void
+  workerGitHub(workerId: string, status: WorkerGitHubStatus): void
+  /** Follows a worker's GitHub status until the returned function is called. */
+  watchGitHub(routerId: string, workerId: string): () => void
   open(projectId: string): Promise<CodexRouter | null>
   /** Lasts until the app restarts: the guide comes back while setup is incomplete. */
   guideSkipped: boolean
@@ -70,6 +76,7 @@ export const useRouterStore = create<State>((set, get) => {
   return {
     routers: [],
     workers: [],
+    gitHub: {},
     providers: [],
     sending: false,
     error: null,
@@ -92,6 +99,12 @@ export const useRouterStore = create<State>((set, get) => {
           state.panel.workerId === worker.id
         return { workers: newer(state.workers, worker), panel: closing ? null : state.panel }
       }),
+    workerGitHub: (workerId, status) =>
+      set((state) => ({ gitHub: { ...state.gitHub, [workerId]: status } })),
+    watchGitHub: (routerId, workerId) => {
+      void window.codex.watchWorkerGitHub({ routerId, workerId })
+      return () => void window.codex.unwatchWorkerGitHub({ routerId, workerId })
+    },
     open: async (projectId) => {
       const router = await action(() => window.codex.openRouter(projectId))
       if (!router) return null

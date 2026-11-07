@@ -1,6 +1,7 @@
 import { type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } from 'electron'
 import { z } from 'zod'
 import { type CodexReply, respondSchema, settingsUpdateSchema } from '../../shared/codex.js'
+import { gitHubTokenSchema } from '../../shared/github.js'
 import {
   openRouterSchema,
   owlsProviderSchema,
@@ -88,6 +89,15 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
   handle('router-providers', () => host.routerProviders())
   handle('router-set-key', (input) => host.setRouterKey(setRouterKeySchema.parse(input)))
   handle('router-remove-key', (input) => host.removeRouterKey(owlsProviderSchema.parse(input)))
+  handle('github-sign-in', () => host.gitHubSignIn())
+  handle('github-connect-cli', () => host.gitHubConnectCli())
+  handle('github-connect-token', (input) => host.gitHubConnectToken(gitHubTokenSchema.parse(input)))
+  handle('github-cancel-sign-in', () => host.gitHubCancelSignIn())
+  handle('github-sign-out', () => host.gitHubSignOut())
+  handle('github-watch-worker', (input) => host.watchWorkerGitHub(workerActionSchema.parse(input)))
+  handle('github-unwatch-worker', (input) =>
+    host.unwatchWorkerGitHub(workerActionSchema.parse(input))
+  )
   handle('cancel-sign-in', () => host.cancelSignIn())
   handle('sign-in', async () => {
     await shell.openExternal(await host.signIn())
