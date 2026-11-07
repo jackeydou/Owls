@@ -6,12 +6,14 @@ import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { ClaudeConnection, CodexEvent } from '../../shared/codex.js'
 import { ClaudeService } from '../claude/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
+import { GitHubAuth } from '../github/auth.js'
 import { getDataRoot, routerThreadHome, workerWorktreesRoot } from '../owls-paths.js'
 import { RouterCredentials, type SecretCipher } from '../router/credentials.js'
 import { CodexRouterServer } from '../router/engines/codex.js'
 import { defaultEngineFactory } from '../router/engines/factory.js'
 import { RouterService } from '../router/service.js'
 import { RouterStore } from '../router/store.js'
+import { WorkerGitHub } from '../router/worker-github.js'
 import { GitWorkspaces } from '../router/worktrees.js'
 import { applyAppLogo } from './app-logo.js'
 import { OwlsHost } from './host.js'
@@ -136,6 +138,14 @@ void app
       new GitWorkspaces(workerWorktreesRoot(root))
     )
     service.attachRouter(router)
+    const github: GitHubAuth = new GitHubAuth(routerStore, safeStorageCipher, (account) => {
+      emit({ type: 'github-account', account })
+      if (account.status !== 'pending') workerGitHub.refresh()
+    })
+    const workerGitHub: WorkerGitHub = new WorkerGitHub(router, github, (workerId, status) =>
+      emit({ type: 'worker-github', workerId, status })
+    )
+    service.attachGitHub({ auth: github, workers: workerGitHub })
     registerCodexIpc(service, () => window)
     createWindow()
     void service.connect()

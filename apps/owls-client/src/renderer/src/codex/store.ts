@@ -12,6 +12,7 @@ import type {
   CodexSettings,
   RespondCodexRequest
 } from '../../../shared/codex'
+import type { GitHubAccount } from '../../../shared/github'
 import { defaultRouterSettings } from '../../../shared/router'
 import { byRecent } from '../router/activity'
 import { zoomBetweenViews } from '../router/motion'
@@ -36,7 +37,7 @@ function unwrap<T>(reply: CodexReply<T>): T {
   if (!reply.ok) throw new CodexUIError(reply.error)
   return reply.value
 }
-export type SettingsTab = 'router' | 'workers' | 'claude-code' | 'codex' | 'appearance'
+export type SettingsTab = 'router' | 'workers' | 'claude-code' | 'codex' | 'github' | 'appearance'
 
 type State = {
   loaded: boolean
@@ -47,6 +48,7 @@ type State = {
   lastView: 'chat' | 'map'
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
+  github: GitHubAccount
   /** The thread on screen; null is a new thread that has no message yet. */
   threadId: string | null
   /** The project in focus: a new thread's default, and what the map composer sends to. */
@@ -59,6 +61,11 @@ type State = {
   initialize(): Promise<void>
   event(event: CodexEvent): void
   showSettings(tab?: SettingsTab): void
+  gitHubSignIn(): Promise<void>
+  gitHubConnectCli(): Promise<void>
+  gitHubConnectToken(token: string): Promise<void>
+  gitHubCancelSignIn(): Promise<void>
+  gitHubSignOut(): Promise<void>
   leaveSettings(): void
   /** Opens the current thread, or a project's latest thread when given one. */
   showChat(projectId?: string): void
@@ -85,6 +92,7 @@ function latestThread(routers: CodexRouter[], projectId?: string): CodexRouter |
 }
 let connectionEvents = 0
 let claudeEvents = 0
+let gitHubEvents = 0
 export const useCodexStore = create<State>((set, get) => {
   async function action<T>(fn: () => Promise<CodexReply<T>>): Promise<T | undefined> {
     try {
@@ -102,6 +110,7 @@ export const useCodexStore = create<State>((set, get) => {
     lastView: 'chat',
     settingsTab: 'router',
     threadId: null,
+    github: { status: 'signed-out', failure: null },
     routerProjectId: null,
     sessions: [],
     projects: [],
@@ -139,6 +148,7 @@ export const useCodexStore = create<State>((set, get) => {
     initialize: async () => {
       const version = connectionEvents
       const claudeVersion = claudeEvents
+      const gitHubVersion = gitHubEvents
       const snapshot = await action(() => window.codex.snapshot())
       if (!snapshot) {
         set({ loaded: true })
@@ -159,7 +169,8 @@ export const useCodexStore = create<State>((set, get) => {
           return live && live.updatedAt >= s.updatedAt ? live : s
         }),
         connection: version === connectionEvents ? snapshot.connection : state.connection,
-        claude: claudeVersion === claudeEvents ? snapshot.claude : state.claude
+        claude: claudeVersion === claudeEvents ? snapshot.claude : state.claude,
+        github: gitHubVersion === gitHubEvents ? snapshot.github : state.github
       }))
     },
     event: (event) => {
@@ -171,6 +182,15 @@ export const useCodexStore = create<State>((set, get) => {
       if (event.type === 'claude-connection') {
         claudeEvents++
         set({ claude: event.connection })
+        return
+      }
+      if (event.type === 'github-account') {
+        gitHubEvents++
+        set({ github: event.account })
+        return
+      }
+      if (event.type === 'worker-github') {
+        useRouterStore.getState().workerGitHub(event.workerId, event.status)
         return
       }
       if (event.type === 'router') {
@@ -194,6 +214,21 @@ export const useCodexStore = create<State>((set, get) => {
           (a, b) => b.updatedAt.localeCompare(a.updatedAt)
         )
       }))
+    },
+    gitHubSignIn: async () => {
+      await action(() => window.codex.gitHubSignIn())
+    },
+    gitHubConnectCli: async () => {
+      await action(() => window.codex.gitHubConnectCli())
+    },
+    gitHubConnectToken: async (token) => {
+      await action(() => window.codex.gitHubConnectToken(token))
+    },
+    gitHubCancelSignIn: async () => {
+      await action(() => window.codex.gitHubCancelSignIn())
+    },
+    gitHubSignOut: async () => {
+      await action(() => window.codex.gitHubSignOut())
     },
     showSettings: (tab) =>
       set((state) => ({

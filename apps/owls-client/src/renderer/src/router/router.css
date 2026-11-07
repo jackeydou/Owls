@@ -1008,6 +1008,204 @@ html[data-platform="darwin"] {
   color: var(--color-muted-foreground);
   font-size: 11px;
 }
+.router-github {
+  flex-shrink: 0;
+  padding: 0 18px 10px;
+  font-size: 12px;
+}
+.router-github a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+.router-github a:hover {
+  text-decoration: underline;
+}
+.router-github-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  color: var(--color-muted-foreground);
+}
+.router-github-note a,
+.router-github-action {
+  color: var(--color-accent);
+  font-size: inherit;
+  font-weight: 500;
+}
+.router-github-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.router-github-title > svg {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+}
+.router-github-title > a {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-github-state {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-card-muted);
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+}
+.router-github-state.open {
+  color: var(--owl-run);
+}
+.router-github-state.closed {
+  color: var(--owl-bad);
+}
+.router-github-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  margin-top: 4px;
+  color: var(--color-muted-foreground);
+}
+.router-github-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: -5px;
+  padding: 2px 5px;
+  border-radius: 6px;
+  font-size: inherit;
+  font-weight: 500;
+}
+.router-github-summary > svg:last-child {
+  transition: transform 120ms ease;
+}
+.router-github-summary > svg.open {
+  transform: rotate(90deg);
+}
+.router-github-check.success {
+  color: var(--owl-run);
+}
+.router-github-check.failure {
+  color: var(--owl-bad);
+}
+.router-github-check.pending {
+  color: var(--owl-wait);
+}
+.router-github-check.neutral {
+  color: var(--color-muted-foreground);
+}
+.router-github-conflict {
+  color: var(--owl-bad);
+}
+.router-github-checks {
+  flex: 0 0 100%;
+  max-height: 160px;
+  margin-top: 4px;
+  overflow-y: auto;
+}
+.router-github-checks li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.router-github-checks li > a,
+.router-github-checks li > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.github-device {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.github-device code {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  user-select: all;
+}
+.github-install-link {
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.github-install-link:hover {
+  text-decoration: underline;
+}
+.github-methods {
+  overflow: hidden;
+  margin-top: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+.github-method + .github-method {
+  border-top: 1px solid var(--color-border);
+}
+.github-method > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.github-method > label > small {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-card-muted);
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+}
+.github-method-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px 13px 37px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-card-muted);
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+.github-connected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-foreground);
+  font-size: 13px;
+}
+.github-connected > .router-dot {
+  background: var(--owl-run);
+}
+.github-connected > span {
+  flex: 1;
+}
+.github-method-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.github-method-actions .router-input {
+  flex: 1;
+  min-width: 180px;
+}
+.github-method-error {
+  color: var(--owl-bad);
+}
 .router-tabs {
   display: flex;
   flex-shrink: 0;

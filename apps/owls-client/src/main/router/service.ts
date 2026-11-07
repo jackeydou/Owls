@@ -16,6 +16,7 @@ import type {
   SendRouterMessage,
   SetRouterKey,
   WorkerAction,
+  WorkerPullRequestLink,
   WorkerReport
 } from '../../shared/router.js'
 import { CodexRuntimeError } from '../codex/errors.js'
@@ -36,7 +37,7 @@ import {
   type WorkerHost,
   WorkerPool
 } from './workers.js'
-import { checkoutOnly, type WorkerWorkspaces } from './worktrees.js'
+import { checkoutOnly, type WorkerRemoteBranch, type WorkerWorkspaces } from './worktrees.js'
 
 export type { TurnOutcome, TurnProfile, TurnProfiles, WorkerHost } from './workers.js'
 export { WORKER_LIMIT } from './workers.js'
@@ -86,7 +87,7 @@ export class RouterService implements TurnProfiles {
     private readonly host: WorkerHost,
     private readonly emit: (event: CodexEvent) => void,
     private readonly createEngine: EngineFactory,
-    workspaces: WorkerWorkspaces = checkoutOnly
+    private readonly workspaces: WorkerWorkspaces = checkoutOnly
   ) {
     // A batch still sending when the app stopped may or may not have reached the model.
     for (const batch of store.batches('sending')) store.finishBatch(batch.id, 'dispatch_unknown')
@@ -422,6 +423,17 @@ export class RouterService implements TurnProfiles {
     if (this.closed) return
     if (event.type === 'claude-connection') this.dropIdleEngines()
     this.pool.observe(event)
+  }
+
+  worker(workerId: string): RouterWorker | undefined {
+    return this.pool.get(workerId)
+  }
+  async remoteBranch(workerId: string): Promise<WorkerRemoteBranch | null> {
+    const workspace = this.pool.get(workerId)?.workspace
+    return workspace?.kind === 'worktree' ? this.workspaces.remoteBranch(workspace) : null
+  }
+  linkPullRequest(workerId: string, link: WorkerPullRequestLink): void {
+    this.pool.linkPullRequest(workerId, link)
   }
 
   isRunning(): boolean {

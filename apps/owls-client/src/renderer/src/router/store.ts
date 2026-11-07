@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { CodexFailure, CodexReply, CodexRouter, ThreadItem } from '../../../shared/codex'
+import type { WorkerGitHubStatus } from '../../../shared/github'
 import type {
   ForwardMessage,
   OwlsProviderId,
@@ -36,6 +37,8 @@ type State = {
   /** Threads whose whole history has arrived, as opposed to only live changes. */
   itemsLoaded: Record<string, boolean>
   forwarding: Forwarding | null
+  /** GitHub status by worker, for the workers whose panels have been open. */
+  gitHub: Record<string, WorkerGitHubStatus>
   providers: RouterProviderInfo[]
   sending: boolean
   error: CodexFailure | null
@@ -57,6 +60,9 @@ type State = {
   cancelForward(): void
   /** Sends what the dialog holds and resolves to the thread that received it. */
   forward(target: ForwardMessage['target'], note: string): Promise<CodexRouter | null>
+  workerGitHub(workerId: string, status: WorkerGitHubStatus): void
+  /** Follows a worker's GitHub status until the returned function is called. */
+  watchGitHub(routerId: string, workerId: string): () => void
   /** Lasts until the app restarts: the guide comes back while setup is incomplete. */
   guideSkipped: boolean
   skipGuide(): void
@@ -125,6 +131,7 @@ export const useRouterStore = create<State>((set, get) => {
     items: {},
     itemsLoaded: {},
     forwarding: null,
+    gitHub: {},
     providers: [],
     sending: false,
     error: null,
@@ -147,6 +154,12 @@ export const useRouterStore = create<State>((set, get) => {
           state.panel.workerId === worker.id
         return { workers: newer(state.workers, worker), panel: closing ? null : state.panel }
       }),
+    workerGitHub: (workerId, status) =>
+      set((state) => ({ gitHub: { ...state.gitHub, [workerId]: status } })),
+    watchGitHub: (routerId, workerId) => {
+      void window.codex.watchWorkerGitHub({ routerId, workerId })
+      return () => void window.codex.unwatchWorkerGitHub({ routerId, workerId })
+    },
     threadItems: (routerId, items) =>
       set((state) => ({
         items: {
