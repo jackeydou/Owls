@@ -1,3 +1,4 @@
+import type { CodexProject } from '../../shared/codex.js'
 import type { RouterWorker } from '../../shared/router.js'
 import type { InboxEvent } from './events.js'
 
@@ -32,28 +33,81 @@ function eventText(event: InboxEvent): string {
       return `[${event.seq}] worker_stopped · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker was stopped before it reported.`
     case 'worker_removed':
       return `[${event.seq}] worker_removed · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe user removed this worker. Do not follow up on it.${event.branch ? ` Its unmerged work stays on branch ${escapeBatch(event.branch)}.` : ''}`
+    case 'forwarded':
+      return forwardedText(event)
   }
+}
+
+function forwardedText(event: Extract<InboxEvent, { kind: 'forwarded' }>): string {
+  const from = event.from ? ` · from ${escapeBatch(short(event.from, 80))}` : ''
+  const lines = [`[${event.seq}] forwarded · user · ${clock(event.at)}${from}`]
+  lines.push(
+    event.note
+      ? `The user's note: ${escapeBatch(clip(event.note, USER_TEXT_LIMIT, event.seq))}`
+      : 'The user added no note.'
+  )
+  if (event.workerId) {
+    const branch = event.branch ? ` · branch ${escapeBatch(event.branch)}` : ''
+    lines.push(`Result of worker ${event.workerId}${branch}`)
+  }
+  if (event.goal) lines.push(`Goal: ${escapeBatch(short(event.goal, 200))}`)
+  lines.push(`Forwarded content:\n${escapeBatch(clip(event.text, USER_TEXT_LIMIT, event.seq))}`)
+  if (event.artifacts.length)
+    lines.push(
+      escapeBatch(`Artifacts: ${event.artifacts.map((a) => `${a.kind}:${a.ref}`).join(', ')}`)
+    )
+  return lines.join('\n')
 }
 
 /**
  * Renders pending events as one Router input. A batch holding a single user
  * message is sent as that message so ordinary chat reads naturally.
  */
-export function renderBatch(batchId: string, events: InboxEvent[], state: string | null): string {
+export function renderBatch(
+  batchId: string,
+  events: InboxEvent[],
+  state: string | null,
+  projects: string | null = null
+): string {
   const ordered = [...events].sort((a, b) => a.seq - b.seq)
   const only = ordered[0]
-  if (ordered.length === 1 && only?.kind === 'user_message' && !only.workerId && !state)
+  if (
+    ordered.length === 1 &&
+    only?.kind === 'user_message' &&
+    !only.workerId &&
+    !state &&
+    !projects
+  )
     return clip(only.text, USER_TEXT_LIMIT, only.seq)
   const header = `<owls-batch id="${batchId}" events="${ordered.length}">`
   const parts = [header]
   if (state) parts.push(`Current workers:\n${escapeBatch(state)}`)
+  if (projects) parts.push(escapeBatch(projects))
   for (const event of ordered) parts.push(eventText(event))
   parts.push('</owls-batch>')
   return parts.join('\n')
 }
 
-/** Deterministic summary of a Router's workers, for new or trimmed contexts. */
-export function renderState(workers: RouterWorker[]): string {
+/**
+ * The projects a Router can dispatch to, sorted so the text only changes when
+ * they do. Null with a single project, which every dispatch uses without naming it.
+ */
+export function renderProjects(projects: CodexProject[], defaultId: string | null): string | null {
+  if (projects.length < 2) return null
+  const lines = [...projects]
+    .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+    .map((p) => `- ${p.name} · ${p.id}${p.id === defaultId ? ' · default' : ''}`)
+  return `Projects:\n${lines.join('\n')}`
+}
+
+/**
+ * Deterministic summary of a Router's workers, for new or trimmed contexts.
+ * `projectName` adds each worker's project when there is more than one.
+ */
+export function renderState(
+  workers: RouterWorker[],
+  projectName: (worker: RouterWorker) => string | null = () => null
+): string {
   if (!workers.length) return 'No workers yet.'
   return [...workers]
     .sort((a, b) => a.id.localeCompare(b.id))
@@ -61,7 +115,9 @@ export function renderState(workers: RouterWorker[]): string {
       const summary = w.report ? ` — ${short(w.report.summary, 200)}` : ''
       const branch = w.workspace.kind === 'worktree' ? ` · branch ${w.workspace.branch}` : ''
       const parent = w.parentId ? ` · parent ${w.parentId}` : ''
-      return `- ${w.id} · ${w.status}${parent}${branch} · ${short(w.goal, 200)}${summary}`
+      const name = projectName(w)
+      const project = name ? ` · project ${name}` : ''
+      return `- ${w.id} · ${w.status}${project}${parent}${branch} · ${short(w.goal, 200)}${summary}`
     })
     .join('\n')
 }

@@ -23,7 +23,21 @@ export const inboxEventBodySchema = z.discriminatedUnion('kind', [
     kind: z.literal('worker_removed'),
     ...workerEvent,
     /** The worker's branch when it still holds work the user's checkout does not have. */
-    branch: z.string().nullable().default(null)
+    branch: z.string().nullable()
+  }),
+  /** Content the user brought from another thread. Only `note` is the user's own words. */
+  z.object({
+    kind: z.literal('forwarded'),
+    at: z.string(),
+    /** The source thread's title. */
+    from: z.string().nullable(),
+    note: z.string().nullable(),
+    text: z.string(),
+    /** Set when a worker's result was forwarded; this Router may build on that worker. */
+    workerId: z.string().optional(),
+    goal: z.string().optional(),
+    branch: z.string().nullable(),
+    artifacts: workerReportSchema.shape.artifacts
   })
 ])
 export type InboxEventBody = z.infer<typeof inboxEventBodySchema>

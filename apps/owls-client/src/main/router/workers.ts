@@ -24,7 +24,7 @@ import {
   RouterToolError,
   type StopWorkerResult
 } from './tools.js'
-import type { WorkerWorkspaces, WorktreeWorkspace } from './worktrees.js'
+import type { WorkerWorkspaces, WorktreeRepo, WorktreeWorkspace } from './worktrees.js'
 
 /** What a task service asks before each turn, and reports after it. */
 export type TurnProfile = { instructions: string; reportSchema: Record<string, unknown> }
@@ -45,6 +45,8 @@ export interface TurnProfiles {
 /** The parts of the task host a Router needs to start and observe workers. */
 export type WorkerHost = {
   projects(): CodexProject[]
+  /** The engine's working directory for a thread with no default project. */
+  threadHome(): string
   settings(): CodexSettings
   providerReady(provider: AgentProvider): boolean
   /** `worker` marks a session whose `cwd` is a worker worktree of `projectPath`. */
@@ -68,6 +70,8 @@ export type WorkerInbox = {
   ): void
 }
 
+/** How many of a thread's events about a worker are searched for its forward. */
+const FORWARD_LOOKBACK = 50
 /** Longest title kept for the UI; models sometimes write a sentence. */
 const TITLE_LIMIT = 60
 /** Global cap on workers that are starting, running, or waiting for approval. */
@@ -157,7 +161,10 @@ export class WorkerPool implements TurnProfiles {
     const provider = input.provider ?? settings.provider
     if (!this.host.providerReady(provider))
       throw new RouterToolError('provider_unavailable', `${provider} is not connected.`)
+    const project = this.projectFor(router, input)
     const key = createHash('sha256')
+      .update(project.id)
+      .update('\0')
       .update(input.goal)
       .update('\0')
       .update(input.context ?? '')
@@ -174,7 +181,7 @@ export class WorkerPool implements TurnProfiles {
     }
     const before = repeated()
     if (before) return before
-    if (input.parent) this.owned(router.id, input.parent)
+    const parent = input.parent ? this.parentFor(router.id, input.parent) : null
     if ([...this.workers.values()].filter((w) => w.status === 'queued').length >= QUEUE_LIMIT)
       throw new RouterToolError(
         'worker_limit_reached',
@@ -182,13 +189,15 @@ export class WorkerPool implements TurnProfiles {
       )
     const wantsWorktree =
       permission !== 'read-only' && settings.router.worktrees && input.workspace !== 'checkout'
-    const repo = wantsWorktree ? await this.workspaces.inspect(router.cwd) : null
+    const repo = wantsWorktree ? await this.workspaces.inspect(project.path) : null
     // The same call may have finished while the repository was inspected.
     const after = repeated()
     if (after) return after
     const id = `w_${crypto.randomUUID().slice(0, 8)}`
+    const base = input.base ?? 'head'
+    const baseBranch = base === 'parent' ? this.parentBranch(parent, repo) : null
     const workspace = repo
-      ? this.workspaces.plan(repo, id, input.base ?? 'head')
+      ? { ...this.workspaces.plan(repo, id, base), baseBranch }
       : ({ kind: 'checkout' } as const)
     const selection =
       provider === 'claude-code'
@@ -200,9 +209,9 @@ export class WorkerPool implements TurnProfiles {
         workspace.kind === 'worktree'
           ? this.host.createSession(
               { provider, cwd: workspace.cwd, permission, ...selection },
-              { projectPath: router.cwd }
+              { projectPath: project.path }
             )
-          : this.host.createSession({ provider, cwd: router.cwd, permission, ...selection })
+          : this.host.createSession({ provider, cwd: project.path, permission, ...selection })
     } catch (error) {
       throw new RouterToolError('dispatch_failed', safeText(String(error)).slice(0, 200))
     }
@@ -210,6 +219,7 @@ export class WorkerPool implements TurnProfiles {
     const worker: RouterWorker = {
       id,
       routerId: router.id,
+      projectId: project.id,
       sessionId: session.id,
       provider,
       goal: input.goal,
@@ -298,12 +308,18 @@ export class WorkerPool implements TurnProfiles {
         goal: w.goal,
         status: w.status,
         provider: w.provider,
+        project: this.projectName(w),
         parent: w.parentId,
         ...this.place(w),
         report: w.report
           ? { status: w.report.status, summary: w.report.summary.slice(0, 300) }
           : null
       }))
+  }
+
+  /** The name of the project a worker runs in, while that project exists. */
+  projectName(worker: RouterWorker): string | null {
+    return this.host.projects().find((p) => p.id === worker.projectId)?.name ?? null
   }
 
   /** Where a worker runs, as the Router tools describe it. */
@@ -476,8 +492,9 @@ export class WorkerPool implements TurnProfiles {
     if (active.length >= WORKER_LIMIT) return false
     // A worktree is this worker's alone; only writers sharing the checkout wait for each other.
     if (worker.permission === 'read-only' || worktreeOf(worker)) return true
+    // Threads share projects, so this compares the project, not the thread.
     return !active.some(
-      (w) => w.routerId === worker.routerId && w.permission !== 'read-only' && !worktreeOf(w)
+      (w) => w.projectId === worker.projectId && w.permission !== 'read-only' && !worktreeOf(w)
     )
   }
 
@@ -544,7 +561,63 @@ export class WorkerPool implements TurnProfiles {
     return true
   }
 
-  private event<K extends Exclude<InboxEventBody['kind'], 'user_message'>>(
+  /** The named project, else the parent's, else the thread's default, else the only one. */
+  private projectFor(router: CodexRouter, input: DispatchTaskInput): CodexProject {
+    const projects = this.host.projects()
+    const names = () =>
+      projects
+        .map((p) => p.name)
+        .sort((a, b) => a.localeCompare(b))
+        .join(', ')
+    const wanted = input.project?.toLocaleLowerCase()
+    if (wanted) {
+      const matches = projects.filter(
+        (p) => p.id === input.project || p.name.toLocaleLowerCase() === wanted
+      )
+      if (matches.length === 1) return matches[0]
+      throw new RouterToolError(
+        'project_required',
+        matches.length
+          ? 'Several projects have this name. Use the project ID from the batch.'
+          : `There is no such project. The projects are: ${names()}.`
+      )
+    }
+    const fallback = (input.parent && this.workers.get(input.parent)?.projectId) || router.projectId
+    const found = projects.find((p) => p.id === fallback)
+    if (found) return found
+    if (projects.length === 1) return projects[0]
+    throw new RouterToolError(
+      'project_required',
+      projects.length
+        ? `Name the project for this task. The projects are: ${names()}.`
+        : 'The user has no projects yet. Ask them to add one.'
+    )
+  }
+  /** A worker this Router may build on: its own, or one the user forwarded to this thread. */
+  private parentFor(routerId: string, workerId: string): RouterWorker {
+    const worker = this.workers.get(workerId)
+    const forwarded =
+      worker &&
+      worker.routerId !== routerId &&
+      this.store
+        .workerEvents(routerId, workerId, FORWARD_LOOKBACK)
+        .some((e) => e.kind === 'forwarded')
+    if (!forwarded) return this.owned(routerId, workerId)
+    if (worker.status === 'removed')
+      throw new RouterToolError('worker_closed', 'The user removed this worker.')
+    return worker
+  }
+  private parentBranch(parent: RouterWorker | null, repo: WorktreeRepo | null): string {
+    const tree = parent ? worktreeOf(parent) : null
+    if (!repo || tree?.repo !== repo.repo)
+      throw new RouterToolError(
+        'invalid_request',
+        'Base parent needs a parent worker with a branch in this project.'
+      )
+    return tree.branch
+  }
+
+  private event<K extends Exclude<InboxEventBody['kind'], 'user_message' | 'forwarded'>>(
     kind: K,
     worker: RouterWorker
   ): { kind: K; at: string; workerId: string; goal: string } {
@@ -554,7 +627,7 @@ export class WorkerPool implements TurnProfiles {
   private owned(routerId: string, workerId: string): RouterWorker {
     const worker = this.workers.get(workerId)
     if (!worker || worker.routerId !== routerId)
-      throw new RouterToolError('worker_not_found', `No worker ${workerId} in this project.`)
+      throw new RouterToolError('worker_not_found', `No worker ${workerId} in this thread.`)
     if (worker.status === 'removed')
       throw new RouterToolError('worker_closed', 'The user removed this worker.')
     return worker

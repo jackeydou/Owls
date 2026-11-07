@@ -257,7 +257,11 @@ app
         router?.observe(event)
         if (window && !window.isDestroyed()) window.webContents.send('codex:event', event)
       }
-      host = new OwlsHost(new CodexService(store, emit), new ClaudeService(store, emit, claudeSdk))
+      host = new OwlsHost(
+        new CodexService(store, emit),
+        new ClaudeService(store, emit, claudeSdk),
+        join(temp, 'router-threads')
+      )
       const routerStore = new RouterStore(store)
       const credentials = new RouterCredentials(routerStore, testCipher)
       const realEngines = defaultEngineFactory({
@@ -401,7 +405,7 @@ app
       await type('帮我看看项目')
       await waitFor("Boolean(document.querySelector('.router-editor-send'))")
       await pressInEditor('Enter')
-      assert.equal(host.snapshot().routers[0]?.items.length ?? 0, 0, 'Enter is a new line')
+      assert.equal(host.snapshot().routers[0]?.itemCount ?? 0, 0, 'Enter is a new line')
       // No project yet: sending asks for a folder, and canceling keeps the draft.
       const pickFolder = dialog.showOpenDialog
       let folderAsks = 0
@@ -425,7 +429,7 @@ app
       await waitFor("document.querySelector('.router-chat textarea')?.value === ''")
       dialog.showOpenDialog = pickFolder
       await waitFor(
-        "document.querySelector('.router-project')?.getAttribute('aria-current') === 'true'"
+        "document.querySelector('.router-thread')?.getAttribute('aria-current') === 'true'"
       )
       // The sidebar hides completely, leaves its toggle on the title bar, and remembers.
       await evaluate("document.querySelector('.router-sidebar-toggle').click()")
@@ -460,7 +464,7 @@ app
       assert.ok(await evaluate(editorFocused), 'a click on the blank page returns to the editor')
       const routerState = host.snapshot().routers[0]
       assert.equal(routerState.error.code, 'router_model_unconfigured')
-      assert.equal(routerState.items[0].text, '帮我看看项目')
+      assert.equal(router.items(routerState.id)[0].item.text, '帮我看看项目')
       await capture('router-setup')
       const saved = await evaluate(
         "window.codex.setRouterKey({ providerId: 'anthropic', key: 'sk-owls-ui-secret' })"

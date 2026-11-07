@@ -1,20 +1,56 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { ChevronDown, ChevronRight, Network, Plus, Settings2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Network, Plus, Settings2, SquarePen } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexProject } from '../../../shared/codex'
+import type { CodexProject, CodexRouter } from '../../../shared/codex'
 import type { RouterWorker } from '../../../shared/router'
 import { isInPlay } from '../../../shared/worker-map'
 import { AppLogoMark } from '../codex/AppLogo'
 import { agentConnection, useCodexStore } from '../codex/store'
-import { byAge, isWaitingOnUser, isWorking, projectHue, workerState, workerTitle } from './activity'
+import {
+  byAge,
+  byRecent,
+  isWaitingOnUser,
+  isWorking,
+  projectHue,
+  threadTitle,
+  useThreadTitle,
+  workerState,
+  workerTitle
+} from './activity'
 import { useRouterStore } from './store'
 import { WorkerDot } from './WorkerLink'
 
+function ThreadEntry({ thread }: { thread: CodexRouter }) {
+  const { t } = useTranslation()
+  const current = useCodexStore((s) => s.view === 'chat' && s.threadId === thread.id)
+  const showThread = useCodexStore((s) => s.showThread)
+  const untitled = useThreadTitle()
+  const state = useRouterStore((s) => {
+    const workers = s.workers.filter((w) => w.routerId === thread.id && w.status !== 'removed')
+    if (workers.some(isWaitingOnUser)) return 'wait'
+    return thread.status === 'running' || workers.some(isWorking) ? 'run' : null
+  })
+  const title = threadTitle(thread, untitled)
+  return (
+    <button
+      type="button"
+      className="router-thread"
+      aria-label={state ? t(`thread.state.${state}`, { title }) : title}
+      aria-current={current || undefined}
+      onClick={() => showThread(thread.id)}
+    >
+      <span>{title}</span>
+      {state ? <i className={state} aria-hidden /> : null}
+    </button>
+  )
+}
 function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: string }) {
   const { t } = useTranslation()
+  const inChat = useCodexStore((s) => s.view === 'chat')
   const focusProject = useCodexStore((s) => s.focusProject)
+  const showThread = useCodexStore((s) => s.showThread)
   const showPanel = useRouterStore((s) => s.showPanel)
   const current = useRouterStore(
     (s) => s.panel?.kind === 'worker' && s.panel.workerId === worker.id
@@ -33,7 +69,9 @@ function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: str
             })}
             aria-current={current || undefined}
             onClick={() => {
-              focusProject(projectId)
+              // The conversation follows the worker; the map stays where it is.
+              if (inChat) showThread(worker.routerId)
+              else focusProject(projectId)
               showPanel({ kind: 'worker', workerId: worker.id })
             }}
           >
@@ -48,16 +86,14 @@ function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: str
 }
 function ProjectRow({ project }: { project: CodexProject }) {
   const { t } = useTranslation()
-  const current = useCodexStore((s) => s.view === 'chat' && s.routerProjectId === project.id)
   const showChat = useCodexStore((s) => s.showChat)
-  const routerId = useRouterStore((s) => s.routers.find((r) => r.projectId === project.id)?.id)
   const allWorkers = useRouterStore((s) => s.workers)
   const folded = useRouterStore((s) => s.foldedProjects.has(project.id))
   const toggleProjectFold = useRouterStore((s) => s.toggleProjectFold)
   // Oldest first, so a row stays put while its neighbors change state.
   const workers = useMemo(
-    () => allWorkers.filter((w) => w.routerId === routerId && isInPlay(w)).sort(byAge),
-    [allWorkers, routerId]
+    () => allWorkers.filter((w) => w.projectId === project.id && isInPlay(w)).sort(byAge),
+    [allWorkers, project.id]
   )
   const state = workers.some(isWaitingOnUser) ? 'wait' : workers.some(isWorking) ? 'run' : null
   const label = state ? t(`router.project.${state}`, { project: project.name }) : project.name
@@ -73,7 +109,6 @@ function ProjectRow({ project }: { project: CodexProject }) {
             className={workers.length ? 'router-project foldable' : 'router-project'}
             style={{ '--owl-c': projectHue(project.id) } as React.CSSProperties}
             aria-label={label}
-            aria-current={current || undefined}
             onClick={() => showChat(project.id)}
           >
             <b aria-hidden="true">{project.name.slice(0, 1).toUpperCase()}</b>
@@ -112,7 +147,11 @@ export function Sidebar() {
   const { t } = useTranslation()
   const projects = useCodexStore((s) => s.projects)
   const onMap = useCodexStore((s) => s.view === 'map')
-  const { showMap, showSettings, pickProject } = useCodexStore()
+  const drafting = useCodexStore((s) => s.view === 'chat' && s.threadId === null)
+  const { showMap, showSettings, pickProject, newThread } = useCodexStore()
+  const routers = useRouterStore((s) => s.routers)
+  // A thread exists once it has its first message; this hides one whose send failed.
+  const threads = useMemo(() => routers.filter((r) => r.itemCount).sort(byRecent), [routers])
   const provider = useCodexStore((s) => s.settings.provider)
   const connection = useCodexStore((s) => agentConnection(s, provider))
   return (
@@ -125,6 +164,16 @@ export function Sidebar() {
       <button
         type="button"
         className="router-sidebar-item"
+        aria-current={drafting || undefined}
+        onClick={() => newThread()}
+      >
+        <SquarePen size={15} />
+        <span>{t('thread.new')}</span>
+        <kbd>⌘ N</kbd>
+      </button>
+      <button
+        type="button"
+        className="router-sidebar-item"
         aria-current={onMap || undefined}
         onClick={showMap}
       >
@@ -132,6 +181,20 @@ export function Sidebar() {
         <span>{t('map.title')}</span>
         <kbd>⌘ J</kbd>
       </button>
+      <section className="router-sidebar-threads" aria-label={t('thread.title')}>
+        <header>
+          <h2>{t('thread.title')}</h2>
+        </header>
+        {threads.length ? (
+          <div className="router-sidebar-list">
+            {threads.map((thread) => (
+              <ThreadEntry key={thread.id} thread={thread} />
+            ))}
+          </div>
+        ) : (
+          <p>{t('thread.none')}</p>
+        )}
+      </section>
       <section className="router-sidebar-projects" aria-label={t('projects')}>
         <header>
           <h2>{t('projects')}</h2>

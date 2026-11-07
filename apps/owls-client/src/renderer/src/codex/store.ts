@@ -14,6 +14,7 @@ import type {
 } from '../../../shared/codex'
 import type { GitHubAccount } from '../../../shared/github'
 import { defaultRouterSettings } from '../../../shared/router'
+import { byRecent } from '../router/activity'
 import { zoomBetweenViews } from '../router/motion'
 import { useRouterStore } from '../router/store'
 import { CodexUIError, uiFailure } from './failures'
@@ -48,7 +49,9 @@ type State = {
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
   github: GitHubAccount
-  /** The project in focus: its conversation, or the one the map composer sends to. */
+  /** The thread on screen; null is a new thread that has no message yet. */
+  threadId: string | null
+  /** The project in focus: a new thread's default, and what the map composer sends to. */
   routerProjectId: string | null
   sessions: CodexSession[]
   projects: CodexProject[]
@@ -64,9 +67,13 @@ type State = {
   gitHubCancelSignIn(): Promise<void>
   gitHubSignOut(): Promise<void>
   leaveSettings(): void
+  /** Opens the current thread, or a project's latest thread when given one. */
   showChat(projectId?: string): void
+  showThread(threadId: string): void
+  /** Opens a thread that exists once its first message is sent. */
+  newThread(projectId?: string): void
   showMap(): void
-  focusProject(projectId: string): void
+  focusProject(projectId: string | null): void
   clearError(): void
   /** Opens the folder picker. Resolves to the project's id, or null when canceled. */
   pickProject(): Promise<string | null>
@@ -78,13 +85,10 @@ type State = {
   saveSettings(settings: CodexSettings): Promise<void>
   respond(input: RespondCodexRequest): Promise<void>
 }
-/** The most recently active Router's project, or the first project on a fresh install. */
-function startProject(projects: CodexProject[], routers: CodexRouter[]): string | null {
-  const known = (id: string) => projects.some((p) => p.id === id)
-  const [latest] = routers
-    .filter((r) => known(r.projectId))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-  return latest?.projectId ?? projects[0]?.id ?? null
+/** The most recently active thread in a project, or across all of them. */
+function latestThread(routers: CodexRouter[], projectId?: string): CodexRouter | null {
+  const threads = projectId ? routers.filter((r) => r.projectId === projectId) : routers
+  return [...threads].sort(byRecent)[0] ?? null
 }
 let connectionEvents = 0
 let claudeEvents = 0
@@ -105,6 +109,7 @@ export const useCodexStore = create<State>((set, get) => {
     view: 'chat',
     lastView: 'chat',
     settingsTab: 'router',
+    threadId: null,
     github: { status: 'signed-out', failure: null },
     routerProjectId: null,
     sessions: [],
@@ -150,11 +155,15 @@ export const useCodexStore = create<State>((set, get) => {
         return
       }
       useRouterStore.getState().hydrate(snapshot.routers, snapshot.workers)
+      const latest = latestThread(snapshot.routers)
       set((state) => ({
         loaded: true,
         projects: snapshot.projects,
         settings: snapshot.settings,
-        routerProjectId: state.routerProjectId ?? startProject(snapshot.projects, snapshot.routers),
+        // Waits for the first load: a repeated one must not leave a new thread's draft.
+        threadId: state.loaded ? state.threadId : (latest?.id ?? null),
+        routerProjectId:
+          state.routerProjectId ?? latest?.projectId ?? snapshot.projects[0]?.id ?? null,
         sessions: snapshot.sessions.map((s) => {
           const live = state.sessions.find((existing) => existing.id === s.id)
           return live && live.updatedAt >= s.updatedAt ? live : s
@@ -186,6 +195,10 @@ export const useCodexStore = create<State>((set, get) => {
       }
       if (event.type === 'router') {
         useRouterStore.getState().router(event.router)
+        return
+      }
+      if (event.type === 'thread-items') {
+        useRouterStore.getState().threadItems(event.routerId, event.items)
         return
       }
       if (event.type === 'worker') {
@@ -226,12 +239,32 @@ export const useCodexStore = create<State>((set, get) => {
       })),
     leaveSettings: () => set((state) => ({ view: state.lastView, error: null })),
     showChat: (projectId) => {
-      const { view, routerProjectId } = get()
+      const { view, routerProjectId, threadId } = get()
       const target = projectId ?? routerProjectId
-      const show = () => set({ view: 'chat', routerProjectId: target, error: null })
+      const thread = projectId
+        ? (latestThread(useRouterStore.getState().routers, projectId)?.id ?? null)
+        : threadId
+      const show = () =>
+        set({ view: 'chat', threadId: thread, routerProjectId: target, error: null })
       if (view === 'map') zoomBetweenViews('chat', target, show)
       else show()
     },
+    showThread: (threadId) => {
+      const router = useRouterStore.getState().routers.find((r) => r.id === threadId)
+      set((state) => ({
+        view: 'chat',
+        threadId,
+        routerProjectId: router?.projectId ?? state.routerProjectId,
+        error: null
+      }))
+    },
+    newThread: (projectId) =>
+      set((state) => ({
+        view: 'chat',
+        threadId: null,
+        routerProjectId: projectId ?? state.routerProjectId,
+        error: null
+      })),
     showMap: () => {
       const { view, routerProjectId } = get()
       const show = () => set({ view: 'map', error: null })
@@ -248,6 +281,7 @@ export const useCodexStore = create<State>((set, get) => {
           a.name.localeCompare(b.name)
         ),
         routerProjectId: project.id,
+        threadId: null,
         view: 'chat'
       }))
       return project.id

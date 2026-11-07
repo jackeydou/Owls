@@ -1,5 +1,11 @@
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
-import type { CodexProject, CodexRouter, CodexSession, CodexSettings } from '../../shared/codex.js'
+import type {
+  CodexItem,
+  CodexProject,
+  CodexRouter,
+  CodexSession,
+  CodexSettings
+} from '../../shared/codex.js'
 import type { RouterWorker } from '../../shared/router.js'
 
 export const codexSettings = sqliteTable('codex_settings', {
@@ -20,11 +26,41 @@ export const codexCommands = sqliteTable('codex_commands', {
   sessionId: text('session_id').notNull(),
   inputHash: text('input_hash').notNull()
 })
-export const codexRouters = sqliteTable('codex_routers', {
+/**
+ * One row holding the change version. Every saved thread and item takes the next
+ * value, so a reader can ask for everything after the version it last saw.
+ */
+export const codexSyncState = sqliteTable('codex_sync_state', {
   id: text('id').primaryKey(),
-  projectId: text('project_id').notNull().unique(),
-  value: text('value', { mode: 'json' }).$type<CodexRouter>().notNull()
+  rev: integer('rev').notNull()
 })
+/** Threads: global Router conversations, without their items. */
+export const codexThreads = sqliteTable(
+  'codex_threads',
+  {
+    id: text('id').primaryKey(),
+    rev: integer('rev').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    value: text('value', { mode: 'json' }).$type<CodexRouter>().notNull()
+  },
+  (table) => [index('codex_threads_rev').on(table.rev)]
+)
+/** Thread items, written one at a time so a change never rewrites the conversation. */
+export const codexThreadItems = sqliteTable(
+  'codex_thread_items',
+  {
+    threadId: text('thread_id').notNull(),
+    itemId: text('item_id').notNull(),
+    position: integer('position').notNull(),
+    rev: integer('rev').notNull(),
+    value: text('value', { mode: 'json' }).$type<CodexItem>().notNull()
+  },
+  (table) => [
+    primaryKey({ columns: [table.threadId, table.itemId] }),
+    index('codex_thread_items_position').on(table.threadId, table.position),
+    index('codex_thread_items_rev').on(table.threadId, table.rev)
+  ]
+)
 export const codexWorkers = sqliteTable('codex_workers', {
   id: text('id').primaryKey(),
   routerId: text('router_id').notNull(),

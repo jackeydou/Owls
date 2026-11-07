@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import type { GitHubAccount, WorkerGitHubStatus } from './github.js'
 import {
+  type CreateThread,
+  type ForwardMessage,
   type ResolveBatch,
   type RouterProviderInfo,
   type RouterWorker,
@@ -9,6 +11,7 @@ import {
   routerStatusSchema,
   type SendRouterMessage,
   type SetRouterKey,
+  type ThreadItemsRequest,
   unknownBatchSchema,
   type WorkerAction
 } from './router.js'
@@ -48,6 +51,15 @@ export const failureSchema = z.object({
   message: z.string()
 })
 export type CodexFailure = z.infer<typeof failureSchema>
+/** Where forwarded content came from. A record of its origin, not a live link to it. */
+export const forwardOriginSchema = z.object({
+  routerId: z.string(),
+  /** The source thread's title when it was forwarded. */
+  title: z.string().nullable(),
+  workerId: z.string().nullable(),
+  /** The forwarded worker's branch, which holds its commits. */
+  branch: z.string().nullable()
+})
 export const itemSchema = z.object({
   id: z.string(),
   kind: z.enum([
@@ -59,14 +71,17 @@ export const itemSchema = z.object({
     'plan',
     'tool',
     'notice',
-    'worker'
+    'worker',
+    'forward'
   ]),
   status: z.enum(['running', 'completed', 'failed', 'interrupted']),
   text: z.string(),
-  detail: z.string().default(''),
+  detail: z.string(),
   turnId: z.string().nullable(),
   /** On a `worker` item, the worker dispatched; on a `user` item, the worker addressed. */
-  workerId: z.string().optional()
+  workerId: z.string().optional(),
+  /** On a `forward` item: where its frozen `text` came from. `detail` holds the user's note. */
+  forward: forwardOriginSchema.optional()
 })
 export const questionSchema = z.object({
   id: z.string(),
@@ -86,7 +101,7 @@ export const requestSchema = z.object({
 })
 export const sessionSchema = z.object({
   id: z.string(),
-  provider: providerSchema.default('codex'),
+  provider: providerSchema,
   threadId: z.string().nullable(),
   title: z.string(),
   cwd: z.string(),
@@ -103,6 +118,12 @@ export const sessionSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string()
 })
+/** One conversation item in its thread. `rev` is null while it streams and is unsaved. */
+export const threadItemSchema = z.object({
+  item: itemSchema,
+  position: z.number().int().nonnegative(),
+  rev: z.number().int().nonnegative().nullable()
+})
 export const appLogoSchema = z.enum(['line', 'solid', 'brow'])
 export const settingsSchema = z.object({
   executablePath: z.string().nullable(),
@@ -111,13 +132,13 @@ export const settingsSchema = z.object({
   permission: permissionSchema,
   theme: z.enum(['system', 'light', 'dark']),
   language: z.enum(['en', 'zh-CN']),
-  appLogo: appLogoSchema.default('solid'),
-  sidebarCollapsed: z.boolean().default(false),
-  provider: providerSchema.default('codex'),
-  claudeExecutablePath: z.string().nullable().default(null),
-  claudeModel: z.string().nullable().default(null),
-  claudeEffort: effortSchema.nullable().default(null),
-  router: routerSettingsSchema.default(routerSettingsSchema.parse({}))
+  appLogo: appLogoSchema,
+  sidebarCollapsed: z.boolean(),
+  provider: providerSchema,
+  claudeExecutablePath: z.string().nullable(),
+  claudeModel: z.string().nullable(),
+  claudeEffort: effortSchema.nullable(),
+  router: routerSettingsSchema
 })
 export const projectSchema = z.object({ id: z.string(), name: z.string(), path: z.string() })
 export const settingsUpdateSchema = settingsSchema
@@ -130,24 +151,39 @@ export const modelSchema = z.object({
   isDefault: z.boolean(),
   efforts: z.array(effortSchema),
   defaultEffort: effortSchema.nullable(),
-  autoMode: z.boolean().default(false)
+  autoMode: z.boolean()
 })
-/** A project's Router: the conversation shown in the Router view and its run state. */
+/**
+ * One thread: a conversation with its own Router, and its run state. Threads are
+ * global. `projectId` is only where workers run when a dispatch names no project.
+ * Its items are stored and sent separately (`threadItemSchema`).
+ */
 export const routerSchema = z.object({
   id: z.string(),
-  projectId: z.string(),
+  /** From the first message; null until there is one. */
+  title: z.string().nullable(),
+  projectId: z.string().nullable(),
+  /** The engine's working directory. Fixed for life: native sessions resume from it. */
   cwd: z.string(),
   status: routerStatusSchema,
-  items: z.array(itemSchema),
+  /** Change version of this record; see `saveThread` in the Router store. */
+  rev: z.number().int().nonnegative(),
+  itemCount: z.number().int().nonnegative(),
+  /** The end of the latest Router reply, for views that do not load the items. */
+  preview: z.string().nullable(),
+  /** The project list this Router last read, so a batch repeats it only after a change. */
+  projectsShown: z.string().nullable(),
   error: failureSchema.nullable(),
   tokens: z.number().nullable(),
-  native: routerNativeSchema.nullable().default(null),
-  unknownBatches: z.array(unknownBatchSchema).default([]),
+  native: routerNativeSchema.nullable(),
+  unknownBatches: z.array(unknownBatchSchema),
   createdAt: z.string(),
   updatedAt: z.string()
 })
 export type CodexRouter = z.infer<typeof routerSchema>
 export type CodexItem = z.infer<typeof itemSchema>
+export type ThreadItem = z.infer<typeof threadItemSchema>
+export type ForwardOrigin = z.infer<typeof forwardOriginSchema>
 export type CodexRequest = z.infer<typeof requestSchema>
 export type CodexSession = z.infer<typeof sessionSchema>
 export type CodexSettings = z.infer<typeof settingsSchema>
@@ -198,6 +234,8 @@ export type CodexEvent =
   | { type: 'session'; session: CodexSession }
   | { type: 'removed'; sessionId: string }
   | { type: 'router'; router: CodexRouter }
+  /** Items that changed, in position order. Streaming items carry `rev: null`. */
+  | { type: 'thread-items'; routerId: string; items: ThreadItem[] }
   | { type: 'worker'; worker: RouterWorker }
   | { type: 'github-account'; account: GitHubAccount }
   | { type: 'worker-github'; workerId: string; status: WorkerGitHubStatus }
@@ -228,8 +266,11 @@ export interface CodexAPI {
   saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<CodexReply<CodexSettings>>
   pickProject(): Promise<CodexReply<CodexProject | null>>
   respond(input: RespondCodexRequest): Promise<CodexReply<void>>
-  openRouter(projectId: string): Promise<CodexReply<CodexRouter>>
+  createThread(input: CreateThread): Promise<CodexReply<CodexRouter>>
+  threadItems(input: ThreadItemsRequest): Promise<CodexReply<ThreadItem[]>>
   sendRouter(input: SendRouterMessage): Promise<CodexReply<void>>
+  /** Resolves to the thread that received the content. */
+  forward(input: ForwardMessage): Promise<CodexReply<CodexRouter>>
   interruptRouter(routerId: string): Promise<CodexReply<void>>
   resolveBatch(input: ResolveBatch): Promise<CodexReply<void>>
   discardWorktree(input: WorkerAction): Promise<CodexReply<void>>

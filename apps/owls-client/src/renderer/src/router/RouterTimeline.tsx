@@ -1,11 +1,12 @@
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { AlertCircle, Loader2, Square } from 'lucide-react'
+import { AlertCircle, Forward, Loader2, Square } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexItem, CodexRouter } from '../../../shared/codex'
 import { ConversationItem } from '../codex/Conversation'
 import { failureMessage } from '../codex/failures'
+import { useCodexStore } from '../codex/store'
 import { DispatchGroup } from './DispatchGroup'
 import { isSetupFailure } from './RouterSetup'
 import { useRouterStore } from './store'
@@ -28,7 +29,57 @@ function entriesOf(items: CodexItem[]): Entry[] {
   return entries
 }
 const speakerOf = (entry: Entry) =>
-  'item' in entry && entry.item.kind === 'user' ? 'user' : 'router'
+  'item' in entry && (entry.item.kind === 'user' || entry.item.kind === 'forward')
+    ? 'user'
+    : 'router'
+const canForward = (item: CodexItem) =>
+  ['user', 'assistant', 'forward'].includes(item.kind) &&
+  item.status !== 'running' &&
+  Boolean(item.text)
+
+/** Content brought from another thread: the user's note, then the frozen copy. */
+function ForwardedMessage({ item }: { item: CodexItem }) {
+  const { t } = useTranslation()
+  const showThread = useCodexStore((s) => s.showThread)
+  const origin = item.forward
+  return (
+    <>
+      {item.detail ? <div className="codex-user-message">{item.detail}</div> : null}
+      <blockquote className="router-forwarded">
+        <button
+          type="button"
+          disabled={!origin}
+          onClick={() => origin && showThread(origin.routerId)}
+        >
+          <Forward size={12} aria-hidden />
+          {t('forward.from', { title: origin?.title ?? t('thread.untitled') })}
+        </button>
+        <p>{item.text}</p>
+        {origin?.branch ? <code>{origin.branch}</code> : null}
+      </blockquote>
+    </>
+  )
+}
+function ForwardAction({ item, router }: { item: CodexItem; router: CodexRouter }) {
+  const { t } = useTranslation()
+  const startForward = useRouterStore((s) => s.startForward)
+  return (
+    <IconButton
+      className="router-row-action"
+      size="sm"
+      label={t('forward.action')}
+      tooltip={t('forward.action')}
+      icon={<Forward size={13} />}
+      onClick={() =>
+        startForward({
+          source: { kind: 'item', routerId: router.id, itemId: item.id },
+          preview: item.text,
+          projectId: router.projectId
+        })
+      }
+    />
+  )
+}
 
 function DirectedMessage({ item }: { item: CodexItem }) {
   const { t } = useTranslation()
@@ -56,7 +107,7 @@ export function RouterTimeline({
   router,
   editor
 }: {
-  /** Undefined until a project has one: the editor still works, and picks the project. */
+  /** Undefined for a new thread: the editor still works, and creates it on the first send. */
   router: CodexRouter | undefined
   /** The thread's end: whatever is pending, then the line being written. */
   editor: ReactNode
@@ -64,8 +115,12 @@ export function RouterTimeline({
   const { t } = useTranslation()
   const resolveBatch = useRouterStore((s) => s.resolveBatch)
   const interrupt = useRouterStore((s) => s.interrupt)
-  const items = router?.items
-  const entries = useMemo(() => entriesOf(items ?? []), [items])
+  const threadItems = useRouterStore((s) => (router ? s.items[router.id] : undefined))
+  const loaded = useRouterStore((s) => (router ? s.itemsLoaded[router.id] : true))
+  const entries = useMemo(
+    () => entriesOf((threadItems ?? []).map((entry) => entry.item)),
+    [threadItems]
+  )
   const scroll = useRef<HTMLDivElement>(null)
   const content = useRef<HTMLDivElement>(null)
   const nearBottom = useRef(true)
@@ -99,6 +154,12 @@ export function RouterTimeline({
         }}
       >
         <div className="codex-conversation" ref={content}>
+          {router?.itemCount && !loaded ? (
+            <div className="codex-working" role="status">
+              <Loader2 size={13} className="animate-spin" />
+              {t('thread.loading')}
+            </div>
+          ) : null}
           {entries.map((entry, index) => {
             const speaker = speakerOf(entry)
             const previous = entries[index - 1]
@@ -110,6 +171,8 @@ export function RouterTimeline({
               >
                 {'workerIds' in entry ? (
                   <DispatchGroup workerIds={entry.workerIds} />
+                ) : entry.item.kind === 'forward' ? (
+                  <ForwardedMessage item={entry.item} />
                 ) : entry.item.kind === 'user' && entry.item.workerId ? (
                   <DirectedMessage item={entry.item} />
                 ) : (
@@ -119,6 +182,9 @@ export function RouterTimeline({
                     markdown={workerMarkdown}
                   />
                 )}
+                {router && 'item' in entry && canForward(entry.item) ? (
+                  <ForwardAction item={entry.item} router={router} />
+                ) : null}
               </ThreadRow>
             )
           })}

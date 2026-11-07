@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../codex/failures'
 import { CodexSettingsPage } from '../codex/Settings'
 import { useCodexStore } from '../codex/store'
+import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
 import { RouterChat } from './RouterChat'
 import { RouterDetail } from './RouterDetail'
@@ -15,8 +16,9 @@ import './router.css'
 
 function Panel() {
   const panel = useRouterStore((s) => s.panel)
-  const projectId = useCodexStore((s) => s.routerProjectId)
-  const router = useRouterStore((s) => s.routers.find((r) => r.projectId === projectId))
+  const router = useRouterStore((s) =>
+    panel?.kind === 'router' ? s.routers.find((r) => r.id === panel.routerId) : undefined
+  )
   const worker = useRouterStore((s) =>
     panel?.kind === 'worker' ? s.workers.find((w) => w.id === panel.workerId) : undefined
   )
@@ -49,13 +51,14 @@ export function RouterShell() {
   const view = useCodexStore((s) => s.view)
   const collapsed = useCodexStore((s) => s.settings.sidebarCollapsed)
   const toggleSidebar = useCodexStore((s) => s.toggleSidebar)
-  const projectId = useCodexStore((s) => s.routerProjectId)
+  const threadId = useCodexStore((s) => s.threadId)
   const sidebarLabel = t(collapsed ? 'router.showSidebar' : 'router.hideSidebar')
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()
       if (!(event.metaKey || event.ctrlKey)) return
-      const { view, showMap, showChat, showSettings, toggleSidebar } = useCodexStore.getState()
+      const { view, showMap, showChat, showSettings, toggleSidebar, newThread } =
+        useCodexStore.getState()
       if (event.key === ',') {
         event.preventDefault()
         showSettings()
@@ -64,6 +67,10 @@ export function RouterShell() {
         event.preventDefault()
         // Settings' navigation is its only way between tabs, so it can't be hidden.
         if (view !== 'settings') toggleSidebar()
+      }
+      if (event.key.toLowerCase() === 'n') {
+        event.preventDefault()
+        newThread()
       }
       if (event.key.toLowerCase() === 'j') {
         event.preventDefault()
@@ -86,7 +93,7 @@ export function RouterShell() {
     <>
       {collapsed ? null : <Sidebar />}
       <div className={collapsed ? 'router-stage sidebar-hidden' : 'router-stage'}>
-        {view === 'map' ? <MapView /> : <RouterChat key={projectId ?? 'none'} />}
+        {view === 'map' ? <MapView /> : <RouterChat key={threadId ?? 'new'} />}
         <Panel />
       </div>
       {/* Stays after the stage: Chromium applies app regions in document order, whatever the
@@ -99,6 +106,7 @@ export function RouterShell() {
         icon={collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         onClick={toggleSidebar}
       />
+      <ForwardDialog />
       <ActionError />
     </>
   )

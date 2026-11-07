@@ -179,6 +179,7 @@ export async function runRouter(clock, load, options) {
   }
   const host = {
     projects: () => [PROJECT],
+    threadHome: () => PROJECT.path,
     settings: () => settings,
     providerReady: () => true,
     createSession: (input) => ({ id: `s${++sessions}`, ...input }),
@@ -214,7 +215,7 @@ export async function runRouter(clock, load, options) {
       }),
     options.worktrees ? simulatedWorkspaces(clock) : undefined
   )
-  const router = service.open(PROJECT.id)
+  const router = service.createThread({ projectId: PROJECT.id })
   let commandId = 0
   const send = (text, workerId) =>
     void service.send({ routerId: router.id, commandId: `m${++commandId}`, text, workerId })
