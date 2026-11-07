@@ -8,6 +8,8 @@ export type WorktreeWorkspace = Extract<WorkerWorkspace, { kind: 'worktree' }>
 /** A project that can give writers their own worktrees: its repository and its place in it. */
 export type WorktreeRepo = { repo: string; subdir: string }
 export type ReleaseResult = { worktree: 'removed' | 'kept'; branch: 'deleted' | 'kept' }
+/** The branch a worktree has checked out and where it would be pushed. */
+export type WorkerRemoteBranch = { remoteUrl: string; branch: string; pushed: boolean }
 
 /** Git worktrees for Router workers (RFC 11.1). WorkerPool depends only on this interface. */
 export interface WorkerWorkspaces {
@@ -21,6 +23,8 @@ export interface WorkerWorkspaces {
   release(workspace: WorktreeWorkspace, force: boolean): Promise<ReleaseResult>
   /** Clears registrations of worktrees whose directories are gone. */
   prune(repo: string): Promise<void>
+  /** Null when the worktree is gone, HEAD is detached, or the branch has no remote. */
+  remoteBranch(workspace: WorktreeWorkspace): Promise<WorkerRemoteBranch | null>
 }
 
 /** For hosts without git worktrees: every worker runs in the project checkout. */
@@ -33,7 +37,8 @@ export const checkoutOnly: WorkerWorkspaces = {
     throw new Error('Worktrees are not available.')
   },
   release: async () => ({ worktree: 'removed', branch: 'deleted' }),
-  prune: async () => {}
+  prune: async () => {},
+  remoteBranch: async () => null
 }
 
 /** Owls' own branch for a worker; the deliverable the user merges. */
@@ -167,6 +172,25 @@ export class GitWorkspaces implements WorkerWorkspaces {
     return this.serial(repo, async () => {
       if (existsSync(repo)) await git(repo, ['worktree', 'prune']).catch(() => {})
     })
+  }
+
+  /**
+   * Reads HEAD rather than `workspace.branch` because a worker may switch to a
+   * branch of its own. The upstream is no guide to the name: `git switch -c x
+   * origin/main` tracks main, while the branch is pushed as x.
+   */
+  async remoteBranch(workspace: WorktreeWorkspace): Promise<WorkerRemoteBranch | null> {
+    const { path } = workspace
+    if (!existsSync(path)) return null
+    const branch = await git(path, ['symbolic-ref', '--quiet', '--short', 'HEAD']).catch(() => null)
+    if (!branch) return null
+    const tracked = await git(path, ['config', `branch.${branch}.remote`]).catch(() => null)
+    const remote = tracked && tracked !== '.' ? tracked : 'origin'
+    const remoteUrl = await git(path, ['remote', 'get-url', remote]).catch(() => null)
+    if (!remoteUrl) return null
+    const ref = `refs/remotes/${remote}/${branch}`
+    const pushed = await succeeds(path, ['rev-parse', '--verify', '--quiet', ref])
+    return { remoteUrl, branch, pushed }
   }
 
   /** HEAD, or the remote default branch after a best-effort fetch; HEAD when there is none. */

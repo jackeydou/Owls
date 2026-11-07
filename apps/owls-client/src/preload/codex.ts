@@ -22,6 +22,13 @@ const api: CodexAPI = {
   routerProviders: () => ipcRenderer.invoke('codex:router-providers'),
   setRouterKey: (input) => ipcRenderer.invoke('codex:router-set-key', input),
   removeRouterKey: (providerId) => ipcRenderer.invoke('codex:router-remove-key', providerId),
+  gitHubSignIn: () => ipcRenderer.invoke('codex:github-sign-in'),
+  gitHubConnectCli: () => ipcRenderer.invoke('codex:github-connect-cli'),
+  gitHubConnectToken: (token) => ipcRenderer.invoke('codex:github-connect-token', token),
+  gitHubCancelSignIn: () => ipcRenderer.invoke('codex:github-cancel-sign-in'),
+  gitHubSignOut: () => ipcRenderer.invoke('codex:github-sign-out'),
+  watchWorkerGitHub: (input) => ipcRenderer.invoke('codex:github-watch-worker', input),
+  unwatchWorkerGitHub: (input) => ipcRenderer.invoke('codex:github-unwatch-worker', input),
   onEvent: (listener) => {
     const handler = (_: Electron.IpcRendererEvent, event: CodexEvent) => listener(event)
     ipcRenderer.on('codex:event', handler)

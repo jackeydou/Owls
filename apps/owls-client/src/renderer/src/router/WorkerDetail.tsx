@@ -11,6 +11,7 @@ import { useCodexStore } from '../codex/store'
 import { canStop, openRequests, workerState, workerTitle } from './activity'
 import { DiffView } from './DiffView'
 import { useRouterStore } from './store'
+import { WorkerGitHub } from './WorkerGitHub'
 import { WorkerDot } from './WorkerLink'
 
 const TABS = ['activity', 'changes', 'report'] as const
@@ -130,6 +131,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
           onClick={() => showPanel(null)}
         />
       </header>
+      <WorkerGitHub worker={worker} />
       <div className="router-tabs" role="tablist">
         {TABS.map((name) => (
           <Button

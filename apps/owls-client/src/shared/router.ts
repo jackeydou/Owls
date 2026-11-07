@@ -89,6 +89,16 @@ export const workerWorkspaceSchema = z.discriminatedUnion('kind', [
     state: z.enum(['active', 'kept', 'released'])
   })
 ])
+/**
+ * The pull request a worker's branch opened. It names the repository instead of
+ * a local path, so it outlives the worktree and means the same on any device.
+ */
+export const workerPullRequestLinkSchema = z.object({
+  owner: z.string(),
+  name: z.string(),
+  branch: z.string(),
+  number: z.number().int().positive()
+})
 export const workerSchema = z.object({
   id: z.string(),
   routerId: z.string(),
@@ -106,6 +116,7 @@ export const workerSchema = z.object({
   next: z.string().nullable().default(null),
   status: workerStatusSchema,
   workspace: workerWorkspaceSchema.default({ kind: 'checkout' }),
+  pullRequest: workerPullRequestLinkSchema.nullable().default(null),
   report: workerReportSchema.nullable(),
   /** True when the last report did not match the schema and was rebuilt from raw text. */
   degraded: z.boolean().default(false),
@@ -163,6 +174,7 @@ export type WorkerStatus = z.infer<typeof workerStatusSchema>
 export type WorktreeBase = z.infer<typeof worktreeBaseSchema>
 export type WorkerWorkspace = z.infer<typeof workerWorkspaceSchema>
 export type WorkerAction = z.infer<typeof workerActionSchema>
+export type WorkerPullRequestLink = z.infer<typeof workerPullRequestLinkSchema>
 export type RouterWorker = z.infer<typeof workerSchema>
 export type RouterStatus = z.infer<typeof routerStatusSchema>
 export type RouterNative = z.infer<typeof routerNativeSchema>

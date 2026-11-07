@@ -1,6 +1,13 @@
 import { Button } from '@renderer/components/ui/button'
 import { Select } from '@renderer/components/ui/select'
-import { ArrowLeft, type LucideIcon, Palette, Route, SlidersHorizontal } from 'lucide-react'
+import {
+  ArrowLeft,
+  GitPullRequest,
+  type LucideIcon,
+  Palette,
+  Route,
+  SlidersHorizontal
+} from 'lucide-react'
 import { Fragment, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { appLogoSchema, settingsSchema } from '../../../shared/codex'
@@ -10,6 +17,7 @@ import { appLogoIcons } from './AppLogo'
 import { TaskOptions } from './Controls'
 import { SettingRow } from './SettingRow'
 import { ClaudeSettingsPane, CodexSettingsPane } from './SettingsAgents'
+import { GitHubSettingsPane } from './SettingsGitHub'
 import { type SettingsTab, useCodexStore } from './store'
 
 type TabEntry = { id: SettingsTab; label: string; icon: LucideIcon | null }
@@ -23,7 +31,10 @@ const TAB_GROUPS: TabEntry[][] = [
     { id: 'claude-code', label: 'agent.claude-code', icon: null },
     { id: 'codex', label: 'agent.codex', icon: null }
   ],
-  [{ id: 'appearance', label: 'appearance', icon: Palette }]
+  [
+    { id: 'github', label: 'github.title', icon: GitPullRequest },
+    { id: 'appearance', label: 'appearance', icon: Palette }
+  ]
 ]
 
 function TabIcon({ tab }: { tab: TabEntry }) {
@@ -154,6 +165,7 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   workers: WorkerDefaultsPane,
   'claude-code': ClaudeSettingsPane,
   codex: CodexSettingsPane,
+  github: GitHubSettingsPane,
   appearance: AppearancePane
 }
 

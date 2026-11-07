@@ -1,0 +1,1 @@
+- -- Worker panels: see the pull request and CI checks for a worker's branch, connecting GitHub through the Owls GitHub app, gh CLI, or a personal access token. (#39)

@@ -9,7 +9,7 @@ import type {
   CreateCodexSession,
   SendCodexMessage
 } from '../../shared/codex.js'
-import type { RouterWorker, WorkerStatus } from '../../shared/router.js'
+import type { RouterWorker, WorkerPullRequestLink, WorkerStatus } from '../../shared/router.js'
 import { CodexRuntimeError } from '../codex/errors.js'
 import { safeText } from '../codex/protocol.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
@@ -128,6 +128,14 @@ export class WorkerPool implements TurnProfiles {
   get(id: string): RouterWorker | undefined {
     return this.workers.get(id)
   }
+  /** Keeps `updatedAt`, because finding a pull request is not activity on the worker. */
+  linkPullRequest(id: string, link: WorkerPullRequestLink): void {
+    const worker = this.workers.get(id)
+    if (!worker || this.closed) return
+    worker.pullRequest = link
+    this.store.saveWorker(worker)
+    this.emit(worker)
+  }
 
   /**
    * Creates a worker task and starts it, or queues it when the limit or the
@@ -208,6 +216,7 @@ export class WorkerPool implements TurnProfiles {
       title: input.title?.slice(0, TITLE_LIMIT) ?? null,
       parentId: input.parent ?? null,
       context: input.context ?? null,
+      pullRequest: null,
       permission,
       next: input.context ? `${input.goal}\n\nContext:\n${input.context}` : input.goal,
       status: 'queued',
