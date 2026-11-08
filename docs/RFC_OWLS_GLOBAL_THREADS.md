@@ -65,5 +65,6 @@ Owls 才会删除它。
 
 ## 6. 后续
 
-Router 上云和多设备同步的方向：每个账号一个权威，设备按 `rev` 拉取，写操作作为带 `commandId` 的命令发给权威。
-还要先把 `RouterService` 和 `WorkerPool` 拆开，并验证 pi-agent 能否在 Durable Object 中运行。
+多设备的方向：每台设备只跑自己的 Router，thread 只由所属设备写入，其他设备按 `rev` 拉取后只读显示；
+跨设备派 Worker 时，把命令发给目标设备上的 Owls。Router 不上云。
+展开设计见 [RFC_OWLS_MULTI_DEVICE.md](RFC_OWLS_MULTI_DEVICE.md)。

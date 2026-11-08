@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, max, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, max, sql } from 'drizzle-orm'
 import {
   type CodexItem,
   type CodexRouter,
@@ -12,12 +12,12 @@ import {
   codexInboxEvents,
   codexRouterBatches,
   codexRouterMessages,
-  codexSyncState,
   codexThreadItems,
   codexThreads,
   codexWorkers
 } from '../codex/schema.js'
 import type { CodexStore } from '../codex/store.js'
+import { nextRev } from '../codex/sync-state.js'
 import {
   type BatchStatus,
   type BatchValue,
@@ -35,8 +35,6 @@ const toEvent = (row: EventRow): InboxEvent => ({
   ...inboxEventBodySchema.parse(row.value),
   seq: row.seq
 })
-/** The row in `codex_sync_state` holding the change version. */
-const SYNC_ROW = 'account'
 const toBatch = (row: BatchRow): RouterBatch => ({
   ...batchValueSchema.parse(row.value),
   id: row.id,
@@ -66,15 +64,7 @@ export class RouterStore {
    */
   saveThread(value: CodexRouter, items: { item: CodexItem; position: number }[] = []): number {
     return this.db.transaction((tx) => {
-      const { rev } = tx
-        .insert(codexSyncState)
-        .values({ id: SYNC_ROW, rev: 1 })
-        .onConflictDoUpdate({
-          target: codexSyncState.id,
-          set: { rev: sql`${codexSyncState.rev} + 1` }
-        })
-        .returning()
-        .get()
+      const rev = nextRev(tx)
       const router = routerSchema.parse({ ...value, rev })
       tx.insert(codexThreads)
         .values({ id: router.id, rev, updatedAt: router.updatedAt, value: router })
@@ -228,6 +218,22 @@ export class RouterStore {
       .all()
       .map(toEvent)
       .reverse()
+  }
+  /** A thread's events of one kind after `seq`, oldest first, for Dreaming. */
+  eventsAfter(routerId: string, after: number, kind: InboxEventBody['kind']): InboxEvent[] {
+    return this.db
+      .select()
+      .from(codexInboxEvents)
+      .where(
+        and(
+          eq(codexInboxEvents.routerId, routerId),
+          gt(codexInboxEvents.seq, after),
+          sql`json_extract(${codexInboxEvents.value}, '$.kind') = ${kind}`
+        )
+      )
+      .orderBy(asc(codexInboxEvents.seq))
+      .all()
+      .map(toEvent)
   }
   setEventStatus(seqs: number[], status: InboxStatus): void {
     if (!seqs.length) return

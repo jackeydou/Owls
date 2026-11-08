@@ -1,7 +1,15 @@
+import { writeFile } from 'node:fs/promises'
 import { type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } from 'electron'
 import { z } from 'zod'
 import { type CodexReply, respondSchema, settingsUpdateSchema } from '../../shared/codex.js'
 import { gitHubTokenSchema } from '../../shared/github.js'
+import {
+  memoryCategoryActionSchema,
+  memoryExportSchema,
+  memoryListSchema,
+  memoryRemoveSchema,
+  memorySaveSchema
+} from '../../shared/memory.js'
 import {
   createThreadSchema,
   forwardSchema,
@@ -102,6 +110,32 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
   handle('github-unwatch-worker', (input) =>
     host.unwatchWorkerGitHub(workerActionSchema.parse(input))
   )
+  handle('memory-list', (input) => host.memoryList(memoryListSchema.parse(input)))
+  handle('memory-overview', () => host.memoryOverview())
+  handle('memory-save', (input) => host.memorySave(memorySaveSchema.parse(input)))
+  handle('memory-remove', (input) => host.memoryRemove(memoryRemoveSchema.parse(input)))
+  handle('memory-category', (input) => host.memoryCategory(memoryCategoryActionSchema.parse(input)))
+  handle('memory-run', () => host.memoryRunNow())
+  handle('memory-runs', () => host.memoryRuns())
+  handle('memory-export', async (input) => {
+    const format = memoryExportSchema.parse(input)
+    const text = host.memoryExport(format)
+    const window = getWindow()
+    const options = {
+      defaultPath: format === 'json' ? 'owls-memory.json' : 'owls-memory.md',
+      filters: [
+        format === 'json'
+          ? { name: 'JSON', extensions: ['json'] }
+          : { name: 'Markdown', extensions: ['md'] }
+      ]
+    }
+    const result = window
+      ? await dialog.showSaveDialog(window, options)
+      : await dialog.showSaveDialog(options)
+    if (result.canceled || !result.filePath) return false
+    await writeFile(result.filePath, text, 'utf8')
+    return true
+  })
   handle('cancel-sign-in', () => host.cancelSignIn())
   handle('sign-in', async () => {
     await shell.openExternal(await host.signIn())

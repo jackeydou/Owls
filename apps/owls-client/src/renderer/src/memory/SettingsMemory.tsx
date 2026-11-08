@@ -1,0 +1,245 @@
+import { Button } from '@renderer/components/ui/button'
+import { Select } from '@renderer/components/ui/select'
+import { Download, Loader2, Sparkles, X } from 'lucide-react'
+import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { MemoryRun, MemorySettings } from '../../../shared/memory'
+import { memoryProviderSchema } from '../../../shared/memory'
+import { SettingRow } from '../codex/SettingRow'
+import { useCodexStore } from '../codex/store'
+import { useRouterStore } from '../router/store'
+import { MemoryBrowser } from './MemoryBrowser'
+import { useMemoryStore } from './store'
+import './memory.css'
+
+const clock = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+
+/** A failed run's reason in the user's words. */
+export function runReason(run: MemoryRun, t: (key: string) => string): string {
+  const code = run.error?.code
+  return code === 'claude_not_connected' || code === 'not_connected' || code === 'interrupted'
+    ? t(`memory.reason.${code}`)
+    : t('memory.reason.other')
+}
+
+function OnOff({
+  id,
+  value,
+  onChange
+}: {
+  id: string
+  value: boolean
+  onChange: (value: boolean) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <Select
+      id={id}
+      value={value ? 'on' : 'off'}
+      onChange={(event) => onChange(event.target.value === 'on')}
+    >
+      <option value="on">{t('memory.on')}</option>
+      <option value="off">{t('memory.off')}</option>
+    </Select>
+  )
+}
+
+function MemorySettingsRows() {
+  const { t } = useTranslation()
+  const settings = useCodexStore((s) => s.settings)
+  const saveSettings = useCodexStore((s) => s.saveSettings)
+  const claude = useCodexStore((s) => s.claude)
+  const codex = useCodexStore((s) => s.connection)
+  const memory = settings.memory
+  const save = (next: Partial<MemorySettings>) =>
+    void saveSettings({ ...settings, memory: { ...memory, ...next } })
+  const provider = memory.provider ?? settings.provider
+  const connection = provider === 'claude-code' ? claude : codex
+  return (
+    <>
+      <SettingRow
+        label={t('memory.learn')}
+        htmlFor="memory-learn"
+        description={t('memory.learnHelp')}
+      >
+        <OnOff id="memory-learn" value={memory.learn} onChange={(learn) => save({ learn })} />
+      </SettingRow>
+      <SettingRow
+        label={t('memory.inject')}
+        htmlFor="memory-inject"
+        description={t('memory.injectHelp')}
+      >
+        <OnOff id="memory-inject" value={memory.inject} onChange={(inject) => save({ inject })} />
+      </SettingRow>
+      <SettingRow label={t('memory.provider')} htmlFor="memory-provider">
+        <Select
+          id="memory-provider"
+          value={memory.provider ?? ''}
+          onChange={(event) =>
+            save({
+              provider: event.target.value ? memoryProviderSchema.parse(event.target.value) : null
+            })
+          }
+        >
+          <option value="">
+            {t('memory.provider.default', { agent: t(`agent.${settings.provider}`) })}
+          </option>
+          {memoryProviderSchema.options.map((option) => (
+            <option value={option} key={option}>
+              {t(`agent.${option}`)}
+            </option>
+          ))}
+        </Select>
+      </SettingRow>
+      <SettingRow
+        label={t('memory.model')}
+        htmlFor="memory-model"
+        description={
+          connection.status === 'ready'
+            ? null
+            : t(
+                provider === 'claude-code'
+                  ? 'memory.claudeDisconnected'
+                  : 'memory.codexDisconnected'
+              )
+        }
+      >
+        <Select
+          id="memory-model"
+          value={(provider === 'claude-code' ? memory.claudeModel : memory.codexModel) ?? ''}
+          onChange={(event) => {
+            const model = event.target.value || null
+            save(provider === 'claude-code' ? { claudeModel: model } : { codexModel: model })
+          }}
+        >
+          <option value="">{t('memory.model.default')}</option>
+          {connection.models
+            .filter((m) => provider !== 'claude-code' || !m.isDefault)
+            .map((m) => (
+              <option value={m.id} key={m.id}>
+                {m.name}
+              </option>
+            ))}
+        </Select>
+      </SettingRow>
+      <p className="codex-note">{t('memory.deviceNote')}</p>
+    </>
+  )
+}
+
+function RunStatus() {
+  const { t } = useTranslation()
+  const learn = useCodexStore((s) => s.settings.memory.learn)
+  const overview = useMemoryStore((s) => s.overview)
+  const runNow = useMemoryStore((s) => s.runNow)
+  const exportAs = useMemoryStore((s) => s.exportAs)
+  const last = overview?.lastRun ?? null
+  const running = overview?.running ?? false
+  const status = running
+    ? t('memory.running')
+    : !last
+      ? t('memory.neverRun')
+      : last.status === 'failed'
+        ? t('memory.lastRunFailed', { reason: runReason(last, t) })
+        : t('memory.lastRun', { time: clock(last.createdAt), count: last.added.length })
+  return (
+    <div className="memory-status">
+      <span role="status" className={last?.status === 'failed' && !running ? 'failed' : undefined}>
+        {running ? <Loader2 size={12} className="animate-spin" aria-hidden /> : null}
+        {status}
+      </span>
+      <div className="codex-settings-actions">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!learn || running}
+          onClick={() => void runNow()}
+        >
+          <Sparkles size={13} aria-hidden />
+          {t('memory.runNow')}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => void exportAs('markdown')}>
+          <Download size={13} aria-hidden />
+          {t('memory.export.markdown')}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => void exportAs('json')}>
+          {t('memory.export.json')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function RecentRuns() {
+  const { t } = useTranslation()
+  const runs = useMemoryStore((s) => s.runs)
+  const routers = useRouterStore((s) => s.routers)
+  const untitled = t('thread.untitled')
+  return (
+    <details className="memory-runs">
+      <summary>{t('memory.runs')}</summary>
+      {runs.length ? (
+        <ul>
+          {runs.map((run) => {
+            const values = {
+              time: clock(run.createdAt),
+              title: routers.find((r) => r.id === run.threadId)?.title ?? untitled,
+              added: run.added.length,
+              updated: run.updated.length,
+              archived: run.archived.length,
+              reason: runReason(run, t)
+            }
+            return (
+              <li key={run.id}>
+                <span>{t(`memory.run.${run.status}`, values)}</span>
+                {run.tokens ? <small>{t('memory.run.tokens', { count: run.tokens })}</small> : null}
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <p className="codex-note">{t('memory.noRuns')}</p>
+      )}
+    </details>
+  )
+}
+
+export function SettingsMemoryPane() {
+  const { t } = useTranslation()
+  const refresh = useMemoryStore((s) => s.refresh)
+  const error = useMemoryStore((s) => s.error)
+  const clearError = useMemoryStore((s) => s.clearError)
+  useEffect(() => {
+    void refresh()
+    return window.codex.memory.onChanged(() => void refresh())
+  }, [refresh])
+  return (
+    <section className="codex-settings-section memory-pane">
+      <h2>{t('memory.title')}</h2>
+      <p>{t('memory.body')}</p>
+      <MemorySettingsRows />
+      <RunStatus />
+      {error ? (
+        <div className="codex-inline-error memory-error" role="alert">
+          <span>{t(error)}</span>
+          <Button
+            size="custom"
+            variant="ghost"
+            aria-label={t('memory.error.dismiss')}
+            onClick={clearError}
+          >
+            <X size={13} aria-hidden />
+          </Button>
+        </div>
+      ) : null}
+      <MemoryBrowser />
+      <RecentRuns />
+    </section>
+  )
+}

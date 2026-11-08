@@ -6,6 +6,7 @@ import type {
   CodexSession,
   CodexSettings
 } from '../../shared/codex.js'
+import type { Memory, MemoryCategory, MemoryRun } from '../../shared/memory.js'
 import type { RouterWorker } from '../../shared/router.js'
 
 export const codexSettings = sqliteTable('codex_settings', {
@@ -109,4 +110,56 @@ export const codexRouterBatches = sqliteTable(
     value: text('value', { mode: 'json' }).$type<unknown>().notNull()
   },
   (table) => [index('codex_router_batches_router_status').on(table.routerId, table.status)]
+)
+/**
+ * Personal memory categories. Deleted ones stay as tombstones so the deletion
+ * keeps its `rev` and a late write can follow `mergedInto`.
+ */
+export const codexMemoryCategories = sqliteTable(
+  'codex_memory_categories',
+  {
+    id: text('id').primaryKey(),
+    rev: integer('rev').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    value: text('value', { mode: 'json' }).$type<MemoryCategory>().notNull()
+  },
+  (table) => [index('codex_memory_categories_rev').on(table.rev)]
+)
+/** Memories of both stores. A deleted memory is a tombstone with its text cleared. */
+export const codexMemories = sqliteTable(
+  'codex_memories',
+  {
+    id: text('id').primaryKey(),
+    rev: integer('rev').notNull(),
+    store: text('store').notNull(),
+    projectId: text('project_id'),
+    categoryId: text('category_id'),
+    kind: text('kind'),
+    status: text('status').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    value: text('value', { mode: 'json' }).$type<Memory>().notNull()
+  },
+  (table) => [
+    index('codex_memories_rev').on(table.rev),
+    index('codex_memories_scope').on(table.store, table.status)
+  ]
+)
+/** How far Dreaming has read each thread: its item `rev` and its Inbox event `seq`. */
+export const codexMemoryCursors = sqliteTable('codex_memory_cursors', {
+  threadId: text('thread_id').primaryKey(),
+  itemRev: integer('item_rev').notNull(),
+  eventSeq: integer('event_seq').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+/** Dreaming runs, newest last by `created_at`. */
+export const codexMemoryRuns = sqliteTable(
+  'codex_memory_runs',
+  {
+    id: text('id').primaryKey(),
+    threadId: text('thread_id').notNull(),
+    status: text('status').notNull(),
+    createdAt: text('created_at').notNull(),
+    value: text('value', { mode: 'json' }).$type<MemoryRun>().notNull()
+  },
+  (table) => [index('codex_memory_runs_created').on(table.createdAt)]
 )

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { permissionSchema, providerSchema } from '../../shared/codex.js'
 import { workerStatusSchema, worktreeBaseSchema } from '../../shared/router.js'
+import { type SearchMemoryInput, searchMemoryInput } from '../memory/search-input.js'
 
 /** Model-facing error codes. Messages are short English sentences without paths or secrets. */
 export type RouterToolErrorCode =
@@ -118,6 +119,8 @@ export type RouterToolHandlers = {
   stopWorker(workerId: string): Promise<StopWorkerResult>
   listWorkers(input: ListWorkersInput): unknown
   recall(id: string): unknown
+  /** Present only while memory is on; the tool is left out otherwise. */
+  searchMemory?: (input: SearchMemoryInput) => unknown
 }
 
 /** An engine-neutral tool: adapters convert `schema` to their own format. */
@@ -130,14 +133,15 @@ export type RouterTool = {
   execute(args: unknown): Promise<string>
 }
 
-export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
-  const tool = <T extends z.ZodObject>(
-    name: string,
-    label: string,
-    description: string,
-    schema: T,
-    run: (input: z.infer<T>) => unknown
-  ): RouterTool => ({
+/** Wraps a handler as a RouterTool that validates its arguments first. */
+export function defineTool<T extends z.ZodObject>(
+  name: string,
+  label: string,
+  description: string,
+  schema: T,
+  run: (input: z.infer<T>) => unknown
+): RouterTool {
+  return {
     name,
     label,
     description,
@@ -148,7 +152,11 @@ export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
         throw new RouterToolError('invalid_request', `The ${name} arguments are invalid.`)
       return JSON.stringify(await run(parsed.data))
     }
-  })
+  }
+}
+
+export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
+  const tool = defineTool
   // Sorted by name so every engine sees the same tool order.
   return [
     tool(
@@ -179,6 +187,17 @@ export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
       recallInput,
       (input) => handlers.recall(input.id)
     ),
+    ...(handlers.searchMemory
+      ? [
+          tool(
+            'search_memory',
+            'Search memory',
+            "Search memories Owls saved from the user's earlier threads: personal memories by category, and project memories by project and kind (rule, decision, knowledge, lesson, status). Use it before asking the user something they may have said before, and to find what to pass a worker in context. Returns active memories, best keyword match first.",
+            searchMemoryInput,
+            handlers.searchMemory
+          )
+        ]
+      : []),
     tool(
       'stop_worker',
       'Stop worker',

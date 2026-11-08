@@ -201,6 +201,8 @@ export type CodexEngineOptions = {
   tools: RouterTool[]
   /** Current worker summary, for a thread that had to be started over. */
   state: () => string
+  /** Starts threads Codex does not keep, so they stay out of the user's thread list. */
+  ephemeral?: boolean
 }
 
 type Turn = {
@@ -254,7 +256,7 @@ export class CodexEngine implements RouterEngine {
         const response = record(
           await client.request('thread/start', {
             ...this.policy(),
-            ephemeral: false,
+            ephemeral: options.ephemeral ?? false,
             developerInstructions: options.instructions,
             dynamicTools: options.tools.map((tool) => ({
               type: 'function',

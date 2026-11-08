@@ -2,6 +2,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Select } from '@renderer/components/ui/select'
 import {
   ArrowLeft,
+  Brain,
   GitPullRequest,
   type LucideIcon,
   Palette,
@@ -11,6 +12,7 @@ import {
 import { Fragment, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { appLogoSchema, settingsSchema } from '../../../shared/codex'
+import { SettingsMemoryPane } from '../memory/SettingsMemory'
 import { AgentIcon } from '../router/AgentIcon'
 import { RouterSettingsSection } from '../router/RouterSettings'
 import { appLogoIcons } from './AppLogo'
@@ -25,7 +27,8 @@ type TabEntry = { id: SettingsTab; label: string; icon: LucideIcon | null }
 const TAB_GROUPS: TabEntry[][] = [
   [
     { id: 'router', label: 'routerSettings.title', icon: Route },
-    { id: 'workers', label: 'defaults', icon: SlidersHorizontal }
+    { id: 'workers', label: 'defaults', icon: SlidersHorizontal },
+    { id: 'memory', label: 'memory.title', icon: Brain }
   ],
   [
     { id: 'claude-code', label: 'agent.claude-code', icon: null },
@@ -163,6 +166,7 @@ function AppearancePane() {
 const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   router: RouterSettingsSection,
   workers: WorkerDefaultsPane,
+  memory: SettingsMemoryPane,
   'claude-code': ClaudeSettingsPane,
   codex: CodexSettingsPane,
   github: GitHubSettingsPane,

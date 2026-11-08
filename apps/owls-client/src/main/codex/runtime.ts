@@ -4,10 +4,21 @@ export * as claudeNormalize from '../claude/normalize.js'
 export { ClaudeService } from '../claude/service.js'
 export { GitHubAuth } from '../github/auth.js'
 export { lookupPullRequest, parseGitHubRemote } from '../github/pull-requests.js'
+export { DreamingRunner } from '../memory/dreaming.js'
+export { DREAMING_INSTRUCTIONS } from '../memory/prompt.js'
+export {
+  estimateTokens,
+  looksSecret,
+  renderInjection,
+  renderMarkdown
+} from '../memory/render.js'
+export { MemoryService } from '../memory/service.js'
+export { DreamingStage } from '../memory/stage.js'
+export { DreamingTriggers } from '../memory/triggers.js'
 export { RouterCredentials } from '../router/credentials.js'
 export { ClaudeEngine } from '../router/engines/claude.js'
 export { CodexEngine, CodexRouterServer, codexRouterArgs } from '../router/engines/codex.js'
-export { defaultEngineFactory } from '../router/engines/factory.js'
+export { defaultEngineFactory, dreamingEngineFactory } from '../router/engines/factory.js'
 export { OwlsEngine } from '../router/engines/owls.js'
 export { ROUTER_INSTRUCTIONS, ROUTER_PROMPT_VERSION } from '../router/prompt.js'
 export { renderBatch, renderState, trimContext } from '../router/render.js'

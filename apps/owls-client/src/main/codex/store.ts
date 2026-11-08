@@ -5,6 +5,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import type { CodexProject, CodexSession, CodexSettings } from '../../shared/codex.js'
 import { projectSchema, sessionSchema, settingsSchema } from '../../shared/codex.js'
+import { defaultMemorySettings } from '../../shared/memory.js'
 import { defaultRouterSettings } from '../../shared/router.js'
 import { CodexRuntimeError } from './errors.js'
 import { codexCommands, codexProjects, codexSessions, codexSettings } from './schema.js'
@@ -36,7 +37,8 @@ export class CodexStore {
           claudeExecutablePath: null,
           claudeModel: null,
           claudeEffort: null,
-          router: defaultRouterSettings
+          router: defaultRouterSettings,
+          memory: defaultMemorySettings
         }
   }
   saveSettings(value: CodexSettings): CodexSettings {

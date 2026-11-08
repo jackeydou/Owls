@@ -1,6 +1,18 @@
 import { z } from 'zod'
 import type { GitHubAccount, WorkerGitHubStatus } from './github.js'
 import {
+  defaultMemorySettings,
+  type MemoryCategoryAction,
+  type MemoryExportFormat,
+  type MemoryListRequest,
+  type MemoryOverview,
+  type MemoryRemove,
+  type MemoryRun,
+  type MemorySave,
+  type MemoryView,
+  memorySettingsSchema
+} from './memory.js'
+import {
   type CreateThread,
   type ForwardMessage,
   type ResolveBatch,
@@ -138,7 +150,9 @@ export const settingsSchema = z.object({
   claudeExecutablePath: z.string().nullable(),
   claudeModel: z.string().nullable(),
   claudeEffort: effortSchema.nullable(),
-  router: routerSettingsSchema
+  router: routerSettingsSchema,
+  /** Added after the first release of settings, so older rows get the defaults. */
+  memory: memorySettingsSchema.default(defaultMemorySettings)
 })
 export const projectSchema = z.object({ id: z.string(), name: z.string(), path: z.string() })
 export const settingsUpdateSchema = settingsSchema
@@ -287,4 +301,19 @@ export interface CodexAPI {
   watchWorkerGitHub(input: WorkerAction): Promise<CodexReply<void>>
   unwatchWorkerGitHub(input: WorkerAction): Promise<CodexReply<void>>
   onEvent(listener: (event: CodexEvent) => void): () => void
+  memory: MemoryAPI
+}
+/** `window.codex.memory` (RFC_OWLS_MEMORY 9). */
+export interface MemoryAPI {
+  list(input: MemoryListRequest): Promise<CodexReply<MemoryView[]>>
+  overview(): Promise<CodexReply<MemoryOverview>>
+  save(input: MemorySave): Promise<CodexReply<MemoryView>>
+  remove(input: MemoryRemove): Promise<CodexReply<void>>
+  category(input: MemoryCategoryAction): Promise<CodexReply<void>>
+  /** Starts Dreaming over every thread with new content; resolves once it is queued. */
+  runNow(): Promise<CodexReply<void>>
+  runs(): Promise<CodexReply<MemoryRun[]>>
+  /** Opens a save dialog; resolves to false when the user canceled it. */
+  export(format: MemoryExportFormat): Promise<CodexReply<boolean>>
+  onChanged(listener: () => void): () => void
 }

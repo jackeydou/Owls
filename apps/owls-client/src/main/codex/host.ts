@@ -5,6 +5,7 @@ import type {
   CodexConnection,
   CodexProject,
   CodexRouter,
+  CodexSession,
   CodexSettings,
   CodexSnapshot,
   RespondCodexRequest,
@@ -12,6 +13,16 @@ import type {
   ThreadItem
 } from '../../shared/codex.js'
 import type { GitHubAccount } from '../../shared/github.js'
+import type {
+  MemoryCategoryAction,
+  MemoryExportFormat,
+  MemoryListRequest,
+  MemoryOverview,
+  MemoryRemove,
+  MemoryRun,
+  MemorySave,
+  MemoryView
+} from '../../shared/memory.js'
 import type {
   CreateThread,
   ForwardMessage,
@@ -24,6 +35,9 @@ import type {
 } from '../../shared/router.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { GitHubAuth } from '../github/auth.js'
+import type { DreamingRunner } from '../memory/dreaming.js'
+import type { MemoryService } from '../memory/service.js'
+import type { DreamingTriggers } from '../memory/triggers.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
 import { CodexRuntimeError } from './errors.js'
@@ -36,6 +50,11 @@ import type { CodexService } from './service.js'
 export class OwlsHost {
   private router: RouterService | null = null
   private github: { auth: GitHubAuth; workers: WorkerGitHub } | null = null
+  private memory: {
+    service: MemoryService
+    dreaming: DreamingRunner
+    triggers: DreamingTriggers
+  } | null = null
   constructor(
     private readonly codex: CodexService,
     private readonly claude: ClaudeService,
@@ -49,6 +68,13 @@ export class OwlsHost {
   }
   attachGitHub(github: { auth: GitHubAuth; workers: WorkerGitHub }): void {
     this.github = github
+  }
+  attachMemory(memory: NonNullable<OwlsHost['memory']>): void {
+    this.memory = memory
+  }
+  /** A worker session's items, from whichever runtime owns it. */
+  sessionItems(sessionId: string): CodexSession['items'] {
+    return this.snapshot().sessions.find((s) => s.id === sessionId)?.items ?? []
   }
   /** The narrow view of this host that Routers use to start workers. */
   workerHost(): WorkerHost {
@@ -176,6 +202,38 @@ export class OwlsHost {
   unwatchWorkerGitHub(input: WorkerAction): void {
     this.requireGitHub().workers.unwatch(input)
   }
+  memoryList(input: MemoryListRequest): MemoryView[] {
+    return this.requireMemory().service.list(input)
+  }
+  memoryOverview(): MemoryOverview {
+    const { service, dreaming } = this.requireMemory()
+    return service.overview(dreaming.running)
+  }
+  memorySave(input: MemorySave): MemoryView {
+    return this.requireMemory().service.save(input)
+  }
+  memoryRemove(input: MemoryRemove): void {
+    this.requireMemory().service.remove(input)
+  }
+  memoryCategory(input: MemoryCategoryAction): void {
+    this.requireMemory().service.category(input)
+  }
+  /** Queues Dreaming for every thread with new content without waiting for it. */
+  memoryRunNow(): void {
+    void this.requireMemory()
+      .dreaming.runNow()
+      .catch(() => {})
+  }
+  memoryRuns(): MemoryRun[] {
+    return this.requireMemory().service.runs()
+  }
+  memoryExport(format: MemoryExportFormat): string {
+    return this.requireMemory().service.export(format)
+  }
+  private requireMemory(): NonNullable<OwlsHost['memory']> {
+    if (!this.memory) throw new CodexRuntimeError('router_unavailable', 'Memory is not available.')
+    return this.memory
+  }
   private requireGitHub(): NonNullable<OwlsHost['github']> {
     if (!this.github) throw new CodexRuntimeError('github_unavailable', 'GitHub is not available.')
     return this.github
@@ -223,6 +281,8 @@ export class OwlsHost {
     )
   }
   close(): void {
+    this.memory?.triggers.close()
+    this.memory?.dreaming.close()
     this.github?.workers.close()
     this.github?.auth.close()
     this.router?.close()

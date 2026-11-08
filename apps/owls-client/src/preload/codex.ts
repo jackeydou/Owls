@@ -35,6 +35,21 @@ const api: CodexAPI = {
     const handler = (_: Electron.IpcRendererEvent, event: CodexEvent) => listener(event)
     ipcRenderer.on('codex:event', handler)
     return () => ipcRenderer.removeListener('codex:event', handler)
+  },
+  memory: {
+    list: (input) => ipcRenderer.invoke('codex:memory-list', input),
+    overview: () => ipcRenderer.invoke('codex:memory-overview'),
+    save: (input) => ipcRenderer.invoke('codex:memory-save', input),
+    remove: (input) => ipcRenderer.invoke('codex:memory-remove', input),
+    category: (input) => ipcRenderer.invoke('codex:memory-category', input),
+    runNow: () => ipcRenderer.invoke('codex:memory-run'),
+    runs: () => ipcRenderer.invoke('codex:memory-runs'),
+    export: (format) => ipcRenderer.invoke('codex:memory-export', format),
+    onChanged: (listener) => {
+      const handler = () => listener()
+      ipcRenderer.on('codex:memory-changed', handler)
+      return () => ipcRenderer.removeListener('codex:memory-changed', handler)
+    }
   }
 }
 contextBridge.exposeInMainWorld('codex', api)

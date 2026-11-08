@@ -20,6 +20,7 @@ import type {
   WorkerReport
 } from '../../shared/router.js'
 import { CodexRuntimeError } from '../codex/errors.js'
+import type { RouterMemory } from '../memory/service.js'
 import type { RouterCredentials } from './credentials.js'
 import type { RouterBatchOutcome, RouterEngine, RouterSink } from './engine.js'
 import type { EngineFactory } from './engines/factory.js'
@@ -53,6 +54,13 @@ type ActiveBatch = {
 const RECALL_PAGE = 4000
 const TITLE_LIMIT = 60
 const PREVIEW_LIMIT = 200
+/** Memory for a Router built without it, as in most tests. */
+const noMemory: RouterMemory = {
+  enabled: () => false,
+  injection: () => null,
+  categoryLine: () => null,
+  search: () => ({ memories: [] })
+}
 
 /** A short thread title: the first line with text, on one line. */
 function titleOf(text: string): string {
@@ -87,7 +95,8 @@ export class RouterService implements TurnProfiles {
     private readonly host: WorkerHost,
     private readonly emit: (event: CodexEvent) => void,
     private readonly createEngine: EngineFactory,
-    private readonly workspaces: WorkerWorkspaces = checkoutOnly
+    private readonly workspaces: WorkerWorkspaces = checkoutOnly,
+    private readonly memory: RouterMemory = noMemory
   ) {
     // A batch still sending when the app stopped may or may not have reached the model.
     for (const batch of store.batches('sending')) store.finishBatch(batch.id, 'dispatch_unknown')
@@ -425,6 +434,11 @@ export class RouterService implements TurnProfiles {
     this.pool.observe(event)
   }
 
+  /** A thread's title; null for an untitled or unknown thread. */
+  title(routerId: string): string | null {
+    return this.routers.get(routerId)?.title ?? null
+  }
+
   worker(workerId: string): RouterWorker | undefined {
     return this.pool.get(workerId)
   }
@@ -498,7 +512,10 @@ export class RouterService implements TurnProfiles {
       events.map((e) => e.seq)
     )
     this.pool.delivered(events)
-    const state = this.needsState(router, settings.engine) ? this.stateOf(router) : null
+    const history = this.hasHistory(router)
+    const state = this.needsState(router, settings.engine, history) ? this.stateOf(router) : null
+    // A context that starts without this thread's history reads memory once, frozen there.
+    const memory = !history || state ? this.memory.injection(router.projectId) : null
     const projects = renderProjects(this.host.projects(), router.projectId)
     // A context that gets the state reads the list there.
     const newProjects = !state && projects !== router.projectsShown ? projects : null
@@ -508,7 +525,11 @@ export class RouterService implements TurnProfiles {
     router.error = null
     this.changed(router)
     this.dispatched.set(routerId, new Map())
-    const outcome = await this.runBatch(engine, router, batch, events, state, newProjects)
+    const outcome = await this.runBatch(engine, router, batch, events, {
+      state,
+      projects: newProjects,
+      memory
+    })
     this.showDispatches(router, batch)
     this.dispatched.delete(routerId)
     this.active.delete(routerId)
@@ -536,14 +557,13 @@ export class RouterService implements TurnProfiles {
     router: CodexRouter,
     batch: ActiveBatch,
     events: InboxEvent[],
-    state: string | null,
-    projects: string | null
+    context: { state: string | null; projects: string | null; memory: string | null }
   ): Promise<RouterBatchOutcome> {
     try {
       return await engine.run(
         {
           batchId: batch.id,
-          text: renderBatch(batch.id, events, state, projects),
+          text: renderBatch(batch.id, events, context.state, context.projects, context.memory),
           native: router.native
         },
         this.sink(router, batch)
@@ -559,18 +579,26 @@ export class RouterService implements TurnProfiles {
    * history: after an engine switch, or when Claude Code has no session to
    * resume. The batch then opens with the current worker summary (RFC 12).
    */
-  private needsState(router: CodexRouter, engine: RouterEngineId): boolean {
+  private needsState(router: CodexRouter, engine: RouterEngineId, history: boolean): boolean {
     const native = router.native
-    const history =
-      native !== null || this.pool.list(router.id).length > 0 || this.store.hasMessages(router.id)
     if (!history) return false
     if (engine === 'owls') return native !== null && native.engine !== 'owls'
     return !(native?.engine === 'claude-code' && native.sessionId)
   }
 
+  /** True once an engine has run for this thread or it has workers. */
+  private hasHistory(router: CodexRouter): boolean {
+    return (
+      router.native !== null ||
+      this.pool.list(router.id).length > 0 ||
+      this.store.hasMessages(router.id)
+    )
+  }
+
   private engine(router: CodexRouter): RouterEngine | CodexFailure {
     const settings = this.host.settings().router
-    const key = JSON.stringify(settings)
+    const memory = this.memory.enabled()
+    const key = JSON.stringify([settings, memory])
     const cached = this.engines.get(router.id)
     if (cached?.key === key) return cached.engine
     const engine = this.createEngine({
@@ -585,10 +613,11 @@ export class RouterService implements TurnProfiles {
         messageWorker: (input) => this.pool.message(router.id, input),
         stopWorker: (workerId) => this.pool.stop(router.id, workerId),
         listWorkers: (input) => ({ workers: this.pool.describe(router.id, input.status) }),
-        recall: (id) => this.recall(router.id, id)
+        recall: (id) => this.recall(router.id, id),
+        ...(memory ? { searchMemory: (input) => this.memory.search(input) } : {})
       }),
       history: this.store.messages(router.id),
-      state: () => this.stateOf(router),
+      state: () => this.stateOf(router, true),
       persist: (batchId, messages) => this.store.appendMessages(router.id, batchId, messages)
     })
     if (!('code' in engine)) this.engines.set(router.id, { engine, key })
@@ -726,13 +755,18 @@ export class RouterService implements TurnProfiles {
     }
     return log
   }
-  /** The workers, and the projects when there are several, for a context that lacks them. */
-  private stateOf(router: CodexRouter): string {
+  /**
+   * The workers, and the projects when there are several, for a context that
+   * lacks them. A context the engine trimmed also lost the memory block, so it
+   * gets a line naming the categories it can still search.
+   */
+  private stateOf(router: CodexRouter, trimmed = false): string {
     const projects = renderProjects(this.host.projects(), router.projectId)
     const workers = renderState(this.pool.list(router.id), (worker) =>
       projects ? this.pool.projectName(worker) : null
     )
-    return projects ? `${workers}\n\n${projects}` : workers
+    const memory = trimmed ? this.memory.categoryLine() : null
+    return [workers, projects, memory].filter(Boolean).join('\n\n')
   }
   /** Inserts or replaces an item. Streaming only reaches the UI; a finished item is saved. */
   private put(router: CodexRouter, item: CodexItem): void {
