@@ -1,3 +1,8 @@
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const { liveCategory } = require('../../out/main/codex/runtime.js')
+
 /**
  * In-memory stand-in for MemoryStore with the same method surface, since
  * better-sqlite3 is built for Electron and plain Node tests cannot load it.
@@ -14,13 +19,25 @@ export function memoryRecords() {
     memories: () => [...memories.values()].map((m) => structuredClone(m)),
     categories: () => [...categories.values()].map((c) => structuredClone(c)),
     commit({ writes, mode, cursor, run }) {
-      const fresh = writes.map((write) => {
-        const current = table(write.kind).get(write.value.id)?.rev ?? null
-        return write.baseRev === null ? current === null : current === write.baseRev
+      const current = writes.map((write) => {
+        const stored = table(write.kind).get(write.value.id)?.rev ?? null
+        return write.baseRev === null ? stored === null : stored === write.baseRev
       })
-      const refused = mode === 'all' && fresh.includes(false)
-      const results = writes.map((write, index) => {
-        if (refused || !fresh[index]) return { ok: false, reason: 'stale' }
+      const staged = new Map(
+        writes.flatMap((write, index) =>
+          write.kind === 'category' && current[index] ? [[write.value.id, write.value]] : []
+        )
+      )
+      const category = (id) => staged.get(id) ?? categories.get(id) ?? null
+      const checked = writes.map((write, index) => {
+        if (!current[index]) return null
+        if (write.kind === 'category') return write
+        const value = liveCategory(write.value, category)
+        return value && { ...write, value }
+      })
+      const refused = mode === 'all' && checked.includes(null)
+      const results = checked.map((write) => {
+        if (refused || !write) return { ok: false, reason: 'stale' }
         rev++
         table(write.kind).set(write.value.id, structuredClone({ ...write.value, rev }))
         return { ok: true, rev }

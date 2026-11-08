@@ -133,27 +133,38 @@ export class DreamingRunner {
   }
 
   private drain(): Promise<void> {
-    this.draining ??= (async () => {
-      try {
-        while (!this.closed) {
-          const threadId = this.queue.shift()
-          if (!threadId) break
-          this.active = { threadId, engine: null }
-          let more = false
-          try {
-            more = await this.run(threadId)
-          } finally {
-            this.active = null
-            this.deps.changed()
-          }
-          // A slice cut at the input limit leaves the rest for another run.
-          if (more && !this.closed) this.enqueue(threadId)
-        }
-      } finally {
-        this.draining = null
-      }
-    })()
+    // `.finally` runs as a microtask, so the reset always lands after the
+    // assignment, even when the loop finishes without awaiting anything.
+    this.draining ??= this.loop().finally(() => {
+      this.draining = null
+      if (this.queue.length && !this.closed) void this.drain()
+    })
     return this.draining
+  }
+
+  private async loop(): Promise<void> {
+    while (!this.closed) {
+      // Turning learning off stops the queue, not just new enqueues.
+      if (!this.deps.settings().memory.learn) {
+        if (this.queue.length) {
+          this.queue.length = 0
+          this.deps.changed()
+        }
+        return
+      }
+      const threadId = this.queue.shift()
+      if (!threadId) return
+      this.active = { threadId, engine: null }
+      let more = false
+      try {
+        more = await this.run(threadId)
+      } finally {
+        this.active = null
+        this.deps.changed()
+      }
+      // A slice cut at the input limit leaves the rest for another run.
+      if (more && !this.closed) this.enqueue(threadId)
+    }
   }
 
   /** One run over one thread; true when it succeeded and content is still unread. */

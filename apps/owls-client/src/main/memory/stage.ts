@@ -276,6 +276,7 @@ export class DreamingStage {
           memory.kind = op.kind
         }
         memory.updatedAt = now
+        this.put(memory)
         this.markUpdated(memory.id)
         return memory.id
       }
@@ -290,6 +291,7 @@ export class DreamingStage {
         memory.status = 'archived'
         memory.supersededBy = by
         memory.updatedAt = now
+        this.put(memory)
         this.markArchived(memory.id)
         return memory.id
       }
@@ -297,6 +299,7 @@ export class DreamingStage {
         const memory = this.editable(op.id)
         memory.status = 'archived'
         memory.updatedAt = now
+        this.put(memory)
         this.markArchived(memory.id)
         return memory.id
       }
@@ -343,15 +346,23 @@ export class DreamingStage {
     return found
   }
 
+  /**
+   * A copy of an active memory the agent may change. The change reaches the
+   * working set only through `put`, after every check in the op has passed, so
+   * a rejected op leaves nothing behind.
+   */
   private editable(id: string): Memory {
     const memory = this.memories.get(id)
     if (!memory || memory.status !== 'active')
       throw new StageError('not_found', `No active memory has ID ${id}.`)
     if (memory.editedByUser)
       throw new StageError('user_owned', 'The user edited this memory, so it stays as it is.')
-    const key = `memory:${id}`
-    if (!this.touched.has(key)) this.touch('memory', id, memory.rev)
-    return memory
+    return { ...memory }
+  }
+
+  private put(memory: Memory): void {
+    this.touch('memory', memory.id, memory.rev)
+    this.memories.set(memory.id, memory)
   }
 
   private assertClean(value: string): void {

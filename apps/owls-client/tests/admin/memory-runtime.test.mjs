@@ -414,6 +414,7 @@ function scriptedEngine(script, outcome = { status: 'completed', error: null }) 
 
 function dreamingSetup({ engine, items, reports = {}, settings } = {}) {
   const base = setup({ settings })
+  let current = settingsOf(settings)
   const threads = [
     { id: 't1', title: 'Weekly report', projectId: 'p2', status: 'idle' },
     { id: 't2', title: 'Busy', projectId: null, status: 'running' }
@@ -438,12 +439,16 @@ function dreamingSetup({ engine, items, reports = {}, settings } = {}) {
       { id: 'a1', kind: 'assistant', status: 'completed', text: 'Checked the archive too.' }
     ],
     projects: () => PROJECTS,
-    settings: () => settingsOf(settings),
+    settings: () => current,
     engine,
     changed: () => {},
     now: () => NOW
   })
-  return { ...base, runner, threads }
+  const setSettings = (next) => {
+    current = settingsOf(next)
+    base.setSettings(next)
+  }
+  return { ...base, runner, threads, setSettings }
 }
 
 const item = (id, kind, text, rev, position) => ({
@@ -572,6 +577,100 @@ test('a long thread is read in slices that never split one save', async () => {
   const first = engine.runs[0].input.text
   const lastIndex = Math.max(...[...first.matchAll(/\[u(\d+)\]/g)].map((m) => Number(m[1])))
   assert.equal(lastIndex % 2, 1)
+})
+
+test('a Run now with nothing to read leaves the queue able to start later runs', async () => {
+  const engine = scriptedEngine(async () => {})
+  const items = { t1: [] }
+  const { runner } = dreamingSetup({ engine: engine.factory, items })
+  await runner.runNow()
+  items.t1.push(item('u1', 'user', 'I like tea', 3, 0))
+  await runner.runNow()
+  assert.equal(engine.runs.length, 1)
+  items.t1.push(item('u2', 'user', 'And green tea most', 4, 1))
+  runner.schedule('t1')
+  await runner.runNow()
+  assert.equal(engine.runs.length, 2)
+})
+
+test('turning learning off stops threads already queued', async () => {
+  let setSettings = () => {}
+  const engine = scriptedEngine(async () => setSettings({ memory: { learn: false } }))
+  const items = {
+    t1: [item('u1', 'user', 'I like tea', 3, 0)],
+    t2: [item('u2', 'user', 'I like coffee', 4, 0)]
+  }
+  const setupResult = dreamingSetup({ engine: engine.factory, items })
+  setSettings = setupResult.setSettings
+  setupResult.threads[1].status = 'idle'
+  await setupResult.runner.runNow()
+  assert.equal(engine.runs.length, 1)
+  assert.equal(setupResult.records.cursor('t2'), null)
+})
+
+test('a rejected stage op changes nothing, even after a check it passed', () => {
+  const { service, records } = setup()
+  const work = category(service, 'work')
+  const seed = new DreamingStage([], records.categories(), {
+    runId: 'mr_0',
+    threadId: 't1',
+    projects: PROJECTS,
+    now: NOW
+  })
+  const [{ id }] = seed.stage([
+    { op: 'add', store: 'personal', category: work, text: 'Works at Acme', sources: [] }
+  ])
+  records.commit({ mode: 'each', writes: seed.writes() })
+  const stage = new DreamingStage(records.memories(), records.categories(), {
+    runId: 'mr_1',
+    threadId: 't1',
+    projects: PROJECTS,
+    now: NOW
+  })
+  const [rejected] = stage.stage([{ op: 'update', id, text: 'Works at Globex', category: 'nope' }])
+  assert.equal(rejected.error, 'category_not_found')
+  assert.deepEqual(stage.writes(), [])
+  const results = stage.stage([
+    { op: 'update', id, text: 'Works at Initech' },
+    { op: 'update', id, text: 'Works at Globex', kind: 'rule' }
+  ])
+  assert.deepEqual(
+    results.map((r) => (r.ok ? 'ok' : r.error)),
+    ['ok', 'invalid_scope']
+  )
+  const [write] = stage.writes()
+  assert.equal(write.value.text, 'Works at Initech')
+  assert.deepEqual(stage.summary().updated, [id])
+})
+
+test('a Dreaming commit follows a category merged mid-run and refuses one removed', () => {
+  const { service, records } = setup()
+  const money = category(service, 'money')
+  const invest = category(service, 'invest')
+  const sport = category(service, 'sport')
+  const stage = new DreamingStage(records.memories(), records.categories(), {
+    runId: 'mr_1',
+    threadId: 't1',
+    projects: PROJECTS,
+    now: NOW
+  })
+  const [merged, removed] = stage.stage([
+    { op: 'add', store: 'personal', category: money, text: 'Prefers index funds', sources: [] },
+    { op: 'add', store: 'personal', category: sport, text: 'Runs on Sundays', sources: [] }
+  ])
+  const rev = (id) => records.categories().find((c) => c.id === id).rev
+  service.category({ action: 'merge', id: money, baseRev: rev(money), into: invest })
+  service.category({ action: 'remove', id: sport, baseRev: rev(sport) })
+  const writes = stage.writes()
+  const results = records.commit({ mode: 'each', writes })
+  const ok = Object.fromEntries(writes.map((w, i) => [w.value.id, results[i].ok]))
+  assert.deepEqual(ok, { [merged.id]: true, [removed.id]: false })
+  const saved = records.memories()
+  assert.equal(saved.find((m) => m.id === merged.id).categoryId, invest)
+  assert.equal(
+    saved.find((m) => m.id === removed.id),
+    undefined
+  )
 })
 
 test('idle and startup triggers schedule threads without busy workers', () => {

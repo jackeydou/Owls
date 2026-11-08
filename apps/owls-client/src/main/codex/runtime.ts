@@ -6,6 +6,7 @@ export { GitHubAuth } from '../github/auth.js'
 export { lookupPullRequest, parseGitHubRemote } from '../github/pull-requests.js'
 export { DreamingRunner } from '../memory/dreaming.js'
 export { DREAMING_INSTRUCTIONS } from '../memory/prompt.js'
+export { liveCategory } from '../memory/records.js'
 export {
   estimateTokens,
   looksSecret,

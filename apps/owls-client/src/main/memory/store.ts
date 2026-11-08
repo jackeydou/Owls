@@ -15,12 +15,13 @@ import {
 } from '../codex/schema.js'
 import type { CodexStore } from '../codex/store.js'
 import { nextRev } from '../codex/sync-state.js'
-import type {
-  MemoryCommit,
-  MemoryCursor,
-  MemoryRecords,
-  MemoryWrite,
-  MemoryWriteResult
+import {
+  liveCategory,
+  type MemoryCommit,
+  type MemoryCursor,
+  type MemoryRecords,
+  type MemoryWrite,
+  type MemoryWriteResult
 } from './records.js'
 
 /** Memory persistence in `owls-codex.db`, sharing the Codex store's connection. */
@@ -45,13 +46,26 @@ export class MemoryStore implements MemoryRecords {
   }
   commit(commit: MemoryCommit): MemoryWriteResult[] {
     return this.db.transaction((tx) => {
-      const fresh = commit.writes.map((write) => {
-        const current = this.currentRev(tx, write)
-        return write.baseRev === null ? current === null : current === write.baseRev
+      const current = commit.writes.map((write) => {
+        const rev = this.currentRev(tx, write)
+        return write.baseRev === null ? rev === null : rev === write.baseRev
       })
-      const refused = commit.mode === 'all' && fresh.includes(false)
-      const results = commit.writes.map((write, index): MemoryWriteResult => {
-        if (refused || !fresh[index]) return { ok: false, reason: 'stale' }
+      // Categories as this commit leaves them: stored rows, then its own writes.
+      const staged = new Map(
+        commit.writes.flatMap((write, index) =>
+          write.kind === 'category' && current[index] ? [[write.value.id, write.value]] : []
+        )
+      )
+      const category = (id: string) => staged.get(id) ?? this.category(tx, id)
+      const writes = commit.writes.map((write, index): MemoryWrite | null => {
+        if (!current[index]) return null
+        if (write.kind === 'category') return write
+        const value = liveCategory(write.value, category)
+        return value && { ...write, value }
+      })
+      const refused = commit.mode === 'all' && writes.includes(null)
+      const results = writes.map((write): MemoryWriteResult => {
+        if (refused || !write) return { ok: false, reason: 'stale' }
         const rev = nextRev(tx)
         if (write.kind === 'memory') {
           const value = memorySchema.parse({ ...write.value, rev })
@@ -116,6 +130,14 @@ export class MemoryStore implements MemoryRecords {
     const table = write.kind === 'memory' ? codexMemories : codexMemoryCategories
     const row = tx.select({ rev: table.rev }).from(table).where(eq(table.id, write.value.id)).get()
     return row?.rev ?? null
+  }
+  private category(tx: Pick<CodexStore['db'], 'select'>, id: string): MemoryCategory | null {
+    const row = tx
+      .select({ value: codexMemoryCategories.value })
+      .from(codexMemoryCategories)
+      .where(eq(codexMemoryCategories.id, id))
+      .get()
+    return row ? memoryCategorySchema.parse(row.value) : null
   }
   private writeRun(tx: Pick<CodexStore['db'], 'insert'>, run: MemoryRun): void {
     const value = memoryRunSchema.parse(run)

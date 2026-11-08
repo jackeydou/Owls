@@ -35,3 +35,22 @@ export interface MemoryRecords {
   /** The newest runs first. */
   runs(limit: number): MemoryRun[]
 }
+
+/**
+ * The memory as it should be written against the categories at commit time.
+ * A Dreaming run stages against a snapshot, so the user may delete or merge a
+ * category before the run commits: an active personal memory follows merge
+ * tombstones to the live category, and is refused (null) when its category is
+ * gone. Other memories pass through unchanged.
+ */
+export function liveCategory(
+  memory: Memory,
+  category: (id: string) => MemoryCategory | null
+): Memory | null {
+  if (memory.store !== 'personal' || memory.status !== 'active') return memory
+  let found = category(memory.categoryId)
+  for (let hops = 0; found?.status === 'deleted' && found.mergedInto && hops < 8; hops++)
+    found = category(found.mergedInto)
+  if (!found || found.status !== 'active') return null
+  return found.id === memory.categoryId ? memory : { ...memory, categoryId: found.id }
+}
