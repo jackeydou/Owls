@@ -3,10 +3,10 @@ import type {
   AgentProvider,
   CodexEvent,
   CodexProject,
-  CodexRouter,
   CodexSession,
   CodexSettings,
   CreateCodexSession,
+  RespondCodexRequest,
   SendCodexMessage
 } from '../../shared/codex.js'
 import type { RouterWorker, WorkerPullRequestLink, WorkerStatus } from '../../shared/router.js'
@@ -24,6 +24,12 @@ import {
   RouterToolError,
   type StopWorkerResult
 } from './tools.js'
+import type {
+  ApproveWorkerInput,
+  ApproveWorkerResult,
+  WorkerDispatch,
+  WorkerMessageMode
+} from './worker-target.js'
 import type { WorkerWorkspaces, WorktreeRepo, WorktreeWorkspace } from './worktrees.js'
 
 /** What a task service asks before each turn, and reports after it. */
@@ -56,6 +62,8 @@ export type WorkerHost = {
   send(input: SendCodexMessage): Promise<void>
   steer(sessionId: string, text: string): Promise<'steered' | 'not_running'>
   interrupt(sessionId: string): Promise<void>
+  /** Answers a pending request; throws `request_unavailable` once it is no longer pending. */
+  respond(input: RespondCodexRequest): void
 }
 
 /** How workers reach the Router Inbox. */
@@ -143,14 +151,11 @@ export class WorkerPool implements TurnProfiles {
 
   /**
    * Creates a worker task and starts it, or queues it when the limit or the
-   * checkout's writer is busy. `seen` maps goal hashes to workers dispatched in
-   * the current batch, so a retried call reuses its worker.
+   * checkout's writer is busy. A retried call reuses its worker: by goal hash
+   * within a batch (`seen`), or by the id the sender chose.
    */
-  async dispatch(
-    router: CodexRouter,
-    input: DispatchTaskInput,
-    seen: Map<string, string> | undefined
-  ): Promise<DispatchTaskResult> {
+  async dispatch(request: WorkerDispatch): Promise<DispatchTaskResult> {
+    const { input, seen } = request
     const settings = this.host.settings()
     const permission = input.permission ?? settings.permission
     if (PERMISSION_RANK[permission] > PERMISSION_RANK[settings.router.maxPermission])
@@ -161,7 +166,7 @@ export class WorkerPool implements TurnProfiles {
     const provider = input.provider ?? settings.provider
     if (!this.host.providerReady(provider))
       throw new RouterToolError('provider_unavailable', `${provider} is not connected.`)
-    const project = this.projectFor(router, input)
+    const project = this.projectFor(request.defaultProjectId, input)
     const key = createHash('sha256')
       .update(project.id)
       .update('\0')
@@ -170,7 +175,7 @@ export class WorkerPool implements TurnProfiles {
       .update(input.context ?? '')
       .digest('hex')
     const repeated = () => {
-      const worker = this.workers.get(seen?.get(key) ?? '')
+      const worker = this.workers.get(request.workerId ?? seen?.get(key) ?? '')
       return worker
         ? {
             workerId: worker.id,
@@ -181,7 +186,7 @@ export class WorkerPool implements TurnProfiles {
     }
     const before = repeated()
     if (before) return before
-    const parent = input.parent ? this.parentFor(router.id, input.parent) : null
+    const parent = input.parent ? this.parentFor(request.routerId, input.parent) : null
     if ([...this.workers.values()].filter((w) => w.status === 'queued').length >= QUEUE_LIMIT)
       throw new RouterToolError(
         'worker_limit_reached',
@@ -193,16 +198,17 @@ export class WorkerPool implements TurnProfiles {
     // The same call may have finished while the repository was inspected.
     const after = repeated()
     if (after) return after
-    const id = `w_${crypto.randomUUID().slice(0, 8)}`
+    const id = request.workerId ?? `w_${crypto.randomUUID().slice(0, 8)}`
     const base = input.base ?? 'head'
     const baseBranch = base === 'parent' ? this.parentBranch(parent, repo) : null
     const workspace = repo
       ? { ...this.workspaces.plan(repo, id, base), baseBranch }
       : ({ kind: 'checkout' } as const)
     const selection =
-      provider === 'claude-code'
+      request.selection ??
+      (provider === 'claude-code'
         ? { model: settings.claudeModel, effort: settings.claudeEffort }
-        : { model: settings.model, effort: settings.effort }
+        : { model: settings.model, effort: settings.effort })
     let session: CodexSession
     try {
       session =
@@ -218,7 +224,7 @@ export class WorkerPool implements TurnProfiles {
     const now = new Date().toISOString()
     const worker: RouterWorker = {
       id,
-      routerId: router.id,
+      routerId: request.routerId,
       projectId: project.id,
       sessionId: session.id,
       provider,
@@ -251,11 +257,15 @@ export class WorkerPool implements TurnProfiles {
    * Delivers a Router follow-up: into the running turn when possible, otherwise
    * as the worker's next turn, which may wait in the queue.
    */
-  async message(routerId: string, input: MessageWorkerInput): Promise<MessageWorkerResult> {
+  async message(
+    routerId: string,
+    input: MessageWorkerInput,
+    mode: WorkerMessageMode = 'steer'
+  ): Promise<MessageWorkerResult> {
     const worker = this.owned(routerId, input.workerId)
     const append = (text: string) => (worker.next ? `${worker.next}\n\n${text}` : text)
     if (activeWorker(worker)) {
-      if ((await this.host.steer(worker.sessionId, input.text)) === 'steered')
+      if (mode === 'steer' && (await this.host.steer(worker.sessionId, input.text)) === 'steered')
         return { delivered: 'steered' }
       // The turn is ending; the message becomes the next turn once it settles.
       if (activeWorker(worker)) {
@@ -296,6 +306,27 @@ export class WorkerPool implements TurnProfiles {
     this.stopping.add(worker.id)
     await this.host.interrupt(worker.sessionId).catch(() => {})
     return { status: 'stopping' }
+  }
+
+  /**
+   * Answers a worker's pending approval request. Whichever answer arrives first
+   * wins; a later one finds the request resolved.
+   */
+  async approve(routerId: string, input: ApproveWorkerInput): Promise<ApproveWorkerResult> {
+    const worker = this.owned(routerId, input.workerId)
+    if (worker.status !== 'waiting') return { status: 'already_resolved' }
+    try {
+      this.host.respond({
+        sessionId: worker.sessionId,
+        requestId: input.requestId,
+        decision: input.decision === 'approve' ? 'accept' : 'decline'
+      })
+    } catch (error) {
+      if (error instanceof CodexRuntimeError && error.code === 'request_unavailable')
+        return { status: 'already_resolved' }
+      throw error
+    }
+    return { status: 'answered' }
   }
 
   /** The list_workers result: newest first, report summaries shortened. */
@@ -562,7 +593,7 @@ export class WorkerPool implements TurnProfiles {
   }
 
   /** The named project, else the parent's, else the thread's default, else the only one. */
-  private projectFor(router: CodexRouter, input: DispatchTaskInput): CodexProject {
+  private projectFor(defaultProjectId: string | null, input: DispatchTaskInput): CodexProject {
     const projects = this.host.projects()
     const names = () =>
       projects
@@ -582,7 +613,7 @@ export class WorkerPool implements TurnProfiles {
           : `There is no such project. The projects are: ${names()}.`
       )
     }
-    const fallback = (input.parent && this.workers.get(input.parent)?.projectId) || router.projectId
+    const fallback = (input.parent && this.workers.get(input.parent)?.projectId) || defaultProjectId
     const found = projects.find((p) => p.id === fallback)
     if (found) return found
     if (projects.length === 1) return projects[0]

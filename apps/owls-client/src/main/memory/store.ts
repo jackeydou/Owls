@@ -15,6 +15,7 @@ import {
 } from '../codex/schema.js'
 import type { CodexStore } from '../codex/store.js'
 import { nextRev } from '../codex/sync-state.js'
+import { logChange } from '../sync/sync-log.js'
 import {
   liveCategory,
   type MemoryCommit,
@@ -83,6 +84,7 @@ export class MemoryStore implements MemoryRecords {
             .values({ id: value.id, ...row })
             .onConflictDoUpdate({ target: codexMemories.id, set: row })
             .run()
+          logChange(tx, 'memory', value.id)
         } else {
           const value = memoryCategorySchema.parse({ ...write.value, rev })
           const row = { rev, updatedAt: value.updatedAt, value }
@@ -90,6 +92,7 @@ export class MemoryStore implements MemoryRecords {
             .values({ id: value.id, ...row })
             .onConflictDoUpdate({ target: codexMemoryCategories.id, set: row })
             .run()
+          logChange(tx, 'memory-category', value.id)
         }
         return { ok: true, rev }
       })

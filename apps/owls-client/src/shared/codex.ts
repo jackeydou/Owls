@@ -30,6 +30,8 @@ import {
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
 export const providerSchema = z.enum(['codex', 'claude-code'])
+/** A device id: `dv_` and eight hex digits, made on the device's first start. */
+export const deviceIdSchema = z.string().regex(/^dv_[0-9a-f]{8}$/)
 export const effortSchema = z.string().min(1).max(64)
 export const failureSchema = z.object({
   code: z.enum([
@@ -174,6 +176,8 @@ export const modelSchema = z.object({
  */
 export const routerSchema = z.object({
   id: z.string(),
+  /** The device that runs this thread's Router; set at creation and never changed. */
+  deviceId: deviceIdSchema,
   /** From the first message; null until there is one. */
   title: z.string().nullable(),
   projectId: z.string().nullable(),

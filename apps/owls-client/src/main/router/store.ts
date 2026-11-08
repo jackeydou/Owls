@@ -18,6 +18,7 @@ import {
 } from '../codex/schema.js'
 import type { CodexStore } from '../codex/store.js'
 import { nextRev } from '../codex/sync-state.js'
+import { itemRecordId, logChange } from '../sync/sync-log.js'
 import {
   type BatchStatus,
   type BatchValue,
@@ -49,6 +50,10 @@ export class RouterStore {
   private get db() {
     return this.store.db
   }
+  /** This device: it runs only the threads whose `deviceId` matches. */
+  get deviceId(): string {
+    return this.store.deviceId
+  }
   routers(): CodexRouter[] {
     return this.db
       .select()
@@ -66,13 +71,17 @@ export class RouterStore {
     return this.db.transaction((tx) => {
       const rev = nextRev(tx)
       const router = routerSchema.parse({ ...value, rev })
+      const row = {
+        rev,
+        ownerDeviceId: router.deviceId,
+        updatedAt: router.updatedAt,
+        value: router
+      }
       tx.insert(codexThreads)
-        .values({ id: router.id, rev, updatedAt: router.updatedAt, value: router })
-        .onConflictDoUpdate({
-          target: codexThreads.id,
-          set: { rev, updatedAt: router.updatedAt, value: router }
-        })
+        .values({ id: router.id, ...row })
+        .onConflictDoUpdate({ target: codexThreads.id, set: row })
         .run()
+      logChange(tx, 'thread', router.id)
       for (const { item, position } of items) {
         const parsed = itemSchema.parse(item)
         tx.insert(codexThreadItems)
@@ -82,6 +91,7 @@ export class RouterStore {
             set: { rev, value: parsed }
           })
           .run()
+        logChange(tx, 'item', itemRecordId(router.id, parsed.id))
       }
       return rev
     })
@@ -109,20 +119,23 @@ export class RouterStore {
   }
   saveWorker(value: RouterWorker): void {
     const worker = workerSchema.parse(value)
-    this.db
-      .insert(codexWorkers)
-      .values({
-        id: worker.id,
-        routerId: worker.routerId,
-        sessionId: worker.sessionId,
-        updatedAt: worker.updatedAt,
-        value: worker
-      })
-      .onConflictDoUpdate({
-        target: codexWorkers.id,
-        set: { updatedAt: worker.updatedAt, value: worker }
-      })
-      .run()
+    this.db.transaction((tx) => {
+      tx.insert(codexWorkers)
+        .values({
+          id: worker.id,
+          routerId: worker.routerId,
+          sessionId: worker.sessionId,
+          ownerDeviceId: this.deviceId,
+          updatedAt: worker.updatedAt,
+          value: worker
+        })
+        .onConflictDoUpdate({
+          target: codexWorkers.id,
+          set: { updatedAt: worker.updatedAt, value: worker }
+        })
+        .run()
+      logChange(tx, 'worker', worker.id)
+    })
   }
   messages(routerId: string): unknown[] {
     return this.db

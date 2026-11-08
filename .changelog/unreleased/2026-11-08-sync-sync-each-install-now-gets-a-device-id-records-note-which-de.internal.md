@@ -1,0 +1,1 @@
+- -- Sync: each install now gets a device id, records note which device owns them, and every save is queued in a local sync log, in preparation for multi-device sync. Nothing is sent yet. (#41)
