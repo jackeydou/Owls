@@ -1,0 +1,1 @@
+- Sidebars: every sidebar resizes by dragging, sidebar actions highlight and show shortcuts only on hover, the logo row is gone, and Projects move to a right-hand sidebar opened from the title bar. (#47)
