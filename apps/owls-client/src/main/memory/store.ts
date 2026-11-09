@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt } from 'drizzle-orm'
 import {
   type Memory,
   type MemoryCategory,
@@ -116,6 +116,25 @@ export class MemoryStore implements MemoryRecords {
       .where(eq(codexMemoryCursors.threadId, threadId))
       .get()
     return row ? { threadId, itemRev: row.itemRev, eventSeq: row.eventSeq } : null
+  }
+  purge(before: string): number {
+    return this.db.transaction((tx) => {
+      const memories = tx
+        .delete(codexMemories)
+        .where(and(eq(codexMemories.status, 'deleted'), lt(codexMemories.updatedAt, before)))
+        .run().changes
+      // Category status lives only in the JSON value, so pick the ids first.
+      const categories = tx
+        .select({ id: codexMemoryCategories.id, value: codexMemoryCategories.value })
+        .from(codexMemoryCategories)
+        .where(lt(codexMemoryCategories.updatedAt, before))
+        .all()
+        .filter((row) => memoryCategorySchema.parse(row.value).status === 'deleted')
+        .map((row) => row.id)
+      if (categories.length)
+        tx.delete(codexMemoryCategories).where(inArray(codexMemoryCategories.id, categories)).run()
+      return memories + categories.length
+    })
   }
   saveRun(run: MemoryRun): void {
     this.writeRun(this.db, run)

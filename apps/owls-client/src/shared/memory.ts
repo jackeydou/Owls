@@ -70,6 +70,12 @@ const memoryBodySchema = z.object({
   source: memorySourceSchema,
   /** The memory that replaced this one; set when it is archived for it. */
   supersededBy: z.string().nullable(),
+  /**
+   * When Dreaming last confirmed an old knowledge or lesson memory still holds
+   * (RFC_OWLS_MEMORY 4.1). It does not move `updatedAt`, so a confirmed memory
+   * keeps its place in recency order. Rows saved before reviews have none.
+   */
+  reviewedAt: z.string().nullable().default(null),
   createdAt: z.string(),
   updatedAt: z.string()
 })
@@ -112,6 +118,10 @@ export const memoryRunSchema = z.object({
   added: z.array(z.string()),
   updated: z.array(z.string()),
   archived: z.array(z.string()),
+  /** Old knowledge and lesson memories the run confirmed still hold. */
+  reviewed: z.array(z.string()).default([]),
+  /** Personal categories the run merged into another. */
+  merged: z.array(z.string()).default([]),
   /** Staged operations the sync service or a newer edit refused; the run still counts. */
   stale: z.number().int().nonnegative(),
   createdAt: z.string(),

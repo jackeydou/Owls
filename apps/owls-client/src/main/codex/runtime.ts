@@ -17,6 +17,7 @@ export {
 export { MemoryService } from '../memory/service.js'
 export { DreamingStage } from '../memory/stage.js'
 export { MemoryStore } from '../memory/store.js'
+export { MemorySweeper } from '../memory/sweep.js'
 export { DreamingTriggers } from '../memory/triggers.js'
 export { RouterCredentials } from '../router/credentials.js'
 export { ClaudeEngine } from '../router/engines/claude.js'

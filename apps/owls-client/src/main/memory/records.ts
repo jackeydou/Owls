@@ -31,6 +31,11 @@ export interface MemoryRecords {
   /** Each write takes the next shared change version unless its `baseRev` is stale. */
   commit(commit: MemoryCommit): MemoryWriteResult[]
   cursor(threadId: string): MemoryCursor | null
+  /**
+   * Removes memory and category tombstones last changed before `before`. Their
+   * deletion was already logged for sync when they became tombstones.
+   */
+  purge(before: string): number
   saveRun(run: MemoryRun): void
   /** The newest runs first. */
   runs(limit: number): MemoryRun[]

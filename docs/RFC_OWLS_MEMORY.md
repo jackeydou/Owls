@@ -1,6 +1,6 @@
 # RFC: Memory 与 Dreaming Agent
 
-状态：单设备部分已实现（M1、M2，以及 M3 的空闲触发和启动补跑；类别合并由用户在设置页完成，Dreaming 的自动合并和「知识」「教训」复核未做）。日期：2026-11-08。基线：`e39bbcd`。
+状态：单设备部分已实现（M1–M3：包括 Dreaming 合并个人类别、复核「知识」「教训」，以及过期清理）。M4 和多设备同步未做。日期：2026-11-09。基线：`40fbb0b`。
 
 调研依据见 `reports/Agent memory 前沿方案调研.md`（未入库）。本文的数字（条数、字节、时长）是初始值，
 需要在实现后用真实 thread 调整。多设备沿用 [RFC_OWLS_MULTI_DEVICE.md](RFC_OWLS_MULTI_DEVICE.md)
@@ -112,6 +112,8 @@ type Memory = MemoryScope & {
   }
   /** 被哪一条取代；归档时填写。 */
   supersededBy: string | null
+  /** Dreaming 最近一次确认这条「知识」或「教训」仍然成立的时间；不改 `updatedAt`。旧数据没有这个字段，按 null 读。 */
+  reviewedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -152,7 +154,9 @@ type Memory = MemoryScope & {
 | `status` | 进展 | 做到哪了、结果在哪、还剩什么 | 分支、PR、待办 | 本周完成了什么 | 学到第几章 | 还没答完的问题 | 默认 14 天后过期 |
 
 - `status` 条目在 Dreaming 没有给出 `expiresAt` 时，由主进程补上「创建时间 + 14 天」。
-- `knowledge` 和 `lesson` 超过 90 天没更新的，由 M3 的整理运行复核，复核的结论是保留、取代或归档。
+- `knowledge` 和 `lesson` 超过 90 天没更新、也没复核过的，由整理运行复核，结论是保留（`confirm`）、取代或归档。
+  复核搭在 thread 的整理运行上：目录里每个涉及的项目最多列 5 条到期条目，从最旧的开始。
+  `confirm` 只写 `reviewedAt`，不改 `updatedAt`，所以条目在「最近」里的位置不变。用户改过的条目不进复核。
 - 不设「其他」类。有了它，拿不准的内容都会被放进去，而这些内容通常本来就不该记。
 - 只记以后会复用的结论，不记问答的原始答案。随时能重新查到的内容记下来只会增加噪声。
 - 没派 Worker 的日常问答不经过项目，属于 Router 对话，进个人记忆。
@@ -223,6 +227,8 @@ type MemoryOp =
   | { op: 'update'; id: string; text?: string; category?: string; kind?: ProjectMemoryKind }
   | { op: 'supersede'; id: string; by: string /* 同批新增条目的临时 id */ }
   | { op: 'archive'; id: string; reason: string }
+  | { op: 'confirm'; id: string }                                   // 复核：到期的知识或教训仍然成立
+  | { op: 'merge_category'; from: string; into: string }            // 只用于个人记忆
 ```
 
 主进程在校验时会拒绝以下操作，并把原因返回给模型：
@@ -233,6 +239,11 @@ type MemoryOp =
 - 新类别和已有类别同名或只差大小写，返回 `category_exists`。
 - 文本里有疑似密钥、令牌或密码，返回 `secret_detected`。用简单的正则匹配，宁可多拦。
 - 项目记忆没有指定项目，或者项目不存在。
+- 合并用户建的类别，或者要合并的类别里有用户改过的条目，返回 `user_owned`。用户建的类别可以作为合并目标。
+- `confirm` 的条目不是到期的「知识」「教训」，返回 `not_due`。
+
+`merge_category` 的写法和设置页的合并一样：把条目移到目标类别，原类别留下带 `mergedInto` 的墓碑。
+目录里标出哪些类别是用户建的。
 
 运行失败或被中断时，暂存的修改全部丢弃，进度不前进，下次重跑这段内容。
 
@@ -250,7 +261,8 @@ type MemoryOp =
 
 ### 5.6 运行记录
 
-`codex_memory_runs` 记录每次运行的 thread、处理区间、引擎、token、状态、错误，以及新增、更新、归档的条数和对应条目 id。
+`codex_memory_runs` 记录每次运行的 thread、处理区间、引擎、token、状态、错误，以及新增、更新、归档、复核保留的条目 id
+和合并掉的类别 id。
 设置页显示最近 20 次运行，方便用户知道某条 memory 是什么时候、从哪里整理出来的。
 
 ## 6. Router 读取
@@ -490,16 +502,23 @@ Worker 跑在 Claude Code 和 Codex 上，各自有原生 memory，Owls 不往�
 - 项目记忆固定五类，个人记忆由 agent 定类别（第 4.1 节）。
 - 多设备不做文件同步：memory 是同步服务上的共享记录，按 `baseRev` 比较版本；每台设备只整理自己的 thread（第 11 节）。
 
-尚未实现：
+- **过期清理不调用模型。** 主进程在启动 10 秒后和之后每天扫描一次（`MemorySweeper`），`memory.learn` 关闭时照常运行：
+  过期的 `active` 条目改为 `archived`，写入带 `baseRev`，用户刚改过的就跳过，下次再扫；
+  同一次扫描删除 `updatedAt` 超过 90 天的条目墓碑和类别墓碑。删墓碑不再写同步日志，因为删除在变成墓碑时已经记过。
+  Dreaming 不负责过期，只按第 4.1 节复核长期没更新的「知识」「教训」。
 
-- **过期记忆没有清理。** 过期的条目已经不会注入，`search_memory` 也查不到，但状态一直是 `active`，
-  设置页照样列出来，库里也不会删掉。墓碑保留 90 天后清理（第 4 节）同样还没做。
-  打算的做法：主进程在启动时和之后每天扫描一次，不调用模型，把过期的 `active` 条目改为 `archived`，
-  写入照样带 `baseRev`，同一次扫描里清理超过 90 天的墓碑。已归档的条目要不要过一段时间也清掉，还没定。
-  Dreaming 不负责过期，只按第 4.1 节复核长期没更新的「知识」「教训」（M3，同样未做）。
+仍未决定：
 
-需要在实现前验证的事：
+- 已归档的条目要不要过一段时间也清掉。
 
-- Claude Agent SDK 的类型里有 `persistSession?: boolean`（`sdk.d.ts`）。需要确认设为 `false` 后，
-  Dreaming 会话不会写进用户的 `~/.claude` 历史，Owls MCP 工具也照常可用。
-- Dreaming 会话在 Codex app-server 里是否会出现在用户的 Codex 线程列表中。
+实测（2026-11-09，Codex CLI `0.166.0`、Claude Code `2.1.316`，`pnpm debug:app` 的隔离数据目录）：
+
+- Router 用 Claude Code 引擎，派出的 Codex Worker 在自己的 worktree 里改代码、提交并汇报。随后用 Codex 跑 Dreaming，
+  整理出 1 条个人记忆（回复语言和结构）、1 条项目「规则」（提交信息格式）和 1 条「进展」（分支和提交，14 天后过期），
+  没有记闲聊和仓库概览。
+- 换成 Claude Code 跑 Dreaming：把 agent 建的、和「沟通偏好」重叠的「回复风格」合并了过去，确认了两条 120 天前的
+  「知识」「教训」（只写了 `reviewedAt`），新的出差信息带上了 `expiresAt`。
+- 两个 provider 的 Dreaming 会话都没有写进用户的历史：`~/.codex/sessions` 里只新增了 Worker 的会话，
+  `~/.claude/projects` 里只新增了 Claude Router 的会话（Router 需要 resume，本来就会保留），`persistSession: false`
+  和 `ephemeral: true` 都生效。Owls 的 memory 工具在两个 provider 上都能正常调用。
+- 在真实 SQLite 上重启后，启动扫描把过期条目改为 `archived`，删掉了 90 天前的条目墓碑和类别墓碑，保留了较新的墓碑。

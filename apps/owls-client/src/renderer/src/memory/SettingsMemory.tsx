@@ -195,10 +195,15 @@ function RecentRuns() {
               archived: run.archived.length,
               reason: runReason(run, t)
             }
+            const notes = [
+              run.reviewed.length ? t('memory.run.reviewed', { count: run.reviewed.length }) : null,
+              run.merged.length ? t('memory.run.merged', { count: run.merged.length }) : null,
+              run.tokens ? t('memory.run.tokens', { count: run.tokens }) : null
+            ].filter((note) => note !== null)
             return (
               <li key={run.id}>
                 <span>{t(`memory.run.${run.status}`, values)}</span>
-                {run.tokens ? <small>{t('memory.run.tokens', { count: run.tokens })}</small> : null}
+                {notes.length ? <small>{notes.join(' · ')}</small> : null}
               </li>
             )
           })}

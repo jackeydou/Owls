@@ -48,6 +48,16 @@ export function memoryRecords() {
       return results
     },
     cursor: (threadId) => (cursors.has(threadId) ? structuredClone(cursors.get(threadId)) : null),
+    purge(before) {
+      let removed = 0
+      for (const map of [memories, categories])
+        for (const [id, value] of map)
+          if (value.status === 'deleted' && value.updatedAt < before) {
+            map.delete(id)
+            removed++
+          }
+      return removed
+    },
     saveRun: (run) => runs.set(run.id, structuredClone(run)),
     runs: (limit) =>
       [...runs.values()]
