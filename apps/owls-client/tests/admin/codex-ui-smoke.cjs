@@ -398,7 +398,6 @@ app
       await waitFor("document.body.textContent.includes('导入并使用本地 Codex 登录')")
       await press('Escape')
       await waitFor("Boolean(document.querySelector('.router-chat'))")
-      await waitFor("document.querySelector('.router-sidebar-logo img')?.dataset.logo === 'line'")
 
       // Router: an unconfigured Owls engine shows setup, and keys never come back out.
       await waitFor("document.body.textContent.includes('为协调者选择模型')")
@@ -447,6 +446,22 @@ app
       await evaluate("document.querySelector('.router-sidebar-toggle').click()")
       await waitFor("Boolean(document.querySelector('.router-sidebar'))")
       assert.equal(host.snapshot().settings.sidebarCollapsed, false)
+      // Projects live in a right-hand sidebar that the title bar opens, and it remembers.
+      assert.ok(await evaluate("!document.querySelector('.router-sidebar .router-project')"))
+      await evaluate("document.querySelector('.router-chat .router-projects-toggle').click()")
+      await waitFor("Boolean(document.querySelector('.router-projects .router-project'))")
+      await waitFor(() => host.snapshot().settings.layout.projectsOpen === true)
+      // Every sidebar resizes; the keyboard steps the same handle a drag moves.
+      const sidebarHandle = "document.querySelector('.router-sidebar > [role=separator]')"
+      await evaluate(
+        `${sidebarHandle}.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))`
+      )
+      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 248)
+      assert.equal(await evaluate("document.querySelector('.router-sidebar').offsetWidth"), 248)
+      await evaluate(
+        `${sidebarHandle}.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`
+      )
+      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 232)
       await evaluate("document.querySelector('.router-editor textarea').focus()")
       const editorFocused =
         "document.activeElement === document.querySelector('.router-editor textarea')"

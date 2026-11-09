@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { buildWorkerMap, isInPlay, type MapNode, type MapSide } from '../../../../shared/worker-map'
 import { useCodexStore } from '../../codex/store'
 import { isWaitingOnUser, isWorking, openRequests, projectHue } from '../activity'
+import { ProjectsToggle } from '../ProjectsSidebar'
 import { RouterComposer } from '../RouterComposer'
 import { useRouterStore } from '../store'
 import { MapEdges } from './MapEdges'
@@ -262,10 +263,11 @@ export function MapView() {
             </button>
           ))}
         </fieldset>
-        <Button size="sm" variant="outline" onClick={() => showChat()}>
+        <Button size="sm" variant="outline" className="map-back" onClick={() => showChat()}>
           {t('map.back')}
           <kbd>⌘ J</kbd>
         </Button>
+        <ProjectsToggle />
       </header>
       <div className="map-zoom">
         <button type="button" aria-label={t('map.zoomOut')} onClick={() => camera.zoomBy(0.8)}>

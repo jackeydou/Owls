@@ -1,4 +1,5 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
+import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { AlertCircle, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +8,8 @@ import { CodexSettingsPage } from '../codex/Settings'
 import { useCodexStore } from '../codex/store'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
+import { ProjectsSidebar } from './ProjectsSidebar'
+import { usePaneWidth } from './pane-width'
 import { RouterChat } from './RouterChat'
 import { RouterDetail } from './RouterDetail'
 import { Sidebar } from './Sidebar'
@@ -24,6 +27,24 @@ function Panel() {
   )
   if (panel?.kind === 'router') return <RouterDetail router={router} />
   return worker ? <WorkerDetail key={worker.id} worker={worker} /> : null
+}
+/** The stage around the current view and its details panel, whose width it owns. */
+function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
+  const view = useCodexStore((s) => s.view)
+  const threadId = useCodexStore((s) => s.threadId)
+  const panelOpen = useRouterStore((s) => s.panel !== null)
+  const { width, handle } = usePaneWidth('panel', 'left')
+  return (
+    <div
+      className={sidebarHidden ? 'router-stage sidebar-hidden' : 'router-stage'}
+      style={{ '--owl-panel-width': `${width}px` } as React.CSSProperties}
+    >
+      {view === 'map' ? <MapView /> : <RouterChat key={threadId ?? 'new'} />}
+      <Panel />
+      {/* A sibling over the panel's left edge, so neither detail view has to carry it. */}
+      {panelOpen ? <ResizeHandle {...handle} className="router-panel-resize" /> : null}
+    </div>
+  )
 }
 function ActionError() {
   const { t } = useTranslation()
@@ -50,8 +71,8 @@ export function RouterShell() {
   const { t } = useTranslation()
   const view = useCodexStore((s) => s.view)
   const collapsed = useCodexStore((s) => s.settings.sidebarCollapsed)
+  const projectsOpen = useCodexStore((s) => s.settings.layout.projectsOpen)
   const toggleSidebar = useCodexStore((s) => s.toggleSidebar)
-  const threadId = useCodexStore((s) => s.threadId)
   const sidebarLabel = t(collapsed ? 'router.showSidebar' : 'router.hideSidebar')
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
@@ -92,10 +113,8 @@ export function RouterShell() {
   return (
     <>
       {collapsed ? null : <Sidebar />}
-      <div className={collapsed ? 'router-stage sidebar-hidden' : 'router-stage'}>
-        {view === 'map' ? <MapView /> : <RouterChat key={threadId ?? 'new'} />}
-        <Panel />
-      </div>
+      <Stage sidebarHidden={collapsed} />
+      {projectsOpen ? <ProjectsSidebar /> : null}
       {/* Stays after the stage: Chromium applies app regions in document order, whatever the
           z-index, so a title bar later in the DOM would turn this button back into a drag area. */}
       <IconButton

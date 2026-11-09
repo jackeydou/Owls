@@ -30,8 +30,10 @@ html[data-platform="darwin"] {
   --owl-hue-4: oklch(0.76 0.11 355);
 }
 
-/* Open by default, and gone entirely when hidden; its toggle lives on the title bar. */
+/* Open by default, and gone entirely when hidden; its toggle lives on the title bar. Its
+   width is the user's, set inline from settings. */
 .router-sidebar {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -60,23 +62,6 @@ html[data-platform="darwin"] {
   border-radius: 7px;
   color: var(--color-muted-foreground);
   -webkit-app-region: no-drag;
-}
-.router-sidebar-logo {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  height: 32px;
-  margin-bottom: 8px;
-  padding: 0 8px;
-  font-size: 13px;
-}
-.router-sidebar-logo img {
-  width: 20px;
-  height: 22px;
-  object-fit: contain;
-}
-.router-sidebar-logo strong {
-  font-weight: 600;
 }
 .router-sidebar-item,
 .router-thread,
@@ -117,22 +102,31 @@ html[data-platform="darwin"] {
   font-family: inherit;
   font-size: 10px;
 }
-.router-sidebar-threads,
-.router-sidebar-projects {
+/* The sidebar's own actions stay quiet: background and shortcut show only under the pointer
+   or keyboard focus, and the current one is marked by its text alone. */
+.router-sidebar-action[aria-current="true"] {
+  background: transparent;
+}
+.router-sidebar-action:hover,
+.router-sidebar-action:focus-visible {
+  background: var(--color-sidebar-hover);
+}
+.router-sidebar-action kbd {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.router-sidebar-action:hover kbd,
+.router-sidebar-action:focus-visible kbd {
+  opacity: 1;
+}
+.router-sidebar-threads {
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-height: 0;
   margin-top: 14px;
 }
-.router-sidebar-threads {
-  flex: 1;
-}
-/* Projects are few, so threads take the height and the projects keep a short list. */
-.router-sidebar-projects {
-  flex: 0 1 30%;
-}
-.router-sidebar-threads header,
-.router-sidebar-projects header {
+.router-sidebar-threads header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -141,13 +135,13 @@ html[data-platform="darwin"] {
   padding: 0 2px 0 8px;
 }
 .router-sidebar-threads h2,
-.router-sidebar-projects h2 {
+.router-projects-head h2 {
   color: var(--color-muted-foreground);
   font-size: 11px;
   font-weight: 500;
 }
 .router-sidebar-threads p,
-.router-sidebar-projects p {
+.router-projects > p {
   padding: 4px 8px;
   color: var(--color-muted-foreground);
   font-size: 12px;
@@ -245,6 +239,51 @@ html[data-platform="darwin"] {
 }
 .router-sidebar-settings {
   margin-top: 8px;
+}
+/* The right-hand Projects sidebar, opened from the title bar; its width is set inline. */
+.router-projects {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 0 10px 12px;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-sidebar);
+  -webkit-app-region: drag;
+}
+.router-projects button {
+  -webkit-app-region: no-drag;
+}
+.router-projects-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: var(--owl-bar-height);
+  padding: 0 0 0 8px;
+}
+.router-projects-head h2 {
+  color: var(--color-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.router-projects-toggle {
+  flex-shrink: 0;
+}
+.router-projects-toggle[aria-pressed="true"] {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+/* Sits over the details panel's left edge, inside it, and follows its width cap. */
+.router-stage > .router-panel-resize {
+  left: auto;
+  right: calc(min(var(--owl-panel-width), 85%) - 7px);
+}
+html.pane-resizing,
+html.pane-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 /* The title bar makes room for the window controls and the sidebar's toggle. */
 .router-stage.sidebar-hidden .codex-topbar,

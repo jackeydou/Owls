@@ -1,4 +1,5 @@
 import { Button } from '@renderer/components/ui/button'
+import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Select } from '@renderer/components/ui/select'
 import {
   ArrowLeft,
@@ -14,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { appLogoSchema, settingsSchema } from '../../../shared/codex'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
 import { AgentIcon } from '../router/AgentIcon'
+import { usePaneWidth } from '../router/pane-width'
 import { RouterSettingsSection } from '../router/RouterSettings'
 import { appLogoIcons } from './AppLogo'
 import { TaskOptions } from './Controls'
@@ -50,8 +52,14 @@ function SettingsNav() {
   const current = useCodexStore((s) => s.settingsTab)
   const showSettings = useCodexStore((s) => s.showSettings)
   const leaveSettings = useCodexStore((s) => s.leaveSettings)
+  // Shares the main sidebar's width, so switching to Settings keeps the same edge.
+  const { width, handle } = usePaneWidth('sidebar', 'right')
   return (
-    <nav className="router-sidebar codex-settings-nav" aria-label={t('settingsTitle')}>
+    <nav
+      className="router-sidebar codex-settings-nav"
+      style={{ width }}
+      aria-label={t('settingsTitle')}
+    >
       <div className="router-sidebar-head">
         <Button
           size="custom"
@@ -81,6 +89,7 @@ function SettingsNav() {
           ))}
         </Fragment>
       ))}
+      <ResizeHandle {...handle} />
     </nav>
   )
 }

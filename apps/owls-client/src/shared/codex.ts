@@ -139,6 +139,27 @@ export const threadItemSchema = z.object({
   rev: z.number().int().nonnegative().nullable()
 })
 export const appLogoSchema = z.enum(['line', 'solid', 'brow'])
+/** Width bounds, in CSS pixels, for each pane the user can drag wider or narrower. */
+export const paneWidthBounds = {
+  sidebar: { min: 180, max: 420, initial: 232 },
+  projects: { min: 200, max: 440, initial: 260 },
+  panel: { min: 360, max: 960, initial: 480 }
+} as const
+export type ResizablePane = keyof typeof paneWidthBounds
+export const layoutSettingsSchema = z.object({
+  sidebarWidth: z.number().int().positive(),
+  projectsWidth: z.number().int().positive(),
+  panelWidth: z.number().int().positive(),
+  /** The right-hand Projects sidebar, opened from the title bar. */
+  projectsOpen: z.boolean()
+})
+export type LayoutSettings = z.infer<typeof layoutSettingsSchema>
+export const defaultLayoutSettings: LayoutSettings = {
+  sidebarWidth: paneWidthBounds.sidebar.initial,
+  projectsWidth: paneWidthBounds.projects.initial,
+  panelWidth: paneWidthBounds.panel.initial,
+  projectsOpen: false
+}
 export const settingsSchema = z.object({
   executablePath: z.string().nullable(),
   model: z.string().nullable(),
@@ -154,7 +175,9 @@ export const settingsSchema = z.object({
   claudeEffort: effortSchema.nullable(),
   router: routerSettingsSchema,
   /** Added after the first release of settings, so older rows get the defaults. */
-  memory: memorySettingsSchema.default(defaultMemorySettings)
+  memory: memorySettingsSchema.default(defaultMemorySettings),
+  /** Pane widths and the Projects sidebar; also added after the first release. */
+  layout: layoutSettingsSchema.default(defaultLayoutSettings)
 })
 export const projectSchema = z.object({ id: z.string(), name: z.string(), path: z.string() })
 export const settingsUpdateSchema = settingsSchema
