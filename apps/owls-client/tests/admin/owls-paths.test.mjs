@@ -42,6 +42,10 @@ async function loadOwlsPathsForTest() {
     )
     .replace('../shared/startup-args.js', '../shared/startup-args.ts')
     .replace("return join(homedir(), '.owls')", 'return globalThis.__owlsPathsDefaultDataRoot')
+    .replace(
+      "return join(homedir(), 'Owls', 'worktrees')",
+      'return globalThis.__owlsPathsDefaultWorktreesRoot'
+    )
 
   writeFileSync(join(mainDir, 'owls-paths.ts'), source, 'utf8')
   writeFileSync(
@@ -257,5 +261,26 @@ test('applyNewDataRoot rejects realpath aliases of temporary folders', async () 
     rmSync(root, { recursive: true, force: true })
     delete globalThis.__owlsPathsUserData
     delete globalThis.__owlsPathsDefaultDataRoot
+  }
+})
+
+test('workerWorktreesRoot uses the visible folder only for the default data root', async () => {
+  const root = mkdtempSync(join(process.cwd(), '.owls-paths-test-'))
+  const loaded = await loadOwlsPathsForTest()
+  try {
+    const defaultRoot = join(root, '.owls')
+    const visibleRoot = join(root, 'Owls', 'worktrees')
+    globalThis.__owlsPathsDefaultDataRoot = defaultRoot
+    globalThis.__owlsPathsDefaultWorktreesRoot = visibleRoot
+
+    assert.equal(loaded.module.workerWorktreesRoot(defaultRoot), visibleRoot)
+    assert.equal(loaded.module.workerWorktreesRoot(`${defaultRoot}/`), visibleRoot)
+    const isolated = join(root, 'isolated')
+    assert.equal(loaded.module.workerWorktreesRoot(isolated), join(isolated, 'worktrees'))
+  } finally {
+    loaded.cleanup()
+    rmSync(root, { recursive: true, force: true })
+    delete globalThis.__owlsPathsDefaultDataRoot
+    delete globalThis.__owlsPathsDefaultWorktreesRoot
   }
 })
