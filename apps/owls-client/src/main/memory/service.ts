@@ -32,6 +32,8 @@ import type { SearchMemoryInput } from './search-input.js'
 
 /** How many runs the memory tab lists. */
 const RUN_HISTORY = 20
+/** Tombstones outlive the longest a device may stay offline and still sync (RFC_OWLS_MEMORY 4). */
+export const MEMORY_TOMBSTONE_LIFETIME_MS = 90 * 24 * 60 * 60 * 1000
 
 export type MemoryDeps = {
   records: MemoryRecords
@@ -160,6 +162,7 @@ export class MemoryService implements RouterMemory {
         editedByUser: true,
         source: { threadId: null, itemIds: [], workerIds: [], runId: null },
         supersededBy: null,
+        reviewedAt: null,
         createdAt: now,
         updatedAt: now
       }
@@ -287,6 +290,33 @@ export class MemoryService implements RouterMemory {
         2
       )}\n`
     return renderMarkdown(memories, categories, this.deps.projects(), this.deps.settings().language)
+  }
+
+  /**
+   * Housekeeping without a model (RFC_OWLS_MEMORY 4): archives active memories
+   * past their expiry and removes tombstones older than the sync window. Each
+   * archive names the version it read, so one the user edited meanwhile stays.
+   */
+  sweep(): { archived: number; purged: number } {
+    const now = this.now()
+    const at = now.toISOString()
+    const writes: MemoryWrite[] = this.deps.records
+      .memories()
+      .filter((m) => m.status === 'active' && m.expiresAt !== null && m.expiresAt <= at)
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((m) => ({
+        kind: 'memory',
+        baseRev: m.rev,
+        value: { ...m, status: 'archived', updatedAt: at }
+      }))
+    const archived = writes.length
+      ? this.deps.records.commit({ writes, mode: 'each' }).filter((r) => r.ok).length
+      : 0
+    const purged = this.deps.records.purge(
+      new Date(now.getTime() - MEMORY_TOMBSTONE_LIFETIME_MS).toISOString()
+    )
+    if (archived || purged) this.deps.changed()
+    return { archived, purged }
   }
 
   injection(projectId: string | null): string | null {

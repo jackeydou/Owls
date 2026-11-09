@@ -10,6 +10,7 @@ const {
   DreamingStage,
   DreamingTriggers,
   MemoryService,
+  MemorySweeper,
   dreamingEngineFactory,
   estimateTokens,
   looksSecret,
@@ -412,8 +413,8 @@ function scriptedEngine(script, outcome = { status: 'completed', error: null }) 
   return { runs, factory }
 }
 
-function dreamingSetup({ engine, items, reports = {}, settings } = {}) {
-  const base = setup({ settings })
+function dreamingSetup({ engine, items, reports = {}, settings, records } = {}) {
+  const base = setup({ settings, records })
   let current = settingsOf(settings)
   const threads = [
     { id: 't1', title: 'Weekly report', projectId: 'p2', status: 'idle' },
@@ -788,4 +789,261 @@ test('Dreaming engines keep their sessions out of the user history', async () =>
     'claude_not_connected'
   )
   assert.equal(offline({ provider: 'codex', model: null, tools }).code, 'not_connected')
+})
+
+/** A stored memory with every field, for tests that need exact dates and owners. */
+function memoryOf(overrides) {
+  const scope =
+    overrides.store === 'project'
+      ? { store: 'project', categoryId: null, projectId: 'p1', kind: 'knowledge' }
+      : { store: 'personal', categoryId: overrides.categoryId, projectId: null, kind: null }
+  return {
+    ...scope,
+    id: 'm_00000000',
+    text: 'A fact',
+    status: 'active',
+    rev: 0,
+    pinned: false,
+    expiresAt: null,
+    origin: 'dreaming',
+    editedByUser: false,
+    source: { threadId: 't1', itemIds: [], workerIds: [], runId: null },
+    supersededBy: null,
+    reviewedAt: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides
+  }
+}
+const seed = (records, values) =>
+  records.commit({
+    mode: 'each',
+    writes: values.map((value) => ({
+      kind: value.name === undefined ? 'memory' : 'category',
+      baseRev: null,
+      value
+    }))
+  })
+
+test('the sweep archives expired memories and removes old tombstones', () => {
+  const { service, records, changes } = setup()
+  const work = category(service, 'work')
+  seed(records, [
+    memoryOf({ id: 'm_expired1', categoryId: work, expiresAt: '2026-11-01T00:00:00.000Z' }),
+    memoryOf({ id: 'm_current1', categoryId: work, expiresAt: '2026-12-01T00:00:00.000Z' }),
+    memoryOf({ id: 'm_forever1', categoryId: work }),
+    memoryOf({
+      id: 'm_oldgone1',
+      categoryId: work,
+      status: 'deleted',
+      text: '',
+      updatedAt: '2026-08-01T00:00:00.000Z'
+    }),
+    memoryOf({
+      id: 'm_newgone1',
+      categoryId: work,
+      status: 'deleted',
+      text: '',
+      updatedAt: '2026-10-01T00:00:00.000Z'
+    }),
+    {
+      id: 'mc_oldgone1',
+      name: '',
+      description: '',
+      status: 'deleted',
+      mergedInto: work,
+      createdBy: 'agent',
+      rev: 0,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-08-01T00:00:00.000Z'
+    }
+  ])
+  const before = changes()
+  assert.deepEqual(service.sweep(), { archived: 1, purged: 2 })
+  assert.equal(changes(), before + 1)
+  const status = Object.fromEntries(records.memories().map((m) => [m.id, m.status]))
+  assert.deepEqual(status, {
+    m_expired1: 'archived',
+    m_current1: 'active',
+    m_forever1: 'active',
+    m_newgone1: 'deleted'
+  })
+  assert.equal(records.memories().find((m) => m.id === 'm_expired1').updatedAt, NOW.toISOString())
+  assert.equal(
+    records.categories().find((c) => c.id === 'mc_oldgone1'),
+    undefined
+  )
+  // Expired memories leave the default list; a second sweep has nothing to do.
+  assert.deepEqual(
+    service
+      .list({ store: 'personal' })
+      .map((m) => m.id)
+      .sort(),
+    ['m_current1', 'm_forever1']
+  )
+  assert.deepEqual(service.sweep(), { archived: 0, purged: 0 })
+  assert.equal(changes(), before + 1)
+})
+
+test('the sweeper runs soon after startup, then daily, until closed', () => {
+  const timers = []
+  let sweeps = 0
+  const sweeper = new MemorySweeper({
+    sweep: () => {
+      sweeps++
+      if (sweeps === 1) throw new Error('database closed')
+    },
+    setTimer: (run, ms) => {
+      const timer = { run, ms, cleared: false }
+      timers.push(timer)
+      return timer
+    },
+    clearTimer: (timer) => {
+      timer.cleared = true
+    }
+  })
+  assert.equal(timers[0].ms, 10 * 1000)
+  // A failed sweep still schedules the next one.
+  timers[0].run()
+  assert.equal(timers[1].ms, 24 * 60 * 60 * 1000)
+  timers[1].run()
+  assert.equal(sweeps, 2)
+  sweeper.close()
+  assert.equal(timers[2].cleared, true)
+})
+
+test('Dreaming merges an agent category into another and leaves user ones alone', () => {
+  const { service, records } = setup()
+  const invest = category(service, 'investing')
+  const stage0 = new DreamingStage([], records.categories(), {
+    runId: 'mr_0',
+    threadId: 't1',
+    projects: PROJECTS,
+    now: NOW
+  })
+  stage0.stage([
+    { op: 'create_category', name: 'stocks', description: 'Stock picks' },
+    { op: 'create_category', name: 'notes', description: 'Notes' },
+    { op: 'add', store: 'personal', category: 'stocks', text: 'Holds index funds', sources: [] },
+    { op: 'add', store: 'personal', category: 'notes', text: 'Writes in Markdown', sources: [] }
+  ])
+  records.commit({ mode: 'each', writes: stage0.writes() })
+  const byName = (name) => records.categories().find((c) => c.name === name)
+  const notes = byName('notes')
+  // The user edits the memory in notes, so notes can no longer be merged away.
+  const edited = records.memories().find((m) => m.categoryId === notes.id)
+  service.save({
+    action: 'update',
+    id: edited.id,
+    baseRev: edited.rev,
+    text: 'Writes notes in Markdown'
+  })
+  const stocks = byName('stocks')
+  const stage = new DreamingStage(records.memories(), records.categories(), {
+    runId: 'mr_1',
+    threadId: 't1',
+    projects: PROJECTS,
+    now: NOW
+  })
+  const results = stage.stage([
+    { op: 'merge_category', from: 'investing', into: 'stocks' },
+    { op: 'merge_category', from: 'notes', into: 'investing' },
+    { op: 'merge_category', from: 'stocks', into: 'stocks' },
+    { op: 'merge_category', from: 'stocks', into: invest },
+    { op: 'add', store: 'personal', category: stocks.id, text: 'Avoids options', sources: [] }
+  ])
+  assert.deepEqual(
+    results.map((r) => (r.ok ? 'ok' : r.error)),
+    ['user_owned', 'user_owned', 'invalid_scope', 'ok', 'ok']
+  )
+  assert.deepEqual(stage.summary().merged, [stocks.id])
+  records.commit({ mode: 'each', writes: stage.writes() })
+  const gone = records.categories().find((c) => c.id === stocks.id)
+  assert.equal(gone.status, 'deleted')
+  assert.equal(gone.mergedInto, invest)
+  // The stored memory and one added after the merge under the old ID both end up in investing.
+  assert.deepEqual(
+    records
+      .memories()
+      .filter((m) => m.categoryId === invest)
+      .map((m) => m.text)
+      .sort(),
+    ['Avoids options', 'Holds index funds']
+  )
+})
+
+test('Dreaming reviews old knowledge and lessons without moving them in recency', async () => {
+  const records = memoryRecords()
+  seed(records, [
+    memoryOf({
+      id: 'm_oldknow1',
+      store: 'project',
+      kind: 'knowledge',
+      projectId: 'p2',
+      text: 'Dana reviews the report'
+    }),
+    memoryOf({
+      id: 'm_oldless1',
+      store: 'project',
+      kind: 'lesson',
+      projectId: 'p2',
+      text: 'The VPN drops exports'
+    }),
+    memoryOf({
+      id: 'm_oldrule1',
+      store: 'project',
+      kind: 'rule',
+      projectId: 'p2',
+      text: 'Reports use A4'
+    }),
+    memoryOf({
+      id: 'm_newknow1',
+      store: 'project',
+      kind: 'knowledge',
+      projectId: 'p2',
+      updatedAt: '2026-10-01T00:00:00.000Z'
+    }),
+    memoryOf({
+      id: 'm_mineknw1',
+      store: 'project',
+      kind: 'knowledge',
+      projectId: 'p2',
+      editedByUser: true
+    }),
+    memoryOf({
+      id: 'm_seenknw1',
+      store: 'project',
+      kind: 'knowledge',
+      projectId: 'p2',
+      reviewedAt: '2026-10-01T00:00:00.000Z'
+    })
+  ])
+  let outcomes = []
+  const engine = scriptedEngine(async (tools) => {
+    const staged = await tools.stage_memory_changes.execute({
+      changes: [
+        { op: 'confirm', id: 'm_oldknow1' },
+        { op: 'archive', id: 'm_oldless1', reason: 'The VPN was replaced' },
+        { op: 'confirm', id: 'm_oldrule1' },
+        { op: 'confirm', id: 'm_newknow1' }
+      ]
+    })
+    outcomes = JSON.parse(staged).results.map((r) => (r.ok ? 'ok' : r.error))
+  })
+  const items = { t1: [item('u1', 'user', 'How is the report going?', 3, 0)] }
+  const { runner, service } = dreamingSetup({ engine: engine.factory, items, records })
+  await runner.runNow()
+  const [{ input }] = engine.runs
+  const due = input.text.split('Due for review in Reports')[1] ?? ''
+  assert.match(due, /m_oldknow1 · knowledge · 2026-01-01 · Dana reviews the report/)
+  assert.match(due, /m_oldless1 · lesson/)
+  assert.doesNotMatch(due, /m_oldrule1|m_newknow1|m_mineknw1|m_seenknw1/)
+  const saved = Object.fromEntries(records.memories().map((m) => [m.id, m]))
+  assert.equal(saved.m_oldknow1.reviewedAt, NOW.toISOString())
+  assert.equal(saved.m_oldknow1.updatedAt, '2026-01-01T00:00:00.000Z')
+  assert.equal(saved.m_oldless1.status, 'archived')
+  assert.deepEqual(outcomes, ['ok', 'ok', 'not_due', 'not_due'])
+  const [run] = service.runs()
+  assert.deepEqual(run.reviewed, ['m_oldknow1'])
+  assert.deepEqual(run.archived, ['m_oldless1'])
 })

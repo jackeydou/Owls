@@ -1,0 +1,1 @@
+- -- Memory: Dreaming now merges overlapping personal categories and rechecks project knowledge and lessons untouched for 90 days, and Owls archives expired memories and clears old deleted ones on its own each day. (#43)

@@ -12,8 +12,25 @@ import {
 import type { MemoryWrite } from './records.js'
 import { looksSecret } from './render.js'
 
+const DAY_MS = 24 * 60 * 60 * 1000
 /** `status` memories without an expiry from Dreaming last this long. */
-const STATUS_LIFETIME_MS = 14 * 24 * 60 * 60 * 1000
+const STATUS_LIFETIME_MS = 14 * DAY_MS
+/** Knowledge and lessons untouched this long come up for review (RFC_OWLS_MEMORY 4.1). */
+export const MEMORY_REVIEW_AGE_MS = 90 * DAY_MS
+const REVIEWED_KINDS = new Set(['knowledge', 'lesson'])
+
+/**
+ * True for a knowledge or lesson memory Dreaming should confirm, supersede, or
+ * archive: active, not owned by the user, and neither changed nor confirmed for
+ * the review age.
+ */
+export function dueForReview(memory: Memory, now: Date): boolean {
+  if (memory.store !== 'project' || memory.status !== 'active' || memory.editedByUser) return false
+  if (!REVIEWED_KINDS.has(memory.kind)) return false
+  const seen =
+    memory.reviewedAt && memory.reviewedAt > memory.updatedAt ? memory.reviewedAt : memory.updatedAt
+  return seen <= new Date(now.getTime() - MEMORY_REVIEW_AGE_MS).toISOString()
+}
 const text = z.string().trim().min(1).max(MEMORY_TEXT_LIMIT)
 const ref = z.string().trim().min(1).max(64)
 
@@ -88,6 +105,34 @@ export const memoryOpSchema = z.discriminatedUnion('op', [
       id: z.string().trim().min(1).max(64),
       reason: z.string().trim().min(1).max(300)
     })
+    .strict(),
+  z
+    .object({
+      op: z.literal('confirm'),
+      id: z
+        .string()
+        .trim()
+        .min(1)
+        .max(64)
+        .describe('A knowledge or lesson memory due for review that still holds.')
+    })
+    .strict(),
+  z
+    .object({
+      op: z.literal('merge_category'),
+      from: z
+        .string()
+        .trim()
+        .min(1)
+        .max(64)
+        .describe('The narrower personal category, by name or ID; its memories move.'),
+      into: z
+        .string()
+        .trim()
+        .min(1)
+        .max(64)
+        .describe('The broader personal category that keeps them, by name or ID.')
+    })
     .strict()
 ])
 export const stageInput = z.object({ changes: z.array(memoryOpSchema).min(1).max(40) }).strict()
@@ -102,6 +147,7 @@ export type StageErrorCode =
   | 'secret_detected'
   | 'project_not_found'
   | 'not_found'
+  | 'not_due'
 export type StageResult =
   | { index: number; ok: true; id: string }
   | { index: number; ok: false; error: StageErrorCode; message: string }
@@ -134,6 +180,8 @@ export class DreamingStage {
   readonly added: string[] = []
   readonly updated: string[] = []
   readonly archived: string[] = []
+  readonly reviewed: string[] = []
+  readonly merged: string[] = []
 
   constructor(
     memories: Memory[],
@@ -189,8 +237,14 @@ export class DreamingStage {
   }
 
   /** The run's counts for its record. */
-  summary(): Pick<MemoryRun, 'added' | 'updated' | 'archived'> {
-    return { added: [...this.added], updated: [...this.updated], archived: [...this.archived] }
+  summary(): Pick<MemoryRun, 'added' | 'updated' | 'archived' | 'reviewed' | 'merged'> {
+    return {
+      added: [...this.added],
+      updated: [...this.updated],
+      archived: [...this.archived],
+      reviewed: [...this.reviewed],
+      merged: [...this.merged]
+    }
   }
 
   private apply(op: MemoryOp): string {
@@ -207,7 +261,7 @@ export class DreamingStage {
         if (active.length >= MEMORY_CATEGORY_LIMIT)
           throw new StageError(
             'category_limit',
-            `There are already ${MEMORY_CATEGORY_LIMIT} categories; reuse one.`
+            `There are already ${MEMORY_CATEGORY_LIMIT} categories; reuse one, or merge two that overlap first.`
           )
         this.assertClean(`${op.name} ${op.description}`)
         const category: MemoryCategory = {
@@ -250,6 +304,7 @@ export class DreamingStage {
             runId: this.context.runId
           },
           supersededBy: null,
+          reviewedAt: null,
           createdAt: now,
           updatedAt: now
         }
@@ -302,6 +357,47 @@ export class DreamingStage {
         this.put(memory)
         this.markArchived(memory.id)
         return memory.id
+      }
+      case 'confirm': {
+        const memory = this.editable(op.id)
+        if (!dueForReview(memory, this.context.now))
+          throw new StageError(
+            'not_due',
+            'Only knowledge and lesson memories listed as due for review can be confirmed.'
+          )
+        memory.reviewedAt = now
+        this.put(memory)
+        if (!this.reviewed.includes(memory.id)) this.reviewed.push(memory.id)
+        return memory.id
+      }
+      case 'merge_category': {
+        const from = this.category(op.from)
+        const into = this.category(op.into)
+        if (from.id === into.id)
+          throw new StageError('invalid_scope', 'A category cannot merge into itself.')
+        if (from.createdBy === 'user')
+          throw new StageError('user_owned', 'The user created this category, so it stays.')
+        const members = [...this.memories.values()].filter(
+          (m): m is Extract<Memory, { store: 'personal' }> =>
+            m.store === 'personal' && m.categoryId === from.id && m.status !== 'deleted'
+        )
+        if (members.some((m) => m.editedByUser))
+          throw new StageError(
+            'user_owned',
+            'The user edited a memory in this category, so the category stays.'
+          )
+        for (const memory of members) this.put({ ...memory, categoryId: into.id, updatedAt: now })
+        this.touch('category', from.id, from.rev)
+        this.categories.set(from.id, {
+          ...from,
+          name: '',
+          description: '',
+          status: 'deleted',
+          mergedInto: into.id,
+          updatedAt: now
+        })
+        this.merged.push(from.id)
+        return into.id
       }
     }
   }
@@ -384,6 +480,8 @@ export class DreamingStage {
   private markArchived(id: string): void {
     const index = this.updated.indexOf(id)
     if (index >= 0) this.updated.splice(index, 1)
+    const reviewed = this.reviewed.indexOf(id)
+    if (reviewed >= 0) this.reviewed.splice(reviewed, 1)
     if (this.added.includes(id)) return
     if (!this.archived.includes(id)) this.archived.push(id)
   }

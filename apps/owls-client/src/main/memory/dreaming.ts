@@ -16,7 +16,7 @@ import { defineTool, type RouterTool } from '../router/tools.js'
 import { byRecent, kindLabel } from './render.js'
 import { searchMemoryInput } from './search-input.js'
 import type { MemoryService } from './service.js'
-import { DreamingStage, stageInput } from './stage.js'
+import { DreamingStage, dueForReview, stageInput } from './stage.js'
 
 /** Most UTF-8 bytes of conversation and reports one run reads; the rest waits for the next run. */
 export const DREAMING_INPUT_BYTES = 40_000
@@ -26,6 +26,8 @@ const REPORT_TEXT_LIMIT = 1000
 const SESSION_TAIL = 3
 const SESSION_TEXT_LIMIT = 1500
 const CATALOG_RECENT = 10
+/** Old knowledge and lessons one run reviews per project, oldest first. */
+const REVIEW_PER_PROJECT = 5
 /** Thread items Dreaming reads: what the user and the Router said, and forwarded content. */
 const READ_KINDS = new Set<CodexItem['kind']>(['user', 'assistant', 'forward'])
 
@@ -196,6 +198,8 @@ export class DreamingRunner {
       added: [],
       updated: [],
       archived: [],
+      reviewed: [],
+      merged: [],
       stale: 0,
       createdAt,
       finishedAt: null
@@ -219,7 +223,7 @@ export class DreamingRunner {
       defineTool(
         'stage_memory_changes',
         'Stage memory changes',
-        'Stage memory changes: create_category, add, update, supersede, archive. Each change is checked and reported on its own; accepted changes are saved when you finish.',
+        'Stage memory changes: create_category, merge_category, add, update, supersede, archive, confirm. Each change is checked and reported on its own; accepted changes are saved when you finish.',
         stageInput,
         (input) => ({ results: stage.stage(input.changes) })
       )
@@ -385,6 +389,7 @@ export class DreamingRunner {
   private catalog(slice: Slice, defaultProjectId: string | null): string {
     const { records } = this.deps.memory
     const language = this.deps.settings().language
+    const now = this.now()
     const memories = records.memories().filter((m) => m.status === 'active')
     const categories = records
       .categories()
@@ -398,7 +403,8 @@ export class DreamingRunner {
               const count = memories.filter(
                 (m) => m.store === 'personal' && m.categoryId === c.id
               ).length
-              return `- ${c.name} · ${c.id} · ${count} · ${c.description}`
+              const owner = c.createdBy === 'user' ? ' · created by the user' : ''
+              return `- ${c.name} · ${c.id} · ${count} · ${c.description}${owner}`
             })
             .join('\n')}`
         : 'Personal categories: none yet.'
@@ -419,6 +425,18 @@ export class DreamingRunner {
       lines.push(`Project memory (${name}): ${counts}`)
       for (const m of [...own].sort(byRecent).slice(0, CATALOG_RECENT))
         lines.push(`- ${m.id} · ${m.store === 'project' ? m.kind : ''} · ${cut(m.text, 200)}`)
+      const due = own
+        .filter((m) => dueForReview(m, now))
+        .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt) || a.id.localeCompare(b.id))
+        .slice(0, REVIEW_PER_PROJECT)
+      if (due.length)
+        lines.push(
+          `Due for review in ${name} (unchanged for 90 days; confirm, supersede, or archive each):`,
+          ...due.map(
+            (m) =>
+              `- ${m.id} · ${m.store === 'project' ? m.kind : ''} · ${m.updatedAt.slice(0, 10)} · ${cut(m.text, 200)}`
+          )
+        )
     }
     return escapeInput(lines.join('\n'))
   }

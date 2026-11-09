@@ -37,6 +37,7 @@ import type { ClaudeService } from '../claude/service.js'
 import type { GitHubAuth } from '../github/auth.js'
 import type { DreamingRunner } from '../memory/dreaming.js'
 import type { MemoryService } from '../memory/service.js'
+import type { MemorySweeper } from '../memory/sweep.js'
 import type { DreamingTriggers } from '../memory/triggers.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
@@ -54,6 +55,7 @@ export class OwlsHost {
     service: MemoryService
     dreaming: DreamingRunner
     triggers: DreamingTriggers
+    sweeper: MemorySweeper
   } | null = null
   constructor(
     private readonly codex: CodexService,
@@ -282,6 +284,7 @@ export class OwlsHost {
     )
   }
   close(): void {
+    this.memory?.sweeper.close()
     this.memory?.triggers.close()
     this.memory?.dreaming.close()
     this.github?.workers.close()

@@ -10,6 +10,7 @@ import { GitHubAuth } from '../github/auth.js'
 import { DreamingRunner } from '../memory/dreaming.js'
 import { MemoryService } from '../memory/service.js'
 import { MemoryStore } from '../memory/store.js'
+import { MemorySweeper } from '../memory/sweep.js'
 import { DreamingTriggers } from '../memory/triggers.js'
 import {
   getDataRoot,
@@ -191,7 +192,8 @@ void app
       workers: () => router?.snapshot().workers ?? [],
       schedule: (id) => dreaming.schedule(id)
     })
-    service.attachMemory({ service: memory, dreaming, triggers })
+    const sweeper = new MemorySweeper({ sweep: () => memory.sweep() })
+    service.attachMemory({ service: memory, dreaming, triggers, sweeper })
     const github: GitHubAuth = new GitHubAuth(routerStore, safeStorageCipher, (account) => {
       emit({ type: 'github-account', account })
       if (account.status !== 'pending') workerGitHub.refresh()
