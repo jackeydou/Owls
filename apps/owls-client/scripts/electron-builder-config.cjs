@@ -11,7 +11,6 @@ const isDebug = buildMode === 'debug'
 const skipNotarize = process.env.OWLS_SKIP_NOTARIZE === 'true'
 const debugSuffix = isDebug ? '-debug' : ''
 const updateChannel = version.includes('-beta') ? 'beta' : 'latest'
-const isBeta = updateChannel === 'beta'
 
 const releaseNotesPath = path.resolve(__dirname, '../../..', 'release-notes', `${version}.md`)
 const releaseNotes = fs.existsSync(releaseNotesPath)
@@ -62,7 +61,6 @@ module.exports = {
     '!src/*',
     '!resources/node/**',
     '!resources/plugins/**',
-    '!resources/internal-plugins/**',
     '!resources/skills/**',
     '!node_modules/@owls/mac-*/target/**',
     '!node_modules/@owls/mac-*/src/**',
@@ -110,12 +108,6 @@ module.exports = {
         '!**/out/**'
       ]
     },
-    isBeta
-      ? {
-          from: 'resources/internal-plugins',
-          to: 'internal-plugins'
-        }
-      : null,
     {
       from: 'resources/skills',
       to: 'skills'
