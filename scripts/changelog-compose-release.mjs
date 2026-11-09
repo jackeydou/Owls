@@ -16,6 +16,8 @@ const archiveRoot = '.changelog/archive'
 const sections = ['Highlights', 'Changes', 'Fixes']
 const sectionSet = new Set(sections)
 const fragmentTypes = new Set(['added', 'changed', 'fixed', 'security', 'removed', 'internal'])
+// A `--` copied from `pnpm run changelog:add -- ...` into the entry text.
+const strayArgSeparatorPattern = /^- --(\s|$)/
 
 function parseArgs(argv) {
   let version
@@ -97,6 +99,12 @@ function collectFragmentEntries(file, type, includeInternal) {
 
   if (lines.some((line) => !line.startsWith('- '))) {
     throw new Error(`${file} must contain only bullet lines starting with '- '.`)
+  }
+
+  if (lines.some((line) => strayArgSeparatorPattern.test(line))) {
+    throw new Error(
+      `${file} has a bullet starting with a stray '--' argument separator; remove it before composing.`
+    )
   }
 
   if (type === 'internal' && includeInternal) {

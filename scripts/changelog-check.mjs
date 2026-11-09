@@ -6,6 +6,8 @@ import { join, resolve } from 'node:path'
 
 const fragmentDir = '.changelog/unreleased'
 const fragmentTypes = new Set(['added', 'changed', 'fixed', 'security', 'removed', 'internal'])
+// A `--` copied from `pnpm run changelog:add -- ...` into the entry text.
+const strayArgSeparatorPattern = /^- --(\s|$)/
 
 function parseArgs(argv) {
   const args = {
@@ -96,6 +98,14 @@ function validateFragmentContent(file, lines) {
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]
     if (line.trim() === '') {
+      continue
+    }
+
+    if (strayArgSeparatorPattern.test(line)) {
+      hasEntry = true
+      errors.push(
+        `${file}:${lineNumber(index)} starts with a stray '--' argument separator; remove it from the bullet text.`
+      )
       continue
     }
 

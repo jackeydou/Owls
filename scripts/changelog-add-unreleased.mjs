@@ -14,6 +14,10 @@ function parseArgs(argv) {
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
+    // `pnpm run changelog:add -- ...` forwards the `--` separator verbatim.
+    if (arg === '--') {
+      continue
+    }
     if (arg === '--dir') {
       const next = argv[index + 1]
       if (!next) {
@@ -51,6 +55,9 @@ function parseArgs(argv) {
       name = next
       index += 1
       continue
+    }
+    if (arg.startsWith('--')) {
+      throw new Error(`Unknown argument: ${arg}`)
     }
     entryParts.push(arg)
   }
