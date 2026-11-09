@@ -261,7 +261,7 @@ Release MR flow:
 - Renderer app: `apps/owls-client/src/renderer/src/`.
 - Shared cross-process types: `apps/owls-client/src/shared/`.
 - Database schema and migrations: `apps/owls-client/src/main/codex/schema.ts` and
-  `apps/owls-client/drizzle-codex/` (`owls-codex.db`).
+  `apps/owls-client/drizzle-codex/` (`owls.db`).
 - Legacy Pi runtime (kept for reference, not built, type-checked, or tested):
   `apps/owls-client/legacy/`. Do not import from it or add code to it.
 - Plugin system design and implementation: `docs/PLUGIN_SYSTEM.md` and `apps/owls-client/src/main/plugins/`.

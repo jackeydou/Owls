@@ -43,7 +43,7 @@
 
 ## 3. 用数据库还是文件
 
-用 SQLite（`owls-codex.db`）。文件优先是 Claude Code、Codex 等 CLI 的主流做法，但那些 agent 本来就靠文件工具读写，
+用 SQLite（`owls.db`）。文件优先是 Claude Code、Codex 等 CLI 的主流做法，但那些 agent 本来就靠文件工具读写，
 用户也会直接在编辑器里改。Owls 的情况不同：
 
 - Router 引擎没有文件工具（Claude 引擎 `tools: []`，Codex 引擎 `sandbox: 'read-only'`），

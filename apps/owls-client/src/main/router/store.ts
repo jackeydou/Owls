@@ -44,7 +44,7 @@ const toBatch = (row: BatchRow): RouterBatch => ({
   createdAt: row.createdAt
 })
 
-/** Router persistence in `owls-codex.db`, sharing the Codex store's connection. */
+/** Router persistence in `owls.db`, sharing the Codex store's connection. */
 export class RouterStore {
   constructor(private readonly store: CodexStore) {}
   private get db() {

@@ -30,7 +30,7 @@ plugins, and MCP servers using its native configuration.
 
 The active application uses the Codex runtime, not the previous Pi runtime.
 This is a clean break: Owls does not import or resume previous Pi conversations,
-model settings, or tool approvals. New local state uses `owls-codex.db` under
+model settings, or tool approvals. New local state uses `owls.db` under
 the configured Owls data root. Native Codex sessions stay in Codex's own store.
 
 Router conversations, workers, and settings survive app restarts. An interrupted

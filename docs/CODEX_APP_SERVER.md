@@ -79,7 +79,7 @@ buttons are never rebound to a new process.
 
 ## Persistence and recovery
 
-The database is `owls-codex.db` under the existing configured data root.
+The database is `owls.db` under the existing configured data root.
 `drizzle-codex/` contains its independent forward-only schema.
 Existing Pi data is not imported. This change does not erase the user's
 native Codex account or native sessions.
