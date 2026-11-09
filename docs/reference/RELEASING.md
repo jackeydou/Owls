@@ -228,9 +228,11 @@ Developer ID Application certificate exported with its private key and update
 for this outside-the-App-Store distribution flow.
 
 The release assets include the DMG for manual installation, the ZIP and channel
-metadata required by `electron-updater`, blockmaps, and SHA-256 checksums. The
-packaged app uses the public `jackeydou/Owls` GitHub Releases feed. Stable and
-beta update channels can be selected in General settings.
+metadata for the `jackeydou/Owls` GitHub Releases update feed, blockmaps, and
+SHA-256 checksums. The current app does not check for updates: it has no
+`electron-updater` client or update channel setting, so users install each
+release from its DMG. Keep publishing the feed metadata so a future updater can
+use it.
 
 Do not upload only an Actions artifact. Actions artifacts expire and are not an
 application update feed. Do not create or move a version tag or publish artifacts without explicit
