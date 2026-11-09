@@ -127,7 +127,7 @@ void app
   .then(() => {
     const root = getDataRoot()
     mkdirSync(root, { recursive: true })
-    const store = new CodexStore(join(root, 'owls-codex.db'), migrationsFolder())
+    const store = new CodexStore(join(root, 'owls.db'), migrationsFolder())
     service = new OwlsHost(
       new CodexService(store, emit),
       new ClaudeService(store, emit, { query }),

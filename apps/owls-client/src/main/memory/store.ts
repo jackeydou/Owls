@@ -25,7 +25,7 @@ import {
   type MemoryWriteResult
 } from './records.js'
 
-/** Memory persistence in `owls-codex.db`, sharing the Codex store's connection. */
+/** Memory persistence in `owls.db`, sharing the Codex store's connection. */
 export class MemoryStore implements MemoryRecords {
   constructor(private readonly store: CodexStore) {}
   private get db() {

@@ -5,7 +5,7 @@
 Owls can run workers with the user's installed Claude Code CLI next to the
 [Codex runtime](CODEX_APP_SERVER.md). Each worker gets its agent when it is
 dispatched and never switches afterward. Both runtimes share projects, settings,
-and `owls-codex.db`.
+and `owls.db`.
 
 ## Entries and ownership
 

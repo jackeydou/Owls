@@ -33,7 +33,7 @@ Watchdog、投机执行）作为后续事件源或独立阶段，不在本 RFC �
    注入汇报约束，不复制流式解析、持久化和审批逻辑。Router 的三种引擎实现同一个
    `RouterEngine` 接口，Router 的对话记录和上下文由 Owls 保存，切换引擎不丢历史（第 9 节）。
 6. 不新增运行时环境变量，不新增常驻 daemon；状态与配置走现有 settings store 和
-   `owls-codex.db`。Owls 引擎的凭据用 Electron `safeStorage` 加密后存入数据库，不进入设置 JSON，
+   `owls.db`。Owls 引擎的凭据用 Electron `safeStorage` 加密后存入数据库，不进入设置 JSON，
    也不会发给 renderer。
 
 ## 2. 目标与非目标

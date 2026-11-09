@@ -133,7 +133,7 @@ const entries = (log, after) =>
   log.pending(after).map((e) => `${e.deviceSeq} ${e.kind} ${e.recordId}`)
 
 test('the device id is made once and kept across restarts', (t) => {
-  const path = join(tempDir(t), 'owls-codex.db')
+  const path = join(tempDir(t), 'owls.db')
   const first = openStore(t, path)
   assert.match(first.store.deviceId, DEVICE_ID)
   first.client.close()
@@ -143,7 +143,7 @@ test('the device id is made once and kept across restarts', (t) => {
 
 test('records from before device ids get this device as owner and enter the sync log', (t) => {
   const dir = tempDir(t)
-  const path = join(dir, 'owls-codex.db')
+  const path = join(dir, 'owls.db')
   // A database written by the app before the multi-device migration.
   const legacy = openSqlite(path)
   migrate(drizzle(legacy), { migrationsFolder: migrationsThrough(dir, '0001_memory') })
@@ -245,7 +245,7 @@ test('records from before device ids get this device as owner and enter the sync
 })
 
 test('saves log each record under the next device sequence, apart from the change version', (t) => {
-  const { store, client } = openStore(t, join(tempDir(t), 'owls-codex.db'))
+  const { store, client } = openStore(t, join(tempDir(t), 'owls.db'))
   const routers = new RouterStore(store)
   const memory = new MemoryStore(store)
   const log = new SyncLog(store)
