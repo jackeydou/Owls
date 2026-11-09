@@ -29,6 +29,11 @@ export function routerThreadHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'router-threads')
 }
 
+/** The empty working directory Dreaming runs in; it has no project to read. */
+export function memoryDreamingHome(dataRoot = getDataRoot()): string {
+  return join(dataRoot, 'memory-dreaming')
+}
+
 export function defaultWorkspaceRoot(): string {
   return join(homedir(), 'Documents', 'Owls')
 }

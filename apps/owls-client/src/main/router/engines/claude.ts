@@ -35,6 +35,8 @@ export type ClaudeEngineOptions = {
   instructions: string
   tools: RouterTool[]
   version: string
+  /** Keeps the session out of the user's Claude Code history; it cannot be resumed. */
+  ephemeral?: boolean
 }
 
 const SERVER = 'owls'
@@ -187,6 +189,7 @@ export class ClaudeEngine implements RouterEngine {
       includePartialMessages: true,
       abortController: run.abort,
       ...(this.options.model ? { model: this.options.model } : {}),
+      ...(this.options.ephemeral ? { persistSession: false } : {}),
       ...(resume ? { resume } : {})
     }
   }

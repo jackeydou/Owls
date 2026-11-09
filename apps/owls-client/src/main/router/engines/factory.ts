@@ -7,6 +7,8 @@ import type {
   CodexRouter
 } from '../../../shared/codex.js'
 import type { RouterSettings } from '../../../shared/router.js'
+import type { DreamingEngineFactory } from '../../memory/dreaming.js'
+import { DREAMING_INSTRUCTIONS, DREAMING_PROMPT_VERSION } from '../../memory/prompt.js'
 import type { RouterCredentials } from '../credentials.js'
 import type { RouterEngine } from '../engine.js'
 import { ROUTER_INSTRUCTIONS, ROUTER_PROMPT_VERSION } from '../prompt.js'
@@ -106,6 +108,53 @@ export function defaultEngineFactory(deps: EngineDeps): EngineFactory {
       state: request.state,
       persist: request.persist,
       version
+    })
+  }
+}
+
+/**
+ * Builds the engine a Dreaming run uses: the user's Claude Code or Codex with
+ * the Dreaming instructions and memory tools only, in a session that is not
+ * kept, so it never shows up in the user's own history. A provider that is not
+ * connected fails the run instead of falling back to the other account.
+ */
+export function dreamingEngineFactory(
+  deps: EngineDeps & { cwd: () => string }
+): DreamingEngineFactory {
+  const dreamingVersion = `${appPackage.version}+dreaming.${DREAMING_PROMPT_VERSION}`
+  return (request) => {
+    if (request.provider === 'claude-code') {
+      const connection = deps.claude.connection()
+      if (connection.status !== 'ready' || !connection.executablePath)
+        return { code: 'claude_not_connected', message: '' } satisfies CodexFailure
+      return new ClaudeEngine({
+        sdk: deps.claude.sdk,
+        executable: connection.executablePath,
+        cwd: deps.cwd(),
+        model: request.model,
+        instructions: DREAMING_INSTRUCTIONS,
+        tools: request.tools,
+        version: dreamingVersion,
+        ephemeral: true
+      })
+    }
+    const connection = deps.codex.connection()
+    if (
+      connection.status !== 'ready' ||
+      !connection.executablePath ||
+      connection.account.kind === 'signed-out'
+    )
+      return { code: 'not_connected', message: '' }
+    return new CodexEngine({
+      server: deps.codex.server,
+      executable: connection.executablePath,
+      cwd: deps.cwd(),
+      model: request.model,
+      instructions: DREAMING_INSTRUCTIONS,
+      promptVersion: DREAMING_PROMPT_VERSION,
+      tools: request.tools,
+      state: () => '',
+      ephemeral: true
     })
   }
 }

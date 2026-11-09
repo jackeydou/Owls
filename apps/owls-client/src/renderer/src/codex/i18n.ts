@@ -1,5 +1,6 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { memoryEn, memoryZh } from '../memory/i18n'
 import { routerEn, routerZh } from '../router/i18n'
 
 const en = {
@@ -272,8 +273,8 @@ const zh: Record<keyof typeof en, string> = {
 }
 void i18next.use(initReactI18next).init({
   resources: {
-    en: { codex: { ...en, ...routerEn } },
-    'zh-CN': { codex: { ...zh, ...routerZh } }
+    en: { codex: { ...en, ...routerEn, ...memoryEn } },
+    'zh-CN': { codex: { ...zh, ...routerZh, ...memoryZh } }
   },
   lng: navigator.language.startsWith('zh') ? 'zh-CN' : 'en',
   fallbackLng: 'en',

@@ -1,0 +1,1 @@
+- -- Memory: Owls now sorts quiet threads into personal and project memories with your Claude Code or Codex, gives new threads the pinned and recent ones, lets the Router search the rest, and adds a Memory tab in Settings to review, edit, pin, delete, and export them. (#40)

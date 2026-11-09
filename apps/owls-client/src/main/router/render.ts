@@ -67,7 +67,8 @@ export function renderBatch(
   batchId: string,
   events: InboxEvent[],
   state: string | null,
-  projects: string | null = null
+  projects: string | null = null,
+  memory: string | null = null
 ): string {
   const ordered = [...events].sort((a, b) => a.seq - b.seq)
   const only = ordered[0]
@@ -76,13 +77,15 @@ export function renderBatch(
     only?.kind === 'user_message' &&
     !only.workerId &&
     !state &&
-    !projects
+    !projects &&
+    !memory
   )
     return clip(only.text, USER_TEXT_LIMIT, only.seq)
   const header = `<owls-batch id="${batchId}" events="${ordered.length}">`
   const parts = [header]
   if (state) parts.push(`Current workers:\n${escapeBatch(state)}`)
   if (projects) parts.push(escapeBatch(projects))
+  if (memory) parts.push(escapeBatch(memory))
   for (const event of ordered) parts.push(eventText(event))
   parts.push('</owls-batch>')
   return parts.join('\n')

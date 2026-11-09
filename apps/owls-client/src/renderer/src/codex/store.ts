@@ -13,6 +13,7 @@ import type {
   RespondCodexRequest
 } from '../../../shared/codex'
 import type { GitHubAccount } from '../../../shared/github'
+import { defaultMemorySettings } from '../../../shared/memory'
 import { defaultRouterSettings } from '../../../shared/router'
 import { byRecent } from '../router/activity'
 import { zoomBetweenViews } from '../router/motion'
@@ -37,7 +38,14 @@ function unwrap<T>(reply: CodexReply<T>): T {
   if (!reply.ok) throw new CodexUIError(reply.error)
   return reply.value
 }
-export type SettingsTab = 'router' | 'workers' | 'claude-code' | 'codex' | 'github' | 'appearance'
+export type SettingsTab =
+  | 'router'
+  | 'workers'
+  | 'memory'
+  | 'claude-code'
+  | 'codex'
+  | 'github'
+  | 'appearance'
 
 type State = {
   loaded: boolean
@@ -127,7 +135,8 @@ export const useCodexStore = create<State>((set, get) => {
       claudeExecutablePath: null,
       claudeModel: null,
       claudeEffort: null,
-      router: defaultRouterSettings
+      router: defaultRouterSettings,
+      memory: defaultMemorySettings
     },
     connection: {
       status: 'disconnected',
@@ -325,7 +334,8 @@ export const useCodexStore = create<State>((set, get) => {
           provider: settings.provider,
           claudeModel: settings.claudeModel,
           claudeEffort: settings.claudeEffort,
-          router: settings.router
+          router: settings.router,
+          memory: settings.memory
         })
       )
       if (saved) set({ settings: saved })

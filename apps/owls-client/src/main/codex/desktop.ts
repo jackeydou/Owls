@@ -7,10 +7,23 @@ import type { ClaudeConnection, CodexEvent } from '../../shared/codex.js'
 import { ClaudeService } from '../claude/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { GitHubAuth } from '../github/auth.js'
-import { getDataRoot, routerThreadHome, workerWorktreesRoot } from '../owls-paths.js'
+import { DreamingRunner } from '../memory/dreaming.js'
+import { MemoryService } from '../memory/service.js'
+import { MemoryStore } from '../memory/store.js'
+import { DreamingTriggers } from '../memory/triggers.js'
+import {
+  getDataRoot,
+  memoryDreamingHome,
+  routerThreadHome,
+  workerWorktreesRoot
+} from '../owls-paths.js'
 import { RouterCredentials, type SecretCipher } from '../router/credentials.js'
 import { CodexRouterServer } from '../router/engines/codex.js'
-import { defaultEngineFactory } from '../router/engines/factory.js'
+import {
+  defaultEngineFactory,
+  dreamingEngineFactory,
+  type EngineDeps
+} from '../router/engines/factory.js'
 import { RouterService } from '../router/service.js'
 import { RouterStore } from '../router/store.js'
 import { WorkerGitHub } from '../router/worker-github.js'
@@ -27,6 +40,7 @@ app.setName(profile ? `Owls — ${profile.name}` : 'Owls')
 let window: BrowserWindow | null = null
 let service: OwlsHost | null = null
 let router: RouterService | null = null
+let triggers: DreamingTriggers | null = null
 /** The Router's own Codex app-server; started only when the Codex engine runs. */
 const codexRouter = new CodexRouterServer()
 let quitApproved = false
@@ -44,7 +58,11 @@ function migrationsFolder(): string {
 }
 function emit(event: CodexEvent): void {
   router?.observe(event)
+  triggers?.observe(event)
   if (window && !window.isDestroyed()) window.webContents.send('codex:event', event)
+}
+function memoryChanged(): void {
+  if (window && !window.isDestroyed()) window.webContents.send('codex:memory-changed')
 }
 /** Router keys use the OS keychain through safeStorage; a plain-text fallback is refused. */
 const safeStorageCipher: SecretCipher = {
@@ -117,27 +135,63 @@ void app
     )
     const routerStore = new RouterStore(store)
     const credentials = new RouterCredentials(routerStore, safeStorageCipher)
+    const engineDeps: EngineDeps = {
+      credentials,
+      claude: {
+        sdk: { query, createSdkMcpServer },
+        connection: () => service?.claudeConnection() ?? closedClaude
+      },
+      codex: {
+        server: codexRouter,
+        connection: () =>
+          service?.codexConnection() ?? { ...closedClaude, account: { kind: 'signed-out' } }
+      }
+    }
+    const settings = () => store.settings()
+    const projects = () => store.projects()
+    const memory = new MemoryService({
+      records: new MemoryStore(store),
+      projects,
+      settings,
+      threadTitle: (id) => router?.title(id) ?? null,
+      changed: memoryChanged
+    })
     router = new RouterService(
       routerStore,
       credentials,
       store,
       service.workerHost(),
       emit,
-      defaultEngineFactory({
-        credentials,
-        claude: {
-          sdk: { query, createSdkMcpServer },
-          connection: () => service?.claudeConnection() ?? closedClaude
-        },
-        codex: {
-          server: codexRouter,
-          connection: () =>
-            service?.codexConnection() ?? { ...closedClaude, account: { kind: 'signed-out' } }
-        }
-      }),
-      new GitWorkspaces(workerWorktreesRoot(root))
+      defaultEngineFactory(engineDeps),
+      new GitWorkspaces(workerWorktreesRoot(root)),
+      memory
     )
     service.attachRouter(router)
+    const dreaming = new DreamingRunner({
+      memory,
+      threads: () => router?.snapshot().routers ?? [],
+      items: (id) => routerStore.items(id),
+      reports: (id, after) => routerStore.eventsAfter(id, after, 'worker_report'),
+      worker: (id) => router?.worker(id),
+      sessionItems: (id) => service?.sessionItems(id) ?? [],
+      projects,
+      settings,
+      engine: dreamingEngineFactory({
+        ...engineDeps,
+        cwd: () => {
+          const home = memoryDreamingHome(root)
+          mkdirSync(home, { recursive: true })
+          return home
+        }
+      }),
+      changed: memoryChanged
+    })
+    triggers = new DreamingTriggers({
+      threads: () => router?.snapshot().routers ?? [],
+      workers: () => router?.snapshot().workers ?? [],
+      schedule: (id) => dreaming.schedule(id)
+    })
+    service.attachMemory({ service: memory, dreaming, triggers })
     const github: GitHubAuth = new GitHubAuth(routerStore, safeStorageCipher, (account) => {
       emit({ type: 'github-account', account })
       if (account.status !== 'pending') workerGitHub.refresh()
@@ -189,6 +243,7 @@ app.on('will-quit', () => {
   codexRouter.close()
   service = null
   router = null
+  triggers = null
 })
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
