@@ -1,0 +1,1 @@
+- Data: the local database is now owls.db; existing owls-codex.db data is not carried over. (#42)
