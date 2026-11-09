@@ -41,8 +41,13 @@ export type TurnOutcome = {
   text: string
 }
 export interface TurnProfiles {
-  /** Runs before every turn of a session, so a worker's worktree exists before the agent starts. */
-  prepare(sessionId: string): Promise<void>
+  /**
+   * Runs before every turn of a session, so a worker's worktree exists before
+   * the agent starts. Returns the directories outside the session's `cwd`
+   * that its agent must be able to write, such as the git metadata that a
+   * worker's commits go to.
+   */
+  prepare(sessionId: string): Promise<string[]>
   /** Null once the session no longer belongs to a worker. */
   profile(sessionId: string): TurnProfile | null
   settled(sessionId: string, outcome: TurnOutcome): void
@@ -365,10 +370,10 @@ export class WorkerPool implements TurnProfiles {
    * Creates or re-attaches a worker's worktree before its turn, whether the
    * Router or the user started it. Task sessions that are not workers pass.
    */
-  async prepare(sessionId: string): Promise<void> {
+  async prepare(sessionId: string): Promise<string[]> {
     const worker = this.bySession(sessionId)
     const tree = worker && worker.status !== 'removed' ? worktreeOf(worker) : null
-    if (!worker || !tree) return
+    if (!worker || !tree) return []
     try {
       const baseCommit = await this.workspaces.ensure(tree)
       if (tree.baseCommit !== baseCommit) {
@@ -381,6 +386,7 @@ export class WorkerPool implements TurnProfiles {
         "Owls could not prepare this worker's git worktree."
       )
     }
+    return this.workspaces.commitPaths(tree)
   }
 
   /** Removes a worktree the user chose to discard after removing its worker. */

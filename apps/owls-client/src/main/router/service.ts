@@ -423,7 +423,7 @@ export class RouterService implements TurnProfiles {
     return this.pool.discard(input.routerId, input.workerId)
   }
 
-  prepare(sessionId: string): Promise<void> {
+  prepare(sessionId: string): Promise<string[]> {
     return this.pool.prepare(sessionId)
   }
 

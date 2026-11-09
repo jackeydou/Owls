@@ -637,8 +637,16 @@ F12–F16）：
 
 - worktree Worker 的角色说明追加一段：你在这个项目的独立 worktree 中、分支 `owls/<id>` 上
   工作；不要切换分支、push 或修改其他 worktree；任务完成时把修改提交到这个分支，并在 summary
-  中写明。是否需要用户批准提交取决于 agent 的沙箱（例如 Codex 的 `workspace-write` 不允许写
-  worktree 之外的 git 元数据），这与在主 checkout 中提交相同。
+  中写明。
+- worktree 的 git 元数据在主仓库的 `.git` 中，不在 worktree 目录里，而 Codex 的
+  `workspace-write` 沙箱会把可写目录中的 `.git` 保护成只读。为了让 Worker 不经批准就能提交，
+  每一轮开始前 `prepare` 返回提交需要写的目录，Codex 以 `sandbox_workspace_write.writable_roots`
+  的形式加进沙箱（点号形式的 key，不覆盖用户自己的网络等设置）：worktree 自己的 git 目录（index、
+  HEAD）、共享的 `objects`、`refs/heads/owls` 和 `logs/refs/heads/owls`。`hooks` 和 `config`
+  仍然只读，Worker 不能埋下之后在沙箱外由 git 执行的代码；其他分支和 tag 也仍然只读，切换到其他
+  分支、打 tag 或 `git stash` 时照常请求批准。`git pack-refs` 会删掉空的 ref 目录，`prepare` 时
+  重新创建。使用 reftable 的仓库没有这些目录，提交照常请求批准。Claude Code 没有这层沙箱，不受
+  影响。
 - Owls 自己不提交、合并、rebase 或 push，也不按 `artifacts[].ref` 读写文件（第 6 节不变）。
   分支就是交付物：Router 从 `dispatch_task`、`list_workers` 和 `recall` 拿到分支名并告诉用户；
   Worker 详情显示分支和 diff。

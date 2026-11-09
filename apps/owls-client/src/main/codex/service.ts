@@ -210,7 +210,8 @@ export class CodexService {
     // A stopped turn's id would send interrupt() to that turn instead.
     session.turnId = null
     this.changed(session, true)
-    if (!(await this.prepared(session, previous))) return
+    const writableRoots = await this.prepared(session, previous)
+    if (!writableRoots) return
     session.error = null
     session.diff = ''
     if (!session.title) session.title = input.text.split('\n')[0].slice(0, 90)
@@ -231,6 +232,11 @@ export class CodexService {
         approvalPolicy: 'on-request',
         approvalsReviewer: 'user',
         sandbox: session.permission === 'full-access' ? 'danger-full-access' : session.permission,
+        // A dotted key adds to the user's `sandbox_workspace_write` settings
+        // (such as network access) instead of replacing them.
+        ...(session.permission === 'workspace-write' && writableRoots.length
+          ? { config: { 'sandbox_workspace_write.writable_roots': writableRoots } }
+          : {}),
         ...(profile ? { developerInstructions: profile.instructions } : {})
       }
       if (!session.threadId) {
@@ -627,15 +633,17 @@ export class CodexService {
   }
   /**
    * Creates a Router worker's worktree before the agent starts in it. The session
-   * is already starting, so it can be stopped but not removed meanwhile. False
+   * is already starting, so it can be stopped but not removed meanwhile.
+   * Returns the directories outside `cwd` the agent may also write, or null
    * when it was stopped or lost its connection and the turn must not start.
    */
   private async prepared(
     session: CodexSession,
     previous: CodexSession['status']
-  ): Promise<boolean> {
+  ): Promise<string[] | null> {
+    let writableRoots: string[]
     try {
-      await this.profiles?.prepare(session.id)
+      writableRoots = (await this.profiles?.prepare(session.id)) ?? []
     } catch (error) {
       this.cancelled.delete(session.id)
       if (session.status === 'starting') {
@@ -646,12 +654,12 @@ export class CodexService {
     }
     const stopped = this.cancelled.delete(session.id)
     // disconnected() already ended and reported it.
-    if (session.status !== 'starting') return false
-    if (!stopped) return true
+    if (session.status !== 'starting') return null
+    if (!stopped) return writableRoots
     session.status = 'interrupted'
     this.changed(session, true)
     this.reportTurn(session, 'interrupted', null)
-    return false
+    return null
   }
   /** Tells the Router how a worker's turn ended; the report is the turn's final message. */
   private reportTurn(

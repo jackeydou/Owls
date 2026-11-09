@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, realpathSync } from 'node:fs'
-import { basename, isAbsolute, join, relative } from 'node:path'
+import { existsSync, mkdirSync, realpathSync, statSync } from 'node:fs'
+import { basename, dirname, isAbsolute, join, relative } from 'node:path'
 import type { WorkerWorkspace, WorktreeBase } from '../../shared/router.js'
 
 export type WorktreeWorkspace = Extract<WorkerWorkspace, { kind: 'worktree' }>
@@ -23,6 +23,11 @@ export interface WorkerWorkspaces {
   release(workspace: WorktreeWorkspace, force: boolean): Promise<ReleaseResult>
   /** Clears registrations of worktrees whose directories are gone. */
   prune(repo: string): Promise<void>
+  /**
+   * Directories outside the worktree that a commit on its branch writes to;
+   * empty when they cannot be found.
+   */
+  commitPaths(workspace: WorktreeWorkspace): Promise<string[]>
   /** Null when the worktree is gone, HEAD is detached, or the branch has no remote. */
   remoteBranch(workspace: WorktreeWorkspace): Promise<WorkerRemoteBranch | null>
 }
@@ -38,6 +43,7 @@ export const checkoutOnly: WorkerWorkspaces = {
   },
   release: async () => ({ worktree: 'removed', branch: 'deleted' }),
   prune: async () => {},
+  commitPaths: async () => [],
   remoteBranch: async () => null
 }
 
@@ -64,6 +70,13 @@ function git(cwd: string, args: string[], timeout = GIT_TIMEOUT_MS): Promise<str
       }
     )
   })
+}
+const isDirectory = (path: string) => {
+  try {
+    return statSync(path).isDirectory()
+  } catch {
+    return false
+  }
 }
 const succeeds = (cwd: string, args: string[]) =>
   git(cwd, args).then(
@@ -173,6 +186,44 @@ export class GitWorkspaces implements WorkerWorkspaces {
     return this.serial(repo, async () => {
       if (existsSync(repo)) await git(repo, ['worktree', 'prune']).catch(() => {})
     })
+  }
+
+  /**
+   * The worktree's own git directory (index, HEAD), the shared object store,
+   * and the ref and reflog directories of the worker's branch. A sandboxed
+   * agent gets these and nothing else of the repository's metadata: hooks and
+   * config stay read-only, so it cannot plant code that git later runs outside
+   * the sandbox. Other branches and tags stay read-only too.
+   */
+  async commitPaths(workspace: WorktreeWorkspace): Promise<string[]> {
+    if (!existsSync(workspace.path)) return []
+    const refs = join('refs/heads', dirname(workspace.branch))
+    const out = await git(workspace.path, [
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-dir',
+      '--git-common-dir',
+      '--git-path',
+      'objects',
+      '--git-path',
+      refs,
+      '--git-path',
+      join('logs', refs)
+    ]).catch(() => null)
+    const [gitDir, commonDir, ...shared] = out?.split('\n') ?? []
+    // Not a linked worktree: its git directory would be the repository's whole `.git`.
+    if (!gitDir || !commonDir || gitDir === commonDir || shared.length !== 3) return []
+    const [, refDir, logDir] = shared
+    // `git pack-refs` removes emptied ref directories, and git cannot recreate
+    // them from inside the sandbox.
+    for (const dir of [refDir, logDir]) {
+      try {
+        mkdirSync(dir, { recursive: true })
+      } catch {
+        // A reftable repository has no loose ref directories; commits ask for approval.
+      }
+    }
+    return [gitDir, ...shared].filter(isDirectory).map((p) => realpathSync(p))
   }
 
   /**
