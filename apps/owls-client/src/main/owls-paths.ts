@@ -19,9 +19,24 @@ export function defaultDataRoot(): string {
   return join(homedir(), '.owls')
 }
 
-/** Where Router workers get their own git worktrees, one directory per repository (RFC 11.1). */
+/**
+ * Worker worktrees for the default data root. They hold the user's code, so
+ * they live in a folder Finder shows (not under the hidden `~/.owls`) and
+ * outside `~/Documents`, which iCloud may sync.
+ */
+export function defaultWorktreesRoot(): string {
+  return join(homedir(), 'Owls', 'worktrees')
+}
+
+/**
+ * Where Router workers get their own git worktrees, one directory per
+ * repository (RFC 11.1). A custom data root keeps its worktrees inside it, so
+ * isolated profiles never share worktrees with the normal app.
+ */
 export function workerWorktreesRoot(dataRoot = getDataRoot()): string {
-  return join(dataRoot, 'worktrees')
+  return resolve(dataRoot) === resolve(defaultDataRoot())
+    ? defaultWorktreesRoot()
+    : join(dataRoot, 'worktrees')
 }
 
 /** The working directory of Router engines in threads with no default project. */

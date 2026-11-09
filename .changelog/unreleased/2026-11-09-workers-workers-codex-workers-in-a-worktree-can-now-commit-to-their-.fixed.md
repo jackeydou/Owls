@@ -1,0 +1,1 @@
+- -- Workers: Codex workers in a worktree can now commit to their branch without asking for approval; repository hooks and config stay read-only. (#44)

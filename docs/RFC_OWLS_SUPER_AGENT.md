@@ -603,11 +603,15 @@ F12–F16）：
 分支合入用户的 checkout 时，使用 `checkout`；任务应该独立于用户当前的分支（例如单独开一个 MR）
 时，使用 `base: 'default-branch'`。`ROUTER_PROMPT_VERSION` 升为 3。
 
-**位置。** `<dataRoot>/worktrees/<repoKey>/<workerId>`：
+**位置。** `<worktreesRoot>/<repoKey>/<workerId>`：
 
-- `<dataRoot>` 是 `owls-paths.ts` 的 `getDataRoot()`，沿用现有的 bootstrap 和设置流程。
-  `owls-paths.ts` 新增 `workerWorktreesRoot()`，由 main 启动时传给 `WorkerPool`。不新增路径设置，
-  不读环境变量。
+- `<worktreesRoot>` 由 `owls-paths.ts` 的 `workerWorktreesRoot()` 决定，main 启动时传给
+  `WorkerPool`。使用默认数据目录（`~/.owls`）时是 `~/Owls/worktrees`：worktree 里是用户的代码，
+  放在 Finder 默认能看到的目录里，而不是隐藏的 `~/.owls` 下；也不放在可能被 iCloud 同步的
+  `~/Documents` 下。数据目录是自定义的（包括开发时的 `--owls-data-root`）时是
+  `<dataRoot>/worktrees`，隔离的数据目录不会和正常的 app 共用 worktree。不新增路径设置，不读
+  环境变量。
+- 每个 Worker 的记录保存自己 worktree 的完整路径，已经创建的 worktree 留在原来的位置，不迁移。
 - `repoKey` 是仓库顶层目录名加上其规范路径 SHA-256 的前 8 位，同名仓库不会冲突。
 - 不放在项目目录中，避免 worktree 出现在项目文件树里、被工具扫描，或者需要修改 `.gitignore`；
   也不放在系统临时目录中，保证重启后仍在。
@@ -633,8 +637,16 @@ F12–F16）：
 
 - worktree Worker 的角色说明追加一段：你在这个项目的独立 worktree 中、分支 `owls/<id>` 上
   工作；不要切换分支、push 或修改其他 worktree；任务完成时把修改提交到这个分支，并在 summary
-  中写明。是否需要用户批准提交取决于 agent 的沙箱（例如 Codex 的 `workspace-write` 不允许写
-  worktree 之外的 git 元数据），这与在主 checkout 中提交相同。
+  中写明。
+- worktree 的 git 元数据在主仓库的 `.git` 中，不在 worktree 目录里，而 Codex 的
+  `workspace-write` 沙箱会把可写目录中的 `.git` 保护成只读。为了让 Worker 不经批准就能提交，
+  每一轮开始前 `prepare` 返回提交需要写的目录，Codex 以 `sandbox_workspace_write.writable_roots`
+  的形式加进沙箱（点号形式的 key，不覆盖用户自己的网络等设置）：worktree 自己的 git 目录（index、
+  HEAD）、共享的 `objects`、`refs/heads/owls` 和 `logs/refs/heads/owls`。`hooks` 和 `config`
+  仍然只读，Worker 不能埋下之后在沙箱外由 git 执行的代码；其他分支和 tag 也仍然只读，切换到其他
+  分支、打 tag 或 `git stash` 时照常请求批准。`git pack-refs` 会删掉空的 ref 目录，`prepare` 时
+  重新创建。使用 reftable 的仓库没有这些目录，提交照常请求批准。Claude Code 没有这层沙箱，不受
+  影响。
 - Owls 自己不提交、合并、rebase 或 push，也不按 `artifacts[].ref` 读写文件（第 6 节不变）。
   分支就是交付物：Router 从 `dispatch_task`、`list_workers` 和 `recall` 拿到分支名并告诉用户；
   Worker 详情显示分支和 diff。

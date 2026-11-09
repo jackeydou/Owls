@@ -1,0 +1,1 @@
+- -- Workers: new worker worktrees now live in the visible ~/Owls/worktrees folder instead of the hidden ~/.owls/worktrees; existing worktrees stay where they are. (#44)

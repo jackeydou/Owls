@@ -1,9 +1,17 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import test from 'node:test'
 import { createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk/core'
 import {
@@ -1823,6 +1831,35 @@ test('a deleted worktree directory is checked out again from its branch', async 
   assert.equal(readFileSync(join(plan.path, 'work.txt'), 'utf8'), 'done\n')
 })
 
+test('a worktree commit may write only its git dir, objects, and its branch refs', async (t) => {
+  const { repo, workspaces } = tempRepo(t)
+  const plan = workspaces.plan(
+    await workspaces.inspect(join(repo, 'packages', 'app')),
+    'w_9',
+    'head'
+  )
+  plan.baseCommit = await workspaces.ensure(plan)
+  const common = realpathSync(join(repo, '.git'))
+  const [gitDir, ...shared] = await workspaces.commitPaths(plan)
+  assert.equal(dirname(gitDir), join(common, 'worktrees'))
+  assert.equal(gitIn(plan.path, 'rev-parse', '--absolute-git-dir'), gitDir)
+  assert.deepEqual(shared, [
+    join(common, 'objects'),
+    join(common, 'refs', 'heads', 'owls'),
+    join(common, 'logs', 'refs', 'heads', 'owls')
+  ])
+
+  gitIn(repo, 'pack-refs', '--all')
+  rmSync(join(common, 'refs', 'heads', 'owls'), { recursive: true, force: true })
+  const again = await workspaces.commitPaths(plan)
+  assert.ok(again.includes(join(common, 'refs', 'heads', 'owls')), 'pruned ref dir is recreated')
+
+  const checkout = { ...plan, path: repo, cwd: repo, branch: 'main' }
+  assert.deepEqual(await workspaces.commitPaths(checkout), [], 'never the whole .git')
+  rmSync(plan.path, { recursive: true, force: true })
+  assert.deepEqual(await workspaces.commitPaths(plan), [])
+})
+
 test('releasing a worktree removes clean work, keeps branches with commits and dirty trees', async (t) => {
   const { repo, workspaces } = tempRepo(t)
   const top = await workspaces.inspect(repo)
@@ -1926,7 +1963,8 @@ function fakeWorkspaces(options = {}) {
     },
     prune: async (repo) => {
       calls.push(['prune', repo])
-    }
+    },
+    commitPaths: async (workspace) => [`/git/${workspace.branch}`]
   }
 }
 // Claude Code workers start without the Codex start gap, so these tests stay fast.
@@ -1979,6 +2017,9 @@ test('workers that write start together, each in its own worktree', async () => 
   assert.equal(created.find((c) => c.cwd === PROJECT.path).worker, null)
   const workerA = service.snapshot().workers.find((w) => w.goal === 'Write A')
   assert.equal(workerA.workspace.baseCommit, 'c0ffee', 'prepared before the turn')
+  assert.deepEqual(await service.prepare(workerA.sessionId), [`/git/owls/${workerA.id}`])
+  const workerC = service.snapshot().workers.find((w) => w.goal === 'Write C')
+  assert.deepEqual(await service.prepare(workerC.sessionId), [], 'a checkout writes nothing else')
   assert.equal(
     service.snapshot().workers.find((w) => w.goal === 'Write E').workspace.base,
     'default-branch'
