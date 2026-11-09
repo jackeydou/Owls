@@ -13,7 +13,7 @@ import {
   fauxText,
   fauxToolCall
 } from '@earendil-works/pi-ai'
-import { cipher, commands, memoryRouterStore } from '../fixtures/router-store.mjs'
+import { cipher, commands, memoryRouterStore, TEST_DEVICE_ID } from '../fixtures/router-store.mjs'
 
 const require = createRequire(import.meta.url)
 const {
@@ -2559,4 +2559,74 @@ test('search_memory sits in the fixed tool order only while memory is on', async
   assert.equal(off.engine.runs[0].text, 'go', 'no memory block without memory')
   assert.equal(ROUTER_PROMPT_VERSION, 9)
   off.service.close()
+})
+
+test('a thread of another device is shown but never runs or changes here', async () => {
+  const store = memoryRouterStore()
+  const at = new Date().toISOString()
+  const remote = {
+    id: 'remote-thread',
+    deviceId: 'dv_0000000b',
+    title: 'On the Mac mini',
+    projectId: null,
+    cwd: '/elsewhere',
+    status: 'running',
+    rev: 0,
+    itemCount: 0,
+    preview: null,
+    projectsShown: null,
+    error: null,
+    tokens: null,
+    native: null,
+    unknownBatches: [],
+    createdAt: at,
+    updatedAt: at
+  }
+  store.saveThread(remote)
+  store.appendEvent(remote.id, 'ev-remote', { kind: 'user_message', at, text: 'hello' })
+  store.openBatch(
+    { id: 'b_remote', routerId: remote.id, createdAt: at, engine: 'owls', promptVersion: 1 },
+    []
+  )
+  const { service, router } = harness([fauxAssistantMessage(fauxText('Hi.'))], { store })
+  assert.equal(router.deviceId, TEST_DEVICE_ID, 'new threads belong to this device')
+
+  const shown = service.snapshot().routers.find((r) => r.id === remote.id)
+  assert.equal(shown.status, 'running', 'its own device recovers it, not this one')
+  assert.deepEqual(shown.unknownBatches, [])
+  assert.equal(service.isRunning(), false)
+
+  const unavailable = { code: 'request_unavailable' }
+  await assert.rejects(
+    service.send({ routerId: remote.id, commandId: crypto.randomUUID(), text: 'hi' }),
+    unavailable
+  )
+  assert.throws(() => service.interrupt(remote.id), unavailable)
+  assert.throws(
+    () => service.resolveBatch({ routerId: remote.id, batchId: 'b_remote', decision: 'retry' }),
+    unavailable
+  )
+  assert.throws(
+    () =>
+      service.forward({
+        commandId: crypto.randomUUID(),
+        source: { kind: 'item', routerId: router.id, itemId: 'none' },
+        target: { kind: 'thread', routerId: remote.id },
+        note: ''
+      }),
+    unavailable
+  )
+  service.settingsChanged()
+  // The local thread still runs.
+  await service.send({ routerId: router.id, commandId: crypto.randomUUID(), text: 'Hello' })
+  await waitFor(
+    () => service.items(router.id).some((entry) => entry.item.kind === 'assistant'),
+    'the local reply'
+  )
+  assert.deepEqual(
+    store.events(remote.id, 'pending').map((e) => e.text),
+    ['hello'],
+    'its Inbox waits for its own device'
+  )
+  service.close()
 })

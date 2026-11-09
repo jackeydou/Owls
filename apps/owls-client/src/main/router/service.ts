@@ -31,6 +31,7 @@ import { renderBatch, renderProjects, renderState } from './render.js'
 import type { RouterStore } from './store.js'
 import { ThreadLog } from './thread-log.js'
 import { RouterToolError, routerTools } from './tools.js'
+import { LocalWorkers, type WorkerTarget } from './worker-target.js'
 import {
   type TurnOutcome,
   type TurnProfile,
@@ -72,6 +73,7 @@ function titleOf(text: string): string {
  * Global threads, each with its own Router: their conversations, the persisted
  * Inbox, and batch delivery to the configured engine. Workers live in the
  * WorkerPool. A thread's items load on first use and are saved one by one.
+ * Only threads whose `deviceId` is this device run here; others are read-only.
  */
 export class RouterService implements TurnProfiles {
   private readonly routers = new Map<string, CodexRouter>()
@@ -85,6 +87,8 @@ export class RouterService implements TurnProfiles {
   /** Changed items by thread since the last flush, streaming ones included. */
   private readonly dirtyItems = new Map<string, Set<string>>()
   private readonly pool: WorkerPool
+  /** Where worker actions go; every worker runs on this device for now. */
+  private readonly workers: WorkerTarget
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private closed = false
 
@@ -103,6 +107,8 @@ export class RouterService implements TurnProfiles {
     const unknown = store.batches('dispatch_unknown')
     for (const router of store.routers()) {
       this.routers.set(router.id, router)
+      // Another device recovers its own threads.
+      if (!this.local(router)) continue
       const unknownBatches = unknown
         .filter((b) => b.routerId === router.id)
         .map((b) => ({ id: b.id, events: b.eventSeqs.length, createdAt: b.createdAt }))
@@ -138,6 +144,7 @@ export class RouterService implements TurnProfiles {
       },
       workspaces
     )
+    this.workers = new LocalWorkers(this.pool)
   }
 
   /** Settles once startup cleanup of worker worktrees has run. */
@@ -164,6 +171,7 @@ export class RouterService implements TurnProfiles {
     const now = new Date().toISOString()
     const router: CodexRouter = {
       id,
+      deviceId: this.store.deviceId,
       title: null,
       projectId: project?.id ?? null,
       cwd: project?.path ?? this.host.threadHome(),
@@ -191,7 +199,7 @@ export class RouterService implements TurnProfiles {
   }
 
   async send(input: SendRouterMessage): Promise<void> {
-    const router = this.getRouter(input.routerId)
+    const router = this.ownRouter(input.routerId)
     if (!this.commands.acceptCommand(input.commandId, router.id, input.text)) return
     if (input.workerId) return this.sendToWorker(router, input, input.workerId)
     router.title ??= titleOf(input.text)
@@ -229,7 +237,7 @@ export class RouterService implements TurnProfiles {
     input: SendRouterMessage,
     workerId: string
   ): Promise<void> {
-    await this.forUser(() => this.pool.message(router.id, { workerId, text: input.text }))
+    await this.forUser(() => this.workers.message(router.id, { workerId, text: input.text }))
     this.put(router, {
       id: input.commandId,
       kind: 'user',
@@ -259,7 +267,7 @@ export class RouterService implements TurnProfiles {
     const targetId = input.target.kind === 'thread' ? input.target.routerId : input.commandId
     if (targetId === source.id)
       throw new CodexRuntimeError('invalid_request', 'This content is already in that thread.')
-    if (input.target.kind === 'thread') this.getRouter(targetId)
+    if (input.target.kind === 'thread') this.ownRouter(targetId)
     const content = this.forwardContent(input, source)
     const note = input.note || null
     const accepted = this.commands.acceptCommand(
@@ -270,7 +278,7 @@ export class RouterService implements TurnProfiles {
     if (!accepted) return this.getRouter(targetId)
     const target =
       input.target.kind === 'thread'
-        ? this.getRouter(targetId)
+        ? this.ownRouter(targetId)
         : this.createThread({ projectId: input.target.projectId }, targetId)
     target.title ??= titleOf(note ?? content.text)
     const { goal, artifacts, ...origin } = content.origin
@@ -332,14 +340,14 @@ export class RouterService implements TurnProfiles {
   }
 
   async stopWorker(input: WorkerAction): Promise<void> {
-    const router = this.getRouter(input.routerId)
-    await this.forUser(() => this.pool.stop(router.id, input.workerId, 'user'))
+    const router = this.ownRouter(input.routerId)
+    await this.forUser(() => this.workers.stop(router.id, input.workerId, 'user'))
   }
 
   /** Removes a worker that is not running; the `removed` event tells the Router. */
   removeWorker(input: WorkerAction): void {
     const worker = this.pool.get(input.workerId)
-    if (!worker || worker.routerId !== this.getRouter(input.routerId).id)
+    if (!worker || worker.routerId !== this.ownRouter(input.routerId).id)
       throw new CodexRuntimeError('request_unavailable', 'This worker no longer exists.')
     if (worker.status !== 'removed') this.host.remove(worker.sessionId)
   }
@@ -356,13 +364,13 @@ export class RouterService implements TurnProfiles {
   }
 
   interrupt(routerId: string): void {
-    const router = this.getRouter(routerId)
+    const router = this.ownRouter(routerId)
     if (router.status === 'running') this.engines.get(router.id)?.engine.abort()
   }
 
   /** Resends or dismisses a batch whose delivery is unknown after a restart. */
   resolveBatch(input: ResolveBatch): void {
-    const router = this.getRouter(input.routerId)
+    const router = this.ownRouter(input.routerId)
     const batch = this.store.batch(input.batchId)
     if (!batch || batch.routerId !== router.id || batch.status !== 'dispatch_unknown')
       throw new CodexRuntimeError('request_unavailable', 'This batch is no longer waiting.')
@@ -400,7 +408,7 @@ export class RouterService implements TurnProfiles {
     // A failure from the old settings no longer applies, and messages that waited for a
     // working engine can go out now.
     for (const router of this.routers.values()) {
-      if (router.status !== 'failed') continue
+      if (router.status !== 'failed' || !this.local(router)) continue
       router.status = 'idle'
       router.error = null
       this.changed(router)
@@ -411,7 +419,7 @@ export class RouterService implements TurnProfiles {
 
   /** Removes a worktree kept after its worker was removed, once the user confirmed it. */
   discardWorktree(input: WorkerAction): Promise<void> {
-    this.getRouter(input.routerId)
+    this.ownRouter(input.routerId)
     return this.pool.discard(input.routerId, input.workerId)
   }
 
@@ -451,7 +459,7 @@ export class RouterService implements TurnProfiles {
   }
 
   isRunning(): boolean {
-    return [...this.routers.values()].some((r) => r.status === 'running')
+    return [...this.routers.values()].some((r) => r.status === 'running' && this.local(r))
   }
 
   close(): void {
@@ -483,7 +491,7 @@ export class RouterService implements TurnProfiles {
 
   private async pump(routerId: string): Promise<void> {
     const router = this.routers.get(routerId)
-    if (!router || router.status === 'running' || this.closed) return
+    if (!router || !this.local(router) || router.status === 'running' || this.closed) return
     const events = this.store.events(routerId, 'pending')
     if (!events.length) return
     const engine = this.engine(router)
@@ -606,12 +614,17 @@ export class RouterService implements TurnProfiles {
       settings,
       tools: routerTools({
         dispatchTask: async (input) => {
-          const result = await this.pool.dispatch(router, input, this.dispatched.get(router.id))
+          const result = await this.workers.dispatch({
+            routerId: router.id,
+            defaultProjectId: router.projectId,
+            input,
+            seen: this.dispatched.get(router.id)
+          })
           this.active.get(router.id)?.dispatches.add(result.workerId)
           return result
         },
-        messageWorker: (input) => this.pool.message(router.id, input),
-        stopWorker: (workerId) => this.pool.stop(router.id, workerId),
+        messageWorker: (input) => this.workers.message(router.id, input),
+        stopWorker: (workerId) => this.workers.stop(router.id, workerId),
         listWorkers: (input) => ({ workers: this.pool.describe(router.id, input.status) }),
         recall: (id) => this.recall(router.id, id),
         ...(memory ? { searchMemory: (input) => this.memory.search(input) } : {})
@@ -746,6 +759,16 @@ export class RouterService implements TurnProfiles {
     const router = this.routers.get(id)
     if (!router) throw new CodexRuntimeError('task_not_found', 'Router not found.')
     return router
+  }
+  /** A thread whose Router runs on this device, which alone may change it. */
+  private ownRouter(id: string): CodexRouter {
+    const router = this.getRouter(id)
+    if (!this.local(router))
+      throw new CodexRuntimeError('request_unavailable', 'This thread runs on another device.')
+    return router
+  }
+  private local(router: CodexRouter): boolean {
+    return router.deviceId === this.store.deviceId
   }
   private log(router: CodexRouter): ThreadLog {
     let log = this.logs.get(router.id)

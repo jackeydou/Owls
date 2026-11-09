@@ -7,6 +7,8 @@ import type { CodexProject, CodexSession, CodexSettings } from '../../shared/cod
 import { projectSchema, sessionSchema, settingsSchema } from '../../shared/codex.js'
 import { defaultMemorySettings } from '../../shared/memory.js'
 import { defaultRouterSettings } from '../../shared/router.js'
+import { loadDeviceIdentity } from '../sync/device-identity.js'
+import { logChange } from '../sync/sync-log.js'
 import { CodexRuntimeError } from './errors.js'
 import { codexCommands, codexProjects, codexSessions, codexSettings } from './schema.js'
 
@@ -14,11 +16,15 @@ export class CodexStore {
   private readonly sqlite: Database.Database
   /** Shared with the Router store so both write through one connection. */
   readonly db
-  constructor(databasePath: string, migrationsFolder: string) {
-    this.sqlite = new Database(databasePath)
+  /** This device, the owner of every record written through this store. */
+  readonly deviceId: string
+  /** `database` is a file path, or an open client, which tests pass. */
+  constructor(database: string | Database.Database, migrationsFolder: string) {
+    this.sqlite = typeof database === 'string' ? new Database(database) : database
     this.sqlite.pragma('journal_mode = WAL')
     this.db = drizzle(this.sqlite)
     migrate(this.db, { migrationsFolder })
+    this.deviceId = loadDeviceIdentity(this.db).deviceId
   }
   settings(): CodexSettings {
     const row = this.db.select().from(codexSettings).get()
@@ -60,19 +66,27 @@ export class CodexStore {
   }
   saveSession(value: CodexSession): void {
     const session = sessionSchema.parse(value)
-    this.db
-      .insert(codexSessions)
-      .values({ id: session.id, updatedAt: session.updatedAt, value: session })
-      .onConflictDoUpdate({
-        target: codexSessions.id,
-        set: { updatedAt: session.updatedAt, value: session }
-      })
-      .run()
+    this.db.transaction((tx) => {
+      tx.insert(codexSessions)
+        .values({
+          id: session.id,
+          ownerDeviceId: this.deviceId,
+          updatedAt: session.updatedAt,
+          value: session
+        })
+        .onConflictDoUpdate({
+          target: codexSessions.id,
+          set: { updatedAt: session.updatedAt, value: session }
+        })
+        .run()
+      logChange(tx, 'session', session.id)
+    })
   }
   removeSession(id: string): void {
     this.db.transaction((tx) => {
       tx.delete(codexCommands).where(eq(codexCommands.sessionId, id)).run()
       tx.delete(codexSessions).where(eq(codexSessions.id, id)).run()
+      logChange(tx, 'session', id)
     })
   }
   projects(): CodexProject[] {
@@ -84,11 +98,13 @@ export class CodexStore {
       .sort((a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path))
   }
   saveProject(project: CodexProject): void {
-    this.db
-      .insert(codexProjects)
-      .values({ id: project.id, value: project })
-      .onConflictDoUpdate({ target: codexProjects.id, set: { value: project } })
-      .run()
+    this.db.transaction((tx) => {
+      tx.insert(codexProjects)
+        .values({ id: project.id, ownerDeviceId: this.deviceId, value: project })
+        .onConflictDoUpdate({ target: codexProjects.id, set: { value: project } })
+        .run()
+      logChange(tx, 'project', project.id)
+    })
   }
   acceptCommand(id: string, sessionId: string, text: string): boolean {
     const inputHash = createHash('sha256').update(sessionId).update('\0').update(text).digest('hex')

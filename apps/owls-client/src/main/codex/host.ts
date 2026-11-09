@@ -99,7 +99,8 @@ export class OwlsHost {
       remove: (sessionId) => this.archive(sessionId),
       send: (input) => this.send(input),
       steer: (sessionId, text) => this.steer(sessionId, text),
-      interrupt: (sessionId) => this.interrupt(sessionId)
+      interrupt: (sessionId) => this.interrupt(sessionId),
+      respond: (input) => this.respond(input)
     }
   }
   snapshot(): CodexSnapshot {

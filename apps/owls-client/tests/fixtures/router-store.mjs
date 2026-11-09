@@ -3,6 +3,9 @@
  * (scripts/bench-router.mjs). better-sqlite3 is built for Electron, so plain
  * Node runs use this store with the same method surface as RouterStore.
  */
+/** The device id every in-memory store writes as. */
+export const TEST_DEVICE_ID = 'dv_0000000a'
+
 /** In-memory stand-in for RouterStore with the same method surface. */
 export function memoryRouterStore() {
   const routers = new Map()
@@ -16,6 +19,7 @@ export function memoryRouterStore() {
   let rev = 0
   const publicEvent = (e) => ({ ...structuredClone(e.body), seq: e.seq })
   return {
+    deviceId: TEST_DEVICE_ID,
     events: (routerId, status) =>
       events.filter((e) => e.routerId === routerId && e.status === status).map(publicEvent),
     allEvents: () =>

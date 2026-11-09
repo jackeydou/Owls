@@ -1,4 +1,4 @@
-import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import type {
   CodexItem,
   CodexProject,
@@ -13,12 +13,19 @@ export const codexSettings = sqliteTable('codex_settings', {
   id: text('id').primaryKey(),
   value: text('value', { mode: 'json' }).$type<CodexSettings>().notNull()
 })
+/**
+ * The device that writes a record (RFC_OWLS_MULTI_DEVICE 4). Rows from before
+ * device ids existed get this device's id on the first start that has one.
+ */
+const ownerDeviceId = () => text('owner_device_id')
 export const codexProjects = sqliteTable('codex_projects', {
   id: text('id').primaryKey(),
+  ownerDeviceId: ownerDeviceId(),
   value: text('value', { mode: 'json' }).$type<CodexProject>().notNull()
 })
 export const codexSessions = sqliteTable('codex_sessions', {
   id: text('id').primaryKey(),
+  ownerDeviceId: ownerDeviceId(),
   updatedAt: text('updated_at').notNull(),
   value: text('value', { mode: 'json' }).$type<CodexSession>().notNull()
 })
@@ -35,12 +42,38 @@ export const codexSyncState = sqliteTable('codex_sync_state', {
   id: text('id').primaryKey(),
   rev: integer('rev').notNull()
 })
+/** This device's identity: one row, created on the first start (RFC_OWLS_MULTI_DEVICE 7). */
+export const codexLocalDevice = sqliteTable('codex_local_device', {
+  id: text('id').primaryKey(),
+  deviceId: text('device_id').notNull(),
+  createdAt: text('created_at').notNull()
+})
+/**
+ * Local records changed since the sync service last acknowledged them. One row
+ * per record: a new change moves the record to the next `device_seq`, so the log
+ * stays as large as the set of records however often they change.
+ */
+export const codexSyncLog = sqliteTable(
+  'codex_sync_log',
+  {
+    kind: text('kind').notNull(),
+    recordId: text('record_id').notNull(),
+    deviceSeq: integer('device_seq').notNull(),
+    acked: integer('acked', { mode: 'boolean' }).notNull()
+  },
+  (table) => [
+    primaryKey({ columns: [table.kind, table.recordId] }),
+    uniqueIndex('codex_sync_log_seq').on(table.deviceSeq)
+  ]
+)
 /** Threads: global Router conversations, without their items. */
 export const codexThreads = sqliteTable(
   'codex_threads',
   {
     id: text('id').primaryKey(),
     rev: integer('rev').notNull(),
+    /** Mirrors `value.deviceId`. */
+    ownerDeviceId: ownerDeviceId(),
     updatedAt: text('updated_at').notNull(),
     value: text('value', { mode: 'json' }).$type<CodexRouter>().notNull()
   },
@@ -66,6 +99,7 @@ export const codexWorkers = sqliteTable('codex_workers', {
   id: text('id').primaryKey(),
   routerId: text('router_id').notNull(),
   sessionId: text('session_id').notNull().unique(),
+  ownerDeviceId: ownerDeviceId(),
   updatedAt: text('updated_at').notNull(),
   value: text('value', { mode: 'json' }).$type<RouterWorker>().notNull()
 })
