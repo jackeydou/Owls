@@ -69,15 +69,8 @@ module.exports = {
   ],
   // Keep JavaScript dependencies inside app.asar. Unpacking all of node_modules put tens of
   // thousands of small files in the bundle, which made copying, signing, and verifying the
-  // app slow. Unpack only native addons and the executables that must run from disk.
-  asarUnpack: [
-    'resources/**',
-    '**/*.node',
-    '**/node_modules/node-pty/prebuilds/*/spawn-helper',
-    '**/node_modules/@anthropic-ai/sandbox-runtime/vendor/**',
-    '**/node_modules/trash/lib/macos-trash',
-    'out/main/compiled-workflow/stage-worker-entry.js'
-  ],
+  // app slow. Unpack only native addons.
+  asarUnpack: ['resources/**', '**/*.node', 'out/main/compiled-workflow/stage-worker-entry.js'],
   extraResources: [
     {
       from: 'drizzle',
