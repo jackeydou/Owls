@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { cipher, memoryRouterStore } from '../fixtures/router-store.mjs'
+import { cipher, memoryRouterStore, staleSecret } from '../fixtures/router-store.mjs'
 
 const require = createRequire(import.meta.url)
 const { GitHubAuth, GitWorkspaces, lookupPullRequest, parseGitHubRemote, WorkerGitHub } =
@@ -145,7 +145,7 @@ test('the gh CLI connection reads its token per request and never stores it', as
     method: 'gh-cli',
     failure: null
   })
-  assert.doesNotMatch(cipher.decrypt(store.credential('github').secret), /gho_/)
+  assert.doesNotMatch((await cipher.decrypt(store.credential('github').secret)).plain, /gho_/)
   assert.equal(await auth.token(), 'gho_2')
   assert.equal(await auth.token(), 'gho_3')
 })
@@ -202,9 +202,41 @@ test('connecting another way replaces the current connection', async () => {
     http,
     async () => null
   )
+  await failed.load()
   const kept = await failed.connectGhCli()
   assert.equal(kept.status, 'signed-in')
   assert.equal(kept.failure, 'gh-unavailable')
+})
+
+test('a stored connection loads after a restart, and old encryption is replaced', async () => {
+  const store = memoryRouterStore()
+  const { http } = fakeHttp({ '/user': [[{ login: 'owl' }]] })
+  await new GitHubAuth(store, cipher, () => {}, http).connectToken('pat')
+  const events = []
+  const restarted = new GitHubAuth(store, cipher, (account) => events.push(account), http)
+  assert.equal(restarted.account().status, 'signed-out', 'nothing is decrypted before load')
+  await restarted.load()
+  assert.deepEqual(events, [{ status: 'signed-in', login: 'owl', method: 'token', failure: null }])
+  assert.equal(await restarted.token(), 'pat')
+
+  const session = { accessToken: 'old', refreshToken: null, expiresAt: null, login: 'owl' }
+  store.saveCredential('github', 'github_app_user', staleSecret(JSON.stringify(session)))
+  const legacy = new GitHubAuth(store, cipher, () => {}, http)
+  assert.equal(await legacy.token(), 'old', 'token() waits for the stored connection')
+  assert.equal(legacy.method(), 'app')
+  assert.equal((await cipher.decrypt(store.credential('github').secret)).stale, false)
+
+  store.saveCredential('github', 'github_token', 'not-a-secret')
+  const unreadable = new GitHubAuth(store, cipher, () => {}, http)
+  await unreadable.load()
+  assert.deepEqual(unreadable.account(), { status: 'signed-out', failure: null })
+  assert.equal(await unreadable.token(), null)
+})
+
+test('a sign-in without secure storage is refused', async () => {
+  const locked = { ...cipher, unavailable: async () => 'No keychain.' }
+  const auth = new GitHubAuth(memoryRouterStore(), locked, () => {}, fakeHttp({}).http)
+  await assert.rejects(auth.connectToken('pat'), (e) => e.code === 'secure_storage_unavailable')
 })
 
 test('parseGitHubRemote reads github.com remotes and nothing else', () => {

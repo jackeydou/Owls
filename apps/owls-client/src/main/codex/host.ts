@@ -186,8 +186,8 @@ export class OwlsHost {
   routerProviders(): RouterProviderInfo[] {
     return this.requireRouter().providers()
   }
-  setRouterKey(input: SetRouterKey): void {
-    this.requireRouter().setKey(input)
+  setRouterKey(input: SetRouterKey): Promise<void> {
+    return this.requireRouter().setKey(input)
   }
   removeRouterKey(providerId: SetRouterKey['providerId']): void {
     this.requireRouter().removeKey(providerId)

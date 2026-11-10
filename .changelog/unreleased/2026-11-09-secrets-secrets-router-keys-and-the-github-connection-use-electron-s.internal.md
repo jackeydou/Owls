@@ -1,0 +1,1 @@
+- Secrets: Router keys and the GitHub connection use Electron's async safeStorage API ahead of its sync API's removal in Electron 46. (#49)
