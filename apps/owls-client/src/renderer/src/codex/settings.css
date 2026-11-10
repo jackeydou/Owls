@@ -322,3 +322,7 @@
   background: transparent;
   color: var(--color-foreground);
 }
+.codex-settings-chevron {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+}

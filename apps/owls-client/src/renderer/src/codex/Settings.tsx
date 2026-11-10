@@ -4,6 +4,8 @@ import { Select } from '@renderer/components/ui/select'
 import {
   ArrowLeft,
   Brain,
+  ChevronDown,
+  ChevronRight,
   GitBranch,
   GitPullRequest,
   Info,
@@ -13,7 +15,7 @@ import {
   ScrollText,
   SlidersHorizontal
 } from 'lucide-react'
-import { Fragment, useId } from 'react'
+import { Fragment, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { appLogoSchema, settingsSchema } from '../../../shared/codex'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
@@ -63,19 +65,29 @@ const PROJECT_PAGE_ICONS: Record<ProjectSettingsPage, LucideIcon> = {
   instructions: ScrollText
 }
 
-/** Every project, with the pages of the open one listed under it. */
+/**
+ * Every project, with the pages of the open one listed under it. Clicking the open project
+ * folds its pages away; clicking another opens it on its general page.
+ */
 function ProjectsNav() {
   const { t } = useTranslation()
   const projects = useCodexStore((s) => s.projects)
   const current = useCodexStore((s) => (s.settingsTab === 'project' ? s.settingsProject : null))
   const showProjectSettings = useCodexStore((s) => s.showProjectSettings)
+  const [folded, setFolded] = useState(false)
+  // Opening any project page, from here or the Projects sidebar, unfolds it again.
+  useEffect(() => {
+    if (current) setFolded(false)
+  }, [current])
   if (!projects.length) return null
   return (
     <>
       <hr />
       <h2 className="codex-settings-group">{t('projectSettings.group')}</h2>
       {projects.map((project) => {
-        const open = current?.projectId === project.id
+        const selected = current?.projectId === project.id
+        const open = selected && !folded
+        const Chevron = open ? ChevronDown : ChevronRight
         return (
           <Fragment key={project.id}>
             <button
@@ -83,10 +95,14 @@ function ProjectsNav() {
               className="router-sidebar-item codex-settings-project"
               style={{ '--owl-c': projectHue(project.id) } as React.CSSProperties}
               aria-expanded={open}
-              onClick={() => showProjectSettings(project.id)}
+              onClick={() => {
+                if (selected) setFolded(!folded)
+                else showProjectSettings(project.id)
+              }}
             >
               <b aria-hidden="true">{project.name.slice(0, 1).toUpperCase()}</b>
               <span>{project.name}</span>
+              <Chevron size={14} className="codex-settings-chevron" aria-hidden="true" />
             </button>
             {open ? (
               <ul
