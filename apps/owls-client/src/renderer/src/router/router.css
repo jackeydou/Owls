@@ -202,6 +202,30 @@ html[data-platform="darwin"] {
   border-radius: 6px;
   color: var(--color-muted-foreground);
 }
+/* A project's settings stay out of sight until the row is pointed at or focused. */
+.router-project-settings {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: var(--color-muted-foreground);
+  opacity: 0;
+}
+.router-project-settings.beside-fold {
+  right: 27px;
+}
+.router-sidebar-project:hover > .router-project-settings,
+.router-project-settings:focus-visible {
+  opacity: 1;
+}
+.router-sidebar-project:hover > .router-project {
+  padding-right: 30px;
+}
+.router-sidebar-project:hover > .router-project.foldable {
+  padding-right: 52px;
+}
 /* The rule runs down from the center of the project's tile. */
 .router-sidebar-workers {
   display: flex;

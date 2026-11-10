@@ -2,6 +2,12 @@ import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, realpathSync, statSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative } from 'node:path'
+import {
+  DEFAULT_REMOTE,
+  defaultProjectSettings,
+  type ProjectGitRefs,
+  type ProjectGitSettings
+} from '../../shared/projects.js'
 import type { WorkerWorkspace, WorktreeBase } from '../../shared/router.js'
 
 export type WorktreeWorkspace = Extract<WorkerWorkspace, { kind: 'worktree' }>
@@ -17,10 +23,20 @@ export interface WorkerWorkspaces {
   inspect(projectPath: string): Promise<WorktreeRepo | null>
   /** The worktree a worker would get; deterministic from the repository and worker ID. */
   plan(repo: WorktreeRepo, workerId: string, base: WorktreeBase): WorktreeWorkspace
-  /** Makes sure the worktree exists, creating or re-attaching it. Returns its base commit. */
-  ensure(workspace: WorktreeWorkspace): Promise<string>
-  /** Removes a clean worktree (or any, with `force`) and a branch that holds no new work. */
-  release(workspace: WorktreeWorkspace, force: boolean): Promise<ReleaseResult>
+  /**
+   * Makes sure the worktree exists, creating or re-attaching it. Returns its base commit.
+   * `git` is the project's worktree settings, which choose the base of a new worktree.
+   */
+  ensure(workspace: WorktreeWorkspace, git?: ProjectGitSettings): Promise<string>
+  /**
+   * Removes a clean worktree (or any, with `force`) and a branch that holds no new work,
+   * or, when the project's settings allow it, one whose work is all on the remote.
+   */
+  release(
+    workspace: WorktreeWorkspace,
+    force: boolean,
+    git?: ProjectGitSettings
+  ): Promise<ReleaseResult>
   /** Clears registrations of worktrees whose directories are gone. */
   prune(repo: string): Promise<void>
   /**
@@ -29,7 +45,12 @@ export interface WorkerWorkspaces {
    */
   commitPaths(workspace: WorktreeWorkspace): Promise<string[]>
   /** Null when the worktree is gone, HEAD is detached, or the branch has no remote. */
-  remoteBranch(workspace: WorktreeWorkspace): Promise<WorkerRemoteBranch | null>
+  remoteBranch(
+    workspace: WorktreeWorkspace,
+    git?: ProjectGitSettings
+  ): Promise<WorkerRemoteBranch | null>
+  /** A repository's branches and remotes, for the project settings; null for no repository. */
+  refs(projectPath: string): Promise<ProjectGitRefs | null>
 }
 
 /** For hosts without git worktrees: every worker runs in the project checkout. */
@@ -44,7 +65,8 @@ export const checkoutOnly: WorkerWorkspaces = {
   release: async () => ({ worktree: 'removed', branch: 'deleted' }),
   prune: async () => {},
   commitPaths: async () => [],
-  remoteBranch: async () => null
+  remoteBranch: async () => null,
+  refs: async () => null
 }
 
 /** Owls' own branch for a worker; the deliverable the user merges. */
@@ -128,7 +150,10 @@ export class GitWorkspaces implements WorkerWorkspaces {
     }
   }
 
-  ensure(workspace: WorktreeWorkspace): Promise<string> {
+  ensure(
+    workspace: WorktreeWorkspace,
+    settings: ProjectGitSettings = defaultProjectSettings.git
+  ): Promise<string> {
     // Already checked out: the common case for every turn after the first.
     if (
       existsSync(join(workspace.path, '.git')) &&
@@ -151,7 +176,7 @@ export class GitWorkspaces implements WorkerWorkspaces {
       if (await succeeds(repo, ['rev-parse', '--verify', '--quiet', ref])) {
         await git(repo, ['worktree', 'add', path, branch])
       } else {
-        baseCommit = await this.baseCommit(repo, workspace)
+        baseCommit = await this.baseCommit(repo, workspace, settings)
         await git(repo, ['worktree', 'add', '-b', branch, path, baseCommit])
       }
       if (!existsSync(workspace.cwd))
@@ -160,7 +185,11 @@ export class GitWorkspaces implements WorkerWorkspaces {
     })
   }
 
-  release(workspace: WorktreeWorkspace, force: boolean): Promise<ReleaseResult> {
+  release(
+    workspace: WorktreeWorkspace,
+    force: boolean,
+    settings: ProjectGitSettings = defaultProjectSettings.git
+  ): Promise<ReleaseResult> {
     return this.serial(workspace.repo, async () => {
       const { repo, path, branch } = workspace
       if (existsSync(path)) {
@@ -176,7 +205,11 @@ export class GitWorkspaces implements WorkerWorkspaces {
       const merged =
         tip === workspace.baseCommit ||
         (await succeeds(repo, ['merge-base', '--is-ancestor', tip, 'HEAD']))
-      if (!merged) return { worktree: 'removed', branch: 'kept' }
+      if (
+        !merged &&
+        !(settings.deletePushedBranches && (await this.pushed(repo, branch, tip, settings)))
+      )
+        return { worktree: 'removed', branch: 'kept' }
       await git(repo, ['branch', '-D', branch])
       return { worktree: 'removed', branch: 'deleted' }
     })
@@ -231,13 +264,16 @@ export class GitWorkspaces implements WorkerWorkspaces {
    * branch of its own. The upstream is no guide to the name: `git switch -c x
    * origin/main` tracks main, while the branch is pushed as x.
    */
-  async remoteBranch(workspace: WorktreeWorkspace): Promise<WorkerRemoteBranch | null> {
+  async remoteBranch(
+    workspace: WorktreeWorkspace,
+    settings: ProjectGitSettings = defaultProjectSettings.git
+  ): Promise<WorkerRemoteBranch | null> {
     const { path } = workspace
     if (!existsSync(path)) return null
     const branch = await git(path, ['symbolic-ref', '--quiet', '--short', 'HEAD']).catch(() => null)
     if (!branch) return null
     const tracked = await git(path, ['config', `branch.${branch}.remote`]).catch(() => null)
-    const remote = tracked && tracked !== '.' ? tracked : 'origin'
+    const remote = tracked && tracked !== '.' ? tracked : (settings.remote ?? DEFAULT_REMOTE)
     const remoteUrl = await git(path, ['remote', 'get-url', remote]).catch(() => null)
     if (!remoteUrl) return null
     const ref = `refs/remotes/${remote}/${branch}`
@@ -245,11 +281,36 @@ export class GitWorkspaces implements WorkerWorkspaces {
     return { remoteUrl, branch, pushed }
   }
 
+  async refs(projectPath: string): Promise<ProjectGitRefs | null> {
+    const repo = await git(projectPath, ['rev-parse', '--show-toplevel']).catch(() => null)
+    if (!repo) return null
+    const list = async (args: string[]) =>
+      (await git(repo, args).catch(() => ''))
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b))
+    const [branches, remoteRefs, remotes] = await Promise.all([
+      list(['for-each-ref', '--format=%(refname:short)', 'refs/heads']),
+      list(['for-each-ref', '--format=%(refname:short)', 'refs/remotes']),
+      list(['remote'])
+    ])
+    // `origin/HEAD` is a pointer, not a branch to start from.
+    const remoteBranches = remoteRefs.filter((ref) => !ref.endsWith('/HEAD') && ref.includes('/'))
+    return { branches, remoteBranches, remotes }
+  }
+
   /**
-   * HEAD, the parent's branch, or the remote default branch after a best-effort
-   * fetch. Falls back to HEAD: a parent's branch that is gone held nothing HEAD lacks.
+   * The parent's branch, the project's base branch (fetched first when it is a
+   * remote-tracking branch), the remote default branch after a best-effort fetch,
+   * or HEAD. Falls back to HEAD: a parent's branch that is gone held nothing HEAD
+   * lacks, and a base branch that no longer exists should not stop the worker.
    */
-  private async baseCommit(repo: string, workspace: WorktreeWorkspace): Promise<string> {
+  private async baseCommit(
+    repo: string,
+    workspace: WorktreeWorkspace,
+    settings: ProjectGitSettings
+  ): Promise<string> {
     if (workspace.baseBranch) {
       const commit = await git(repo, [
         'rev-parse',
@@ -259,23 +320,69 @@ export class GitWorkspaces implements WorkerWorkspaces {
       ]).catch(() => null)
       if (commit) return commit
     }
+    if (workspace.base === 'head' && settings.baseBranch) {
+      const commit = await this.configuredBase(repo, settings.baseBranch)
+      if (commit) return commit
+    }
     if (workspace.base === 'default-branch') {
-      const remote = await git(repo, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']).catch(
-        () => null
-      )
-      const name = remote?.replace(/^refs\/remotes\/origin\//, '')
-      if (name && name !== remote) {
-        await git(repo, ['fetch', '--quiet', 'origin', name], FETCH_TIMEOUT_MS).catch(() => {})
+      const remote = settings.remote ?? DEFAULT_REMOTE
+      const head = await git(repo, [
+        'symbolic-ref',
+        '--quiet',
+        `refs/remotes/${remote}/HEAD`
+      ]).catch(() => null)
+      const prefix = `refs/remotes/${remote}/`
+      const name = head?.startsWith(prefix) ? head.slice(prefix.length) : null
+      if (name) {
+        await git(repo, ['fetch', '--quiet', remote, name], FETCH_TIMEOUT_MS).catch(() => {})
         const commit = await git(repo, [
           'rev-parse',
           '--verify',
           '--quiet',
-          `refs/remotes/origin/${name}^{commit}`
+          `${prefix}${name}^{commit}`
         ]).catch(() => null)
         if (commit) return commit
       }
     }
     return git(repo, ['rev-parse', '--verify', 'HEAD^{commit}'])
+  }
+
+  /**
+   * The commit of a project's base branch. A remote-tracking name such as
+   * `origin/main` is fetched first, best effort, so new work starts from the
+   * remote's latest commit; any other name is a local branch.
+   */
+  private async configuredBase(repo: string, name: string): Promise<string | null> {
+    const verify = (ref: string) =>
+      git(repo, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]).catch(() => null)
+    const slash = name.indexOf('/')
+    if (slash > 0) {
+      const remote = name.slice(0, slash)
+      const remotes = (await git(repo, ['remote']).catch(() => '')).split('\n')
+      if (remotes.includes(remote)) {
+        await git(
+          repo,
+          ['fetch', '--quiet', remote, name.slice(slash + 1)],
+          FETCH_TIMEOUT_MS
+        ).catch(() => {})
+        const commit = await verify(`refs/remotes/${name}`)
+        if (commit) return commit
+      }
+    }
+    return verify(`refs/heads/${name}`)
+  }
+
+  /** Whether every commit up to `tip` is on the project's remote copy of `branch`. */
+  private async pushed(
+    repo: string,
+    branch: string,
+    tip: string,
+    settings: ProjectGitSettings
+  ): Promise<boolean> {
+    const remote = settings.remote ?? DEFAULT_REMOTE
+    const ref = `refs/remotes/${remote}/${branch}`
+    if (!(await succeeds(repo, ['rev-parse', '--verify', '--quiet', ref]))) return false
+    return succeeds(repo, ['merge-base', '--is-ancestor', tip, ref])
   }
 
   private serial<T>(repo: string, run: () => Promise<T>): Promise<T> {

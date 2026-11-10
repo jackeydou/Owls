@@ -9,11 +9,12 @@ import type {
   RespondCodexRequest,
   SendCodexMessage
 } from '../../shared/codex.js'
+import { defaultProjectSettings, type ProjectSettings } from '../../shared/projects.js'
 import type { RouterWorker, WorkerPullRequestLink, WorkerStatus } from '../../shared/router.js'
 import { CodexRuntimeError } from '../codex/errors.js'
 import { safeText } from '../codex/protocol.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
-import { WORKER_INSTRUCTIONS, worktreeInstructions } from './prompt.js'
+import { projectInstructions, WORKER_INSTRUCTIONS, worktreeInstructions } from './prompt.js'
 import { parseReport, WORKER_REPORT_JSON_SCHEMA } from './report.js'
 import type { RouterStore } from './store.js'
 import {
@@ -358,6 +359,15 @@ export class WorkerPool implements TurnProfiles {
     return this.host.projects().find((p) => p.id === worker.projectId)?.name ?? null
   }
 
+  /**
+   * The settings of the project a worker runs in, read afresh each time so a
+   * change applies from the worker's next turn. Defaults once the project is gone.
+   */
+  projectSettings(worker: RouterWorker): ProjectSettings {
+    const project = this.host.projects().find((p) => p.id === worker.projectId)
+    return project?.settings ?? defaultProjectSettings
+  }
+
   /** Where a worker runs, as the Router tools describe it. */
   place(worker: RouterWorker): { workspace: 'worktree' | 'checkout'; branch: string | null } {
     const tree = worktreeOf(worker)
@@ -375,7 +385,7 @@ export class WorkerPool implements TurnProfiles {
     const tree = worker && worker.status !== 'removed' ? worktreeOf(worker) : null
     if (!worker || !tree) return []
     try {
-      const baseCommit = await this.workspaces.ensure(tree)
+      const baseCommit = await this.workspaces.ensure(tree, this.projectSettings(worker).git)
       if (tree.baseCommit !== baseCommit) {
         tree.baseCommit = baseCommit
         this.save(worker)
@@ -396,7 +406,7 @@ export class WorkerPool implements TurnProfiles {
     if (!worker || !tree || tree.state !== 'kept')
       throw new CodexRuntimeError('request_unavailable', 'This worktree is no longer kept.')
     try {
-      await this.workspaces.release(tree, true)
+      await this.workspaces.release(tree, true, this.projectSettings(worker).git)
     } catch {
       throw new CodexRuntimeError('worktree_failed', 'Owls could not remove this git worktree.')
     }
@@ -430,10 +440,16 @@ export class WorkerPool implements TurnProfiles {
     const worker = this.bySession(sessionId)
     if (!worker || worker.status === 'removed') return null
     const tree = worktreeOf(worker)
+    const settings = this.projectSettings(worker)
+    const project = projectInstructions(settings.instructions)
     return {
-      instructions: tree
-        ? `${WORKER_INSTRUCTIONS}\n\n${worktreeInstructions(tree.branch)}`
-        : WORKER_INSTRUCTIONS,
+      instructions: [
+        WORKER_INSTRUCTIONS,
+        tree ? worktreeInstructions(tree.branch, settings.git.remote) : null,
+        project
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
       reportSchema: WORKER_REPORT_JSON_SCHEMA
     }
   }
@@ -545,7 +561,7 @@ export class WorkerPool implements TurnProfiles {
     const tree = worktreeOf(worker)
     if (!tree || tree.state !== 'active') return null
     try {
-      const result = await this.workspaces.release(tree, false)
+      const result = await this.workspaces.release(tree, false, this.projectSettings(worker).git)
       tree.state = result.worktree === 'kept' ? 'kept' : 'released'
       this.save(worker)
       return result.branch === 'kept' ? tree.branch : null

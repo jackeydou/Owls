@@ -718,6 +718,28 @@ F12–F16）：
 - `bench:router` 增加「Worker 都可写，各自 worktree」一组，每个 worktree 的创建按 2 秒计入虚拟
   时钟，与「Worker 都可写（同目录串行）」和只读组对比（14.1 节）。
 
+### 11.2 项目设置
+
+状态：已实现（2026-11-10）。每个项目可以单独设置基础信息、worktree 行为和给 Worker 的额外指令。
+设置保存在 `codex_projects.value.settings` 中（`shared/projects.ts` 的 `projectSettingsSchema`），旧记录
+默认为 `defaultProjectSettings`，不需要迁移。设置页在「项目」分组下为每个项目提供「基本信息」「Git」
+「指令」三页，右侧 Projects 栏的项目行悬停时也有入口。保存走 `codex:save-project`，分支和 remote
+列表走 `codex:project-git-refs`。每次读取都取最新的项目记录，所以修改从 Worker 的下一轮开始生效。
+
+- `description`：Router 的项目列表（有多个项目时）在项目后附上描述，帮助它选择项目。
+- `git.baseBranch`：`base: 'head'` 的新 worktree 改从这个分支开始。名字形如 `<remote>/<branch>` 且
+  remote 存在时先 `git fetch`（与 `default-branch` 相同的超时和凭据限制），否则视为本地分支；分支
+  不存在时退回 HEAD。`parent` 和 `default-branch` 不受影响。
+- `git.remote`：替代硬编码的 `origin`，用于解析 `default-branch`、查找 Worker 分支的 PR，以及写进
+  worktree Worker 的角色说明（任务要求 push 时推到这个 remote）。
+- `git.deletePushedBranches`：默认关闭。开启后，移除 Worker 时如果分支的 tip 已经在
+  `refs/remotes/<remote>/<branch>` 中，也删除本地分支；含有只在本地的提交的分支始终保留。
+- `instructions.general`、`codeReview`、`pullRequest`：按固定顺序追加在 Worker 的角色说明之后，
+  说明它们优先于 Worker 的默认习惯，但不改变报告格式。Router 不读这些指令。
+
+worktree Worker 的角色说明从「不要 push」改为「除非任务要求，否则不要 push」，以便 PR 偏好能用上。
+`ROUTER_PROMPT_VERSION` 升为 10。
+
 ## 12. 恢复语义
 
 - Router 会话：重启后按 `native` 恢复。Owls 引擎用 `codex_router_messages` 重建 Agent；

@@ -1,7 +1,7 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { ChevronDown, ChevronRight, FolderKanban } from 'lucide-react'
+import { ChevronDown, ChevronRight, FolderKanban, Settings2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexProject } from '../../../shared/codex'
@@ -55,6 +55,7 @@ function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: str
 function ProjectRow({ project }: { project: CodexProject }) {
   const { t } = useTranslation()
   const showChat = useCodexStore((s) => s.showChat)
+  const showProjectSettings = useCodexStore((s) => s.showProjectSettings)
   const allWorkers = useRouterStore((s) => s.workers)
   const folded = useRouterStore((s) => s.foldedProjects.has(project.id))
   const toggleProjectFold = useRouterStore((s) => s.toggleProjectFold)
@@ -65,6 +66,7 @@ function ProjectRow({ project }: { project: CodexProject }) {
   )
   const state = workers.some(isWaitingOnUser) ? 'wait' : workers.some(isWorking) ? 'run' : null
   const label = state ? t(`router.project.${state}`, { project: project.name }) : project.name
+  const settingsLabel = t('projectSettings.open', { project: project.name })
   const foldLabel = t(folded ? 'router.project.showWorkers' : 'router.project.hideWorkers', {
     project: project.name
   })
@@ -86,6 +88,17 @@ function ProjectRow({ project }: { project: CodexProject }) {
         </TooltipTrigger>
         <TooltipContent side="left">{project.path}</TooltipContent>
       </Tooltip>
+      <IconButton
+        size="custom"
+        className={
+          workers.length ? 'router-project-settings beside-fold' : 'router-project-settings'
+        }
+        label={settingsLabel}
+        tooltip={settingsLabel}
+        tooltipSide="left"
+        icon={<Settings2 size={13} />}
+        onClick={() => showProjectSettings(project.id)}
+      />
       {workers.length ? (
         <IconButton
           size="custom"

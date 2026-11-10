@@ -4,17 +4,23 @@ import { Select } from '@renderer/components/ui/select'
 import {
   ArrowLeft,
   Brain,
+  ChevronDown,
+  ChevronRight,
+  GitBranch,
   GitPullRequest,
+  Info,
   type LucideIcon,
   Palette,
   Route,
+  ScrollText,
   SlidersHorizontal
 } from 'lucide-react'
-import { Fragment, useId } from 'react'
+import { Fragment, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { appLogoSchema, settingsSchema } from '../../../shared/codex'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
 import { AgentIcon } from '../router/AgentIcon'
+import { projectHue } from '../router/activity'
 import { usePaneWidth } from '../router/pane-width'
 import { RouterSettingsSection } from '../router/RouterSettings'
 import { appLogoIcons } from './AppLogo'
@@ -22,9 +28,15 @@ import { TaskOptions } from './Controls'
 import { SettingRow } from './SettingRow'
 import { ClaudeSettingsPane, CodexSettingsPane } from './SettingsAgents'
 import { GitHubSettingsPane } from './SettingsGitHub'
-import { type SettingsTab, useCodexStore } from './store'
+import { ProjectSettingsPane } from './SettingsProject'
+import {
+  type ProjectSettingsPage,
+  projectSettingsPages,
+  type SettingsTab,
+  useCodexStore
+} from './store'
 
-type TabEntry = { id: SettingsTab; label: string; icon: LucideIcon | null }
+type TabEntry = { id: Exclude<SettingsTab, 'project'>; label: string; icon: LucideIcon | null }
 
 const TAB_GROUPS: TabEntry[][] = [
   [
@@ -45,6 +57,81 @@ const TAB_GROUPS: TabEntry[][] = [
 function TabIcon({ tab }: { tab: TabEntry }) {
   if (tab.id === 'claude-code' || tab.id === 'codex') return <AgentIcon provider={tab.id} />
   return tab.icon ? <tab.icon size={15} /> : null
+}
+
+const PROJECT_PAGE_ICONS: Record<ProjectSettingsPage, LucideIcon> = {
+  general: Info,
+  git: GitBranch,
+  instructions: ScrollText
+}
+
+/**
+ * Every project, with the pages of the open one listed under it. Clicking the open project
+ * folds its pages away; clicking another opens it on its general page.
+ */
+function ProjectsNav() {
+  const { t } = useTranslation()
+  const projects = useCodexStore((s) => s.projects)
+  const current = useCodexStore((s) => (s.settingsTab === 'project' ? s.settingsProject : null))
+  const showProjectSettings = useCodexStore((s) => s.showProjectSettings)
+  const [folded, setFolded] = useState(false)
+  // Opening any project page, from here or the Projects sidebar, unfolds it again.
+  useEffect(() => {
+    if (current) setFolded(false)
+  }, [current])
+  if (!projects.length) return null
+  return (
+    <>
+      <hr />
+      <h2 className="codex-settings-group">{t('projectSettings.group')}</h2>
+      {projects.map((project) => {
+        const selected = current?.projectId === project.id
+        const open = selected && !folded
+        const Chevron = open ? ChevronDown : ChevronRight
+        return (
+          <Fragment key={project.id}>
+            <button
+              type="button"
+              className="router-sidebar-item codex-settings-project"
+              style={{ '--owl-c': projectHue(project.id) } as React.CSSProperties}
+              aria-expanded={open}
+              onClick={() => {
+                if (selected) setFolded(!folded)
+                else showProjectSettings(project.id)
+              }}
+            >
+              <b aria-hidden="true">{project.name.slice(0, 1).toUpperCase()}</b>
+              <span>{project.name}</span>
+              <Chevron size={14} className="codex-settings-chevron" aria-hidden="true" />
+            </button>
+            {open ? (
+              <ul
+                className="codex-settings-subnav"
+                aria-label={t('projectSettings.pages', { project: project.name })}
+              >
+                {projectSettingsPages.map((page) => {
+                  const Icon = PROJECT_PAGE_ICONS[page]
+                  return (
+                    <li key={page}>
+                      <button
+                        type="button"
+                        className="router-sidebar-item"
+                        aria-current={current?.page === page || undefined}
+                        onClick={() => showProjectSettings(project.id, page)}
+                      >
+                        <Icon size={15} />
+                        <span>{t(`projectSettings.page.${page}`)}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : null}
+          </Fragment>
+        )
+      })}
+    </>
+  )
 }
 
 function SettingsNav() {
@@ -89,6 +176,7 @@ function SettingsNav() {
           ))}
         </Fragment>
       ))}
+      <ProjectsNav />
       <ResizeHandle {...handle} />
     </nav>
   )
@@ -179,19 +267,22 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   'claude-code': ClaudeSettingsPane,
   codex: CodexSettingsPane,
   github: GitHubSettingsPane,
-  appearance: AppearancePane
+  appearance: AppearancePane,
+  project: ProjectSettingsPane
 }
 
 export function CodexSettingsPage() {
   const tab = useCodexStore((s) => s.settingsTab)
+  const project = useCodexStore((s) => s.settingsProject)
   const Pane = PANES[tab]
+  const key = tab === 'project' && project ? `project:${project.projectId}:${project.page}` : tab
   return (
     <>
       <SettingsNav />
       <main className="codex-settings-page">
         <div className="codex-settings-drag" />
         {/* Keyed so each tab opens at its top. */}
-        <div className="codex-settings-scroll" key={tab}>
+        <div className="codex-settings-scroll" key={key}>
           <div className="codex-settings-content">
             <Pane />
           </div>
