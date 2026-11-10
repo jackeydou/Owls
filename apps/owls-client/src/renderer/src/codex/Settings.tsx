@@ -11,6 +11,7 @@ import {
   Info,
   type LucideIcon,
   Palette,
+  RefreshCw,
   Route,
   ScrollText,
   SlidersHorizontal
@@ -23,6 +24,7 @@ import { AgentIcon } from '../router/AgentIcon'
 import { projectHue } from '../router/activity'
 import { usePaneWidth } from '../router/pane-width'
 import { RouterSettingsSection } from '../router/RouterSettings'
+import { SettingsUpdatesPane } from '../updates/SettingsUpdates'
 import { appLogoIcons } from './AppLogo'
 import { TaskOptions } from './Controls'
 import { SettingRow } from './SettingRow'
@@ -50,7 +52,8 @@ const TAB_GROUPS: TabEntry[][] = [
   ],
   [
     { id: 'github', label: 'github.title', icon: GitPullRequest },
-    { id: 'appearance', label: 'appearance', icon: Palette }
+    { id: 'appearance', label: 'appearance', icon: Palette },
+    { id: 'updates', label: 'updates.title', icon: RefreshCw }
   ]
 ]
 
@@ -268,6 +271,7 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   codex: CodexSettingsPane,
   github: GitHubSettingsPane,
   appearance: AppearancePane,
+  updates: SettingsUpdatesPane,
   project: ProjectSettingsPane
 }
 

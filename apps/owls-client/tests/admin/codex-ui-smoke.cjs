@@ -310,7 +310,18 @@ app
           offscreen: true
         }
       })
-      registerCodexIpc(host, () => window)
+      // An unpackaged app does not update; the stub matches what the real updater reports there.
+      const updates = {
+        snapshot: () => ({
+          currentVersion: '0.0.0',
+          channel: 'stable',
+          state: { status: 'unsupported', reason: 'development' }
+        }),
+        check: () => updates.snapshot(),
+        install: async () => {},
+        channelChanged: () => {}
+      }
+      registerCodexIpc(host, () => window, updates)
       await window.loadFile(join(artifactRoot, 'out/renderer/index.html'))
       await waitFor("Boolean(document.querySelector('.router-chat'))")
       assert.equal(await evaluate('typeof window.require'), 'undefined')

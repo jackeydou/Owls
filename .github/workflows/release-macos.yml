@@ -159,10 +159,39 @@ jobs:
             trap - EXIT
           done
 
+      - name: Install Sparkle BinaryDelta
+        shell: bash
+        env:
+          SPARKLE_VERSION: '2.9.5'
+          SPARKLE_SHA256: 015336b601493e05c237964954bff6191370003d94edefe663724c88840d73cc
+        run: |
+          set -euo pipefail
+          # Squirrel.Mac applies patches with the Sparkle sources pinned to this tag.
+          archive="$RUNNER_TEMP/Sparkle-$SPARKLE_VERSION.tar.xz"
+          curl -fsSL -o "$archive" "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz"
+          echo "$SPARKLE_SHA256  $archive" | shasum -a 256 -c
+          mkdir -p "$RUNNER_TEMP/sparkle"
+          tar -xJf "$archive" -C "$RUNNER_TEMP/sparkle" ./bin/BinaryDelta
+          echo "BINARY_DELTA=$RUNNER_TEMP/sparkle/bin/BinaryDelta" >> "$GITHUB_ENV"
+
+      - name: Build the update feed and binary delta patches
+        # `shell: bash` runs with pipefail, so a script failure is not hidden by tee.
+        shell: bash
+        working-directory: apps/owls-client
+        run: |
+          node --experimental-strip-types scripts/release-update-feed.mjs \
+            --version "$RELEASE_VERSION" \
+            --dist dist \
+            --notes "../../release-notes/$RELEASE_VERSION.md" \
+            --binary-delta "$BINARY_DELTA" \
+            --out dist/update-feed | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Create checksums
         shell: bash
         working-directory: apps/owls-client
-        run: shasum -a 256 dist/*.dmg dist/*.zip > dist/SHA256SUMS.txt
+        run: |
+          shopt -s nullglob
+          shasum -a 256 dist/*.dmg dist/*.zip dist/*.delta > dist/SHA256SUMS.txt
 
       - name: Prepare release notes with build source
         shell: bash
@@ -184,15 +213,14 @@ jobs:
 
       - name: Create stable GitHub Release draft
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.publish) && !contains(steps.release.outputs.version, '-beta.') }}
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$RELEASE_VERSION" \
-            apps/owls-client/dist/*.dmg \
-            apps/owls-client/dist/*.zip \
-            apps/owls-client/dist/*-mac.yml \
-            apps/owls-client/dist/*.blockmap \
-            apps/owls-client/dist/SHA256SUMS.txt \
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(apps/owls-client/dist/*.dmg apps/owls-client/dist/*.zip apps/owls-client/dist/*.delta apps/owls-client/dist/SHA256SUMS.txt)
+          gh release create "$RELEASE_VERSION" "${assets[@]}" \
             --target "$RELEASE_COMMIT" \
             --draft \
             --title "Owls $RELEASE_VERSION" \
@@ -201,18 +229,34 @@ jobs:
 
       - name: Create beta GitHub Release draft
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.publish) && contains(steps.release.outputs.version, '-beta.') }}
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$RELEASE_VERSION" \
-            apps/owls-client/dist/*.dmg \
-            apps/owls-client/dist/*.zip \
-            apps/owls-client/dist/*-mac.yml \
-            apps/owls-client/dist/*.blockmap \
-            apps/owls-client/dist/SHA256SUMS.txt \
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(apps/owls-client/dist/*.dmg apps/owls-client/dist/*.zip apps/owls-client/dist/*.delta apps/owls-client/dist/SHA256SUMS.txt)
+          gh release create "$RELEASE_VERSION" "${assets[@]}" \
             --target "$RELEASE_COMMIT" \
             --draft \
             --prerelease \
             --title "Owls $RELEASE_VERSION" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
           gh release edit "$RELEASE_VERSION" --draft=false --prerelease
+
+      # The feed moves last, once the release it points to is public.
+      - name: Publish the update feed
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view update-feed > /dev/null 2>&1; then
+            gh release create update-feed \
+              --target "$RELEASE_COMMIT" \
+              --prerelease \
+              --title "Update feed" \
+              --notes "Update metadata read by installed Owls apps. Do not delete or rename this release."
+          fi
+          gh release upload update-feed apps/owls-client/dist/update-feed/*.json --clobber

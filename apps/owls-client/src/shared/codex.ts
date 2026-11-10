@@ -35,6 +35,7 @@ import {
   unknownBatchSchema,
   type WorkerAction
 } from './router.js'
+import { type UpdateSnapshot, updateChannelSchema } from './updates.js'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
 export const providerSchema = z.enum(['codex', 'claude-code'])
@@ -188,7 +189,9 @@ export const settingsSchema = z.object({
   /** Added after the first release of settings, so older rows get the defaults. */
   memory: memorySettingsSchema.default(defaultMemorySettings),
   /** Pane widths and the Projects sidebar; also added after the first release. */
-  layout: layoutSettingsSchema.default(defaultLayoutSettings)
+  layout: layoutSettingsSchema.default(defaultLayoutSettings),
+  /** Null follows the installed build: a beta build gets beta updates, a stable one stable. */
+  updateChannel: updateChannelSchema.nullable().default(null)
 })
 export const projectSchema = z.object({
   id: z.string(),
@@ -356,6 +359,16 @@ export interface CodexAPI {
   unwatchWorkerGitHub(input: WorkerAction): Promise<CodexReply<void>>
   onEvent(listener: (event: CodexEvent) => void): () => void
   memory: MemoryAPI
+  updates: UpdatesAPI
+}
+/** `window.codex.updates`. The channel is a setting, saved through `saveSettings`. */
+export interface UpdatesAPI {
+  snapshot(): Promise<CodexReply<UpdateSnapshot>>
+  /** Resolves once the feed has been read; a newer release then keeps downloading. */
+  check(): Promise<CodexReply<UpdateSnapshot>>
+  /** Quits and installs a downloaded update, after asking about running tasks. */
+  install(): Promise<CodexReply<void>>
+  onChanged(listener: (snapshot: UpdateSnapshot) => void): () => void
 }
 /** `window.codex.memory` (RFC_OWLS_MEMORY 9). */
 export interface MemoryAPI {

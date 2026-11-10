@@ -54,6 +54,7 @@ export type SettingsTab =
   | 'codex'
   | 'github'
   | 'appearance'
+  | 'updates'
   /** One project's settings; `settingsProject` says which project and page. */
   | 'project'
 export const projectSettingsPages = ['general', 'git', 'instructions'] as const
@@ -202,7 +203,8 @@ export const useCodexStore = create<State>((set, get) => {
       claudeEffort: null,
       router: defaultRouterSettings,
       memory: defaultMemorySettings,
-      layout: defaultLayoutSettings
+      layout: defaultLayoutSettings,
+      updateChannel: null
     },
     connection: {
       status: 'disconnected',
@@ -437,7 +439,8 @@ export const useCodexStore = create<State>((set, get) => {
           claudeEffort: settings.claudeEffort,
           router: settings.router,
           memory: settings.memory,
-          layout: settings.layout
+          layout: settings.layout,
+          updateChannel: settings.updateChannel
         })
       )
       if (saved) set({ settings: saved })

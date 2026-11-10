@@ -10,7 +10,6 @@ const buildMode = process.env.OWLS_BUILD_MODE === 'debug' ? 'debug' : 'release'
 const isDebug = buildMode === 'debug'
 const skipNotarize = process.env.OWLS_SKIP_NOTARIZE === 'true'
 const debugSuffix = isDebug ? '-debug' : ''
-const updateChannel = version.includes('-beta') ? 'beta' : 'latest'
 
 const releaseNotesPath = path.resolve(__dirname, '../../..', 'release-notes', `${version}.md`)
 const releaseNotes = fs.existsSync(releaseNotesPath)
@@ -38,15 +37,9 @@ module.exports = {
   appId: 'us.owlsapp.owls.app',
   productName: 'Owls',
   copyright: 'Copyright © 2026 Owls Team',
-  publish: {
-    provider: 'github',
-    owner: 'jackeydou',
-    repo: 'Owls',
-    private: false,
-    channel: updateChannel,
-    tagNamePrefix: ''
-  },
-  generateUpdatesFilesForAllChannels: true,
+  // macOS updates come from Electron's autoUpdater and the feed built by
+  // scripts/release-update-feed.mjs, not from electron-builder's publish metadata.
+  publish: null,
   protocols: [
     {
       name: 'Owls Client Auth',
@@ -67,7 +60,7 @@ module.exports = {
     '!node_modules/@owls/mac-*/Cargo.*',
     '!node_modules/@owls/mac-*/build.rs',
     '!electron.vite.config.{js,ts,mjs,cjs}',
-    '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}',
+    '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}',
     '!{.env,.env.*,.npmrc,pnpm-lock.yaml}',
     '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   ],
@@ -161,11 +154,13 @@ module.exports = {
     artifactName: `Owls-\${version}${debugSuffix}.\${ext}`
   },
   npmRebuild: false,
-  detectUpdateChannel: false,
   afterPack: async (context) => {
     if (context.electronPlatformName !== 'darwin') return
     const appName = `${context.packager.appInfo.productFilename}.app`
     verifyPackagedApp(path.join(context.appOutDir, appName))
+    // Squirrel.Mac strips group and other write bits when it installs an update, and a binary
+    // delta only applies to a bundle with the exact modes it was made from, so ship without them.
+    execFileSync('/bin/chmod', ['-R', 'go-w', path.join(context.appOutDir, appName)])
     const infoPlistPath = path.join(context.appOutDir, appName, 'Contents', 'Info.plist')
     for (const key of unusedMacPermissionInfoKeys) {
       removePlistKeyIfPresent(infoPlistPath, key)
