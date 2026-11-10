@@ -1,0 +1,1 @@
+- macOS packaging: Keep JavaScript dependencies inside app.asar and stop shipping renderer-only packages, cutting the bundle from about 36,000 files to about 1,000 so installing and updating Owls is much faster. (#53)
