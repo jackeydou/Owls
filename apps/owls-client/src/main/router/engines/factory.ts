@@ -87,8 +87,8 @@ export function defaultEngineFactory(deps: EngineDeps): EngineFactory {
     }
     const owls = settings.owls
     if (!owls) return { code: 'router_model_unconfigured', message: '' }
-    const key = deps.credentials.key(owls.provider)
-    if (!key && owls.provider !== 'custom')
+    const keyed = deps.credentials.has(owls.provider)
+    if (!keyed && owls.provider !== 'custom')
       return { code: 'router_model_unconfigured', message: '' }
     const resolved = resolveRouterModel(owls)
     if (!resolved) return { code: 'model_unavailable', message: '' }
@@ -97,11 +97,13 @@ export function defaultEngineFactory(deps: EngineDeps): EngineFactory {
       model: resolved.model,
       thinking: owls.thinking,
       streamFn: resolved.models.streamSimple.bind(resolved.models),
-      // OpenAI-compatible clients require a key even when a local server ignores it.
-      getApiKey: (provider) =>
-        provider !== owls.provider
-          ? undefined
-          : (key ?? (owls.provider === 'custom' ? LOCAL_KEY : undefined)),
+      // The key is decrypted for each request. OpenAI-compatible clients require a key even
+      // when a local server ignores it.
+      getApiKey: async (provider) => {
+        if (provider !== owls.provider) return undefined
+        const key = keyed ? await deps.credentials.key(owls.provider) : null
+        return key ?? (owls.provider === 'custom' ? LOCAL_KEY : undefined)
+      },
       instructions: ROUTER_INSTRUCTIONS,
       tools: request.tools,
       history: request.history,

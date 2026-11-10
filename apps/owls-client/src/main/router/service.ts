@@ -393,8 +393,8 @@ export class RouterService implements TurnProfiles {
     }))
   }
 
-  setKey(input: SetRouterKey): void {
-    this.credentials.setKey(input.providerId, input.key)
+  async setKey(input: SetRouterKey): Promise<void> {
+    await this.credentials.setKey(input.providerId, input.key)
     this.dropIdleEngines()
   }
 

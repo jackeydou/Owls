@@ -107,11 +107,19 @@ export function memoryRouterStore() {
     removeCredential: (id) => credentials.delete(id)
   }
 }
+/** Mirrors Electron's async safeStorage: `stale:` secrets ask to be encrypted again. */
 export const cipher = {
-  unavailable: () => null,
-  encrypt: (plain) => Buffer.from(`enc:${plain}`).toString('base64'),
-  decrypt: (encoded) => Buffer.from(encoded, 'base64').toString().replace(/^enc:/, '')
+  unavailable: async () => null,
+  encrypt: async (plain) => Buffer.from(`enc:${plain}`).toString('base64'),
+  decrypt: async (encoded) => {
+    const text = Buffer.from(encoded, 'base64').toString()
+    const match = /^(enc|stale):/.exec(text)
+    if (!match) throw new Error('Not encrypted by this cipher.')
+    return { plain: text.slice(match[0].length), stale: match[1] === 'stale' }
+  }
 }
+/** A secret as an older key would have encrypted it. */
+export const staleSecret = (plain) => Buffer.from(`stale:${plain}`).toString('base64')
 export function commands() {
   const seen = new Map()
   return {

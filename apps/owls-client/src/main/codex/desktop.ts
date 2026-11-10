@@ -85,16 +85,24 @@ async function askToStopTasks(): Promise<boolean> {
   })
   return result.response === 1
 }
-/** Router keys use the OS keychain through safeStorage; a plain-text fallback is refused. */
+/**
+ * Secrets use the OS keychain through async safeStorage, which also decrypts data
+ * written by the old sync `encryptString`; a plain-text fallback is refused.
+ */
 const safeStorageCipher: SecretCipher = {
-  unavailable: () =>
-    !safeStorage.isEncryptionAvailable()
+  unavailable: async () =>
+    !(await safeStorage.isAsyncEncryptionAvailable())
       ? 'Secure storage is not available on this system.'
       : process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text'
         ? 'Secure storage is using a plain-text fallback on this system.'
         : null,
-  encrypt: (plain) => safeStorage.encryptString(plain).toString('base64'),
-  decrypt: (encoded) => safeStorage.decryptString(Buffer.from(encoded, 'base64'))
+  encrypt: async (plain) => (await safeStorage.encryptStringAsync(plain)).toString('base64'),
+  decrypt: async (encoded) => {
+    const { result, shouldReEncrypt } = await safeStorage.decryptStringAsync(
+      Buffer.from(encoded, 'base64')
+    )
+    return { plain: result, stale: shouldReEncrypt }
+  }
 }
 const closedClaude: ClaudeConnection = {
   status: 'disconnected',
@@ -223,6 +231,7 @@ void app
       emit({ type: 'worker-github', workerId, status })
     )
     service.attachGitHub({ auth: github, workers: workerGitHub })
+    void github.load()
     updater = new AppUpdater({
       savedChannel: () => store.settings().updateChannel,
       changed: updatesChanged,

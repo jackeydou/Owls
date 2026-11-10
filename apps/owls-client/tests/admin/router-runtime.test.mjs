@@ -21,7 +21,13 @@ import {
   fauxText,
   fauxToolCall
 } from '@earendil-works/pi-ai'
-import { cipher, commands, memoryRouterStore, TEST_DEVICE_ID } from '../fixtures/router-store.mjs'
+import {
+  cipher,
+  commands,
+  memoryRouterStore,
+  staleSecret,
+  TEST_DEVICE_ID
+} from '../fixtures/router-store.mjs'
 
 const require = createRequire(import.meta.url)
 const {
@@ -330,7 +336,7 @@ test('an unconfigured engine fails the batch and keeps its events', async () => 
   service.close()
 })
 
-test('the engine factory refuses to run without a stored key', () => {
+test('the engine factory refuses to run without a stored key', async () => {
   const store = memoryRouterStore()
   const credentials = new RouterCredentials(store, cipher)
   const factory = defaultEngineFactory({
@@ -362,7 +368,7 @@ test('the engine factory refuses to run without a stored key', () => {
     'not_connected',
     'a signed-out Codex cannot run the Router'
   )
-  credentials.setKey('anthropic', 'sk-test')
+  await credentials.setKey('anthropic', 'sk-test')
   const engine = factory({
     ...base,
     settings: { engine: 'owls', owls, maxPermission: 'read-only' }
@@ -381,20 +387,34 @@ test('the engine factory refuses to run without a stored key', () => {
   assert.equal(typeof local.run, 'function', 'a keyless custom endpoint builds an engine')
 })
 
-test('credentials are encrypted at rest and refused without secure storage', () => {
+test('credentials are encrypted at rest and refused without secure storage', async () => {
   const store = memoryRouterStore()
   const credentials = new RouterCredentials(store, cipher)
-  credentials.setKey('openai', 'sk-secret')
+  await credentials.setKey('openai', 'sk-secret')
   assert.notEqual(store.credential('openai').secret, 'sk-secret')
-  assert.equal(credentials.key('openai'), 'sk-secret')
+  assert.equal(await credentials.key('openai'), 'sk-secret')
   assert.deepEqual(credentials.configured(), ['openai'])
   credentials.remove('openai')
-  assert.equal(credentials.key('openai'), null)
-  const locked = new RouterCredentials(store, { ...cipher, unavailable: () => 'No keychain.' })
-  assert.throws(
-    () => locked.setKey('openai', 'sk'),
+  assert.equal(await credentials.key('openai'), null)
+  const locked = new RouterCredentials(store, {
+    ...cipher,
+    unavailable: async () => 'No keychain.'
+  })
+  await assert.rejects(
+    locked.setKey('openai', 'sk'),
     (error) => error.code === 'secure_storage_unavailable'
   )
+  assert.equal(store.credential('openai'), null)
+})
+
+test('a key from an older encryption key still loads and is encrypted again', async () => {
+  const store = memoryRouterStore()
+  const credentials = new RouterCredentials(store, cipher)
+  store.saveCredential('openai', 'api_key', staleSecret('sk-old'))
+  assert.equal(await credentials.key('openai'), 'sk-old')
+  assert.equal(store.credential('openai').secret, await cipher.encrypt('sk-old'))
+  store.saveCredential('anthropic', 'api_key', 'not-a-secret')
+  assert.equal(await credentials.key('anthropic'), null, 'an undecryptable key reads as missing')
 })
 
 test('the transcript persists and restores without a duplicate system message', async () => {

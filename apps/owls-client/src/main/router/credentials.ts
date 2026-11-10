@@ -2,12 +2,14 @@ import type { OwlsProviderId } from '../../shared/router.js'
 import { CodexRuntimeError } from '../codex/errors.js'
 import type { RouterStore } from './store.js'
 
-/** The encryption the credential store needs; Electron's safeStorage in the app. */
+/** A decrypted secret, and whether it should be encrypted again with the current key. */
+export type DecryptedSecret = { plain: string; stale: boolean }
+/** The encryption the credential store needs; Electron's async safeStorage in the app. */
 export type SecretCipher = {
-  /** Null when secrets can be stored, otherwise why not. */
-  unavailable(): string | null
-  encrypt(plain: string): string
-  decrypt(encoded: string): string
+  /** Resolves null when secrets can be stored, otherwise why not. */
+  unavailable(): Promise<string | null>
+  encrypt(plain: string): Promise<string>
+  decrypt(encoded: string): Promise<DecryptedSecret>
 }
 
 /**
@@ -24,23 +26,34 @@ export class RouterCredentials {
     return this.store.credentialIds() as OwlsProviderId[]
   }
   has(providerId: OwlsProviderId): boolean {
-    return this.store.credential(providerId) !== null
+    return this.store.credential(providerId)?.type === 'api_key'
   }
-  key(providerId: OwlsProviderId): string | null {
+  async key(providerId: OwlsProviderId): Promise<string | null> {
     const row = this.store.credential(providerId)
     if (!row || row.type !== 'api_key') return null
+    let secret: DecryptedSecret
     try {
-      return this.cipher.decrypt(row.secret)
+      secret = await this.cipher.decrypt(row.secret)
     } catch {
       return null
     }
+    if (secret.stale) await this.reEncrypt(providerId, row.secret, secret.plain)
+    return secret.plain
   }
-  setKey(providerId: OwlsProviderId, key: string): void {
-    const reason = this.cipher.unavailable()
+  async setKey(providerId: OwlsProviderId, key: string): Promise<void> {
+    const reason = await this.cipher.unavailable()
     if (reason) throw new CodexRuntimeError('secure_storage_unavailable', reason)
-    this.store.saveCredential(providerId, 'api_key', this.cipher.encrypt(key))
+    this.store.saveCredential(providerId, 'api_key', await this.cipher.encrypt(key))
   }
   remove(providerId: OwlsProviderId): void {
     this.store.removeCredential(providerId)
+  }
+  /** Best effort: the key still works if this fails, and a key changed meanwhile is kept. */
+  private async reEncrypt(providerId: OwlsProviderId, previous: string, key: string) {
+    try {
+      const encoded = await this.cipher.encrypt(key)
+      if (this.store.credential(providerId)?.secret === previous)
+        this.store.saveCredential(providerId, 'api_key', encoded)
+    } catch {}
   }
 }

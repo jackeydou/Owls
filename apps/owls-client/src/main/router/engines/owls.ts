@@ -18,7 +18,7 @@ export type OwlsEngineOptions = {
   thinking: OwlsThinking
   streamFn: StreamFn
   /** Returns the stored key for a provider; never falls back to the environment. */
-  getApiKey: (provider: string) => string | undefined
+  getApiKey: (provider: string) => Promise<string | undefined> | string | undefined
   instructions: string
   tools: RouterTool[]
   /** Persisted transcript from earlier batches. */
