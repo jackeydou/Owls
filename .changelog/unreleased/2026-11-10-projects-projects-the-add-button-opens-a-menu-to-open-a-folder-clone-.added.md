@@ -1,0 +1,1 @@
+- Projects: the add button opens a menu to open a folder, clone a GitHub repository, or Quick start an empty project, with recent projects below.

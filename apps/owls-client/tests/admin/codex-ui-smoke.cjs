@@ -260,7 +260,8 @@ app
       host = new OwlsHost(
         new CodexService(store, emit),
         new ClaudeService(store, emit, claudeSdk),
-        join(temp, 'router-threads')
+        join(temp, 'router-threads'),
+        join(temp, 'projects')
       )
       const routerStore = new RouterStore(store)
       const credentials = new RouterCredentials(routerStore, testCipher)
@@ -451,6 +452,59 @@ app
       await evaluate("document.querySelector('.router-chat .router-projects-toggle').click()")
       await waitFor("Boolean(document.querySelector('.router-projects .router-project'))")
       await waitFor(() => host.snapshot().settings.layout.projectsOpen === true)
+      // Adding a project asks how first: a folder, a GitHub repository, or Quick start.
+      const openAddMenu = () =>
+        evaluate(
+          "document.querySelector('.router-projects-head button').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }))"
+        )
+      const menuItems = "[...document.querySelectorAll('[role=menuitem]')]"
+      await openAddMenu()
+      await waitFor(`${menuItems}.length === 4`)
+      assert.deepEqual(await evaluate(`${menuItems}.map((item) => item.textContent)`), [
+        '打开项目',
+        '打开 GitHub 项目',
+        '快速创建',
+        host.snapshot().projects[0].name
+      ])
+      await capture('add-project-menu')
+      // Quick start shows where the project goes, and an existing folder is refused in place.
+      mkdirSync(join(temp, 'projects', 'taken'), { recursive: true })
+      await evaluate(`${menuItems}[2].click()`)
+      await waitFor("Boolean(document.querySelector('.router-new-project input'))")
+      await evaluate(`(() => {
+        const input = document.querySelector('.router-new-project input')
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'taken')
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })()`)
+      await waitFor(
+        "document.querySelector('.router-new-project code')?.textContent.endsWith('/projects/taken')"
+      )
+      await capture('add-project-quick-start')
+      await evaluate("document.querySelector('.router-new-project button[type=submit]').click()")
+      await waitFor(
+        "document.querySelector('.router-new-project [role=alert]')?.textContent.includes('同名文件夹')"
+      )
+      await evaluate(
+        "document.querySelector('.router-new-project footer button[type=button]').click()"
+      )
+      await waitFor("!document.querySelector('.router-new-project')")
+      await openAddMenu()
+      await waitFor(`${menuItems}.length >= 3`)
+      await evaluate(`${menuItems}[1].click()`)
+      await waitFor("Boolean(document.querySelector('.router-new-project input'))")
+      await evaluate(`(() => {
+        const input = document.querySelector('.router-new-project input')
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'https://gitlab.com/o/r')
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })()`)
+      await waitFor(
+        "document.querySelector('.router-new-project button[type=submit]').disabled && Boolean(document.querySelector('.router-new-project-error'))"
+      )
+      await capture('add-project-github')
+      await evaluate(
+        "document.querySelector('.router-new-project footer button[type=button]').click()"
+      )
+      await waitFor("!document.querySelector('.router-new-project')")
       // Every sidebar resizes; the keyboard steps the same handle a drag moves.
       const sidebarHandle = "document.querySelector('.router-sidebar > [role=separator]')"
       await evaluate(

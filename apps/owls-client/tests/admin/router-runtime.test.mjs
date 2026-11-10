@@ -2191,7 +2191,8 @@ test('the host lists the sessions of both runtimes, newest first', () => {
   const host = new OwlsHost(
     { ...runtime, snapshot: () => ({ sessions: [session('codex-worker', '1')] }) },
     { ...runtime, sessionList: () => [session('claude-worker', '2')] },
-    '/tmp/owls-thread-home'
+    '/tmp/owls-thread-home',
+    '/tmp/owls-projects'
   )
   assert.deepEqual(
     host.snapshot().sessions.map((s) => s.id),

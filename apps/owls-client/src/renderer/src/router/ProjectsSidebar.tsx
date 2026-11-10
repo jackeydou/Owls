@@ -1,13 +1,14 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { ChevronDown, ChevronRight, FolderKanban, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, FolderKanban } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexProject } from '../../../shared/codex'
 import type { RouterWorker } from '../../../shared/router'
 import { isInPlay } from '../../../shared/worker-map'
 import { useCodexStore } from '../codex/store'
+import { AddProjectMenu } from './AddProjectMenu'
 import { byAge, isWaitingOnUser, isWorking, projectHue, workerState, workerTitle } from './activity'
 import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
@@ -133,19 +134,11 @@ export function ProjectsSidebar() {
   const { t } = useTranslation()
   const { width, handle } = usePaneWidth('projects', 'left')
   const projects = useCodexStore((s) => s.projects)
-  const pickProject = useCodexStore((s) => s.pickProject)
   return (
     <aside className="router-projects" style={{ width }} aria-label={t('router.projectsPanel')}>
       <header className="router-projects-head">
         <h2>{t('router.projectsPanel')}</h2>
-        <IconButton
-          size="sm"
-          label={t('addProject')}
-          tooltip={t('addProject')}
-          tooltipSide="bottom"
-          icon={<Plus size={14} />}
-          onClick={() => void pickProject()}
-        />
+        <AddProjectMenu />
       </header>
       {projects.length ? (
         <div className="router-sidebar-list">

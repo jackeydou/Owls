@@ -12,6 +12,7 @@ import {
   type MemoryView,
   memorySettingsSchema
 } from './memory.js'
+import type { CloneProject, CreateProject } from './projects.js'
 import {
   type CreateThread,
   type ForwardMessage,
@@ -60,7 +61,10 @@ export const failureSchema = z.object({
     'router_unavailable',
     'secure_storage_unavailable',
     'github_unavailable',
-    'worktree_failed'
+    'worktree_failed',
+    'project_url_invalid',
+    'project_exists',
+    'project_clone_failed'
   ]),
   message: z.string()
 })
@@ -306,6 +310,12 @@ export interface CodexAPI {
   cancelSignIn(): Promise<CodexReply<void>>
   saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<CodexReply<CodexSettings>>
   pickProject(): Promise<CodexReply<CodexProject | null>>
+  /** The folder new projects go into unless the user picks another. */
+  projectsFolder(): Promise<CodexReply<string>>
+  /** Opens the system folder picker for where a new project goes; null when canceled. */
+  chooseProjectsFolder(): Promise<CodexReply<string | null>>
+  cloneProject(input: CloneProject): Promise<CodexReply<CodexProject>>
+  createProject(input: CreateProject): Promise<CodexReply<CodexProject>>
   respond(input: RespondCodexRequest): Promise<CodexReply<void>>
   createThread(input: CreateThread): Promise<CodexReply<CodexRouter>>
   threadItems(input: ThreadItemsRequest): Promise<CodexReply<ThreadItem[]>>

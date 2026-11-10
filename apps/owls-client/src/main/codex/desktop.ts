@@ -15,6 +15,7 @@ import { DreamingTriggers } from '../memory/triggers.js'
 import {
   getDataRoot,
   memoryDreamingHome,
+  projectsHome,
   routerThreadHome,
   workerWorktreesRoot
 } from '../owls-paths.js'
@@ -132,7 +133,8 @@ void app
     service = new OwlsHost(
       new CodexService(store, emit),
       new ClaudeService(store, emit, { query }),
-      routerThreadHome(root)
+      routerThreadHome(root),
+      projectsHome(root)
     )
     const routerStore = new RouterStore(store)
     const credentials = new RouterCredentials(routerStore, safeStorageCipher)
