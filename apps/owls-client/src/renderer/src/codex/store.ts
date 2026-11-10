@@ -16,7 +16,12 @@ import type {
 import { defaultLayoutSettings, paneWidthBounds } from '../../../shared/codex'
 import type { GitHubAccount } from '../../../shared/github'
 import { defaultMemorySettings } from '../../../shared/memory'
-import type { CloneProject, CreateProject } from '../../../shared/projects'
+import type {
+  CloneProject,
+  CreateProject,
+  ProjectGitRefs,
+  SaveProject
+} from '../../../shared/projects'
 import { defaultRouterSettings } from '../../../shared/router'
 import { byRecent } from '../router/activity'
 import { zoomBetweenViews } from '../router/motion'
@@ -49,6 +54,10 @@ export type SettingsTab =
   | 'codex'
   | 'github'
   | 'appearance'
+  /** One project's settings; `settingsProject` says which project and page. */
+  | 'project'
+export const projectSettingsPages = ['general', 'git', 'instructions'] as const
+export type ProjectSettingsPage = (typeof projectSettingsPages)[number]
 
 type State = {
   loaded: boolean
@@ -59,6 +68,8 @@ type State = {
   lastView: 'chat' | 'map'
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
+  /** The project and page shown while `settingsTab` is `project`. */
+  settingsProject: { projectId: string; page: ProjectSettingsPage } | null
   github: GitHubAccount
   /** The thread on screen; null is a new thread that has no message yet. */
   threadId: string | null
@@ -72,6 +83,8 @@ type State = {
   initialize(): Promise<void>
   event(event: CodexEvent): void
   showSettings(tab?: SettingsTab): void
+  /** Opens Settings on one project's page, its general page by default. */
+  showProjectSettings(projectId: string, page?: ProjectSettingsPage): void
   gitHubSignIn(): Promise<void>
   gitHubConnectCli(): Promise<void>
   gitHubConnectToken(token: string): Promise<void>
@@ -98,6 +111,10 @@ type State = {
    */
   cloneProject(input: CloneProject): Promise<CodexFailure | null>
   createProject(input: CreateProject): Promise<CodexFailure | null>
+  /** Saves a project's name and settings; resolves to whether the save went through. */
+  saveProject(input: SaveProject): Promise<boolean>
+  /** The project repository's branches and remotes; null when it has none or cannot be read. */
+  projectGitRefs(projectId: string): Promise<ProjectGitRefs | null>
   toggleSidebar(): void
   toggleProjects(): void
   /** Clamps and persists one pane's width, typically once a drag ends. */
@@ -164,6 +181,7 @@ export const useCodexStore = create<State>((set, get) => {
     view: 'chat',
     lastView: 'chat',
     settingsTab: 'router',
+    settingsProject: null,
     threadId: null,
     github: { status: 'signed-out', failure: null },
     routerProjectId: null,
@@ -294,6 +312,14 @@ export const useCodexStore = create<State>((set, get) => {
         settingsTab: tab ?? state.settingsTab,
         error: null
       })),
+    showProjectSettings: (projectId, page = 'general') =>
+      set((state) => ({
+        view: 'settings',
+        lastView: state.view === 'settings' ? state.lastView : state.view,
+        settingsTab: 'project',
+        settingsProject: { projectId, page },
+        error: null
+      })),
     leaveSettings: () => set((state) => ({ view: state.lastView, error: null })),
     showChat: (projectId) => {
       const { view, routerProjectId, threadId } = get()
@@ -341,6 +367,18 @@ export const useCodexStore = create<State>((set, get) => {
       (await action(() => window.codex.chooseProjectsFolder())) ?? null,
     cloneProject: (input) => addProject(() => window.codex.cloneProject(input)),
     createProject: (input) => addProject(() => window.codex.createProject(input)),
+    saveProject: async (input) => {
+      const project = await action(() => window.codex.saveProject(input))
+      if (!project) return false
+      set((state) => ({
+        projects: state.projects
+          .map((p) => (p.id === project.id ? project : p))
+          .sort((a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path))
+      }))
+      return true
+    },
+    projectGitRefs: async (projectId) =>
+      (await action(() => window.codex.projectGitRefs(projectId))) ?? null,
     toggleSidebar: () => {
       const { settings, saveSettings } = get()
       void saveSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })

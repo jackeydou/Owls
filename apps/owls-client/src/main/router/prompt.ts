@@ -1,5 +1,7 @@
+import type { ProjectInstructions } from '../../shared/projects.js'
+
 /** Bumped whenever the Router or Worker instructions change; recorded on each batch. */
-export const ROUTER_PROMPT_VERSION = 9
+export const ROUTER_PROMPT_VERSION = 10
 
 export const ROUTER_INSTRUCTIONS = `You are the Owls Router, the user's coordinator for one conversation thread. The user has other threads with their own Routers, which you cannot see. Work in a thread can span the user's software projects.
 
@@ -26,6 +28,32 @@ Reply briefly, conclusion first. Refer to a worker by its title as a Markdown li
 export const WORKER_INSTRUCTIONS = `You are running as a worker for the Owls Router. Work only on the task you were given. Your final message must be the JSON report requested by the output schema: use "done" when the task is complete, "blocked" when you cannot continue, "needs_input" when the user must decide something, and "progress" otherwise. Write the summary for the coordinator, in at most a few sentences, about this task only.`
 
 /** Appended to the worker instructions when the worker runs in its own worktree (RFC 11.1). */
-export function worktreeInstructions(branch: string): string {
-  return `You are working in a separate git worktree of this project, on branch ${branch}. It holds only committed files: uncommitted changes, ignored files, and installed dependencies from the user's checkout are not here, so install what you need. Stay on this branch, and do not push or change other worktrees. When the task is done, commit your changes to this branch and name the branch in your summary.`
+export function worktreeInstructions(branch: string, remote: string | null = null): string {
+  const push = remote
+    ? ` If the task asks you to push or open a pull request, push this branch to the ${remote} remote.`
+    : ''
+  return `You are working in a separate git worktree of this project, on branch ${branch}. It holds only committed files: uncommitted changes, ignored files, and installed dependencies from the user's checkout are not here, so install what you need. Stay on this branch and do not change other worktrees. Do not push unless the task asks you to. When the task is done, commit your changes to this branch and name the branch in your summary.${push}`
+}
+
+/**
+ * The user's own instructions for workers in one project, in a fixed order; null
+ * when there are none. They rank above the worker's defaults but never change
+ * the report it must end with.
+ */
+export function projectInstructions(instructions: ProjectInstructions): string | null {
+  const sections = [
+    { text: instructions.general, heading: 'For every task in this project:' },
+    { text: instructions.codeReview, heading: 'When the task is to review code:' },
+    {
+      text: instructions.pullRequest,
+      heading: 'When the task is to open or update a pull request:'
+    }
+  ]
+    .map(({ text, heading }) => ({ text: text.trim(), heading }))
+    .filter(({ text }) => text)
+  if (!sections.length) return null
+  return [
+    'The user set these instructions for this project. Follow them over your default habits where they differ, but still end with the report the output schema asks for.',
+    ...sections.map(({ text, heading }) => `${heading}\n${text}`)
+  ].join('\n\n')
 }

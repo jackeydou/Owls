@@ -12,7 +12,14 @@ import {
   type MemoryView,
   memorySettingsSchema
 } from './memory.js'
-import type { CloneProject, CreateProject } from './projects.js'
+import {
+  type CloneProject,
+  type CreateProject,
+  defaultProjectSettings,
+  type ProjectGitRefs,
+  projectSettingsSchema,
+  type SaveProject
+} from './projects.js'
 import {
   type CreateThread,
   type ForwardMessage,
@@ -183,7 +190,13 @@ export const settingsSchema = z.object({
   /** Pane widths and the Projects sidebar; also added after the first release. */
   layout: layoutSettingsSchema.default(defaultLayoutSettings)
 })
-export const projectSchema = z.object({ id: z.string(), name: z.string(), path: z.string() })
+export const projectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  path: z.string(),
+  /** Added after projects were first stored, so older rows get the defaults. */
+  settings: projectSettingsSchema.default(defaultProjectSettings)
+})
 export const settingsUpdateSchema = settingsSchema
   .omit({ executablePath: true, claudeExecutablePath: true })
   .strict()
@@ -316,6 +329,10 @@ export interface CodexAPI {
   chooseProjectsFolder(): Promise<CodexReply<string | null>>
   cloneProject(input: CloneProject): Promise<CodexReply<CodexProject>>
   createProject(input: CreateProject): Promise<CodexReply<CodexProject>>
+  /** Saves a project's name and settings; resolves to the saved project. */
+  saveProject(input: SaveProject): Promise<CodexReply<CodexProject>>
+  /** The project repository's branches and remotes; null when it is not a git repository. */
+  projectGitRefs(projectId: string): Promise<CodexReply<ProjectGitRefs | null>>
   respond(input: RespondCodexRequest): Promise<CodexReply<void>>
   createThread(input: CreateThread): Promise<CodexReply<CodexRouter>>
   threadItems(input: ThreadItemsRequest): Promise<CodexReply<ThreadItem[]>>

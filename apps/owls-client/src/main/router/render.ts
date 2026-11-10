@@ -99,7 +99,13 @@ export function renderProjects(projects: CodexProject[], defaultId: string | nul
   if (projects.length < 2) return null
   const lines = [...projects]
     .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
-    .map((p) => `- ${p.name} · ${p.id}${p.id === defaultId ? ' · default' : ''}`)
+    .map((p) => {
+      const about = p.settings?.description.replace(/\s+/g, ' ').trim()
+      const description = about ? ` — ${short(about, 200)}` : ''
+      return escapeBatch(
+        `- ${p.name} · ${p.id}${p.id === defaultId ? ' · default' : ''}${description}`
+      )
+    })
   return `Projects:\n${lines.join('\n')}`
 }
 

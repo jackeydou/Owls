@@ -7,6 +7,7 @@ import type {
   CodexConnection,
   CodexEvent,
   CodexFailure,
+  CodexProject,
   CodexRequest,
   CodexSession,
   CodexSettings,
@@ -16,6 +17,7 @@ import type {
   SendCodexMessage
 } from '../../shared/codex.js'
 import { questionSchema } from '../../shared/codex.js'
+import { defaultProjectSettings, type SaveProject } from '../../shared/projects.js'
 import type { TurnOutcome, TurnProfiles } from '../router/service.js'
 import { CodexClient, discoverExecutable } from './client.js'
 import { CodexRuntimeError, codexFailure } from './errors.js'
@@ -160,7 +162,20 @@ export class CodexService {
       throw new CodexRuntimeError('project_required', 'Select a project directory.')
     const existing = this.store.projects().find((p) => p.path === canonical)
     if (existing) return existing
-    const project = { id: crypto.randomUUID(), name: basename(canonical), path: canonical }
+    const project: CodexProject = {
+      id: crypto.randomUUID(),
+      name: basename(canonical),
+      path: canonical,
+      settings: defaultProjectSettings
+    }
+    this.store.saveProject(project)
+    return project
+  }
+  /** Renames a project and replaces its settings; its id and path never change. */
+  saveProject(input: SaveProject): CodexProject {
+    const existing = this.store.projects().find((p) => p.id === input.id)
+    if (!existing) throw new CodexRuntimeError('project_required', 'This project no longer exists.')
+    const project: CodexProject = { ...existing, name: input.name, settings: input.settings }
     this.store.saveProject(project)
     return project
   }

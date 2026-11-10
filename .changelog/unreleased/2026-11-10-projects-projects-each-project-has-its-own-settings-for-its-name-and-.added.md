@@ -1,0 +1,1 @@
+- Projects: each project has its own settings for its name and description, the branch and remote its worktrees use, deleting pushed branches when a worker is removed, and extra instructions for workers, including code review and pull request preferences.

@@ -23,7 +23,12 @@ import type {
   MemorySave,
   MemoryView
 } from '../../shared/memory.js'
-import type { CloneProject, CreateProject } from '../../shared/projects.js'
+import type {
+  CloneProject,
+  CreateProject,
+  ProjectGitRefs,
+  SaveProject
+} from '../../shared/projects.js'
 import type {
   CreateThread,
   ForwardMessage,
@@ -251,6 +256,15 @@ export class OwlsHost {
   }
   addProject(path: string): CodexProject {
     return this.codex.addProject(path)
+  }
+  saveProject(input: SaveProject): CodexProject {
+    return this.codex.saveProject(input)
+  }
+  /** Null when the project is not a git repository, or no Router can read it yet. */
+  async projectGitRefs(projectId: string): Promise<ProjectGitRefs | null> {
+    const project = this.codex.snapshot().projects.find((p) => p.id === projectId)
+    if (!project) throw new CodexRuntimeError('project_required', 'This project no longer exists.')
+    return this.router ? this.router.gitRefs(project.path) : null
   }
   projectsFolder(): string {
     return this.projectsHome

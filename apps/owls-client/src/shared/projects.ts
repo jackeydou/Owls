@@ -64,3 +64,65 @@ export const createProjectSchema = z.object({
 })
 export type CloneProject = z.infer<typeof cloneProjectSchema>
 export type CreateProject = z.infer<typeof createProjectSchema>
+
+/** A branch or remote-tracking ref such as `main` or `origin/main`; never an option to git. */
+const gitRefName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .regex(/^(?!-)(?!.*\.\.)(?!.*\/\/)[A-Za-z0-9._/-]+(?<![/.])$/, 'Invalid branch name')
+const gitRemoteName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .regex(/^(?!-)[A-Za-z0-9._-]+$/, 'Invalid remote name')
+/** Longest text kept for one block of project instructions. */
+export const PROJECT_INSTRUCTIONS_LIMIT = 8000
+const instructionText = z.string().max(PROJECT_INSTRUCTIONS_LIMIT)
+
+/** How workers' git worktrees behave in one project. */
+export const projectGitSettingsSchema = z.object({
+  /** The ref new worktrees branch from, such as `origin/main`; null for the checkout's HEAD. */
+  baseBranch: gitRefName.nullable(),
+  /** Where workers push and pull requests are found; null for `origin`. */
+  remote: gitRemoteName.nullable(),
+  /**
+   * When a worker is removed, also delete its local branch once every commit on it is on
+   * the remote. Branches with commits found nowhere else are always kept.
+   */
+  deletePushedBranches: z.boolean()
+})
+/** Extra instructions the user gives every worker in one project. */
+export const projectInstructionsSchema = z.object({
+  general: instructionText,
+  codeReview: instructionText,
+  pullRequest: instructionText
+})
+export const projectSettingsSchema = z.object({
+  /** What the project is, for the Router choosing where a task belongs. */
+  description: z.string().max(500),
+  git: projectGitSettingsSchema,
+  instructions: projectInstructionsSchema
+})
+export type ProjectGitSettings = z.infer<typeof projectGitSettingsSchema>
+export type ProjectInstructions = z.infer<typeof projectInstructionsSchema>
+export type ProjectSettings = z.infer<typeof projectSettingsSchema>
+export const defaultProjectSettings: ProjectSettings = {
+  description: '',
+  git: { baseBranch: null, remote: null, deletePushedBranches: false },
+  instructions: { general: '', codeReview: '', pullRequest: '' }
+}
+/** The remote workers use when the project names none. */
+export const DEFAULT_REMOTE = 'origin'
+
+/** A project's name and settings, as the settings page saves them. */
+export const saveProjectSchema = z.object({
+  id: z.string().min(1).max(100),
+  name: z.string().trim().min(1).max(100),
+  settings: projectSettingsSchema
+})
+export type SaveProject = z.infer<typeof saveProjectSchema>
+/** A project repository's local branches, remote-tracking branches, and remotes, sorted. */
+export type ProjectGitRefs = { branches: string[]; remoteBranches: string[]; remotes: string[] }

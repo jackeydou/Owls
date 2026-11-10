@@ -6,6 +6,7 @@ import type {
   ForwardOrigin,
   ThreadItem
 } from '../../shared/codex.js'
+import type { ProjectGitRefs } from '../../shared/projects.js'
 import type {
   CreateThread,
   ForwardMessage,
@@ -451,8 +452,15 @@ export class RouterService implements TurnProfiles {
     return this.pool.get(workerId)
   }
   async remoteBranch(workerId: string): Promise<WorkerRemoteBranch | null> {
-    const workspace = this.pool.get(workerId)?.workspace
-    return workspace?.kind === 'worktree' ? this.workspaces.remoteBranch(workspace) : null
+    const worker = this.pool.get(workerId)
+    const workspace = worker?.workspace
+    return worker && workspace?.kind === 'worktree'
+      ? this.workspaces.remoteBranch(workspace, this.pool.projectSettings(worker).git)
+      : null
+  }
+  /** A project repository's branches and remotes, for its settings page. */
+  gitRefs(projectPath: string): Promise<ProjectGitRefs | null> {
+    return this.workspaces.refs(projectPath)
   }
   linkPullRequest(workerId: string, link: WorkerPullRequestLink): void {
     this.pool.linkPullRequest(workerId, link)

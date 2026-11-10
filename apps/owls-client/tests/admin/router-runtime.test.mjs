@@ -37,7 +37,9 @@ const {
   defaultEngineFactory,
   GitWorkspaces,
   parseReport,
+  projectInstructions,
   renderBatch,
+  renderProjects,
   renderState,
   routerTools,
   trimContext
@@ -1932,6 +1934,141 @@ test('a default-branch worktree starts from the fetched remote branch', async (t
   assert.ok(existsSync(join(fromHead.path, 'local.txt')))
 })
 
+const gitSettings = (git = {}) => ({
+  baseBranch: null,
+  remote: null,
+  deletePushedBranches: false,
+  ...git
+})
+/** `tempRepo` with a bare remote named `name` that has moved one commit past the checkout. */
+function repoWithRemote(t, name = 'origin') {
+  const setup = tempRepo(t)
+  const { dir, repo } = setup
+  const remote = join(dir, `${name}.git`)
+  gitIn(dir, 'clone', '--quiet', '--bare', repo, remote)
+  gitIn(repo, 'remote', 'add', name, remote)
+  gitIn(repo, 'fetch', '--quiet', name)
+  const upstream = join(dir, `${name}-upstream`)
+  gitIn(dir, 'clone', '--quiet', remote, upstream)
+  gitIn(upstream, 'config', 'user.email', 'test@example.com')
+  gitIn(upstream, 'config', 'user.name', 'Test')
+  commitIn(upstream, 'remote.txt', 'from remote\n')
+  gitIn(upstream, 'push', '--quiet', 'origin', 'main')
+  return { ...setup, remote }
+}
+
+test('a project base branch picks where new worktrees start', async (t) => {
+  const { repo, remote, workspaces } = repoWithRemote(t, 'upstream')
+  gitIn(repo, 'branch', 'release')
+  gitIn(repo, 'switch', '--quiet', '-c', 'feature')
+  commitIn(repo, 'local.txt', 'local only\n')
+  const top = await workspaces.inspect(repo)
+
+  const fromRemote = workspaces.plan(top, 'w_remote', 'head')
+  assert.equal(
+    await workspaces.ensure(fromRemote, gitSettings({ baseBranch: 'upstream/main' })),
+    gitIn(remote, 'rev-parse', 'main'),
+    'a remote branch is fetched before branching'
+  )
+  assert.ok(existsSync(join(fromRemote.path, 'remote.txt')))
+
+  const fromLocal = workspaces.plan(top, 'w_local', 'head')
+  assert.equal(
+    await workspaces.ensure(fromLocal, gitSettings({ baseBranch: 'release' })),
+    gitIn(repo, 'rev-parse', 'release')
+  )
+
+  const missing = workspaces.plan(top, 'w_missing', 'head')
+  assert.equal(
+    await workspaces.ensure(missing, gitSettings({ baseBranch: 'gone/away' })),
+    gitIn(repo, 'rev-parse', 'HEAD'),
+    'a base branch that is gone falls back to HEAD'
+  )
+
+  gitIn(repo, 'remote', 'set-head', 'upstream', 'main')
+  const byRemote = workspaces.plan(top, 'w_default', 'default-branch')
+  assert.equal(
+    await workspaces.ensure(byRemote, gitSettings({ remote: 'upstream' })),
+    gitIn(remote, 'rev-parse', 'main'),
+    'the default branch comes from the project remote'
+  )
+})
+
+test('a project can delete pushed branches when their worker is removed', async (t) => {
+  const { repo, workspaces } = repoWithRemote(t)
+  const top = await workspaces.inspect(repo)
+  const ready = async (id) => {
+    const plan = workspaces.plan(top, id, 'head')
+    plan.baseCommit = await workspaces.ensure(plan)
+    commitIn(plan.path, `${id}.txt`, 'work\n')
+    return plan
+  }
+  const remove = gitSettings({ deletePushedBranches: true })
+
+  const pushed = await ready('w_pushed')
+  gitIn(pushed.path, 'push', '--quiet', 'origin', pushed.branch)
+  assert.deepEqual(await workspaces.release(pushed, false, remove), {
+    worktree: 'removed',
+    branch: 'deleted'
+  })
+
+  const ahead = await ready('w_ahead')
+  gitIn(ahead.path, 'push', '--quiet', 'origin', ahead.branch)
+  commitIn(ahead.path, 'more.txt', 'not pushed\n')
+  assert.deepEqual(await workspaces.release(ahead, false, remove), {
+    worktree: 'removed',
+    branch: 'kept'
+  })
+
+  const off = await ready('w_off')
+  gitIn(off.path, 'push', '--quiet', 'origin', off.branch)
+  assert.deepEqual(await workspaces.release(off, false, gitSettings()), {
+    worktree: 'removed',
+    branch: 'kept'
+  })
+  const branches = gitIn(repo, 'branch', '--list', 'owls/*')
+  assert.doesNotMatch(branches, /w_pushed/)
+  assert.match(branches, /w_ahead/)
+  assert.match(branches, /w_off/)
+})
+
+test('a project repository lists its branches and remotes, sorted', async (t) => {
+  const { dir, repo, workspaces } = repoWithRemote(t)
+  gitIn(repo, 'remote', 'set-head', 'origin', 'main')
+  gitIn(repo, 'branch', 'b-feature')
+  assert.deepEqual(await workspaces.refs(join(repo, 'packages')), {
+    branches: ['b-feature', 'main'],
+    remoteBranches: ['origin/main'],
+    remotes: ['origin']
+  })
+  const plain = join(dir, 'plain')
+  mkdirSync(plain)
+  assert.equal(await workspaces.refs(plain), null)
+})
+
+test('project instructions follow the worker instructions in a fixed order', () => {
+  assert.equal(projectInstructions({ general: ' ', codeReview: '', pullRequest: '' }), null)
+  const text = projectInstructions({
+    general: 'Use pnpm.',
+    codeReview: '',
+    pullRequest: 'Fill in the template.'
+  })
+  assert.ok(text.indexOf('Use pnpm.') < text.indexOf('Fill in the template.'))
+  assert.doesNotMatch(text, /review code/)
+  assert.match(text, /output schema/)
+})
+
+test('the Router reads each project description in its project list', () => {
+  const text = renderProjects(
+    [
+      { id: 'p2', name: 'web', path: '/w', settings: { description: 'Marketing\n site' } },
+      { id: 'p1', name: 'api', path: '/a' }
+    ],
+    'p1'
+  )
+  assert.equal(text, 'Projects:\n- api · p1 · default\n- web · p2 — Marketing site')
+})
+
 // Worker worktrees in the WorkerPool, with a recording stand-in for git.
 
 function fakeWorkspaces(options = {}) {
@@ -2030,6 +2167,61 @@ test('workers that write start together, each in its own worktree', async () => 
     service.profile(service.snapshot().workers.find((w) => w.goal === 'Write C').sessionId)
       .instructions,
     /worktree/
+  )
+  service.close()
+})
+
+test('a worker follows its project settings from its next turn', async () => {
+  const workspaces = fakeWorkspaces()
+  const gits = []
+  const { ensure, release } = workspaces
+  workspaces.ensure = (workspace, git) => {
+    gits.push(['ensure', git])
+    return ensure(workspace)
+  }
+  workspaces.release = (workspace, force, git) => {
+    gits.push(['release', git])
+    return release(workspace, force)
+  }
+  const project = {
+    ...PROJECT,
+    settings: {
+      description: '',
+      git: gitSettings({ baseBranch: 'origin/main', remote: 'upstream' }),
+      instructions: { general: 'Use pnpm.', codeReview: '', pullRequest: '' }
+    }
+  }
+  const projects = [project]
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current, fake } = harness([], {
+    factory,
+    workspaces,
+    host: { settings: worktreeSettings, projects }
+  })
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length === 1) await tools[0].execute({ goal: 'Write A' })
+  }
+  send(service, router, 'One change')
+  await waitFor(() => current().status === 'idle' && fake.sent.length === 1, 'dispatch')
+  const worker = service.snapshot().workers[0]
+  assert.deepEqual(gits[0], ['ensure', project.settings.git])
+  const before = service.profile(worker.sessionId).instructions
+  assert.match(before, /Use pnpm\./)
+  assert.match(before, /push this branch to the upstream remote/)
+
+  projects[0] = {
+    ...project,
+    settings: {
+      ...project.settings,
+      instructions: { ...project.settings.instructions, general: '' }
+    }
+  }
+  assert.doesNotMatch(service.profile(worker.sessionId).instructions, /Use pnpm\./)
+  service.observe({ type: 'removed', sessionId: worker.sessionId })
+  await waitFor(() => gits.some(([kind]) => kind === 'release'), 'release')
+  assert.deepEqual(
+    gits.find(([kind]) => kind === 'release'),
+    ['release', project.settings.git]
   )
   service.close()
 })
@@ -2599,7 +2791,7 @@ test('search_memory sits in the fixed tool order only while memory is on', async
   const off = await withTools(async () => [], { memory: fakeMemory(false) })
   assert.ok(!off.engine.tools.some((t) => t.name === 'search_memory'))
   assert.equal(off.engine.runs[0].text, 'go', 'no memory block without memory')
-  assert.equal(ROUTER_PROMPT_VERSION, 9)
+  assert.equal(ROUTER_PROMPT_VERSION, 10)
   off.service.close()
 })
 
