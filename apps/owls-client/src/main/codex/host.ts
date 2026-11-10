@@ -23,6 +23,7 @@ import type {
   MemorySave,
   MemoryView
 } from '../../shared/memory.js'
+import type { CloneProject, CreateProject } from '../../shared/projects.js'
 import type {
   CreateThread,
   ForwardMessage,
@@ -42,6 +43,7 @@ import type { DreamingTriggers } from '../memory/triggers.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
 import { CodexRuntimeError } from './errors.js'
+import { cloneGitHubProject, createQuickProject } from './project-sources.js'
 import type { CodexService } from './service.js'
 
 /**
@@ -60,7 +62,8 @@ export class OwlsHost {
   constructor(
     private readonly codex: CodexService,
     private readonly claude: ClaudeService,
-    private readonly threadHome: string
+    private readonly threadHome: string,
+    private readonly projectsHome: string
   ) {}
   /** Connects the Routers, which start every session of this host. */
   attachRouter(router: RouterService): void {
@@ -248,6 +251,15 @@ export class OwlsHost {
   }
   addProject(path: string): CodexProject {
     return this.codex.addProject(path)
+  }
+  projectsFolder(): string {
+    return this.projectsHome
+  }
+  async cloneProject(input: CloneProject): Promise<CodexProject> {
+    return this.addProject(await cloneGitHubProject(input, this.projectsHome))
+  }
+  async createProject(input: CreateProject): Promise<CodexProject> {
+    return this.addProject(await createQuickProject(input, this.projectsHome))
   }
   private send(input: SendCodexMessage): Promise<void> {
     return this.claude.owns(input.sessionId) ? this.claude.send(input) : this.codex.send(input)

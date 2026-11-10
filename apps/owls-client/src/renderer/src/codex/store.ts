@@ -16,6 +16,7 @@ import type {
 import { defaultLayoutSettings, paneWidthBounds } from '../../../shared/codex'
 import type { GitHubAccount } from '../../../shared/github'
 import { defaultMemorySettings } from '../../../shared/memory'
+import type { CloneProject, CreateProject } from '../../../shared/projects'
 import { defaultRouterSettings } from '../../../shared/router'
 import { byRecent } from '../router/activity'
 import { zoomBetweenViews } from '../router/motion'
@@ -87,6 +88,16 @@ type State = {
   clearError(): void
   /** Opens the folder picker. Resolves to the project's id, or null when canceled. */
   pickProject(): Promise<string | null>
+  /** The folder new projects go into by default; null when it cannot be read. */
+  projectsFolder(): Promise<string | null>
+  /** Opens the folder picker for where a new project goes; null when canceled. */
+  chooseProjectsFolder(): Promise<string | null>
+  /**
+   * Clones or creates a project and opens a new thread in it. Resolves to the
+   * failure, for the form to show, or null once the project is open.
+   */
+  cloneProject(input: CloneProject): Promise<CodexFailure | null>
+  createProject(input: CreateProject): Promise<CodexFailure | null>
   toggleSidebar(): void
   toggleProjects(): void
   /** Clamps and persists one pane's width, typically once a drag ends. */
@@ -123,6 +134,28 @@ export const useCodexStore = create<State>((set, get) => {
     } catch (error) {
       set({ error: uiFailure(error) })
       return undefined
+    }
+  }
+  /** Lists a new or existing project and opens a new thread in it. */
+  function openProject(project: CodexProject) {
+    set((state) => ({
+      projects: [...state.projects.filter((p) => p.id !== project.id), project].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      ),
+      routerProjectId: project.id,
+      threadId: null,
+      view: 'chat',
+      error: null
+    }))
+  }
+  async function addProject(
+    fn: () => Promise<CodexReply<CodexProject>>
+  ): Promise<CodexFailure | null> {
+    try {
+      openProject(unwrap(await fn()))
+      return null
+    } catch (error) {
+      return uiFailure(error)
     }
   }
   return {
@@ -300,16 +333,14 @@ export const useCodexStore = create<State>((set, get) => {
     pickProject: async () => {
       const project = await action(() => window.codex.pickProject())
       if (!project) return null
-      set((state) => ({
-        projects: [...state.projects.filter((p) => p.id !== project.id), project].sort((a, b) =>
-          a.name.localeCompare(b.name)
-        ),
-        routerProjectId: project.id,
-        threadId: null,
-        view: 'chat'
-      }))
+      openProject(project)
       return project.id
     },
+    projectsFolder: async () => (await action(() => window.codex.projectsFolder())) ?? null,
+    chooseProjectsFolder: async () =>
+      (await action(() => window.codex.chooseProjectsFolder())) ?? null,
+    cloneProject: (input) => addProject(() => window.codex.cloneProject(input)),
+    createProject: (input) => addProject(() => window.codex.createProject(input)),
     toggleSidebar: () => {
       const { settings, saveSettings } = get()
       void saveSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })

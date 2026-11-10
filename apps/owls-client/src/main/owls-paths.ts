@@ -39,6 +39,17 @@ export function workerWorktreesRoot(dataRoot = getDataRoot()): string {
     : join(dataRoot, 'worktrees')
 }
 
+/**
+ * Where projects cloned from GitHub or made with Quick start go by default:
+ * next to the worker worktrees for the default data root, inside a custom
+ * data root otherwise.
+ */
+export function projectsHome(dataRoot = getDataRoot()): string {
+  return resolve(dataRoot) === resolve(defaultDataRoot())
+    ? join(homedir(), 'Owls', 'projects')
+    : join(dataRoot, 'projects')
+}
+
 /** The working directory of Router engines in threads with no default project. */
 export function routerThreadHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'router-threads')

@@ -1381,6 +1381,51 @@ html.pane-resizing * {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
+.router-new-project h2 {
+  margin-bottom: 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.router-new-project form > p {
+  margin-bottom: 14px;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  line-height: 20px;
+}
+.router-new-project .router-input {
+  width: 100%;
+  min-width: 0;
+}
+.router-new-project .router-new-project-error {
+  margin: 8px 0 0;
+  color: var(--owl-bad);
+  font-size: 12px;
+}
+.router-new-project-location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+.router-new-project-location > span {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+}
+.router-new-project-location code {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-foreground);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.router-new-project footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 @media (max-width: 1050px) {
   .router-panel {
     position: absolute;

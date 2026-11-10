@@ -246,7 +246,33 @@ export const routerEn = {
     'This Router engine is not available yet. Choose another engine in Settings.',
   'errors.secure_storage_unavailable':
     'Secure storage is not available on this system, so the key was not saved.',
-  'errors.github_unavailable': 'GitHub is not available right now.'
+  'errors.github_unavailable': 'GitHub is not available right now.',
+  'project.add.open': 'Open project',
+  'project.add.github': 'Open GitHub project',
+  'project.add.quick': 'Quick start',
+  'project.add.recents': 'Recents',
+  'project.location': 'Location',
+  'project.changeLocation': 'Change…',
+  'project.github.title': 'Open GitHub project',
+  'project.github.body':
+    'Paste a repository URL. Owls clones it with your git setup and adds it as a project.',
+  'project.github.label': 'GitHub repository URL',
+  'project.github.placeholder': 'https://github.com/owner/repo',
+  'project.github.invalid': 'Enter a github.com repository URL, or owner/repo.',
+  'project.github.submit': 'Clone',
+  'project.github.busy': 'Cloning…',
+  'project.quick.title': 'Quick start',
+  'project.quick.body': 'Creates an empty folder with a git repository and adds it as a project.',
+  'project.quick.label': 'Project name',
+  'project.quick.placeholder': 'my-project',
+  'project.quick.invalid': 'Use a folder name without slashes that does not start with a dot.',
+  'project.quick.submit': 'Create',
+  'project.quick.busy': 'Creating…',
+  'errors.project_url_invalid': 'Enter a github.com repository URL, or owner/repo.',
+  'errors.project_exists':
+    'A folder with this name already exists there. Choose another name or location.',
+  'errors.project_clone_failed':
+    'Could not clone this repository. Check the URL, and for a private repository make sure git on this computer can sign in to GitHub.'
 }
 
 export const routerZh: Record<keyof typeof routerEn, string> = {
@@ -489,5 +515,29 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'errors.router_auth_failed': '协调者模型拒绝了这个 API key，请在设置中检查。',
   'errors.router_unavailable': '这个协调者引擎暂不可用，请在设置中选择其他引擎。',
   'errors.secure_storage_unavailable': '当前系统不支持安全存储，key 未保存。',
-  'errors.github_unavailable': 'GitHub 暂时不可用。'
+  'errors.github_unavailable': 'GitHub 暂时不可用。',
+  'project.add.open': '打开项目',
+  'project.add.github': '打开 GitHub 项目',
+  'project.add.quick': '快速创建',
+  'project.add.recents': '最近',
+  'project.location': '位置',
+  'project.changeLocation': '更改…',
+  'project.github.title': '打开 GitHub 项目',
+  'project.github.body': '粘贴仓库 URL，Owls 会用你本机的 git 配置克隆它并添加为项目。',
+  'project.github.label': 'GitHub 仓库 URL',
+  'project.github.placeholder': 'https://github.com/owner/repo',
+  'project.github.invalid': '请输入 github.com 仓库 URL，或 owner/repo。',
+  'project.github.submit': '克隆',
+  'project.github.busy': '正在克隆…',
+  'project.quick.title': '快速创建',
+  'project.quick.body': '新建一个带 git 仓库的空文件夹，并添加为项目。',
+  'project.quick.label': '项目名称',
+  'project.quick.placeholder': 'my-project',
+  'project.quick.invalid': '请使用不含斜杠、不以点开头的文件夹名。',
+  'project.quick.submit': '创建',
+  'project.quick.busy': '正在创建…',
+  'errors.project_url_invalid': '请输入 github.com 仓库 URL，或 owner/repo。',
+  'errors.project_exists': '该位置已有同名文件夹，请换个名称或位置。',
+  'errors.project_clone_failed':
+    '无法克隆这个仓库。请检查 URL；如果是私有仓库，请确认本机 git 能登录 GitHub。'
 }

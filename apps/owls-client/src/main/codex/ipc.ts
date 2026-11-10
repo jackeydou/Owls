@@ -10,6 +10,7 @@ import {
   memoryRemoveSchema,
   memorySaveSchema
 } from '../../shared/memory.js'
+import { cloneProjectSchema, createProjectSchema } from '../../shared/projects.js'
 import {
   createThreadSchema,
   forwardSchema,
@@ -144,6 +145,16 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
     const result = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
     return result.canceled || !result.filePaths[0] ? null : host.addProject(result.filePaths[0])
   })
+  handle('projects-folder', () => host.projectsFolder())
+  handle('choose-projects-folder', async () => {
+    const result = await dialog.showOpenDialog({
+      defaultPath: host.projectsFolder(),
+      properties: ['openDirectory', 'createDirectory']
+    })
+    return result.canceled || !result.filePaths[0] ? null : result.filePaths[0]
+  })
+  handle('clone-project', (input) => host.cloneProject(cloneProjectSchema.parse(input)))
+  handle('create-project', (input) => host.createProject(createProjectSchema.parse(input)))
   handle('select-executable', async () => {
     const result = await dialog.showOpenDialog({ properties: ['openFile', 'showHiddenFiles'] })
     if (result.canceled || !result.filePaths[0]) return null
