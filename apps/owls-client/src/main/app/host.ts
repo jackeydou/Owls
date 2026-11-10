@@ -1,17 +1,17 @@
 import { mkdirSync } from 'node:fs'
 import type {
   AgentProvider,
+  AppSettings,
+  AppSnapshot,
   ClaudeConnection,
   CodexConnection,
-  CodexProject,
-  CodexRouter,
-  CodexSession,
-  CodexSettings,
-  CodexSnapshot,
-  RespondCodexRequest,
-  SendCodexMessage,
+  Project,
+  RespondRequest,
+  Router,
+  SendMessage,
+  Session,
   ThreadItem
-} from '../../shared/codex.js'
+} from '../../shared/app.js'
 import type { GitHubAccount } from '../../shared/github.js'
 import type {
   MemoryCategoryAction,
@@ -40,6 +40,7 @@ import type {
   WorkerAction
 } from '../../shared/router.js'
 import type { ClaudeService } from '../claude/service.js'
+import type { CodexService } from '../codex/service.js'
 import type { GitHubAuth } from '../github/auth.js'
 import type { DreamingRunner } from '../memory/dreaming.js'
 import type { MemoryService } from '../memory/service.js'
@@ -47,9 +48,8 @@ import type { MemorySweeper } from '../memory/sweep.js'
 import type { DreamingTriggers } from '../memory/triggers.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
-import { CodexRuntimeError } from './errors.js'
+import { OwlsError } from './errors.js'
 import { cloneGitHubProject, createQuickProject } from './project-sources.js'
-import type { CodexService } from './service.js'
 
 /**
  * Owns the desktop workspace and routes each worker session to the runtime that
@@ -83,7 +83,7 @@ export class OwlsHost {
     this.memory = memory
   }
   /** A worker session's items, from whichever runtime owns it. */
-  sessionItems(sessionId: string): CodexSession['items'] {
+  sessionItems(sessionId: string): Session['items'] {
     return this.snapshot().sessions.find((s) => s.id === sessionId)?.items ?? []
   }
   /** The narrow view of this host that Routers use to start workers. */
@@ -113,7 +113,7 @@ export class OwlsHost {
       respond: (input) => this.respond(input)
     }
   }
-  snapshot(): CodexSnapshot {
+  snapshot(): AppSnapshot {
     const codex = this.codex.snapshot()
     const router = this.router?.snapshot() ?? { routers: [], workers: [] }
     return {
@@ -138,25 +138,22 @@ export class OwlsHost {
   connectClaude(): Promise<ClaudeConnection> {
     return this.claude.connect()
   }
-  saveSettings(settings: CodexSettings): CodexSettings {
+  saveSettings(settings: AppSettings): AppSettings {
     if (
       settings.claudeExecutablePath !== this.codex.snapshot().settings.claudeExecutablePath &&
       this.claude.hasActiveTasks()
     ) {
-      throw new CodexRuntimeError(
-        'busy',
-        'Stop active tasks before changing the Claude Code executable.'
-      )
+      throw new OwlsError('busy', 'Stop active tasks before changing the Claude Code executable.')
     }
     const routerChanged =
       JSON.stringify(settings.router) !== JSON.stringify(this.codex.snapshot().settings.router)
     if (routerChanged && this.router?.isRunning())
-      throw new CodexRuntimeError('busy', 'Wait for the Router to finish before changing it.')
+      throw new OwlsError('busy', 'Wait for the Router to finish before changing it.')
     const saved = this.codex.saveSettings(settings)
     if (routerChanged) this.router?.settingsChanged()
     return saved
   }
-  createThread(input: CreateThread): CodexRouter {
+  createThread(input: CreateThread): Router {
     return this.requireRouter().createThread(input)
   }
   threadItems(input: ThreadItemsRequest): ThreadItem[] {
@@ -165,7 +162,7 @@ export class OwlsHost {
   sendRouter(input: SendRouterMessage): Promise<void> {
     return this.requireRouter().send(input)
   }
-  forward(input: ForwardMessage): CodexRouter {
+  forward(input: ForwardMessage): Router {
     return this.requireRouter().forward(input)
   }
   interruptRouter(routerId: string): void {
@@ -242,40 +239,39 @@ export class OwlsHost {
     return this.requireMemory().service.export(format)
   }
   private requireMemory(): NonNullable<OwlsHost['memory']> {
-    if (!this.memory) throw new CodexRuntimeError('router_unavailable', 'Memory is not available.')
+    if (!this.memory) throw new OwlsError('router_unavailable', 'Memory is not available.')
     return this.memory
   }
   private requireGitHub(): NonNullable<OwlsHost['github']> {
-    if (!this.github) throw new CodexRuntimeError('github_unavailable', 'GitHub is not available.')
+    if (!this.github) throw new OwlsError('github_unavailable', 'GitHub is not available.')
     return this.github
   }
   private requireRouter(): RouterService {
-    if (!this.router)
-      throw new CodexRuntimeError('router_unavailable', 'The Router is not available.')
+    if (!this.router) throw new OwlsError('router_unavailable', 'The Router is not available.')
     return this.router
   }
-  addProject(path: string): CodexProject {
+  addProject(path: string): Project {
     return this.codex.addProject(path)
   }
-  saveProject(input: SaveProject): CodexProject {
+  saveProject(input: SaveProject): Project {
     return this.codex.saveProject(input)
   }
   /** Null when the project is not a git repository, or no Router can read it yet. */
   async projectGitRefs(projectId: string): Promise<ProjectGitRefs | null> {
     const project = this.codex.snapshot().projects.find((p) => p.id === projectId)
-    if (!project) throw new CodexRuntimeError('project_required', 'This project no longer exists.')
+    if (!project) throw new OwlsError('project_required', 'This project no longer exists.')
     return this.router ? this.router.gitRefs(project.path) : null
   }
   projectsFolder(): string {
     return this.projectsHome
   }
-  async cloneProject(input: CloneProject): Promise<CodexProject> {
+  async cloneProject(input: CloneProject): Promise<Project> {
     return this.addProject(await cloneGitHubProject(input, this.projectsHome))
   }
-  async createProject(input: CreateProject): Promise<CodexProject> {
+  async createProject(input: CreateProject): Promise<Project> {
     return this.addProject(await createQuickProject(input, this.projectsHome))
   }
-  private send(input: SendCodexMessage): Promise<void> {
+  private send(input: SendMessage): Promise<void> {
     return this.claude.owns(input.sessionId) ? this.claude.send(input) : this.codex.send(input)
   }
   private async steer(sessionId: string, text: string): Promise<'steered' | 'not_running'> {
@@ -288,7 +284,7 @@ export class OwlsHost {
       ? this.claude.interrupt(sessionId)
       : this.codex.interrupt(sessionId)
   }
-  respond(input: RespondCodexRequest): void {
+  respond(input: RespondRequest): void {
     if (this.claude.owns(input.sessionId)) this.claude.respond(input)
     else this.codex.respond(input)
   }

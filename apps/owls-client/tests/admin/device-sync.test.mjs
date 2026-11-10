@@ -14,7 +14,7 @@ const require = createRequire(import.meta.url)
 const {
   applyCommand,
   checkoutOnly,
-  CodexStore,
+  OwlsStore,
   commandReceiptSchema,
   deviceCommandSchema,
   LocalWorkers,
@@ -22,7 +22,7 @@ const {
   RouterStore,
   SyncLog,
   WorkerPool
-} = require('../../out/main/codex/runtime.js')
+} = require('../../out/main/app/runtime.js')
 
 const MIGRATIONS = resolve(dirname(fileURLToPath(import.meta.url)), '../../drizzle-codex')
 const NOW = '2026-11-08T12:00:00.000Z'
@@ -35,7 +35,7 @@ function tempDir(t) {
 }
 function openStore(t, path, migrations = MIGRATIONS) {
   const client = openSqlite(path)
-  const store = new CodexStore(client, migrations)
+  const store = new OwlsStore(client, migrations)
   t.after(() => client.close())
   return { store, client }
 }

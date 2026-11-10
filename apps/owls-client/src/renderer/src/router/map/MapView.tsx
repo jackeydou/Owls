@@ -2,7 +2,7 @@ import { Button } from '@renderer/components/ui/button'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buildWorkerMap, isInPlay, type MapNode, type MapSide } from '../../../../shared/worker-map'
-import { useCodexStore } from '../../codex/store'
+import { useAppStore } from '../../app/store'
 import { isWaitingOnUser, isWorking, openRequests, projectHue } from '../activity'
 import { ProjectsToggle } from '../ProjectsSidebar'
 import { RouterComposer } from '../RouterComposer'
@@ -53,9 +53,9 @@ export function MapView() {
   const camera = useCamera(stage, world, zoomLabel)
   const projects = useWorkerProjects()
   const now = useMinuteClock()
-  const projectId = useCodexStore((s) => s.routerProjectId)
-  const showChat = useCodexStore((s) => s.showChat)
-  const focusProject = useCodexStore((s) => s.focusProject)
+  const projectId = useAppStore((s) => s.routerProjectId)
+  const showChat = useAppStore((s) => s.showChat)
+  const focusProject = useAppStore((s) => s.focusProject)
   const panel = useRouterStore((s) => s.panel)
   const filter = useRouterStore((s) => s.mapFilter)
   const openDone = useRouterStore((s) => s.openDone)
@@ -64,7 +64,7 @@ export function MapView() {
   const selectedWorker = panel?.kind === 'worker' ? panel.workerId : null
   const [hover, setHover] = useState<string | null>(null)
   // A joined string, so streaming never rebuilds the map; only a new or settled request does.
-  const approvalSessions = useCodexStore((s) =>
+  const approvalSessions = useAppStore((s) =>
     s.sessions
       .filter((x) => openRequests(x).some((r) => r.kind !== 'question'))
       .map((x) => x.id)

@@ -1,4 +1,4 @@
-import type { CodexProject } from '../../shared/codex.js'
+import type { Project } from '../../shared/app.js'
 import type { RouterWorker } from '../../shared/router.js'
 import type { InboxEvent } from './events.js'
 
@@ -95,7 +95,7 @@ export function renderBatch(
  * The projects a Router can dispatch to, sorted so the text only changes when
  * they do. Null with a single project, which every dispatch uses without naming it.
  */
-export function renderProjects(projects: CodexProject[], defaultId: string | null): string | null {
+export function renderProjects(projects: Project[], defaultId: string | null): string | null {
   if (projects.length < 2) return null
   const lines = [...projects]
     .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))

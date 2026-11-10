@@ -1,17 +1,17 @@
 import { createHash } from 'node:crypto'
 import type {
   AgentProvider,
-  CodexEvent,
-  CodexProject,
-  CodexSession,
-  CodexSettings,
-  CreateCodexSession,
-  RespondCodexRequest,
-  SendCodexMessage
-} from '../../shared/codex.js'
+  AppEvent,
+  AppSettings,
+  CreateSession,
+  Project,
+  RespondRequest,
+  SendMessage,
+  Session
+} from '../../shared/app.js'
 import { defaultProjectSettings, type ProjectSettings } from '../../shared/projects.js'
 import type { RouterWorker, WorkerPullRequestLink, WorkerStatus } from '../../shared/router.js'
-import { CodexRuntimeError } from '../codex/errors.js'
+import { OwlsError } from '../app/errors.js'
 import { safeText } from '../codex/protocol.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
 import { projectInstructions, WORKER_INSTRUCTIONS, worktreeInstructions } from './prompt.js'
@@ -56,20 +56,20 @@ export interface TurnProfiles {
 
 /** The parts of the task host a Router needs to start and observe workers. */
 export type WorkerHost = {
-  projects(): CodexProject[]
+  projects(): Project[]
   /** The engine's working directory for a thread with no default project. */
   threadHome(): string
-  settings(): CodexSettings
+  settings(): AppSettings
   providerReady(provider: AgentProvider): boolean
   /** `worker` marks a session whose `cwd` is a worker worktree of `projectPath`. */
-  createSession(input: CreateCodexSession, worker?: { projectPath: string }): CodexSession
+  createSession(input: CreateSession, worker?: { projectPath: string }): Session
   /** Removes a stopped worker's session; the `removed` event does the rest. */
   remove(sessionId: string): void
-  send(input: SendCodexMessage): Promise<void>
+  send(input: SendMessage): Promise<void>
   steer(sessionId: string, text: string): Promise<'steered' | 'not_running'>
   interrupt(sessionId: string): Promise<void>
   /** Answers a pending request; throws `request_unavailable` once it is no longer pending. */
-  respond(input: RespondCodexRequest): void
+  respond(input: RespondRequest): void
 }
 
 /** How workers reach the Router Inbox. */
@@ -215,7 +215,7 @@ export class WorkerPool implements TurnProfiles {
       (provider === 'claude-code'
         ? { model: settings.claudeModel, effort: settings.claudeEffort }
         : { model: settings.model, effort: settings.effort })
-    let session: CodexSession
+    let session: Session
     try {
       session =
         workspace.kind === 'worktree'
@@ -328,7 +328,7 @@ export class WorkerPool implements TurnProfiles {
         decision: input.decision === 'approve' ? 'accept' : 'decline'
       })
     } catch (error) {
-      if (error instanceof CodexRuntimeError && error.code === 'request_unavailable')
+      if (error instanceof OwlsError && error.code === 'request_unavailable')
         return { status: 'already_resolved' }
       throw error
     }
@@ -391,10 +391,7 @@ export class WorkerPool implements TurnProfiles {
         this.save(worker)
       }
     } catch {
-      throw new CodexRuntimeError(
-        'worktree_failed',
-        "Owls could not prepare this worker's git worktree."
-      )
+      throw new OwlsError('worktree_failed', "Owls could not prepare this worker's git worktree.")
     }
     return this.workspaces.commitPaths(tree)
   }
@@ -404,11 +401,11 @@ export class WorkerPool implements TurnProfiles {
     const worker = this.workers.get(workerId)
     const tree = worker?.routerId === routerId ? worktreeOf(worker) : null
     if (!worker || !tree || tree.state !== 'kept')
-      throw new CodexRuntimeError('request_unavailable', 'This worktree is no longer kept.')
+      throw new OwlsError('request_unavailable', 'This worktree is no longer kept.')
     try {
       await this.workspaces.release(tree, true, this.projectSettings(worker).git)
     } catch {
-      throw new CodexRuntimeError('worktree_failed', 'Owls could not remove this git worktree.')
+      throw new OwlsError('worktree_failed', 'Owls could not remove this git worktree.')
     }
     tree.state = 'released'
     this.save(worker)
@@ -486,7 +483,7 @@ export class WorkerPool implements TurnProfiles {
   }
 
   /** Follows task and connection events: approvals, removed tasks, and agents coming online. */
-  observe(event: CodexEvent): void {
+  observe(event: AppEvent): void {
     if (this.closed) return
     if (event.type === 'connection' || event.type === 'claude-connection') {
       if (event.connection.status === 'ready') this.schedule()
@@ -615,7 +612,7 @@ export class WorkerPool implements TurnProfiles {
   }
 
   /** The named project, else the parent's, else the thread's default, else the only one. */
-  private projectFor(defaultProjectId: string | null, input: DispatchTaskInput): CodexProject {
+  private projectFor(defaultProjectId: string | null, input: DispatchTaskInput): Project {
     const projects = this.host.projects()
     const names = () =>
       projects

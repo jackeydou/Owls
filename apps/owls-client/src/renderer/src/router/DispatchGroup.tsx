@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next'
 import type { RouterWorker } from '../../../shared/router'
-import { useCodexStore } from '../codex/store'
+import { useAppStore } from '../app/store'
 import { liveLine, workerState } from './activity'
 import { useRouterStore } from './store'
 import { WorkerLink } from './WorkerLink'
 
 function DispatchRow({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
-  const line = useCodexStore((s) =>
+  const line = useAppStore((s) =>
     worker.status === 'running' || worker.status === 'waiting'
       ? (liveLine(s.sessions.find((x) => x.id === worker.sessionId))?.text ?? '')
       : ''

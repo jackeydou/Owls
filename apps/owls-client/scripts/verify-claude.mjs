@@ -9,7 +9,7 @@ import { query } from '@anthropic-ai/claude-agent-sdk/core'
 // only starts the CLI to read its model catalog and account; --prompt and
 // --tools send small model requests inside a temporary directory.
 const require = createRequire(import.meta.url)
-const { ClaudeService } = require('../out/main/codex/runtime.js')
+const { ClaudeService } = require('../out/main/app/runtime.js')
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'owls-claude-live-')))
 const useTools = process.argv.includes('--tools')
 const usePrompt = useTools || process.argv.includes('--prompt')

@@ -1,11 +1,6 @@
 import type { AgentMessage } from '@earendil-works/pi-agent-core'
 import appPackage from '../../../../package.json'
-import type {
-  ClaudeConnection,
-  CodexConnection,
-  CodexFailure,
-  CodexRouter
-} from '../../../shared/codex.js'
+import type { ClaudeConnection, CodexConnection, Failure, Router } from '../../../shared/app.js'
 import type { RouterSettings } from '../../../shared/router.js'
 import type { DreamingEngineFactory } from '../../memory/dreaming.js'
 import { DREAMING_INSTRUCTIONS, DREAMING_PROMPT_VERSION } from '../../memory/prompt.js'
@@ -19,14 +14,14 @@ import { OwlsEngine } from './owls.js'
 import { resolveRouterModel } from './owls-models.js'
 
 export type EngineRequest = {
-  router: CodexRouter
+  router: Router
   settings: RouterSettings
   tools: RouterTool[]
   history: unknown[]
   state: () => string
   persist: (batchId: string, messages: AgentMessage[]) => void
 }
-export type EngineFactory = (request: EngineRequest) => RouterEngine | CodexFailure
+export type EngineFactory = (request: EngineRequest) => RouterEngine | Failure
 /** What the CLI-backed engines need from the app. */
 export type EngineDeps = {
   credentials: RouterCredentials
@@ -55,7 +50,7 @@ export function defaultEngineFactory(deps: EngineDeps): EngineFactory {
     if (settings.engine === 'claude-code') {
       const connection = deps.claude.connection()
       if (connection.status !== 'ready' || !connection.executablePath)
-        return { code: 'claude_not_connected', message: '' } satisfies CodexFailure
+        return { code: 'claude_not_connected', message: '' } satisfies Failure
       return new ClaudeEngine({
         sdk: deps.claude.sdk,
         executable: connection.executablePath,
@@ -128,7 +123,7 @@ export function dreamingEngineFactory(
     if (request.provider === 'claude-code') {
       const connection = deps.claude.connection()
       if (connection.status !== 'ready' || !connection.executablePath)
-        return { code: 'claude_not_connected', message: '' } satisfies CodexFailure
+        return { code: 'claude_not_connected', message: '' } satisfies Failure
       return new ClaudeEngine({
         sdk: deps.claude.sdk,
         executable: connection.executablePath,

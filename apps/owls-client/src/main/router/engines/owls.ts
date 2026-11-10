@@ -5,7 +5,7 @@ import {
   type StreamFn
 } from '@earendil-works/pi-agent-core'
 import type { Api, AssistantMessage, Model } from '@earendil-works/pi-ai'
-import type { CodexFailure, CodexItem } from '../../../shared/codex.js'
+import type { Failure, SessionItem } from '../../../shared/app.js'
 import type { OwlsThinking } from '../../../shared/router.js'
 import { safeText } from '../../codex/protocol.js'
 import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
@@ -36,7 +36,7 @@ function text(content: AssistantMessage['content']): string {
     .join('')
     .trim()
 }
-function failure(message: AssistantMessage | undefined, fallback: string): CodexFailure {
+function failure(message: AssistantMessage | undefined, fallback: string): Failure {
   const detail = safeText(message?.errorMessage ?? fallback).slice(0, 1000)
   return /\b(401|403)\b|unauthori[sz]ed|invalid[ _-]?api[ _-]?key|authentication/i.test(detail)
     ? { code: 'router_auth_failed', message: '' }
@@ -208,7 +208,7 @@ export class OwlsEngine implements RouterEngine {
       case 'tool_execution_end': {
         const result = event.result as { content?: { type: string; text?: string }[] } | undefined
         const output = (result?.content ?? []).map((c) => c.text ?? '').join('')
-        const item: CodexItem = {
+        const item: SessionItem = {
           id: event.toolCallId,
           kind: 'tool',
           status: event.isError ? 'failed' : 'completed',

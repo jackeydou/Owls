@@ -1,19 +1,19 @@
 import { create } from 'zustand'
 import type {
   AgentProvider,
+  AppEvent,
+  AppSettings,
   ClaudeConnection,
   CodexConnection,
-  CodexEvent,
-  CodexFailure,
-  CodexProject,
-  CodexReply,
-  CodexRouter,
-  CodexSession,
-  CodexSettings,
+  Failure,
+  Project,
+  Reply,
   ResizablePane,
-  RespondCodexRequest
-} from '../../../shared/codex'
-import { defaultLayoutSettings, paneWidthBounds } from '../../../shared/codex'
+  RespondRequest,
+  Router,
+  Session
+} from '../../../shared/app'
+import { defaultLayoutSettings, paneWidthBounds } from '../../../shared/app'
 import type { GitHubAccount } from '../../../shared/github'
 import { defaultMemorySettings } from '../../../shared/memory'
 import type {
@@ -26,7 +26,7 @@ import { defaultRouterSettings } from '../../../shared/router'
 import { byRecent } from '../router/activity'
 import { zoomBetweenViews } from '../router/motion'
 import { useRouterStore } from '../router/store'
-import { CodexUIError, uiFailure } from './failures'
+import { UIError, uiFailure } from './failures'
 
 export function agentConnection(
   state: { connection: CodexConnection; claude: ClaudeConnection },
@@ -34,7 +34,7 @@ export function agentConnection(
 ): CodexConnection | ClaudeConnection {
   return provider === 'claude-code' ? state.claude : state.connection
 }
-export function agentSelection(settings: CodexSettings, provider: AgentProvider) {
+export function agentSelection(settings: AppSettings, provider: AgentProvider) {
   return provider === 'claude-code'
     ? { model: settings.claudeModel, effort: settings.claudeEffort }
     : { model: settings.model, effort: settings.effort }
@@ -42,8 +42,8 @@ export function agentSelection(settings: CodexSettings, provider: AgentProvider)
 export function isAgentReady(connection: CodexConnection | ClaudeConnection): boolean {
   return connection.status === 'ready' && connection.account.kind !== 'signed-out'
 }
-function unwrap<T>(reply: CodexReply<T>): T {
-  if (!reply.ok) throw new CodexUIError(reply.error)
+function unwrap<T>(reply: Reply<T>): T {
+  if (!reply.ok) throw new UIError(reply.error)
   return reply.value
 }
 export type SettingsTab =
@@ -62,7 +62,7 @@ export type ProjectSettingsPage = (typeof projectSettingsPages)[number]
 
 type State = {
   loaded: boolean
-  error: CodexFailure | null
+  error: Failure | null
   /** `chat` and `map` are the same space at two distances; `settings` replaces the whole window. */
   view: 'chat' | 'map' | 'settings'
   /** Where Settings returns to. */
@@ -76,13 +76,13 @@ type State = {
   threadId: string | null
   /** The project in focus: a new thread's default, and what the map composer sends to. */
   routerProjectId: string | null
-  sessions: CodexSession[]
-  projects: CodexProject[]
-  settings: CodexSettings
+  sessions: Session[]
+  projects: Project[]
+  settings: AppSettings
   connection: CodexConnection
   claude: ClaudeConnection
   initialize(): Promise<void>
-  event(event: CodexEvent): void
+  event(event: AppEvent): void
   showSettings(tab?: SettingsTab): void
   /** Opens Settings on one project's page, its general page by default. */
   showProjectSettings(projectId: string, page?: ProjectSettingsPage): void
@@ -110,8 +110,8 @@ type State = {
    * Clones or creates a project and opens a new thread in it. Resolves to the
    * failure, for the form to show, or null once the project is open.
    */
-  cloneProject(input: CloneProject): Promise<CodexFailure | null>
-  createProject(input: CreateProject): Promise<CodexFailure | null>
+  cloneProject(input: CloneProject): Promise<Failure | null>
+  createProject(input: CreateProject): Promise<Failure | null>
   /** Saves a project's name and settings; resolves to whether the save went through. */
   saveProject(input: SaveProject): Promise<boolean>
   /** The project repository's branches and remotes; null when it has none or cannot be read. */
@@ -124,8 +124,8 @@ type State = {
   selectExecutable(): Promise<void>
   connectClaude(): Promise<void>
   selectClaudeExecutable(): Promise<void>
-  saveSettings(settings: CodexSettings): Promise<void>
-  respond(input: RespondCodexRequest): Promise<void>
+  saveSettings(settings: AppSettings): Promise<void>
+  respond(input: RespondRequest): Promise<void>
 }
 export const paneWidthKey = {
   sidebar: 'sidebarWidth',
@@ -137,15 +137,15 @@ export function clampPaneWidth(pane: ResizablePane, width: number): number {
   return Math.round(Math.min(max, Math.max(min, width)))
 }
 /** The most recently active thread in a project, or across all of them. */
-function latestThread(routers: CodexRouter[], projectId?: string): CodexRouter | null {
+function latestThread(routers: Router[], projectId?: string): Router | null {
   const threads = projectId ? routers.filter((r) => r.projectId === projectId) : routers
   return [...threads].sort(byRecent)[0] ?? null
 }
 let connectionEvents = 0
 let claudeEvents = 0
 let gitHubEvents = 0
-export const useCodexStore = create<State>((set, get) => {
-  async function action<T>(fn: () => Promise<CodexReply<T>>): Promise<T | undefined> {
+export const useAppStore = create<State>((set, get) => {
+  async function action<T>(fn: () => Promise<Reply<T>>): Promise<T | undefined> {
     try {
       set({ error: null })
       return unwrap(await fn())
@@ -155,7 +155,7 @@ export const useCodexStore = create<State>((set, get) => {
     }
   }
   /** Lists a new or existing project and opens a new thread in it. */
-  function openProject(project: CodexProject) {
+  function openProject(project: Project) {
     set((state) => ({
       projects: [...state.projects.filter((p) => p.id !== project.id), project].sort((a, b) =>
         a.name.localeCompare(b.name)
@@ -166,9 +166,7 @@ export const useCodexStore = create<State>((set, get) => {
       error: null
     }))
   }
-  async function addProject(
-    fn: () => Promise<CodexReply<CodexProject>>
-  ): Promise<CodexFailure | null> {
+  async function addProject(fn: () => Promise<Reply<Project>>): Promise<Failure | null> {
     try {
       openProject(unwrap(await fn()))
       return null
@@ -226,7 +224,7 @@ export const useCodexStore = create<State>((set, get) => {
       const version = connectionEvents
       const claudeVersion = claudeEvents
       const gitHubVersion = gitHubEvents
-      const snapshot = await action(() => window.codex.snapshot())
+      const snapshot = await action(() => window.owls.snapshot())
       if (!snapshot) {
         set({ loaded: true })
         return
@@ -293,19 +291,19 @@ export const useCodexStore = create<State>((set, get) => {
       }))
     },
     gitHubSignIn: async () => {
-      await action(() => window.codex.gitHubSignIn())
+      await action(() => window.owls.gitHubSignIn())
     },
     gitHubConnectCli: async () => {
-      await action(() => window.codex.gitHubConnectCli())
+      await action(() => window.owls.gitHubConnectCli())
     },
     gitHubConnectToken: async (token) => {
-      await action(() => window.codex.gitHubConnectToken(token))
+      await action(() => window.owls.gitHubConnectToken(token))
     },
     gitHubCancelSignIn: async () => {
-      await action(() => window.codex.gitHubCancelSignIn())
+      await action(() => window.owls.gitHubCancelSignIn())
     },
     gitHubSignOut: async () => {
-      await action(() => window.codex.gitHubSignOut())
+      await action(() => window.owls.gitHubSignOut())
     },
     showSettings: (tab) =>
       set((state) => ({
@@ -359,18 +357,18 @@ export const useCodexStore = create<State>((set, get) => {
     focusProject: (projectId) => set({ routerProjectId: projectId }),
     clearError: () => set({ error: null }),
     pickProject: async () => {
-      const project = await action(() => window.codex.pickProject())
+      const project = await action(() => window.owls.pickProject())
       if (!project) return null
       openProject(project)
       return project.id
     },
-    projectsFolder: async () => (await action(() => window.codex.projectsFolder())) ?? null,
+    projectsFolder: async () => (await action(() => window.owls.projectsFolder())) ?? null,
     chooseProjectsFolder: async () =>
-      (await action(() => window.codex.chooseProjectsFolder())) ?? null,
-    cloneProject: (input) => addProject(() => window.codex.cloneProject(input)),
-    createProject: (input) => addProject(() => window.codex.createProject(input)),
+      (await action(() => window.owls.chooseProjectsFolder())) ?? null,
+    cloneProject: (input) => addProject(() => window.owls.cloneProject(input)),
+    createProject: (input) => addProject(() => window.owls.createProject(input)),
     saveProject: async (input) => {
-      const project = await action(() => window.codex.saveProject(input))
+      const project = await action(() => window.owls.saveProject(input))
       if (!project) return false
       set((state) => ({
         projects: state.projects
@@ -380,7 +378,7 @@ export const useCodexStore = create<State>((set, get) => {
       return true
     },
     projectGitRefs: async (projectId) =>
-      (await action(() => window.codex.projectGitRefs(projectId))) ?? null,
+      (await action(() => window.owls.projectGitRefs(projectId))) ?? null,
     toggleSidebar: () => {
       const { settings, saveSettings } = get()
       void saveSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })
@@ -403,22 +401,22 @@ export const useCodexStore = create<State>((set, get) => {
       void saveSettings({ ...settings, layout })
     },
     connect: async () => {
-      const connection = await action(() => window.codex.connect())
+      const connection = await action(() => window.owls.connect())
       if (connection) set({ connection })
     },
     selectExecutable: async () => {
-      const connection = await action(() => window.codex.selectExecutable())
+      const connection = await action(() => window.owls.selectExecutable())
       if (connection) {
         set({ connection })
         await get().initialize()
       }
     },
     connectClaude: async () => {
-      const claude = await action(() => window.codex.connectClaude())
+      const claude = await action(() => window.owls.connectClaude())
       if (claude) set({ claude })
     },
     selectClaudeExecutable: async () => {
-      const claude = await action(() => window.codex.selectClaudeExecutable())
+      const claude = await action(() => window.owls.selectClaudeExecutable())
       if (claude) {
         set({ claude })
         await get().initialize()
@@ -426,7 +424,7 @@ export const useCodexStore = create<State>((set, get) => {
     },
     saveSettings: async (settings) => {
       const saved = await action(() =>
-        window.codex.saveSettings({
+        window.owls.saveSettings({
           model: settings.model,
           effort: settings.effort,
           permission: settings.permission,
@@ -446,7 +444,7 @@ export const useCodexStore = create<State>((set, get) => {
       if (saved) set({ settings: saved })
     },
     respond: async (input) => {
-      await action(() => window.codex.respond(input))
+      await action(() => window.owls.respond(input))
     }
   }
 })

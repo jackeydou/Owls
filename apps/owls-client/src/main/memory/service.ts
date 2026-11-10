@@ -1,4 +1,4 @@
-import type { CodexProject, CodexSettings } from '../../shared/codex.js'
+import type { AppSettings, Project } from '../../shared/app.js'
 import {
   MEMORY_CATEGORY_LIMIT,
   type Memory,
@@ -15,7 +15,7 @@ import {
   type ProjectMemoryKind,
   projectMemoryKindSchema
 } from '../../shared/memory.js'
-import { CodexRuntimeError } from '../codex/errors.js'
+import { OwlsError } from '../app/errors.js'
 import { RouterToolError } from '../router/tools.js'
 import type { MemoryRecords, MemoryWrite } from './records.js'
 import {
@@ -37,8 +37,8 @@ export const MEMORY_TOMBSTONE_LIFETIME_MS = 90 * 24 * 60 * 60 * 1000
 
 export type MemoryDeps = {
   records: MemoryRecords
-  projects: () => CodexProject[]
-  settings: () => CodexSettings
+  projects: () => Project[]
+  settings: () => AppSettings
   /** A thread's title, for the memory tab and search results. */
   threadTitle: (threadId: string) => string | null
   /** Tells the renderer the memories changed. */
@@ -178,12 +178,12 @@ export class MemoryService implements RouterMemory {
       }
       if (input.categoryId !== undefined) {
         if (next.store !== 'personal')
-          throw new CodexRuntimeError('invalid_request', 'Project memories have no category.')
+          throw new OwlsError('invalid_request', 'Project memories have no category.')
         next.categoryId = this.activeCategory(input.categoryId).id
       }
       if (input.kind !== undefined) {
         if (next.store !== 'project')
-          throw new CodexRuntimeError('invalid_request', 'Personal memories have no kind.')
+          throw new OwlsError('invalid_request', 'Personal memories have no kind.')
         next.kind = input.kind
       }
       next.editedByUser = true
@@ -196,7 +196,7 @@ export class MemoryService implements RouterMemory {
   remove(input: MemoryRemove): void {
     const current = this.deps.records.memories().find((m) => m.id === input.id)
     if (!current || current.status === 'deleted')
-      throw new CodexRuntimeError('request_unavailable', 'This memory no longer exists.')
+      throw new OwlsError('request_unavailable', 'This memory no longer exists.')
     this.write({ kind: 'memory', baseRev: input.baseRev, value: this.tombstone(current) })
   }
 
@@ -206,9 +206,9 @@ export class MemoryService implements RouterMemory {
     const active = categories.filter((c) => c.status === 'active')
     if (input.action === 'add') {
       if (active.some((c) => sameName(c.name, input.name)))
-        throw new CodexRuntimeError('invalid_request', 'A category with this name already exists.')
+        throw new OwlsError('invalid_request', 'A category with this name already exists.')
       if (active.length >= MEMORY_CATEGORY_LIMIT)
-        throw new CodexRuntimeError('invalid_request', 'There are too many categories.')
+        throw new OwlsError('invalid_request', 'There are too many categories.')
       this.commit([
         {
           kind: 'category',
@@ -231,7 +231,7 @@ export class MemoryService implements RouterMemory {
     const current = this.activeCategory(input.id)
     if (input.action === 'rename') {
       if (active.some((c) => c.id !== current.id && sameName(c.name, input.name)))
-        throw new CodexRuntimeError('invalid_request', 'A category with this name already exists.')
+        throw new OwlsError('invalid_request', 'A category with this name already exists.')
       this.commit([
         {
           kind: 'category',
@@ -251,7 +251,7 @@ export class MemoryService implements RouterMemory {
     if (input.action === 'merge') {
       const into = this.activeCategory(input.into)
       if (into.id === current.id)
-        throw new CodexRuntimeError('invalid_request', 'A category cannot merge into itself.')
+        throw new OwlsError('invalid_request', 'A category cannot merge into itself.')
       for (const memory of members)
         writes.push({
           kind: 'memory',
@@ -418,7 +418,7 @@ export class MemoryService implements RouterMemory {
     const results = this.deps.records.commit({ writes, mode: 'all' })
     this.deps.changed()
     if (results.some((r) => !r.ok))
-      throw new CodexRuntimeError(
+      throw new OwlsError(
         'request_unavailable',
         'This memory changed meanwhile. Reload it and try again.'
       )
@@ -428,26 +428,26 @@ export class MemoryService implements RouterMemory {
   private activeMemory(id: string): Memory {
     const memory = this.deps.records.memories().find((m) => m.id === id)
     if (!memory || memory.status === 'deleted')
-      throw new CodexRuntimeError('request_unavailable', 'This memory no longer exists.')
+      throw new OwlsError('request_unavailable', 'This memory no longer exists.')
     return memory
   }
 
   private activeCategory(id: string): MemoryCategory {
     const category = this.deps.records.categories().find((c) => c.id === id)
     if (!category || category.status !== 'active')
-      throw new CodexRuntimeError('request_unavailable', 'This category no longer exists.')
+      throw new OwlsError('request_unavailable', 'This category no longer exists.')
     return category
   }
 
-  private project(id: string): CodexProject {
+  private project(id: string): Project {
     const project = this.deps.projects().find((p) => p.id === id)
-    if (!project) throw new CodexRuntimeError('project_required', 'This project no longer exists.')
+    if (!project) throw new OwlsError('project_required', 'This project no longer exists.')
     return project
   }
 
   private assertClean(text: string): void {
     if (looksSecret(text))
-      throw new CodexRuntimeError(
+      throw new OwlsError(
         'invalid_request',
         'This looks like a key, token, or password. Owls does not save those as memories.'
       )

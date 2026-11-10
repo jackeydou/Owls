@@ -8,7 +8,7 @@
 ## 1. 决策
 
 1. **Thread 是全局的。** 一个 thread 就是一段对话和它自己的 Router，代码里仍叫 `router`、`routerId`。
-2. **项目是派发时的参数。** `CodexRouter.projectId` 只是默认项目，可以为空。`dispatch_task` 按
+2. **项目是派发时的参数。** `Router.projectId` 只是默认项目，可以为空。`dispatch_task` 按
    `project`、父 Worker 的项目、默认项目、唯一项目的顺序决定在哪个项目运行，都没有时返回 `project_required`。
 3. **Worker 属于项目。** `RouterWorker.projectId` 必填。同一 checkout 的写入者按项目串行，不按 thread，
    否则同一项目的两个 thread 会同时写一个 checkout。
@@ -22,8 +22,8 @@
 
 ```text
 codex_sync_state    一行，全局递增的版本号
-codex_threads       id, rev, updated_at, value（CodexRouter，不含 items）
-codex_thread_items  thread_id, item_id, position, rev, value（CodexItem）
+codex_threads       id, rev, updated_at, value（Router，不含 items）
+codex_thread_items  thread_id, item_id, position, rev, value（SessionItem）
 ```
 
 - `RouterStore.saveThread` 在一个事务里取下一个版本号，写入 thread 和本次变化的条目。写入都走同一个连接，
@@ -45,7 +45,7 @@ codex_thread_items  thread_id, item_id, position, rev, value（CodexItem）
 
 ## 4. 转发
 
-`codex:router-forward` 的来源是一个条目（`user`、`assistant`、`forward`）或一个有汇报的 Worker，
+`owls:router-forward` 的来源是一个条目（`user`、`assistant`、`forward`）或一个有汇报的 Worker，
 目标是已有 thread 或新 thread。
 
 1. 目标 thread 写入 `forward` 条目：`text` 是冻结的内容，`detail` 是用户的说明，`forward` 记录来源。

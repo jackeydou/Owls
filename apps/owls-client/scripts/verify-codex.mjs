@@ -10,7 +10,7 @@ const {
   discoverExecutable,
   normalizeItem,
   parseModels
-} = require('../out/main/codex/runtime.js')
+} = require('../out/main/app/runtime.js')
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'owls-codex-live-')))
 const useTools = process.argv.includes('--tools')
 const completedItems = []

@@ -2,7 +2,7 @@ import { IconButton } from '@renderer/components/ui/icon-button'
 import { ArrowUpIcon, LoaderIcon, StopIcon, XIcon } from '@renderer/components/ui/icons'
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexRouter } from '../../../shared/codex'
+import type { Router } from '../../../shared/app'
 import type { RouterWorker } from '../../../shared/router'
 import { byRelevance, workerTitle } from './activity'
 import { useRouterStore } from './store'
@@ -11,7 +11,7 @@ import { WorkerDot } from './WorkerLink'
 const MENTION = /(?:^|\s)@([^\s@]*)$/
 const MENU_SIZE = 6
 
-function useMentions(router: CodexRouter | undefined, query: string | null): RouterWorker[] {
+function useMentions(router: Router | undefined, query: string | null): RouterWorker[] {
   const workers = useRouterStore((s) => s.workers)
   return useMemo(() => {
     if (query === null || !router) return []
@@ -41,7 +41,7 @@ export function useRouterDraft({
   onThread
 }: {
   projectId: string | null
-  router: CodexRouter | undefined
+  router: Router | undefined
   target?: RouterWorker | null
   isSendKey: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean
   /** Asked for a project when the draft is sent with none. Null keeps the draft. */
@@ -51,7 +51,7 @@ export function useRouterDraft({
 }) {
   const { createThread, send, sending } = useRouterStore()
   /** A thread made by a send that failed, so trying again does not leave another. */
-  const created = useRef<CodexRouter | null>(null)
+  const created = useRef<Router | null>(null)
   const [text, setText] = useState('')
   const [mention, setMention] = useState<RouterWorker | null>(null)
   const [caret, setCaret] = useState(0)
@@ -195,7 +195,7 @@ export function RouterComposer({
   onClearTarget
 }: {
   projectId: string | null
-  router: CodexRouter | undefined
+  router: Router | undefined
   target?: RouterWorker | null
   onClearTarget?: () => void
 }) {
@@ -214,7 +214,7 @@ export function RouterComposer({
   return (
     <div className="router-composer">
       <MentionMenu options={draft.options} highlight={draft.highlight} onPick={draft.pick} />
-      <div className="codex-composer">
+      <div className="owls-composer">
         {addressed ? (
           <DraftTarget
             worker={addressed}
@@ -228,10 +228,10 @@ export function RouterComposer({
           rows={1}
           disabled={!projectId || sending}
         />
-        <div className="codex-composer-toolbar">
+        <div className="owls-composer-toolbar">
           {running && !addressed && router ? (
             <IconButton
-              className="codex-stop"
+              className="owls-stop"
               label={t('router.stop')}
               tooltip={t('router.stop')}
               icon={<StopIcon size={13} />}
@@ -240,7 +240,7 @@ export function RouterComposer({
           ) : null}
           <IconButton
             variant="default"
-            className="codex-send"
+            className="owls-send"
             label={t(addressed ? 'router.sendWorker' : 'router.send')}
             tooltip={t(addressed ? 'router.sendWorker' : 'router.send')}
             icon={

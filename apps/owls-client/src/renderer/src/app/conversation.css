@@ -1,4 +1,4 @@
-.codex-user-message {
+.owls-user-message {
   width: fit-content;
   max-width: 88%;
   margin: 6px 0 30px auto;
@@ -10,10 +10,10 @@
   font-size: 13px;
   overflow-wrap: anywhere;
 }
-.codex-assistant-message {
+.owls-assistant-message {
   margin: 20px 0 28px;
 }
-.codex-message-label {
+.owls-message-label {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -21,7 +21,7 @@
   font-size: 11px;
   font-weight: 550;
 }
-.codex-agent-mark {
+.owls-agent-mark {
   height: 21px;
   width: 21px;
   border: 1px solid var(--color-border);
@@ -30,32 +30,32 @@
   justify-content: center;
   border-radius: 6px;
 }
-.codex-markdown {
+.owls-markdown {
   line-height: 1.85;
   font-size: 13px;
   overflow-wrap: anywhere;
 }
-.codex-markdown pre {
+.owls-markdown pre {
   font-size: 11px;
   max-width: 100%;
   overflow: auto;
 }
-.codex-message-actions {
+.owls-message-actions {
   margin-top: 7px;
   opacity: 0.55;
 }
-.codex-message-actions button {
+.owls-message-actions button {
   width: 23px;
   height: 23px;
   padding: 0;
 }
-.codex-activity {
+.owls-activity {
   margin: 8px 0;
   border: 1px solid var(--color-border);
   border-radius: 9px;
   overflow: hidden;
 }
-.codex-activity summary {
+.owls-activity summary {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -65,17 +65,17 @@
   font-size: 11px;
   list-style: none;
 }
-.codex-activity summary::-webkit-details-marker {
+.owls-activity summary::-webkit-details-marker {
   display: none;
 }
-.codex-activity summary > svg {
+.owls-activity summary > svg {
   flex-shrink: 0;
 }
-.codex-activity summary > svg:last-child {
+.owls-activity summary > svg:last-child {
   margin-left: auto;
 }
-.codex-activity summary code,
-.codex-activity-preview {
+.owls-activity summary code,
+.owls-activity-preview {
   font-size: 10px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -83,11 +83,11 @@
   opacity: 0.7;
   margin-left: 3px;
 }
-.codex-activity[open] summary {
+.owls-activity[open] summary {
   border-bottom: 1px solid var(--color-border);
 }
-.codex-activity pre,
-.codex-activity-content {
+.owls-activity pre,
+.owls-activity-content {
   padding: 12px;
   max-height: 320px;
   overflow: auto;
@@ -96,11 +96,11 @@
   font-size: 11px;
   line-height: 1.65;
 }
-.codex-activity pre {
+.owls-activity pre {
   font-family: var(--font-mono);
   background: var(--color-sidebar);
 }
-.codex-working {
+.owls-working {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -108,17 +108,17 @@
   font-size: 11px;
   padding: 16px 0;
 }
-.codex-composer {
+.owls-composer {
   border: 1px solid var(--color-border);
   background: var(--color-card);
   border-radius: 17px;
   padding: 15px 15px 10px;
   box-shadow: 0 3px 16px #00000005;
 }
-.codex-composer:focus-within {
+.owls-composer:focus-within {
   border-color: var(--color-muted-foreground);
 }
-.codex-composer textarea {
+.owls-composer textarea {
   background: transparent;
   width: 100%;
   min-height: 60px;
@@ -129,19 +129,19 @@
   line-height: 1.7;
   padding: 0 2px 8px;
 }
-.codex-composer textarea::placeholder {
+.owls-composer textarea::placeholder {
   color: var(--color-muted-foreground);
 }
-.codex-composer textarea:disabled {
+.owls-composer textarea:disabled {
   opacity: 0.55;
 }
-.codex-composer-toolbar {
+.owls-composer-toolbar {
   display: flex;
   gap: 10px;
   align-items: center;
   justify-content: space-between;
 }
-.codex-folder-button {
+.owls-folder-button {
   display: flex;
   gap: 6px;
   align-items: center;
@@ -150,16 +150,16 @@
   font-size: 11px;
   min-width: 0;
 }
-.codex-folder-button > span {
+.owls-folder-button > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 125px;
 }
-.codex-folder-button:disabled {
+.owls-folder-button:disabled {
   cursor: default;
 }
-.codex-existing-options {
+.owls-existing-options {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -167,20 +167,20 @@
   font-size: 10px;
   padding: 0 7px;
 }
-.codex-existing-options > span {
+.owls-existing-options > span {
   opacity: 0.5;
 }
-.codex-send,
-.codex-stop {
+.owls-send,
+.owls-stop {
   border-radius: 10px;
   width: 31px;
   height: 31px;
   flex-shrink: 0;
 }
-.codex-stop {
+.owls-stop {
   border: 1px solid var(--color-border);
 }
-.codex-another-task {
+.owls-another-task {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -188,26 +188,26 @@
   color: var(--color-muted-foreground);
   font-size: 10px;
 }
-.codex-request {
+.owls-request {
   padding: 19px;
   border: 1px solid color-mix(in srgb, #b8954a 45%, var(--color-border));
   border-radius: 13px;
   margin: 24px 0;
 }
-.codex-request-title {
+.owls-request-title {
   display: flex;
   gap: 9px;
   align-items: center;
   margin-bottom: 15px;
   font-size: 12px;
 }
-.codex-request > p {
+.owls-request > p {
   color: var(--color-muted-foreground);
   font-size: 12px;
   line-height: 1.7;
   margin: 10px 0;
 }
-.codex-request > pre {
+.owls-request > pre {
   font-family: var(--font-mono);
   font-size: 11px;
   white-space: pre-wrap;
@@ -216,34 +216,34 @@
   border-radius: 7px;
   background: var(--color-sidebar);
 }
-.codex-request fieldset {
+.owls-request fieldset {
   margin-top: 15px;
 }
-.codex-request legend {
+.owls-request legend {
   font-size: 12px;
   margin-bottom: 9px;
 }
-.codex-answer-option {
+.owls-answer-option {
   display: flex;
   gap: 9px;
   padding: 10px 0;
   align-items: start;
   cursor: pointer;
 }
-.codex-answer-option input {
+.owls-answer-option input {
   margin-top: 3px;
 }
-.codex-answer-option strong,
-.codex-answer-option small {
+.owls-answer-option strong,
+.owls-answer-option small {
   display: block;
   font-size: 12px;
 }
-.codex-answer-option small {
+.owls-answer-option small {
   color: var(--color-muted-foreground);
   font-size: 11px;
   margin-top: 3px;
 }
-.codex-answer-input {
+.owls-answer-input {
   border: 1px solid var(--color-border);
   border-radius: 7px;
   width: 100%;
@@ -252,7 +252,7 @@
   font-size: 12px;
   margin-top: 7px;
 }
-.codex-request-actions {
+.owls-request-actions {
   display: flex;
   gap: 9px;
   margin-top: 17px;

@@ -1,15 +1,15 @@
 import type {
-  CodexFailure,
-  CodexItem,
-  CodexProject,
-  CodexRouter,
-  CodexSettings,
+  AppSettings,
+  Failure,
+  Project,
+  Router,
+  SessionItem,
   ThreadItem
-} from '../../shared/codex.js'
+} from '../../shared/app.js'
 import type { MemoryProvider, MemoryRun } from '../../shared/memory.js'
 import { projectMemoryKindSchema } from '../../shared/memory.js'
 import type { RouterWorker } from '../../shared/router.js'
-import { CodexRuntimeError } from '../codex/errors.js'
+import { OwlsError } from '../app/errors.js'
 import type { RouterEngine } from '../router/engine.js'
 import type { InboxEvent } from '../router/events.js'
 import { defineTool, type RouterTool } from '../router/tools.js'
@@ -29,27 +29,27 @@ const CATALOG_RECENT = 10
 /** Old knowledge and lessons one run reviews per project, oldest first. */
 const REVIEW_PER_PROJECT = 5
 /** Thread items Dreaming reads: what the user and the Router said, and forwarded content. */
-const READ_KINDS = new Set<CodexItem['kind']>(['user', 'assistant', 'forward'])
+const READ_KINDS = new Set<SessionItem['kind']>(['user', 'assistant', 'forward'])
 
 export type DreamingEngineRequest = {
   provider: MemoryProvider
   model: string | null
   tools: RouterTool[]
 }
-export type DreamingEngineFactory = (request: DreamingEngineRequest) => RouterEngine | CodexFailure
+export type DreamingEngineFactory = (request: DreamingEngineRequest) => RouterEngine | Failure
 
 export type DreamingDeps = {
   memory: MemoryService
-  threads: () => CodexRouter[]
+  threads: () => Router[]
   /** A thread's saved items. */
   items: (threadId: string) => ThreadItem[]
   /** A thread's worker reports after an Inbox `seq`, oldest first. */
   reports: (threadId: string, after: number) => InboxEvent[]
   worker: (workerId: string) => RouterWorker | undefined
   /** A worker session's items, for the worker's last messages. */
-  sessionItems: (sessionId: string) => CodexItem[]
-  projects: () => CodexProject[]
-  settings: () => CodexSettings
+  sessionItems: (sessionId: string) => SessionItem[]
+  projects: () => Project[]
+  settings: () => AppSettings
   engine: DreamingEngineFactory
   /** Called when a run starts or ends, so the memory tab can follow. */
   changed: () => void
@@ -102,7 +102,7 @@ export class DreamingRunner {
   /** Queues every idle thread with content after its cursor; resolves once the queue drains. */
   runNow(): Promise<void> {
     if (!this.deps.settings().memory.learn)
-      throw new CodexRuntimeError('request_unavailable', 'Learning from threads is turned off.')
+      throw new OwlsError('request_unavailable', 'Learning from threads is turned off.')
     for (const thread of this.deps.threads())
       if (thread.status !== 'running' && this.pending(thread.id)) this.enqueue(thread.id)
     return this.drain()
@@ -355,7 +355,7 @@ export class DreamingRunner {
     return lines.join('\n')
   }
 
-  private render(thread: CodexRouter, slice: Slice): string {
+  private render(thread: Router, slice: Slice): string {
     const projects = this.deps.projects()
     const language = this.deps.settings().language
     const parts = [

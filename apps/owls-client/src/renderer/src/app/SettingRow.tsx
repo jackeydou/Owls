@@ -21,13 +21,13 @@ export function SettingRow({
   children?: ReactNode
 }) {
   return (
-    <div className="codex-setting-row">
-      <div className="codex-setting-text">
+    <div className="owls-setting-row">
+      <div className="owls-setting-text">
         {htmlFor ? <label htmlFor={htmlFor}>{label}</label> : <h3 id={labelId}>{label}</h3>}
         {description ? <p>{description}</p> : null}
       </div>
       {children}
-      {detail ? <div className="codex-setting-detail">{detail}</div> : null}
+      {detail ? <div className="owls-setting-detail">{detail}</div> : null}
     </div>
   )
 }

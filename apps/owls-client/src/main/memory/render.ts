@@ -1,4 +1,4 @@
-import type { CodexProject } from '../../shared/codex.js'
+import type { Project } from '../../shared/app.js'
 import type {
   Memory,
   MemoryCategory,
@@ -69,7 +69,7 @@ export type InjectInput = {
   memories: Memory[]
   categories: MemoryCategory[]
   /** The thread's default project; its project memories join the recent list. */
-  project: CodexProject | null
+  project: Project | null
   language: 'en' | 'zh-CN'
   now: Date
   budget?: number
@@ -231,7 +231,7 @@ export function looksSecret(text: string): boolean {
 export function renderMarkdown(
   memories: Memory[],
   categories: MemoryCategory[],
-  projects: CodexProject[],
+  projects: Project[],
   language: 'en' | 'zh-CN'
 ): string {
   const zh = language === 'zh-CN'

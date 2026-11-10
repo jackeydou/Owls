@@ -5,14 +5,14 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RouterShell } from '../router/RouterShell'
 import { failureMessage } from './failures'
-import { useCodexStore } from './store'
-import './codex.css'
+import { useAppStore } from './store'
+import './app.css'
 
-export default function CodexApp() {
+export default function App() {
   const { t } = useTranslation()
-  const { loaded, settings, error, initialize, event, clearError } = useCodexStore()
+  const { loaded, settings, error, initialize, event, clearError } = useAppStore()
   useEffect(() => {
-    const unsubscribe = window.codex.onEvent(event)
+    const unsubscribe = window.owls.onEvent(event)
     void initialize()
     return unsubscribe
   }, [initialize, event])
@@ -32,17 +32,17 @@ export default function CodexApp() {
     return () => media.removeEventListener('change', apply)
   }, [settings.theme])
   return (
-    <div className="codex-app">
+    <div className="owls-app">
       {loaded ? (
         <RouterShell />
       ) : (
-        <main className="codex-loading" role="status">
+        <main className="owls-loading" role="status">
           <LoaderIcon size={20} className="animate-spin" />
           {t('loading')}
         </main>
       )}
       {error ? (
-        <div className="codex-error-toast" role="alert">
+        <div className="owls-error-toast" role="alert">
           <AlertCircleIcon size={16} />
           <span>{failureMessage(error)}</span>
           <IconButton

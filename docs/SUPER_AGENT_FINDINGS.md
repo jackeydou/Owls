@@ -267,7 +267,7 @@ hook 和插件信息，未入库。
 
 ### R6 旧 pi runtime 仍在类型检查范围内
 
-- 现象：构建入口已是 `src/main/codex/desktop.ts`，但仍有 41 个文件引用
+- 现象：构建入口已是 `src/main/app/desktop.ts`，但仍有 41 个文件引用
   `@earendil-works/pi-agent-core` 或 `pi-ai` `0.84.1`：`src/main` 34 个、`src/shared` 2 个、
   `src/renderer` 4 个、`src/preload` 1 个，分别在 `typecheck:node` 和 `typecheck:web` 的范围内。
   npm 上的最新版本是 `1.5.0`，1.x 用 `createModels()` 取代了全局 `getModel()` 等 API。
@@ -293,7 +293,7 @@ hook 和插件信息，未入库。
 ### F23 本机 Ollama 实测
 
 - 环境：Ollama.app 提供的 OpenAI 兼容端点 `http://127.0.0.1:11434/v1`，假的 Worker host（不启动
-  真实任务），经打包后的 `out/main/codex/runtime.js` 运行。
+  真实任务），经打包后的 `out/main/app/runtime.js` 运行。
 - `qwen3.6:27b`：第一批次调用 `dispatch_task`（约 24 秒，含模型加载），创建一个 Codex Worker 并回复；
   注入假汇报后，第二批次按汇报回复「There are 42 TypeScript files in this project.」。记录为
   `user, assistant, toolResult, assistant, user, assistant`。
@@ -303,7 +303,7 @@ hook 和插件信息，未入库。
 
 ## Claude Code Router 引擎实测（M2，2026-11-03）
 
-经打包后的 `out/main/codex/runtime.js` 运行 `ClaudeEngine`，使用真实 Agent SDK 与本机 Claude Code
+经打包后的 `out/main/app/runtime.js` 运行 `ClaudeEngine`，使用真实 Agent SDK 与本机 Claude Code
 `2.1.316`，假的 `dispatch_task`（不启动 Worker）。两个批次：分派，然后 `resume` 后追问 Worker ID。
 结束时删除临时目录及其 `~/.claude/projects/` 下的会话记录。
 
@@ -330,7 +330,7 @@ hook 和插件信息，未入库。
 ## Codex Router 引擎实测（M3，2026-11-03）
 
 Codex CLI `0.166.0`。先用独立脚本复现 RFC 4.2 节的锁定进程，再经打包后的
-`out/main/codex/runtime.js` 运行 `CodexEngine` 和真实 `CodexRouterServer`，假的 `dispatch_task`。
+`out/main/app/runtime.js` 运行 `CodexEngine` 和真实 `CodexRouterServer`，假的 `dispatch_task`。
 
 - 锁定进程（18 个 features 关闭、3 个配置中的 MCP server 逐个关闭、`web_search="disabled"`）：
   没有 MCP server 启动，模型回复「无法运行命令」，`dispatch_task` 正常调用；hooks 仍运行

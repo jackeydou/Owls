@@ -127,7 +127,7 @@ type Memory = MemoryScope & {
   设置页默认隐藏已归档条目。
 - **每个 thread 有一个处理进度。** `item_rev` 是已处理到的 `codex_thread_items.rev`，`event_seq` 是已处理到的 Inbox 事件序号，
   `worker_report` 事件从这里取。`rev` 本来就是全局递增的版本号，可以直接拿来当增量游标。
-- 设置项加在 `CodexSettings.memory`：
+- 设置项加在 `AppSettings.memory`：
 
   ```ts
   type MemorySettings = {
@@ -384,18 +384,18 @@ Worker 跑在 Claude Code 和 Codex 上，各自有原生 memory，Owls 不往�
 
 ## 9. IPC
 
-新增 `window.codex.memory` 命名空间。main、`preload/codex.ts`、`preload/codex.d.ts`、
+新增 `window.owls.memory` 命名空间。main、`preload/owls.ts`、`preload/owls.d.ts`、
 `shared/memory.ts` 和 renderer store 同步修改。所有请求在 main 里用 zod 校验。
 
 | 方法 | 通道 |
 |---|---|
-| `list({ store, projectId?, categoryId?, kind?, query?, archived? })` | `codex:memory-list` |
-| `categories()`，返回个人记忆的类别；`counts(projectId)`，返回五类条数 | `codex:memory-categories` |
-| `add / update / remove / pin` | `codex:memory-save`、`codex:memory-remove` |
-| `renameCategory / mergeCategory / removeCategory` | `codex:memory-category` |
-| `runNow()` / `runs()` | `codex:memory-run`、`codex:memory-runs` |
-| `export(format)` | `codex:memory-export`，由 main 弹出保存对话框 |
-| `onChanged(listener)` → 返回 unsubscribe | 事件 `codex:memory-changed` |
+| `list({ store, projectId?, categoryId?, kind?, query?, archived? })` | `owls:memory-list` |
+| `categories()`，返回个人记忆的类别；`counts(projectId)`，返回五类条数 | `owls:memory-categories` |
+| `add / update / remove / pin` | `owls:memory-save`、`owls:memory-remove` |
+| `renameCategory / mergeCategory / removeCategory` | `owls:memory-category` |
+| `runNow()` / `runs()` | `owls:memory-run`、`owls:memory-runs` |
+| `export(format)` | `owls:memory-export`，由 main 弹出保存对话框 |
+| `onChanged(listener)` → 返回 unsubscribe | 事件 `owls:memory-changed` |
 
 ## 10. 风险
 

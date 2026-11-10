@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { CodexFailure, CodexReply, CodexRouter, ThreadItem } from '../../../shared/codex'
+import type { Failure, Reply, Router, ThreadItem } from '../../../shared/app'
 import type { WorkerGitHubStatus } from '../../../shared/github'
 import type {
   ForwardMessage,
@@ -8,10 +8,10 @@ import type {
   RouterWorker
 } from '../../../shared/router'
 import type { MapFilter } from '../../../shared/worker-map'
-import { CodexUIError, uiFailure } from '../codex/failures'
+import { UIError, uiFailure } from '../app/failures'
 
-function unwrap<T>(reply: CodexReply<T>): T {
-  if (!reply.ok) throw new CodexUIError(reply.error)
+function unwrap<T>(reply: Reply<T>): T {
+  if (!reply.ok) throw new UIError(reply.error)
   return reply.value
 }
 /** What the right-hand panel shows. Never persisted; a restart opens the conversation. */
@@ -30,7 +30,7 @@ const toggled = (set: ReadonlySet<string>, id: string) => {
   return next
 }
 type State = {
-  routers: CodexRouter[]
+  routers: Router[]
   workers: RouterWorker[]
   /** Items by thread, kept in position order. */
   items: Record<string, ThreadItem[]>
@@ -41,7 +41,7 @@ type State = {
   gitHub: Record<string, WorkerGitHubStatus>
   providers: RouterProviderInfo[]
   sending: boolean
-  error: CodexFailure | null
+  error: Failure | null
   panel: RouterPanel | null
   mapFilter: MapFilter
   /** Projects whose finished workers are open on the map. */
@@ -50,16 +50,16 @@ type State = {
   collapsed: ReadonlySet<string>
   /** Projects whose active workers are folded away in the sidebar. */
   foldedProjects: ReadonlySet<string>
-  hydrate(routers: CodexRouter[], workers: RouterWorker[]): void
-  router(router: CodexRouter): void
+  hydrate(routers: Router[], workers: RouterWorker[]): void
+  router(router: Router): void
   worker(worker: RouterWorker): void
   threadItems(routerId: string, items: ThreadItem[]): void
   loadItems(routerId: string): Promise<void>
-  createThread(projectId: string | null): Promise<CodexRouter | null>
+  createThread(projectId: string | null): Promise<Router | null>
   startForward(forwarding: Forwarding): void
   cancelForward(): void
   /** Sends what the dialog holds and resolves to the thread that received it. */
-  forward(target: ForwardMessage['target'], note: string): Promise<CodexRouter | null>
+  forward(target: ForwardMessage['target'], note: string): Promise<Router | null>
   workerGitHub(workerId: string, status: WorkerGitHubStatus): void
   /** Follows a worker's GitHub status until the returned function is called. */
   watchGitHub(routerId: string, workerId: string): () => void
@@ -87,7 +87,7 @@ const newer = <T extends { id: string; updatedAt: string }>(list: T[], next: T) 
   if (current && current.updatedAt > next.updatedAt) return list
   return [next, ...list.filter((x) => x.id !== next.id)]
 }
-const newerThread = (list: CodexRouter[], next: CodexRouter) => {
+const newerThread = (list: Router[], next: Router) => {
   const current = list.find((x) => x.id === next.id)
   if (current && current.rev > next.rev) return list
   return [next, ...list.filter((x) => x.id !== next.id)]
@@ -116,7 +116,7 @@ function mergeItems(held: ThreadItem[], next: ThreadItem[], live: boolean): Thre
   return appended ? merged.sort((a, b) => a.position - b.position) : merged
 }
 export const useRouterStore = create<State>((set, get) => {
-  async function action<T>(fn: () => Promise<CodexReply<T>>): Promise<T | undefined> {
+  async function action<T>(fn: () => Promise<Reply<T>>): Promise<T | undefined> {
     try {
       set({ error: null })
       return unwrap(await fn())
@@ -157,8 +157,8 @@ export const useRouterStore = create<State>((set, get) => {
     workerGitHub: (workerId, status) =>
       set((state) => ({ gitHub: { ...state.gitHub, [workerId]: status } })),
     watchGitHub: (routerId, workerId) => {
-      void window.codex.watchWorkerGitHub({ routerId, workerId })
-      return () => void window.codex.unwatchWorkerGitHub({ routerId, workerId })
+      void window.owls.watchWorkerGitHub({ routerId, workerId })
+      return () => void window.owls.unwatchWorkerGitHub({ routerId, workerId })
     },
     threadItems: (routerId, items) =>
       set((state) => ({
@@ -169,7 +169,7 @@ export const useRouterStore = create<State>((set, get) => {
       })),
     loadItems: async (routerId) => {
       if (get().itemsLoaded[routerId]) return
-      const items = await action(() => window.codex.threadItems({ routerId }))
+      const items = await action(() => window.owls.threadItems({ routerId }))
       if (!items) return
       set((state) => ({
         items: {
@@ -180,7 +180,7 @@ export const useRouterStore = create<State>((set, get) => {
       }))
     },
     createThread: async (projectId) => {
-      const router = await action(() => window.codex.createThread({ projectId }))
+      const router = await action(() => window.owls.createThread({ projectId }))
       if (!router) return null
       get().router(router)
       return router
@@ -191,7 +191,7 @@ export const useRouterStore = create<State>((set, get) => {
       const { forwarding } = get()
       if (!forwarding) return null
       const router = await action(() =>
-        window.codex.forward({
+        window.owls.forward({
           commandId: crypto.randomUUID(),
           source: forwarding.source,
           target,
@@ -210,7 +210,7 @@ export const useRouterStore = create<State>((set, get) => {
       set({ sending: true, error: null })
       try {
         unwrap(
-          await window.codex.sendRouter({
+          await window.owls.sendRouter({
             routerId,
             commandId: crypto.randomUUID(),
             text,
@@ -226,19 +226,19 @@ export const useRouterStore = create<State>((set, get) => {
       }
     },
     interrupt: async (routerId) => {
-      await action(() => window.codex.interruptRouter(routerId))
+      await action(() => window.owls.interruptRouter(routerId))
     },
     resolveBatch: async (routerId, batchId, decision) => {
-      await action(() => window.codex.resolveBatch({ routerId, batchId, decision }))
+      await action(() => window.owls.resolveBatch({ routerId, batchId, decision }))
     },
     stopWorker: async (routerId, workerId) => {
-      await action(() => window.codex.stopWorker({ routerId, workerId }))
+      await action(() => window.owls.stopWorker({ routerId, workerId }))
     },
     removeWorker: async (routerId, workerId) => {
-      await action(() => window.codex.removeWorker({ routerId, workerId }))
+      await action(() => window.owls.removeWorker({ routerId, workerId }))
     },
     discardWorktree: async (routerId, workerId) => {
-      await action(() => window.codex.discardWorktree({ routerId, workerId }))
+      await action(() => window.owls.discardWorktree({ routerId, workerId }))
     },
     showPanel: (panel) => set({ panel }),
     setMapFilter: (mapFilter) => set({ mapFilter }),
@@ -248,13 +248,13 @@ export const useRouterStore = create<State>((set, get) => {
     toggleProjectFold: (projectId) =>
       set((state) => ({ foldedProjects: toggled(state.foldedProjects, projectId) })),
     loadProviders: async () => {
-      const providers = await action(() => window.codex.routerProviders())
+      const providers = await action(() => window.owls.routerProviders())
       if (providers) set({ providers })
     },
     setKey: async (providerId, key) => {
       try {
         set({ error: null })
-        unwrap(await window.codex.setRouterKey({ providerId, key }))
+        unwrap(await window.owls.setRouterKey({ providerId, key }))
       } catch (error) {
         set({ error: uiFailure(error) })
         return false
@@ -263,7 +263,7 @@ export const useRouterStore = create<State>((set, get) => {
       return true
     },
     removeKey: async (providerId) => {
-      await action(() => window.codex.removeRouterKey(providerId))
+      await action(() => window.owls.removeRouterKey(providerId))
       await get().loadProviders()
     },
     clearError: () => set({ error: null })

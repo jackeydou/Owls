@@ -1,15 +1,15 @@
 import { useMemo } from 'react'
-import type { CodexRouter } from '../../../../shared/codex'
+import type { Router } from '../../../../shared/app'
 import type { MapProject } from '../../../../shared/worker-map'
-import { useCodexStore } from '../../codex/store'
+import { useAppStore } from '../../app/store'
 import { byRecent } from '../activity'
 import { useRouterStore } from '../store'
 
-export type WorkerProject = MapProject & { router: CodexRouter | undefined }
+export type WorkerProject = MapProject & { router: Router | undefined }
 
 /** Every project with its workers and its latest thread. Threads are global, workers are not. */
 export function useWorkerProjects(): WorkerProject[] {
-  const projects = useCodexStore((s) => s.projects)
+  const projects = useAppStore((s) => s.projects)
   const routers = useRouterStore((s) => s.routers)
   const workers = useRouterStore((s) => s.workers)
   return useMemo(

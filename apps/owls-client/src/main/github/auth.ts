@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { GitHubAccount, GitHubAuthMethod, GitHubSignInFailure } from '../../shared/github.js'
-import { CodexRuntimeError } from '../codex/errors.js'
+import { OwlsError } from '../app/errors.js'
 import type { DecryptedSecret, SecretCipher } from '../router/credentials.js'
 import { readGhToken } from './gh-cli.js'
 
@@ -210,7 +210,7 @@ export class GitHubAuth {
 
   private async requireStorage(): Promise<void> {
     const unavailable = await this.cipher.unavailable()
-    if (unavailable) throw new CodexRuntimeError('secure_storage_unavailable', unavailable)
+    if (unavailable) throw new OwlsError('secure_storage_unavailable', unavailable)
   }
   private fail(failure: GitHubSignInFailure): GitHubAccount {
     this.failure = failure

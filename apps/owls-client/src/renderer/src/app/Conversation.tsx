@@ -15,8 +15,8 @@ import { code } from '@streamdown/code'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Streamdown, type StreamdownProps } from 'streamdown'
-import type { CodexItem, CodexRequest } from '../../../shared/codex'
-import { useCodexStore } from './store'
+import type { AgentRequest, SessionItem } from '../../../shared/app'
+import { useAppStore } from './store'
 
 const plugins = { code }
 /** How a caller extends assistant Markdown, such as the Router's worker references. */
@@ -29,23 +29,23 @@ export function ConversationItem({
   agent,
   markdown
 }: {
-  item: CodexItem
+  item: SessionItem
   agent: string
   markdown?: MarkdownExtension
 }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
-  if (item.kind === 'user') return <div className="codex-user-message">{item.text}</div>
+  if (item.kind === 'user') return <div className="owls-user-message">{item.text}</div>
   if (item.kind === 'assistant')
     return (
-      <article className="codex-assistant-message">
-        <div className="codex-message-label">
-          <span className="codex-agent-mark">
+      <article className="owls-assistant-message">
+        <div className="owls-message-label">
+          <span className="owls-agent-mark">
             <TerminalIcon size={12} />
           </span>
           {agent}
         </div>
-        <div className="codex-markdown">
+        <div className="owls-markdown">
           <Streamdown
             plugins={plugins}
             controls={false}
@@ -58,7 +58,7 @@ export function ConversationItem({
           </Streamdown>
         </div>
         {item.status !== 'running' && item.text ? (
-          <div className="codex-message-actions">
+          <div className="owls-message-actions">
             <IconButton
               size="sm"
               label={t(copied ? 'copied' : 'copy')}
@@ -82,14 +82,14 @@ export function ConversationItem({
           ? WaypointsIcon
           : GitBranchIcon
   return (
-    <details className={`codex-activity ${item.status}`}>
+    <details className={`owls-activity ${item.status}`}>
       <summary>
         <Icon size={14} />
         <span>{t(`item.${item.kind}`)}</span>
         {item.kind === 'command' ? (
           <code>{item.text}</code>
         ) : (
-          <span className="codex-activity-preview">{item.text.split('\n')[0]}</span>
+          <span className="owls-activity-preview">{item.text.split('\n')[0]}</span>
         )}
         {item.status === 'running' ? (
           <LoaderIcon size={12} className="animate-spin" />
@@ -97,7 +97,7 @@ export function ConversationItem({
           <ChevronRightIcon size={12} />
         )}
       </summary>
-      {item.kind !== 'command' ? <div className="codex-activity-content">{item.text}</div> : null}
+      {item.kind !== 'command' ? <div className="owls-activity-content">{item.text}</div> : null}
       {item.detail ? <pre>{item.detail}</pre> : null}
     </details>
   )
@@ -107,12 +107,12 @@ export function RequestCard({
   sessionId,
   agent
 }: {
-  request: CodexRequest
+  request: AgentRequest
   sessionId: string
   agent: string
 }) {
   const { t } = useTranslation()
-  const respond = useCodexStore((s) => s.respond)
+  const respond = useAppStore((s) => s.respond)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [pending, setPending] = useState(false)
   async function submit(decision: 'accept' | 'decline' | 'cancel') {
@@ -136,13 +136,13 @@ export function RequestCard({
   }
   return (
     <form
-      className="codex-request"
+      className="owls-request"
       onSubmit={(event) => {
         event.preventDefault()
         void submit('accept')
       }}
     >
-      <div className="codex-request-title">
+      <div className="owls-request-title">
         <ShieldCheckIcon size={17} />
         <strong>
           {t(request.kind === 'question' ? 'questionTitle' : 'approvalTitle', { agent })}
@@ -154,7 +154,7 @@ export function RequestCard({
         <fieldset key={question.id}>
           <legend>{question.question}</legend>
           {question.options?.map((option) => (
-            <label className="codex-answer-option" key={option.label}>
+            <label className="owls-answer-option" key={option.label}>
               <input
                 type="radio"
                 name={request.id + question.id}
@@ -171,7 +171,7 @@ export function RequestCard({
             </label>
           ))}
           <input
-            className="codex-answer-input"
+            className="owls-answer-input"
             aria-label={question.question}
             type={question.isSecret ? 'password' : 'text'}
             autoComplete="off"
@@ -183,7 +183,7 @@ export function RequestCard({
           />
         </fieldset>
       ))}
-      <div className="codex-request-actions">
+      <div className="owls-request-actions">
         <Button
           size="sm"
           type="submit"

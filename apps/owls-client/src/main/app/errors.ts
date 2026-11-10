@@ -1,18 +1,18 @@
 import { z } from 'zod'
-import type { CodexFailure } from '../../shared/codex.js'
-import { safeText } from './protocol.js'
+import type { Failure } from '../../shared/app.js'
+import { safeText } from '../codex/protocol.js'
 
-export class CodexRuntimeError extends Error {
+export class OwlsError extends Error {
   constructor(
-    readonly code: CodexFailure['code'],
+    readonly code: Failure['code'],
     message: string = code
   ) {
     super(message)
-    this.name = 'CodexRuntimeError'
+    this.name = 'OwlsError'
   }
 }
-export function codexFailure(error: unknown): CodexFailure {
-  if (error instanceof CodexRuntimeError) {
+export function toFailure(error: unknown): Failure {
+  if (error instanceof OwlsError) {
     return { code: error.code, message: safeText(error.message).slice(0, 1000) }
   }
   if (error instanceof z.ZodError) return { code: 'protocol_error', message: '' }

@@ -1,18 +1,18 @@
 import { Select } from '@renderer/components/ui/select'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexSettings } from '../../../shared/codex'
-import { effortSchema, permissionSchema, providerSchema } from '../../../shared/codex'
+import type { AppSettings } from '../../../shared/app'
+import { effortSchema, permissionSchema, providerSchema } from '../../../shared/app'
 import { SettingRow } from './SettingRow'
-import { agentConnection, agentSelection, useCodexStore } from './store'
+import { agentConnection, agentSelection, useAppStore } from './store'
 
 /** The defaults a new worker starts with. */
 export function TaskOptions() {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
+  const settings = useAppStore((s) => s.settings)
   const provider = settings.provider
-  const models = useCodexStore((s) => agentConnection(s, provider).models)
-  const save = useCodexStore((s) => s.saveSettings)
+  const models = useAppStore((s) => agentConnection(s, provider).models)
+  const save = useAppStore((s) => s.saveSettings)
   const id = useId()
   const agent = t(`agent.${provider}`)
   const claudeAgent = provider === 'claude-code'
@@ -20,7 +20,7 @@ export function TaskOptions() {
   const selected = models.find((m) => m.id === model)
   const efforts = selected?.efforts ?? []
   function saveSelection(next: { model: string | null; effort: string | null }) {
-    const update: CodexSettings = claudeAgent
+    const update: AppSettings = claudeAgent
       ? { ...settings, claudeModel: next.model, claudeEffort: next.effort }
       : { ...settings, model: next.model, effort: next.effort }
     void save(update)

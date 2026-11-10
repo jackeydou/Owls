@@ -49,7 +49,7 @@ const {
   renderState,
   routerTools,
   trimContext
-} = require('../../out/main/codex/runtime.js')
+} = require('../../out/main/app/runtime.js')
 
 const PROJECT = { id: 'p1', name: 'demo', path: '/tmp/owls-router-demo' }
 

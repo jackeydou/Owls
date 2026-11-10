@@ -74,10 +74,10 @@ specific rather than picking one by position.
 
 ## Reaching Past The Page
 
-`eval` runs in the renderer, with `window.codex` available:
+`eval` runs in the renderer, with `window.owls` available:
 
 ```bash
-pnpm --silent debug:app eval 'window.codex.snapshot().then((s) => s.value.settings.language)'
+pnpm --silent debug:app eval 'window.owls.snapshot().then((s) => s.value.settings.language)'
 ```
 
 `main` runs in the main process, with `electron` and `require` in scope:

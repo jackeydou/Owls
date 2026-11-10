@@ -343,11 +343,11 @@ type RouterBatchOutcome = {
   status: 'completed' | 'failed' | 'interrupted'
   usage: { input: number; output: number; cacheRead: number; cacheWrite: number } | null
   native: RouterNativeState // 见第 10 节 codex_routers.value.native
-  error: CodexFailure | null
+  error: Failure | null
 }
 ```
 
-`RouterSink` 只接收规范化后的 `CodexItem`（助手文本、工具调用），由 `RouterService` 持久化并
+`RouterSink` 只接收规范化后的 `SessionItem`（助手文本、工具调用），由 `RouterService` 持久化并
 推送给 renderer。Claude Code 引擎复用 `src/main/claude/normalize.ts` 的纯函数，Codex 引擎复用
 `src/main/codex/protocol.ts` 的解析，不经过两个任务 service。
 
@@ -430,7 +430,7 @@ type TurnOutcome = {
   status: 'completed' | 'failed' | 'interrupted'
   structured: unknown | null // Claude: result.structured_output；Codex: 最终 agentMessage 解析结果
   text: string // 最终回复原文，供降级使用
-  error: CodexFailure | null
+  error: Failure | null
 }
 ```
 
@@ -456,8 +456,8 @@ type TurnOutcome = {
 | `src/main/router/render.ts` | 批次与状态摘要的渲染、截断、转义，以及上下文预算裁剪（纯函数） |
 | `src/main/router/report.ts` | 汇报 schema、解析与降级 |
 | `src/main/router/prompt.ts` | Router 和 Worker 的角色说明及 `ROUTER_PROMPT_VERSION` |
-| `src/main/router/store.ts` | Router 相关表的读写，复用 `CodexStore` 的连接和事务 |
-| `src/main/codex/host.ts` | 新增 Router 入口的路由 |
+| `src/main/router/store.ts` | Router 相关表的读写，复用 `OwlsStore` 的连接和事务 |
+| `src/main/app/host.ts` | 新增 Router 入口的路由 |
 | `src/shared/router.ts` | Router、Worker、Inbox 事件、Router 设置的 zod schema 和类型 |
 | `src/renderer/src/router/` | Router 视图、Worker 卡片、汇报卡片 |
 
@@ -466,21 +466,21 @@ type TurnOutcome = {
 
 ### 9.6 IPC
 
-沿用现有的 `window.codex` 命名空间和 `codex:` 通道前缀，不新增全局 API：
+沿用现有的 `window.owls` 命名空间和 `codex:` 通道前缀，不新增全局 API：
 
 | 方法 | 通道 | 说明 |
 | --- | --- | --- |
-| `openRouter(projectId)` | `codex:router-open` | 返回该项目的 Router，不存在时创建；不发起模型请求 |
-| `sendRouter({ routerId, commandId, text })` | `codex:router-send` | 写入 Inbox；空闲时立即成批，运行中时注入 |
-| `interruptRouter(routerId)` | `codex:router-interrupt` | 中断当前批次；不影响 Worker |
-| `resolveBatch({ routerId, batchId, decision })` | `codex:router-resolve-batch` | `retry` 把 `dispatch_unknown` 批次的事件放回 Inbox 重发，`ignore` 把批次记为 `ignored` |
-| `routerProviders()` | `codex:router-providers` | Owls 引擎可选的 provider 和模型，以及每个 provider 是否已配置 key |
-| `setRouterKey({ providerId, key })` | `codex:router-set-key` | 只写；key 长度 1–4096，不回显 |
-| `removeRouterKey(providerId)` | `codex:router-remove-key` | 删除已存的 key |
-| `testRouterModel()` | `codex:router-test` | 用户点击后发送一个最小请求，验证当前 Router 模型可用 |
+| `openRouter(projectId)` | `owls:router-open` | 返回该项目的 Router，不存在时创建；不发起模型请求 |
+| `sendRouter({ routerId, commandId, text })` | `owls:router-send` | 写入 Inbox；空闲时立即成批，运行中时注入 |
+| `interruptRouter(routerId)` | `owls:router-interrupt` | 中断当前批次；不影响 Worker |
+| `resolveBatch({ routerId, batchId, decision })` | `owls:router-resolve-batch` | `retry` 把 `dispatch_unknown` 批次的事件放回 Inbox 重发，`ignore` 把批次记为 `ignored` |
+| `routerProviders()` | `owls:router-providers` | Owls 引擎可选的 provider 和模型，以及每个 provider 是否已配置 key |
+| `setRouterKey({ providerId, key })` | `owls:router-set-key` | 只写；key 长度 1–4096，不回显 |
+| `removeRouterKey(providerId)` | `owls:router-remove-key` | 删除已存的 key |
+| `testRouterModel()` | `owls:router-test` | 用户点击后发送一个最小请求，验证当前 Router 模型可用 |
 
 - Router 的引擎和模型通过现有的 `saveSettings` 保存（9.8 节）。
-- `CodexSnapshot` 增加 `routers` 和 `workers`；`CodexEvent` 增加 `router`、`worker`、
+- `AppSnapshot` 增加 `routers` 和 `workers`；`AppEvent` 增加 `router`、`worker`、
   `inbox` 三种事件，均为单个对象的整体替换，和 `session` 事件一致。
 - 所有输入在 main 中用 zod 校验；`commandId` 沿用 `codex_commands` 去重。
 - Worker 的审批、中断和追问仍走现有的 `respond`、`interrupt`、`send`。
@@ -664,7 +664,7 @@ F12–F16）：
   - 分支没有新提交（tip 等于 `baseCommit`），或已经合入项目 checkout 当前的 HEAD 时删除分支；
     否则保留分支，并在 `worker_removed` 事件中注明分支名。
 - 有未提交修改时不删除：worktree 记为 `kept`，Router 视图列出保留的 worktree（目标、分支、
-  路径）并提供「丢弃」操作。用户确认后，Owls 通过 `codex:router-discard-worktree` 执行
+  路径）并提供「丢弃」操作。用户确认后，Owls 通过 `owls:router-discard-worktree` 执行
   `git worktree remove --force`，分支按上一条规则处理。没有用户的操作，Owls 不会丢弃未提交的修改。
 - Owls 只删除自己创建、并且记录在 `codex_workers` 中的 worktree 和 `owls/*` 分支。
 
@@ -723,8 +723,8 @@ F12–F16）：
 状态：已实现（2026-11-10）。每个项目可以单独设置基础信息、worktree 行为和给 Worker 的额外指令。
 设置保存在 `codex_projects.value.settings` 中（`shared/projects.ts` 的 `projectSettingsSchema`），旧记录
 默认为 `defaultProjectSettings`，不需要迁移。设置页在「项目」分组下为每个项目提供「基本信息」「Git」
-「指令」三页，右侧 Projects 栏的项目行悬停时也有入口。保存走 `codex:save-project`，分支和 remote
-列表走 `codex:project-git-refs`。每次读取都取最新的项目记录，所以修改从 Worker 的下一轮开始生效。
+「指令」三页，右侧 Projects 栏的项目行悬停时也有入口。保存走 `owls:save-project`，分支和 remote
+列表走 `owls:project-git-refs`。每次读取都取最新的项目记录，所以修改从 Worker 的下一轮开始生效。
 
 - `description`：Router 的项目列表（有多个项目时）在项目后附上描述，帮助它选择项目。
 - `git.baseBranch`：`base: 'head'` 的新 worktree 改从这个分支开始。名字形如 `<remote>/<branch>` 且
@@ -781,7 +781,7 @@ worktree Worker 的角色说明从「不要 push」改为「除非任务要求�
 | Claude Code 与 Codex 引擎 | 脚本化 SDK 和 Codex 进程 fixture；用 `tests/fixtures/providers/` 校验原生帧解析 | 同上 |
 | 凭据 | 用替身 `safeStorage` 测试加密存储、加密不可用时拒绝、`list()` 不含密钥、无凭据时不发请求 | 同上 |
 | Worker | `ClaudeService` 与 `CodexService` 的 worker profile、`steer`、`settled` 回调 | `test:claude`、`test:codex` |
-| UI 冒烟 | Router 入口、设置卡片、引擎切换、Worker 卡片、汇报卡片和中英文切换；确认 renderer 拿不到 key | `pnpm --filter owls-client test:codex:ui` |
+| UI 冒烟 | Router 入口、设置卡片、引擎切换、Worker 卡片、汇报卡片和中英文切换；确认 renderer 拿不到 key | `pnpm --filter owls-client test:ui` |
 | 实机 | `verify:router --engine owls\|claude-code\|codex` 各跑一次完整流程，检查只暴露 Owls 工具和 token 用量；`owls` 需要用户已配置模型，否则跳过并说明 | `pnpm --filter owls-client verify:router`（新增脚本） |
 | 消融实验 | 14.1 节的 M4 基准：真实 `RouterService`、`WorkerPool`、Owls 引擎，脚本化模型，虚拟时钟 | `pnpm --filter owls-client bench:router` |
 

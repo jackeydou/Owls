@@ -11,14 +11,14 @@ migration proposal does not apply to this implementation.
 
 ## Entries and ownership
 
-- Main: `apps/owls-client/src/main/codex/desktop.ts`.
+- Main: `apps/owls-client/src/main/app/desktop.ts`.
 - Native client: `src/main/codex/client.ts`.
 - Session orchestration: `src/main/codex/service.ts`.
-- Persistence: `src/main/codex/store.ts` and `schema.ts`.
+- Persistence: `src/main/app/store.ts` and `schema.ts`.
 - Protocol validation and normalization: `src/main/codex/protocol.ts`.
-- Shared UI/IPC contracts: `src/shared/codex.ts`.
-- Preload: `src/preload/codex.ts`.
-- Renderer: `src/renderer/src/codex/`.
+- Shared UI/IPC contracts: `src/shared/app.ts`.
+- Preload: `src/preload/owls.ts`.
+- Renderer: `src/renderer/src/app/`.
 
 Paths after the first entry are relative to `apps/owls-client/`.
 
@@ -97,8 +97,8 @@ Text updates are batched, while requests and terminal state are saved immediatel
 ```bash
 pnpm --filter owls-client typecheck
 pnpm --filter owls-client test:codex
-pnpm --filter owls-client test:codex:desktop
-pnpm --filter owls-client test:codex:ui
+pnpm --filter owls-client test:desktop
+pnpm --filter owls-client test:ui
 ```
 
 The transport tests use a process fixture. The Electron smoke test exercises
@@ -133,7 +133,7 @@ After a macOS package build, run the same UI flow against its actual ASAR,
 preload, and packaged migrations without opening the user's real data root:
 
 ```bash
-pnpm --filter owls-client exec electron tests/admin/codex-ui-smoke.cjs \
+pnpm --filter owls-client exec electron tests/admin/ui-smoke.cjs \
   --packaged-app dist/mac-arm64/Owls.app
 ```
 

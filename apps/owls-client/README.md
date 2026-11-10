@@ -2,8 +2,8 @@
 
 Electron desktop workspace powered by a locally installed Codex app-server.
 
-The production entries are `src/main/codex/desktop.ts`,
-`src/preload/codex.ts`, and `src/renderer/src/codex/App.tsx`.
+The production entries are `src/main/app/desktop.ts`,
+`src/preload/owls.ts`, and `src/renderer/src/app/App.tsx`.
 The previous Pi entry is not loaded.
 
 From the repository root:

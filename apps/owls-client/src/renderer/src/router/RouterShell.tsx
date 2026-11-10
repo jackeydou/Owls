@@ -8,9 +8,9 @@ import {
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { failureMessage } from '../codex/failures'
-import { CodexSettingsPage } from '../codex/Settings'
-import { useCodexStore } from '../codex/store'
+import { failureMessage } from '../app/failures'
+import { SettingsPage } from '../app/Settings'
+import { useAppStore } from '../app/store'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
 import { ProjectsSidebar } from './ProjectsSidebar'
@@ -35,8 +35,8 @@ function Panel() {
 }
 /** The stage around the current view and its details panel, whose width it owns. */
 function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
-  const view = useCodexStore((s) => s.view)
-  const threadId = useCodexStore((s) => s.threadId)
+  const view = useAppStore((s) => s.view)
+  const threadId = useAppStore((s) => s.threadId)
   const panelOpen = useRouterStore((s) => s.panel !== null)
   const { width, handle } = usePaneWidth('panel', 'left')
   return (
@@ -57,7 +57,7 @@ function ActionError() {
   const clearError = useRouterStore((s) => s.clearError)
   if (!error) return null
   return (
-    <div className="codex-error-toast" role="alert">
+    <div className="owls-error-toast" role="alert">
       <AlertCircleIcon size={16} />
       <span>{failureMessage(error)}</span>
       <IconButton
@@ -72,24 +72,24 @@ function ActionError() {
 /** Backs out one level at a time: Settings, then details, then the map. */
 function stepBack() {
   const { panel, showPanel } = useRouterStore.getState()
-  const { view, showChat, leaveSettings } = useCodexStore.getState()
+  const { view, showChat, leaveSettings } = useAppStore.getState()
   if (view === 'settings') leaveSettings()
   else if (panel) showPanel(null)
   else if (view === 'map') showChat()
 }
 export function RouterShell() {
   const { t } = useTranslation()
-  const view = useCodexStore((s) => s.view)
-  const collapsed = useCodexStore((s) => s.settings.sidebarCollapsed)
-  const projectsOpen = useCodexStore((s) => s.settings.layout.projectsOpen)
-  const toggleSidebar = useCodexStore((s) => s.toggleSidebar)
+  const view = useAppStore((s) => s.view)
+  const collapsed = useAppStore((s) => s.settings.sidebarCollapsed)
+  const projectsOpen = useAppStore((s) => s.settings.layout.projectsOpen)
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar)
   const sidebarLabel = t(collapsed ? 'router.showSidebar' : 'router.hideSidebar')
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()
       if (!(event.metaKey || event.ctrlKey)) return
       const { view, showMap, showChat, showSettings, toggleSidebar, newThread } =
-        useCodexStore.getState()
+        useAppStore.getState()
       if (event.key === ',') {
         event.preventDefault()
         showSettings()
@@ -115,7 +115,7 @@ export function RouterShell() {
   if (view === 'settings') {
     return (
       <>
-        <CodexSettingsPage />
+        <SettingsPage />
         <ActionError />
       </>
     )

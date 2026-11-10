@@ -10,21 +10,21 @@ const artifactRoot = resources ? join(resources, 'app.asar') : resolve(__dirname
 const {
   ClaudeService,
   CodexService,
-  CodexStore,
+  OwlsStore,
   OwlsHost,
   RouterCredentials,
   RouterService,
   RouterStore,
   CodexRouterServer,
   defaultEngineFactory
-} = require(join(artifactRoot, 'out/main/codex/runtime.js'))
+} = require(join(artifactRoot, 'out/main/app/runtime.js'))
 // Router keys in this test never touch the OS keychain.
 const testCipher = {
   unavailable: () => null,
   encrypt: (plain) => Buffer.from(plain).toString('base64'),
   decrypt: (encoded) => Buffer.from(encoded, 'base64').toString()
 }
-const { registerCodexIpc } = require(join(artifactRoot, 'out/main/codex/ipc.js'))
+const { registerIpc } = require(join(artifactRoot, 'out/main/app/ipc.js'))
 
 // A scripted Agent SDK stand-in for the Claude Code task flow.
 const claudeSdk = {
@@ -130,7 +130,7 @@ dialog.showMessageBox = async (...args) => {
 app
   .whenReady()
   .then(async () => {
-    const temp = mkdtempSync(join(tmpdir(), 'owls-codex-ui-'))
+    const temp = mkdtempSync(join(tmpdir(), 'owls-ui-'))
     let window
     let host
     let router
@@ -151,14 +151,12 @@ app
     })()`)
     const send = async (text) => {
       await type(text)
-      await waitFor(
-        "document.querySelector('.router-editor-send, .codex-send')?.disabled === false"
-      )
-      await evaluate("document.querySelector('.router-editor-send, .codex-send').click()")
+      await waitFor("document.querySelector('.router-editor-send, .owls-send')?.disabled === false")
+      await evaluate("document.querySelector('.router-editor-send, .owls-send').click()")
     }
     const settingsTab = (label) =>
       evaluate(
-        `Array.from(document.querySelectorAll('.codex-settings-nav .router-sidebar-item')).find(el => el.textContent === ${JSON.stringify(label)}).click()`
+        `Array.from(document.querySelectorAll('.owls-settings-nav .router-sidebar-item')).find(el => el.textContent === ${JSON.stringify(label)}).click()`
       )
     const pressInEditor = (key, modifiers = {}) =>
       evaluate(
@@ -234,7 +232,7 @@ app
         join(captureDir, `${name}.json`),
         JSON.stringify(
           await evaluate(
-            '({ theme: document.documentElement.dataset.theme, background: getComputedStyle(document.querySelector(".codex-app")).backgroundColor, settingsText: document.querySelector(".codex-settings-actions")?.textContent })'
+            '({ theme: document.documentElement.dataset.theme, background: getComputedStyle(document.querySelector(".owls-app")).backgroundColor, settingsText: document.querySelector(".owls-settings-actions")?.textContent })'
           )
         )
       )
@@ -242,7 +240,7 @@ app
     try {
       const fixture = resolve(__dirname, '../fixtures/codex/mock-codex.cjs')
       chmodSync(fixture, 0o755)
-      const store = new CodexStore(
+      const store = new OwlsStore(
         join(temp, 'test.db'),
         join(resources ?? artifactRoot, 'drizzle-codex')
       )
@@ -255,7 +253,7 @@ app
       })
       const emit = (event) => {
         router?.observe(event)
-        if (window && !window.isDestroyed()) window.webContents.send('codex:event', event)
+        if (window && !window.isDestroyed()) window.webContents.send('owls:event', event)
       }
       host = new OwlsHost(
         new CodexService(store, emit),
@@ -321,15 +319,15 @@ app
         install: async () => {},
         channelChanged: () => {}
       }
-      registerCodexIpc(host, () => window, updates)
+      registerIpc(host, () => window, updates)
       await window.loadFile(join(artifactRoot, 'out/renderer/index.html'))
       await waitFor("Boolean(document.querySelector('.router-chat'))")
       assert.equal(await evaluate('typeof window.require'), 'undefined')
       assert.equal(await evaluate('typeof window.api'), 'undefined')
       assert.equal(await evaluate('typeof window.electron'), 'undefined')
-      assert.equal(await evaluate("'invoke' in window.codex"), false)
+      assert.equal(await evaluate("'invoke' in window.owls"), false)
       const invalidSettings = await evaluate(
-        'window.codex.snapshot().then(snapshot => window.codex.saveSettings({ ...snapshot.value.settings, executablePath: "/bin/sh" }))'
+        'window.owls.snapshot().then(snapshot => window.owls.saveSettings({ ...snapshot.value.settings, executablePath: "/bin/sh" }))'
       )
       assert.equal(invalidSettings.ok, false)
       assert.equal(invalidSettings.error.code, 'invalid_request')
@@ -374,35 +372,35 @@ app
       )
 
       await evaluate("document.querySelector('.router-sidebar-settings').click()")
-      await waitFor("Boolean(document.querySelector('.codex-settings-content'))")
+      await waitFor("Boolean(document.querySelector('.owls-settings-content'))")
       await settingsTab('Worker defaults')
       await waitFor(
-        "document.querySelector('.codex-settings-content h2')?.textContent === 'Worker defaults'"
+        "document.querySelector('.owls-settings-content h2')?.textContent === 'Worker defaults'"
       )
       await settingsTab('Codex')
-      await waitFor("Boolean(document.querySelector('.codex-settings-actions button'))")
+      await waitFor("Boolean(document.querySelector('.owls-settings-actions button'))")
       assert.ok(
         await evaluate(
-          "document.querySelector('.codex-settings-content').textContent.includes('fixture@example.com')"
+          "document.querySelector('.owls-settings-content').textContent.includes('fixture@example.com')"
         )
       )
-      await evaluate("document.querySelector('.codex-settings-actions button').click()")
-      await waitFor("document.querySelector('.codex-settings-actions button')?.disabled === false")
+      await evaluate("document.querySelector('.owls-settings-actions button').click()")
+      await waitFor("document.querySelector('.owls-settings-actions button')?.disabled === false")
       await settingsTab('Appearance')
-      await waitFor("Boolean(document.querySelector('#codex-theme'))")
+      await waitFor("Boolean(document.querySelector('#owls-theme'))")
       await evaluate(
-        "document.querySelector('#codex-theme').value = 'dark'; document.querySelector('#codex-theme').dispatchEvent(new Event('change', { bubbles: true }))"
+        "document.querySelector('#owls-theme').value = 'dark'; document.querySelector('#owls-theme').dispatchEvent(new Event('change', { bubbles: true }))"
       )
       await waitFor("document.documentElement.dataset.theme === 'dark'")
       await evaluate(
-        "document.querySelector('#codex-language').value = 'zh-CN'; document.querySelector('#codex-language').dispatchEvent(new Event('change', { bubbles: true }))"
+        "document.querySelector('#owls-language').value = 'zh-CN'; document.querySelector('#owls-language').dispatchEvent(new Event('change', { bubbles: true }))"
       )
-      await waitFor("document.querySelector('.codex-settings-content h2')?.textContent === '外观'")
+      await waitFor("document.querySelector('.owls-settings-content h2')?.textContent === '外观'")
       assert.equal(host.snapshot().settings.language, 'zh-CN')
       assert.equal(host.snapshot().settings.theme, 'dark')
       assert.equal(host.snapshot().settings.appLogo, 'solid')
       await evaluate(
-        "[...document.querySelectorAll('input[name=codex-app-logo]')].length === 3 && document.querySelectorAll('input[name=codex-app-logo]')[0].click()"
+        "[...document.querySelectorAll('input[name=owls-app-logo]')].length === 3 && document.querySelectorAll('input[name=owls-app-logo]')[0].click()"
       )
       await waitFor(() => host.snapshot().settings.appLogo === 'line')
       await capture('settings')
@@ -435,7 +433,7 @@ app
       )
       await pressInEditor('Enter', { metaKey: true })
       await waitFor(
-        "Array.from(document.querySelectorAll('.router-chat .codex-user-message')).some(el => el.textContent.includes('帮我看看项目'))"
+        "Array.from(document.querySelectorAll('.router-chat .owls-user-message')).some(el => el.textContent.includes('帮我看看项目'))"
       )
       await waitFor("document.querySelector('.router-chat textarea')?.value === ''")
       dialog.showOpenDialog = pickFolder
@@ -582,7 +580,7 @@ app
         'the focused editor has no ring'
       )
       await evaluate(
-        "document.activeElement.blur(); document.querySelector('.router-chat .codex-conversation').click()"
+        "document.activeElement.blur(); document.querySelector('.router-chat .owls-conversation').click()"
       )
       assert.ok(await evaluate(editorFocused), 'a click on the blank page returns to the editor')
       const routerState = host.snapshot().routers[0]
@@ -590,16 +588,16 @@ app
       assert.equal(router.items(routerState.id)[0].item.text, '帮我看看项目')
       await capture('router-setup')
       const saved = await evaluate(
-        "window.codex.setRouterKey({ providerId: 'anthropic', key: 'sk-owls-ui-secret' })"
+        "window.owls.setRouterKey({ providerId: 'anthropic', key: 'sk-owls-ui-secret' })"
       )
       assert.equal(saved.ok, true)
-      const providers = await evaluate('window.codex.routerProviders()')
+      const providers = await evaluate('window.owls.routerProviders()')
       assert.equal(providers.ok, true)
       assert.equal(providers.value.find((p) => p.id === 'anthropic').configured, true)
       assert.ok(!JSON.stringify(providers).includes('sk-owls-ui-secret'))
       assert.ok(!JSON.stringify(host.snapshot()).includes('sk-owls-ui-secret'))
-      assert.ok(await evaluate("typeof window.codex.routerKey === 'undefined'"))
-      const badKey = await evaluate("window.codex.setRouterKey({ providerId: 'nope', key: 'x' })")
+      assert.ok(await evaluate("typeof window.owls.routerKey === 'undefined'"))
+      const badKey = await evaluate("window.owls.setRouterKey({ providerId: 'nope', key: 'x' })")
       assert.equal(badKey.ok, false)
       assert.equal(badKey.error.code, 'invalid_request')
 
@@ -694,7 +692,7 @@ app
       assert.equal(await evaluate("document.querySelectorAll('.router-dispatch').length"), 1)
       // The reference in the reply opens the worker; external links stay Streamdown's.
       await evaluate(
-        "document.querySelector('.codex-assistant-message .router-worker-link').click()"
+        "document.querySelector('.owls-assistant-message .router-worker-link').click()"
       )
       await waitFor("document.querySelector('.router-brief')?.textContent.includes('协调者下发')")
       await evaluate(
@@ -717,7 +715,7 @@ app
       await waitFor("document.querySelector('.router-target')?.textContent.includes('烟雾 Worker')")
       assert.equal(await evaluate("document.querySelector('.router-chat textarea').value"), '看看 ')
       await send('approval')
-      await waitFor("Boolean(document.querySelector('.router-tray .codex-request'))")
+      await waitFor("Boolean(document.querySelector('.router-tray .owls-request'))")
       assert.ok(await evaluate("Boolean(document.querySelector('.router-directed'))"))
       assert.equal(await evaluate("Boolean(document.querySelector('.router-target'))"), false)
       assert.ok(
@@ -791,7 +789,7 @@ app
         'document.querySelector(\'.router-panel button[type="submit"]\').disabled === false'
       )
       await evaluate('document.querySelector(\'.router-panel button[type="submit"]\').click()')
-      await waitFor("!document.querySelector('.router-panel .codex-request')")
+      await waitFor("!document.querySelector('.router-panel .owls-request')")
       await waitFor(() => host.snapshot().workers[0]?.status === 'idle')
       // Dots flow along a branch only while its worker runs.
       await send('long')
@@ -977,11 +975,11 @@ app
       await waitFor("Boolean(document.querySelector('.router-target'))")
       await send('claude approval')
       await waitFor(
-        "document.querySelector('.router-tray .codex-request-title')?.textContent.includes('Claude Code 需要授权')"
+        "document.querySelector('.router-tray .owls-request-title')?.textContent.includes('Claude Code 需要授权')"
       )
       await capture('claude-approval')
       await evaluate(
-        'document.querySelector(\'.router-tray .codex-request button[type="submit"]\').click()'
+        'document.querySelector(\'.router-tray .owls-request button[type="submit"]\').click()'
       )
       await waitFor("!document.querySelector('.router-tray')")
       await waitFor(() =>
@@ -991,7 +989,7 @@ app
       assert.equal(claudeSession.threadId, 'claude-ui-session')
       assert.equal(claudeSession.items.find((i) => i.id === 'claude-tool').status, 'completed')
       await evaluate("document.querySelector('.router-sidebar-settings').click()")
-      await waitFor("Boolean(document.querySelector('.codex-settings-content'))")
+      await waitFor("Boolean(document.querySelector('.owls-settings-content'))")
       await settingsTab('Claude Code')
       await waitFor("document.body.textContent.includes('本机 Claude Code')")
       assert.ok(await evaluate("document.body.textContent.includes('claude@example.com')"))

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import type { CodexItem, CodexRequest, CodexRouter, CodexSession } from '../../../shared/codex'
+import type { AgentRequest, Router, Session, SessionItem } from '../../../shared/app'
 import type { RouterWorker } from '../../../shared/router'
 import { isInPlay } from '../../../shared/worker-map'
 
@@ -55,7 +55,7 @@ export const isWorking = (worker: RouterWorker): boolean => workerState(worker) 
 export const isWaitingOnUser = (worker: RouterWorker): boolean => workerTone(worker) === 'wait'
 export const canStop = (worker: RouterWorker): boolean =>
   ['queued', 'starting', 'running', 'waiting'].includes(worker.status)
-export const openRequests = (session?: CodexSession): CodexRequest[] =>
+export const openRequests = (session?: Session): AgentRequest[] =>
   session?.requests.filter((r) => r.status === 'pending' || r.status === 'answering') ?? []
 export const byAge = (a: RouterWorker, b: RouterWorker): number =>
   a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
@@ -65,7 +65,7 @@ export const byRelevance = (a: RouterWorker, b: RouterWorker): number =>
 
 export type LiveLine = { text: string; mono: boolean }
 const firstLine = (text: string) => text.trim().split('\n')[0]
-function itemLine(item: CodexItem): LiveLine | null {
+function itemLine(item: SessionItem): LiveLine | null {
   if (item.kind === 'command') return item.text ? { text: firstLine(item.text), mono: true } : null
   if (item.kind === 'files') return item.text ? { text: firstLine(item.text), mono: true } : null
   if (item.kind === 'assistant' || item.kind === 'plan' || item.kind === 'reasoning')
@@ -73,7 +73,7 @@ function itemLine(item: CodexItem): LiveLine | null {
   return null
 }
 /** What a worker is doing right now, in one line: its open request or its latest activity. */
-export function liveLine(session?: CodexSession): LiveLine | null {
+export function liveLine(session?: Session): LiveLine | null {
   const [request] = openRequests(session)
   if (request?.title) return { text: firstLine(request.title), mono: request.kind === 'command' }
   // Runs for every node on each streamed delta, so it walks back without copying the list.
@@ -86,9 +86,9 @@ export function liveLine(session?: CodexSession): LiveLine | null {
 }
 /** Removes Markdown a one-line preview cannot show, keeping a worker link's title. */
 /** Most recently active first. */
-export const byRecent = (a: CodexRouter, b: CodexRouter) =>
+export const byRecent = (a: Router, b: Router) =>
   b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)
-export const threadTitle = (thread: CodexRouter, untitled: string) => thread.title ?? untitled
+export const threadTitle = (thread: Router, untitled: string) => thread.title ?? untitled
 /** The label for a thread with no message yet. */
 export function useThreadTitle(): string {
   return useTranslation().t('thread.untitled')

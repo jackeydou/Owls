@@ -1,35 +1,29 @@
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
-import type {
-  CodexItem,
-  CodexProject,
-  CodexRouter,
-  CodexSession,
-  CodexSettings
-} from '../../shared/codex.js'
+import type { AppSettings, Project, Router, Session, SessionItem } from '../../shared/app.js'
 import type { Memory, MemoryCategory, MemoryRun } from '../../shared/memory.js'
 import type { RouterWorker } from '../../shared/router.js'
 
-export const codexSettings = sqliteTable('codex_settings', {
+export const settingsTable = sqliteTable('codex_settings', {
   id: text('id').primaryKey(),
-  value: text('value', { mode: 'json' }).$type<CodexSettings>().notNull()
+  value: text('value', { mode: 'json' }).$type<AppSettings>().notNull()
 })
 /**
  * The device that writes a record (RFC_OWLS_MULTI_DEVICE 4). Rows from before
  * device ids existed get this device's id on the first start that has one.
  */
 const ownerDeviceId = () => text('owner_device_id')
-export const codexProjects = sqliteTable('codex_projects', {
+export const projectsTable = sqliteTable('codex_projects', {
   id: text('id').primaryKey(),
   ownerDeviceId: ownerDeviceId(),
-  value: text('value', { mode: 'json' }).$type<CodexProject>().notNull()
+  value: text('value', { mode: 'json' }).$type<Project>().notNull()
 })
-export const codexSessions = sqliteTable('codex_sessions', {
+export const sessionsTable = sqliteTable('codex_sessions', {
   id: text('id').primaryKey(),
   ownerDeviceId: ownerDeviceId(),
   updatedAt: text('updated_at').notNull(),
-  value: text('value', { mode: 'json' }).$type<CodexSession>().notNull()
+  value: text('value', { mode: 'json' }).$type<Session>().notNull()
 })
-export const codexCommands = sqliteTable('codex_commands', {
+export const commandsTable = sqliteTable('codex_commands', {
   id: text('id').primaryKey(),
   sessionId: text('session_id').notNull(),
   inputHash: text('input_hash').notNull()
@@ -38,12 +32,12 @@ export const codexCommands = sqliteTable('codex_commands', {
  * One row holding the change version. Every saved thread and item takes the next
  * value, so a reader can ask for everything after the version it last saw.
  */
-export const codexSyncState = sqliteTable('codex_sync_state', {
+export const syncStateTable = sqliteTable('codex_sync_state', {
   id: text('id').primaryKey(),
   rev: integer('rev').notNull()
 })
 /** This device's identity: one row, created on the first start (RFC_OWLS_MULTI_DEVICE 7). */
-export const codexLocalDevice = sqliteTable('codex_local_device', {
+export const localDeviceTable = sqliteTable('codex_local_device', {
   id: text('id').primaryKey(),
   deviceId: text('device_id').notNull(),
   createdAt: text('created_at').notNull()
@@ -53,7 +47,7 @@ export const codexLocalDevice = sqliteTable('codex_local_device', {
  * per record: a new change moves the record to the next `device_seq`, so the log
  * stays as large as the set of records however often they change.
  */
-export const codexSyncLog = sqliteTable(
+export const syncLogTable = sqliteTable(
   'codex_sync_log',
   {
     kind: text('kind').notNull(),
@@ -67,7 +61,7 @@ export const codexSyncLog = sqliteTable(
   ]
 )
 /** Threads: global Router conversations, without their items. */
-export const codexThreads = sqliteTable(
+export const threadsTable = sqliteTable(
   'codex_threads',
   {
     id: text('id').primaryKey(),
@@ -75,19 +69,19 @@ export const codexThreads = sqliteTable(
     /** Mirrors `value.deviceId`. */
     ownerDeviceId: ownerDeviceId(),
     updatedAt: text('updated_at').notNull(),
-    value: text('value', { mode: 'json' }).$type<CodexRouter>().notNull()
+    value: text('value', { mode: 'json' }).$type<Router>().notNull()
   },
   (table) => [index('codex_threads_rev').on(table.rev)]
 )
 /** Thread items, written one at a time so a change never rewrites the conversation. */
-export const codexThreadItems = sqliteTable(
+export const threadItemsTable = sqliteTable(
   'codex_thread_items',
   {
     threadId: text('thread_id').notNull(),
     itemId: text('item_id').notNull(),
     position: integer('position').notNull(),
     rev: integer('rev').notNull(),
-    value: text('value', { mode: 'json' }).$type<CodexItem>().notNull()
+    value: text('value', { mode: 'json' }).$type<SessionItem>().notNull()
   },
   (table) => [
     primaryKey({ columns: [table.threadId, table.itemId] }),
@@ -95,7 +89,7 @@ export const codexThreadItems = sqliteTable(
     index('codex_thread_items_rev').on(table.threadId, table.rev)
   ]
 )
-export const codexWorkers = sqliteTable('codex_workers', {
+export const workersTable = sqliteTable('codex_workers', {
   id: text('id').primaryKey(),
   routerId: text('router_id').notNull(),
   sessionId: text('session_id').notNull().unique(),
@@ -104,7 +98,7 @@ export const codexWorkers = sqliteTable('codex_workers', {
   value: text('value', { mode: 'json' }).$type<RouterWorker>().notNull()
 })
 /** The Owls engine's model transcript, one pi AgentMessage per row in order. */
-export const codexRouterMessages = sqliteTable(
+export const routerMessagesTable = sqliteTable(
   'codex_router_messages',
   {
     routerId: text('router_id').notNull(),
@@ -115,13 +109,13 @@ export const codexRouterMessages = sqliteTable(
   (table) => [primaryKey({ columns: [table.routerId, table.seq] })]
 )
 /** Router model API keys, encrypted with Electron safeStorage before they reach this table. */
-export const codexCredentials = sqliteTable('codex_credentials', {
+export const credentialsTable = sqliteTable('codex_credentials', {
   providerId: text('provider_id').primaryKey(),
   type: text('type').notNull(),
   secret: text('secret').notNull()
 })
 /** Router Inbox events. `seq` is the global delivery order; `value` holds the event body. */
-export const codexInboxEvents = sqliteTable(
+export const inboxEventsTable = sqliteTable(
   'codex_inbox_events',
   {
     seq: integer('seq').primaryKey({ autoIncrement: true }),
@@ -134,7 +128,7 @@ export const codexInboxEvents = sqliteTable(
   (table) => [index('codex_inbox_events_router_status').on(table.routerId, table.status)]
 )
 /** Router batches: what was sent to the engine, and whether its delivery is known. */
-export const codexRouterBatches = sqliteTable(
+export const routerBatchesTable = sqliteTable(
   'codex_router_batches',
   {
     id: text('id').primaryKey(),
@@ -149,7 +143,7 @@ export const codexRouterBatches = sqliteTable(
  * Personal memory categories. Deleted ones stay as tombstones so the deletion
  * keeps its `rev` and a late write can follow `mergedInto`.
  */
-export const codexMemoryCategories = sqliteTable(
+export const memoryCategoriesTable = sqliteTable(
   'codex_memory_categories',
   {
     id: text('id').primaryKey(),
@@ -160,7 +154,7 @@ export const codexMemoryCategories = sqliteTable(
   (table) => [index('codex_memory_categories_rev').on(table.rev)]
 )
 /** Memories of both stores. A deleted memory is a tombstone with its text cleared. */
-export const codexMemories = sqliteTable(
+export const memoriesTable = sqliteTable(
   'codex_memories',
   {
     id: text('id').primaryKey(),
@@ -179,14 +173,14 @@ export const codexMemories = sqliteTable(
   ]
 )
 /** How far Dreaming has read each thread: its item `rev` and its Inbox event `seq`. */
-export const codexMemoryCursors = sqliteTable('codex_memory_cursors', {
+export const memoryCursorsTable = sqliteTable('codex_memory_cursors', {
   threadId: text('thread_id').primaryKey(),
   itemRev: integer('item_rev').notNull(),
   eventSeq: integer('event_seq').notNull(),
   updatedAt: text('updated_at').notNull()
 })
 /** Dreaming runs, newest last by `created_at`. */
-export const codexMemoryRuns = sqliteTable(
+export const memoryRunsTable = sqliteTable(
   'codex_memory_runs',
   {
     id: text('id').primaryKey(),

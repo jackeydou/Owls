@@ -68,8 +68,8 @@ for the agent executable, model, account, or data root.
 ```bash
 pnpm --filter owls-client typecheck
 pnpm --filter owls-client test:codex
-pnpm --filter owls-client test:codex:desktop
-pnpm --filter owls-client test:codex:ui
+pnpm --filter owls-client test:desktop
+pnpm --filter owls-client test:ui
 ```
 
 After a build, verify a real local installation. The first command only reads

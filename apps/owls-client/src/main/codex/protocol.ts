@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { CodexItem, CodexModel } from '../../shared/codex.js'
-import { effortSchema } from '../../shared/codex.js'
+import type { CodexModel, SessionItem } from '../../shared/app.js'
+import { effortSchema } from '../../shared/app.js'
 
 export const recordSchema = z.record(z.string(), z.unknown())
 export const frameSchema = z.object({
@@ -54,11 +54,11 @@ export function normalizeItem(
   value: unknown,
   turnId: string | null,
   completed: boolean
-): CodexItem {
+): SessionItem {
   const item = record(value)
   const id = z.string().parse(item.id)
   const type = z.string().parse(item.type)
-  const status: CodexItem['status'] =
+  const status: SessionItem['status'] =
     item.status === 'failed' || item.status === 'declined'
       ? 'failed'
       : completed

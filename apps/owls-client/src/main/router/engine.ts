@@ -1,4 +1,4 @@
-import type { CodexFailure, CodexItem } from '../../shared/codex.js'
+import type { Failure, SessionItem } from '../../shared/app.js'
 import type { RouterNative } from '../../shared/router.js'
 
 export type RouterUsage = { input: number; output: number; cacheRead: number; cacheWrite: number }
@@ -6,7 +6,7 @@ export type RouterUsage = { input: number; output: number; cacheRead: number; ca
 /** Where an engine reports what the Router view shows while a batch runs. */
 export type RouterSink = {
   /** Inserts or replaces the item with the same id. */
-  item(item: CodexItem): void
+  item(item: SessionItem): void
   usage(usage: RouterUsage): void
 }
 
@@ -20,7 +20,7 @@ export type RouterBatchInput = {
 
 export type RouterBatchOutcome = {
   status: 'completed' | 'failed' | 'interrupted'
-  error: CodexFailure | null
+  error: Failure | null
   /** The engine session to resume next time. */
   native: RouterNative
 }

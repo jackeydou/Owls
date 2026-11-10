@@ -2,15 +2,15 @@ import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { SettingsIcon, XIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
-import type { CodexRouter } from '../../../shared/codex'
-import { useCodexStore } from '../codex/store'
+import type { Router } from '../../../shared/app'
+import { useAppStore } from '../app/store'
 import { workerTitle } from './activity'
 import { useRouterStore } from './store'
 
-export function RouterDetail({ router }: { router: CodexRouter | undefined }) {
+export function RouterDetail({ router }: { router: Router | undefined }) {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
-  const showSettings = useCodexStore((s) => s.showSettings)
+  const settings = useAppStore((s) => s.settings)
+  const showSettings = useAppStore((s) => s.showSettings)
   const { discardWorktree, showPanel } = useRouterStore()
   const workers = useRouterStore((s) => s.workers)
   const { engine } = settings.router

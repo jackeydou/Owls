@@ -1,8 +1,8 @@
 import { and, asc, eq, gt, lte } from 'drizzle-orm'
 import { z } from 'zod'
-import { codexSyncLog } from '../codex/schema.js'
-import type { CodexStore } from '../codex/store.js'
-import { nextDeviceSeq } from '../codex/sync-state.js'
+import { syncLogTable } from '../app/schema.js'
+import type { OwlsStore } from '../app/store.js'
+import { nextDeviceSeq } from '../app/sync-state.js'
 
 /** The local records this device writes and will push (RFC_OWLS_MULTI_DEVICE 4, 8.1). */
 export const syncRecordKindSchema = z.enum([
@@ -27,15 +27,15 @@ export const itemRecordId = (threadId: string, itemId: string): string => `${thr
  * deletion. Call it inside the transaction that writes the change.
  */
 export function logChange(
-  tx: Pick<CodexStore['db'], 'insert'>,
+  tx: Pick<OwlsStore['db'], 'insert'>,
   kind: SyncRecordKind,
   recordId: string
 ): number {
   const deviceSeq = nextDeviceSeq(tx)
-  tx.insert(codexSyncLog)
+  tx.insert(syncLogTable)
     .values({ kind, recordId, deviceSeq, acked: false })
     .onConflictDoUpdate({
-      target: [codexSyncLog.kind, codexSyncLog.recordId],
+      target: [syncLogTable.kind, syncLogTable.recordId],
       set: { deviceSeq, acked: false }
     })
     .run()
@@ -48,14 +48,14 @@ export function logChange(
  * continues from rather than relying on consecutive numbers.
  */
 export class SyncLog {
-  constructor(private readonly store: Pick<CodexStore, 'db'>) {}
+  constructor(private readonly store: Pick<OwlsStore, 'db'>) {}
   /** Changes not yet acknowledged, after `after`, oldest first. */
   pending(after = 0, limit = 500): SyncLogEntry[] {
     return this.store.db
       .select()
-      .from(codexSyncLog)
-      .where(and(eq(codexSyncLog.acked, false), gt(codexSyncLog.deviceSeq, after)))
-      .orderBy(asc(codexSyncLog.deviceSeq))
+      .from(syncLogTable)
+      .where(and(eq(syncLogTable.acked, false), gt(syncLogTable.deviceSeq, after)))
+      .orderBy(asc(syncLogTable.deviceSeq))
       .limit(limit)
       .all()
       .map((row) => ({
@@ -70,9 +70,9 @@ export class SyncLog {
    */
   ack(deviceSeq: number): void {
     this.store.db
-      .update(codexSyncLog)
+      .update(syncLogTable)
       .set({ acked: true })
-      .where(and(eq(codexSyncLog.acked, false), lte(codexSyncLog.deviceSeq, deviceSeq)))
+      .where(and(eq(syncLogTable.acked, false), lte(syncLogTable.deviceSeq, deviceSeq)))
       .run()
   }
 }

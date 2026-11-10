@@ -9,7 +9,7 @@ import { cipher, memoryRouterStore, staleSecret } from '../fixtures/router-store
 
 const require = createRequire(import.meta.url)
 const { GitHubAuth, GitWorkspaces, lookupPullRequest, parseGitHubRemote, WorkerGitHub } =
-  require('../../out/main/codex/runtime.js')
+  require('../../out/main/app/runtime.js')
 
 const json = (body, init) =>
   new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' }, ...init })

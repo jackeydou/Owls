@@ -5,7 +5,7 @@ import type {
   SdkMcpToolDefinition
 } from '@anthropic-ai/claude-agent-sdk/core'
 import { z } from 'zod'
-import type { CodexFailure, CodexItem } from '../../../shared/codex.js'
+import type { Failure, SessionItem } from '../../../shared/app.js'
 import { inputStream } from '../../claude/input.js'
 import { toolResultText } from '../../claude/normalize.js'
 import type { ClaudeSdk } from '../../claude/service.js'
@@ -261,7 +261,7 @@ export class ClaudeEngine implements RouterEngine {
   }
 }
 
-function toolItem(id: string, name: string, input: unknown, turnId: string): CodexItem {
+function toolItem(id: string, name: string, input: unknown, turnId: string): SessionItem {
   return {
     id,
     kind: 'tool',
@@ -283,6 +283,6 @@ function usage(sink: RouterSink, raw: unknown): void {
   })
 }
 
-function failure(detail: string): CodexFailure {
+function failure(detail: string): Failure {
   return { code: 'native_error', message: safeText(detail).slice(0, 1000) }
 }

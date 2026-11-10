@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { CodexReply } from '../../../shared/codex'
+import type { Reply } from '../../../shared/app'
 import type {
   MemoryCategoryAction,
   MemoryExportFormat,
@@ -43,7 +43,7 @@ type State = Filter & {
   clearError(): void
 }
 
-function errorOf(reply: Extract<CodexReply<unknown>, { ok: false }>): MemoryError {
+function errorOf(reply: Extract<Reply<unknown>, { ok: false }>): MemoryError {
   if (reply.error.code === 'request_unavailable') return 'memory.error.stale'
   if (reply.error.code === 'invalid_request' || reply.error.code === 'project_required')
     return 'memory.error.invalid'
@@ -56,8 +56,8 @@ let generation = 0
 export const useMemoryStore = create<State>((set, get) => {
   /** Runs a write, reloads the tab, and keeps a refusal on screen. */
   async function write(
-    call: () => Promise<CodexReply<unknown>>,
-    refused: (reply: Extract<CodexReply<unknown>, { ok: false }>) => MemoryError = errorOf
+    call: () => Promise<Reply<unknown>>,
+    refused: (reply: Extract<Reply<unknown>, { ok: false }>) => MemoryError = errorOf
   ): Promise<boolean> {
     set({ error: null })
     const reply = await call()
@@ -86,8 +86,8 @@ export const useMemoryStore = create<State>((set, get) => {
       const { store, projectId, categoryId, kind, query, archived } = get()
       if (store === 'project' && !projectId) {
         const [overview, runs] = await Promise.all([
-          window.codex.memory.overview(),
-          window.codex.memory.runs()
+          window.owls.memory.overview(),
+          window.owls.memory.runs()
         ])
         if (mine !== generation) return
         set({
@@ -99,9 +99,9 @@ export const useMemoryStore = create<State>((set, get) => {
         return
       }
       const [list, overview, runs] = await Promise.all([
-        window.codex.memory.list({ store, projectId, categoryId, kind, query, archived }),
-        window.codex.memory.overview(),
-        window.codex.memory.runs()
+        window.owls.memory.list({ store, projectId, categoryId, kind, query, archived }),
+        window.owls.memory.overview(),
+        window.owls.memory.runs()
       ])
       if (mine !== generation) return
       set({
@@ -111,21 +111,21 @@ export const useMemoryStore = create<State>((set, get) => {
         runs: runs.ok ? runs.value : get().runs
       })
     },
-    save: (input) => write(() => window.codex.memory.save(input)),
+    save: (input) => write(() => window.owls.memory.save(input)),
     remove: (memory) =>
-      write(() => window.codex.memory.remove({ id: memory.id, baseRev: memory.rev })),
-    category: (input) => write(() => window.codex.memory.category(input)),
+      write(() => window.owls.memory.remove({ id: memory.id, baseRev: memory.rev })),
+    category: (input) => write(() => window.owls.memory.category(input)),
     async runNow() {
       // The only refusal here is learning being off.
       await write(
-        () => window.codex.memory.runNow(),
+        () => window.owls.memory.runNow(),
         (reply) =>
           reply.error.code === 'request_unavailable' ? 'memory.error.learnOff' : errorOf(reply)
       )
     },
     async exportAs(format) {
       set({ error: null })
-      const reply = await window.codex.memory.export(format)
+      const reply = await window.owls.memory.export(format)
       if (!reply.ok) set({ error: errorOf(reply) })
     },
     clearError: () => set({ error: null })

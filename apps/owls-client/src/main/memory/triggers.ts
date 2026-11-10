@@ -1,4 +1,4 @@
-import type { CodexEvent } from '../../shared/codex.js'
+import type { AppEvent } from '../../shared/app.js'
 import type { RouterWorker } from '../../shared/router.js'
 
 /** How long a thread stays quiet before Dreaming reads it (RFC_OWLS_MEMORY 5.2). */
@@ -36,7 +36,7 @@ export class DreamingTriggers {
     }, DREAMING_STARTUP_MS)
   }
 
-  observe(event: CodexEvent): void {
+  observe(event: AppEvent): void {
     if (event.type === 'router') this.restart(event.router.id)
     else if (event.type === 'worker') this.restart(event.worker.routerId)
   }

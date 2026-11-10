@@ -5,8 +5,8 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MemoryRun, MemorySettings } from '../../../shared/memory'
 import { memoryProviderSchema } from '../../../shared/memory'
-import { SettingRow } from '../codex/SettingRow'
-import { useCodexStore } from '../codex/store'
+import { SettingRow } from '../app/SettingRow'
+import { useAppStore } from '../app/store'
 import { useRouterStore } from '../router/store'
 import { MemoryBrowser } from './MemoryBrowser'
 import { useMemoryStore } from './store'
@@ -52,10 +52,10 @@ function OnOff({
 
 function MemorySettingsRows() {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
-  const saveSettings = useCodexStore((s) => s.saveSettings)
-  const claude = useCodexStore((s) => s.claude)
-  const codex = useCodexStore((s) => s.connection)
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
+  const claude = useAppStore((s) => s.claude)
+  const codex = useAppStore((s) => s.connection)
   const memory = settings.memory
   const save = (next: Partial<MemorySettings>) =>
     void saveSettings({ ...settings, memory: { ...memory, ...next } })
@@ -128,14 +128,14 @@ function MemorySettingsRows() {
             ))}
         </Select>
       </SettingRow>
-      <p className="codex-note">{t('memory.deviceNote')}</p>
+      <p className="owls-note">{t('memory.deviceNote')}</p>
     </>
   )
 }
 
 function RunStatus() {
   const { t } = useTranslation()
-  const learn = useCodexStore((s) => s.settings.memory.learn)
+  const learn = useAppStore((s) => s.settings.memory.learn)
   const overview = useMemoryStore((s) => s.overview)
   const runNow = useMemoryStore((s) => s.runNow)
   const exportAs = useMemoryStore((s) => s.exportAs)
@@ -154,7 +154,7 @@ function RunStatus() {
         {running ? <LoaderIcon size={12} className="animate-spin" aria-hidden /> : null}
         {status}
       </span>
-      <div className="codex-settings-actions">
+      <div className="owls-settings-actions">
         <Button
           size="sm"
           variant="outline"
@@ -209,7 +209,7 @@ function RecentRuns() {
           })}
         </ul>
       ) : (
-        <p className="codex-note">{t('memory.noRuns')}</p>
+        <p className="owls-note">{t('memory.noRuns')}</p>
       )}
     </details>
   )
@@ -222,16 +222,16 @@ export function SettingsMemoryPane() {
   const clearError = useMemoryStore((s) => s.clearError)
   useEffect(() => {
     void refresh()
-    return window.codex.memory.onChanged(() => void refresh())
+    return window.owls.memory.onChanged(() => void refresh())
   }, [refresh])
   return (
-    <section className="codex-settings-section memory-pane">
+    <section className="owls-settings-section memory-pane">
       <h2>{t('memory.title')}</h2>
       <p>{t('memory.body')}</p>
       <MemorySettingsRows />
       <RunStatus />
       {error ? (
-        <div className="codex-inline-error memory-error" role="alert">
+        <div className="owls-inline-error memory-error" role="alert">
           <span>{t(error)}</span>
           <Button
             size="custom"

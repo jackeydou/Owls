@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { CodexProject } from '../../shared/codex.js'
+import type { Project } from '../../shared/app.js'
 import {
   MEMORY_CATEGORY_LIMIT,
   MEMORY_TEXT_LIMIT,
@@ -189,7 +189,7 @@ export class DreamingStage {
     private readonly context: {
       runId: string
       threadId: string
-      projects: CodexProject[]
+      projects: Project[]
       now: Date
     }
   ) {

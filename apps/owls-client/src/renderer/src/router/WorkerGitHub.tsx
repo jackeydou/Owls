@@ -16,7 +16,7 @@ import {
   type WorkerPullRequest
 } from '../../../shared/github'
 import type { RouterWorker } from '../../../shared/router'
-import { useCodexStore } from '../codex/store'
+import { useAppStore } from '../app/store'
 import { useRouterStore } from './store'
 
 const CHECK_ICONS: Record<WorkerCheckState, IconComponent> = {
@@ -104,7 +104,7 @@ export function WorkerGitHub({ worker }: { worker: RouterWorker }) {
   const { id, routerId } = worker
   const status = useRouterStore((s) => s.gitHub[id])
   const watchGitHub = useRouterStore((s) => s.watchGitHub)
-  const showSettings = useCodexStore((s) => s.showSettings)
+  const showSettings = useAppStore((s) => s.showSettings)
   const hasWorktree = worker.workspace.kind === 'worktree'
   useEffect(
     () => (hasWorktree ? watchGitHub(routerId, id) : undefined),

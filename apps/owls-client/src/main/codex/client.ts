@@ -4,7 +4,7 @@ import { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { createInterface } from 'node:readline'
 import appPackage from '../../../package.json'
-import { CodexRuntimeError } from './errors.js'
+import { OwlsError } from '../app/errors.js'
 import { frameSchema, type RpcFrame, safeText } from './protocol.js'
 
 type Pending = {
@@ -36,7 +36,7 @@ export function discoverExecutable(explicit: string | null): string {
       /* Try the next installation. */
     }
   }
-  throw new CodexRuntimeError(
+  throw new OwlsError(
     'not_installed',
     'Codex CLI was not found. Select your local Codex executable in Settings.'
   )
@@ -55,7 +55,7 @@ export class CodexClient {
     executable: string,
     options: { args?: string[]; cwd?: string; experimentalApi?: boolean } = {}
   ): Promise<string> {
-    if (this.child) throw new CodexRuntimeError('busy', 'Codex is already connected.')
+    if (this.child) throw new OwlsError('busy', 'Codex is already connected.')
     const child = spawn(
       executable,
       ['app-server', '--listen', 'stdio://', ...(options.args ?? [])],
@@ -85,7 +85,7 @@ export class CodexClient {
           this.pending.delete(frame.id)
           if (frame.error)
             pending.reject(
-              new CodexRuntimeError('native_error', safeText(frame.error.message).slice(0, 800))
+              new OwlsError('native_error', safeText(frame.error.message).slice(0, 800))
             )
           else pending.resolve(frame.result)
         }
@@ -112,13 +112,13 @@ export class CodexClient {
   request(method: string, params: unknown = {}): Promise<unknown> {
     const child = this.child
     if (!child || this.closed)
-      return Promise.reject(new CodexRuntimeError('not_connected', 'Codex is not connected.'))
+      return Promise.reject(new OwlsError('not_connected', 'Codex is not connected.'))
     const id = this.nextId++
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id)
         reject(
-          new CodexRuntimeError(
+          new OwlsError(
             'unknown_result',
             'Codex did not acknowledge ' +
               method +
@@ -133,7 +133,7 @@ export class CodexClient {
         clearTimeout(timer)
         this.pending.delete(id)
         reject(
-          new CodexRuntimeError(
+          new OwlsError(
             'disconnected',
             'The Codex connection closed before the request was delivered.'
           )
@@ -146,10 +146,7 @@ export class CodexClient {
   }
   respond(id: string | number, result: unknown): void {
     if (!this.child || this.closed)
-      throw new CodexRuntimeError(
-        'request_unavailable',
-        'This Codex request is no longer available.'
-      )
+      throw new OwlsError('request_unavailable', 'This Codex request is no longer available.')
     this.child.stdin.write(`${JSON.stringify({ id, result })}\n`)
   }
   reject(id: string | number): void {
@@ -178,7 +175,7 @@ export class CodexClient {
     this.child = null
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer)
-      pending.reject(new CodexRuntimeError('disconnected', reason))
+      pending.reject(new OwlsError('disconnected', reason))
     }
     this.pending.clear()
     this.onClose(reason)

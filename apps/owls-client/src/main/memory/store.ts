@@ -8,13 +8,13 @@ import {
   memorySchema
 } from '../../shared/memory.js'
 import {
-  codexMemories,
-  codexMemoryCategories,
-  codexMemoryCursors,
-  codexMemoryRuns
-} from '../codex/schema.js'
-import type { CodexStore } from '../codex/store.js'
-import { nextRev } from '../codex/sync-state.js'
+  memoriesTable,
+  memoryCategoriesTable,
+  memoryCursorsTable,
+  memoryRunsTable
+} from '../app/schema.js'
+import type { OwlsStore } from '../app/store.js'
+import { nextRev } from '../app/sync-state.js'
 import { logChange } from '../sync/sync-log.js'
 import {
   liveCategory,
@@ -27,21 +27,21 @@ import {
 
 /** Memory persistence in `owls.db`, sharing the Codex store's connection. */
 export class MemoryStore implements MemoryRecords {
-  constructor(private readonly store: CodexStore) {}
+  constructor(private readonly store: OwlsStore) {}
   private get db() {
     return this.store.db
   }
   memories(): Memory[] {
     return this.db
       .select()
-      .from(codexMemories)
+      .from(memoriesTable)
       .all()
       .map((row) => memorySchema.parse(row.value))
   }
   categories(): MemoryCategory[] {
     return this.db
       .select()
-      .from(codexMemoryCategories)
+      .from(memoryCategoriesTable)
       .all()
       .map((row) => memoryCategorySchema.parse(row.value))
   }
@@ -80,17 +80,17 @@ export class MemoryStore implements MemoryRecords {
             updatedAt: value.updatedAt,
             value
           }
-          tx.insert(codexMemories)
+          tx.insert(memoriesTable)
             .values({ id: value.id, ...row })
-            .onConflictDoUpdate({ target: codexMemories.id, set: row })
+            .onConflictDoUpdate({ target: memoriesTable.id, set: row })
             .run()
           logChange(tx, 'memory', value.id)
         } else {
           const value = memoryCategorySchema.parse({ ...write.value, rev })
           const row = { rev, updatedAt: value.updatedAt, value }
-          tx.insert(codexMemoryCategories)
+          tx.insert(memoryCategoriesTable)
             .values({ id: value.id, ...row })
-            .onConflictDoUpdate({ target: codexMemoryCategories.id, set: row })
+            .onConflictDoUpdate({ target: memoryCategoriesTable.id, set: row })
             .run()
           logChange(tx, 'memory-category', value.id)
         }
@@ -100,9 +100,9 @@ export class MemoryStore implements MemoryRecords {
       if (commit.cursor) {
         const { threadId, itemRev, eventSeq } = commit.cursor
         const row = { itemRev, eventSeq, updatedAt: new Date().toISOString() }
-        tx.insert(codexMemoryCursors)
+        tx.insert(memoryCursorsTable)
           .values({ threadId, ...row })
-          .onConflictDoUpdate({ target: codexMemoryCursors.threadId, set: row })
+          .onConflictDoUpdate({ target: memoryCursorsTable.threadId, set: row })
           .run()
       }
       if (commit.run) this.writeRun(tx, commit.run)
@@ -112,27 +112,27 @@ export class MemoryStore implements MemoryRecords {
   cursor(threadId: string): MemoryCursor | null {
     const row = this.db
       .select()
-      .from(codexMemoryCursors)
-      .where(eq(codexMemoryCursors.threadId, threadId))
+      .from(memoryCursorsTable)
+      .where(eq(memoryCursorsTable.threadId, threadId))
       .get()
     return row ? { threadId, itemRev: row.itemRev, eventSeq: row.eventSeq } : null
   }
   purge(before: string): number {
     return this.db.transaction((tx) => {
       const memories = tx
-        .delete(codexMemories)
-        .where(and(eq(codexMemories.status, 'deleted'), lt(codexMemories.updatedAt, before)))
+        .delete(memoriesTable)
+        .where(and(eq(memoriesTable.status, 'deleted'), lt(memoriesTable.updatedAt, before)))
         .run().changes
       // Category status lives only in the JSON value, so pick the ids first.
       const categories = tx
-        .select({ id: codexMemoryCategories.id, value: codexMemoryCategories.value })
-        .from(codexMemoryCategories)
-        .where(lt(codexMemoryCategories.updatedAt, before))
+        .select({ id: memoryCategoriesTable.id, value: memoryCategoriesTable.value })
+        .from(memoryCategoriesTable)
+        .where(lt(memoryCategoriesTable.updatedAt, before))
         .all()
         .filter((row) => memoryCategorySchema.parse(row.value).status === 'deleted')
         .map((row) => row.id)
       if (categories.length)
-        tx.delete(codexMemoryCategories).where(inArray(codexMemoryCategories.id, categories)).run()
+        tx.delete(memoryCategoriesTable).where(inArray(memoryCategoriesTable.id, categories)).run()
       return memories + categories.length
     })
   }
@@ -142,31 +142,31 @@ export class MemoryStore implements MemoryRecords {
   runs(limit: number): MemoryRun[] {
     return this.db
       .select()
-      .from(codexMemoryRuns)
-      .orderBy(desc(codexMemoryRuns.createdAt), desc(codexMemoryRuns.id))
+      .from(memoryRunsTable)
+      .orderBy(desc(memoryRunsTable.createdAt), desc(memoryRunsTable.id))
       .limit(limit)
       .all()
       .map((row) => memoryRunSchema.parse(row.value))
   }
-  private currentRev(tx: Pick<CodexStore['db'], 'select'>, write: MemoryWrite): number | null {
-    const table = write.kind === 'memory' ? codexMemories : codexMemoryCategories
+  private currentRev(tx: Pick<OwlsStore['db'], 'select'>, write: MemoryWrite): number | null {
+    const table = write.kind === 'memory' ? memoriesTable : memoryCategoriesTable
     const row = tx.select({ rev: table.rev }).from(table).where(eq(table.id, write.value.id)).get()
     return row?.rev ?? null
   }
-  private category(tx: Pick<CodexStore['db'], 'select'>, id: string): MemoryCategory | null {
+  private category(tx: Pick<OwlsStore['db'], 'select'>, id: string): MemoryCategory | null {
     const row = tx
-      .select({ value: codexMemoryCategories.value })
-      .from(codexMemoryCategories)
-      .where(eq(codexMemoryCategories.id, id))
+      .select({ value: memoryCategoriesTable.value })
+      .from(memoryCategoriesTable)
+      .where(eq(memoryCategoriesTable.id, id))
       .get()
     return row ? memoryCategorySchema.parse(row.value) : null
   }
-  private writeRun(tx: Pick<CodexStore['db'], 'insert'>, run: MemoryRun): void {
+  private writeRun(tx: Pick<OwlsStore['db'], 'insert'>, run: MemoryRun): void {
     const value = memoryRunSchema.parse(run)
     const row = { threadId: value.threadId, status: value.status, value }
-    tx.insert(codexMemoryRuns)
+    tx.insert(memoryRunsTable)
       .values({ id: value.id, createdAt: value.createdAt, ...row })
-      .onConflictDoUpdate({ target: codexMemoryRuns.id, set: row })
+      .onConflictDoUpdate({ target: memoryRunsTable.id, set: row })
       .run()
   }
 }

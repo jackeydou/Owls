@@ -1,5 +1,5 @@
 import type { OwlsProviderId } from '../../shared/router.js'
-import { CodexRuntimeError } from '../codex/errors.js'
+import { OwlsError } from '../app/errors.js'
 import type { RouterStore } from './store.js'
 
 /** A decrypted secret, and whether it should be encrypted again with the current key. */
@@ -42,7 +42,7 @@ export class RouterCredentials {
   }
   async setKey(providerId: OwlsProviderId, key: string): Promise<void> {
     const reason = await this.cipher.unavailable()
-    if (reason) throw new CodexRuntimeError('secure_storage_unavailable', reason)
+    if (reason) throw new OwlsError('secure_storage_unavailable', reason)
     this.store.saveCredential(providerId, 'api_key', await this.cipher.encrypt(key))
   }
   remove(providerId: OwlsProviderId): void {

@@ -1,8 +1,8 @@
-import type { CodexAPI } from '../shared/codex.js'
+import type { OwlsAPI } from '../shared/app.js'
 
 declare global {
   interface Window {
-    codex: CodexAPI
+    owls: OwlsAPI
     owlsPlatform: 'darwin' | 'win32' | 'linux' | 'other'
   }
 }

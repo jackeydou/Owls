@@ -10,7 +10,7 @@ import {
   type GitHubSignInFailure,
   gitHubTokenSchema
 } from '../../../shared/github'
-import { useCodexStore } from './store'
+import { useAppStore } from './store'
 
 const METHODS: GitHubAuthMethod[] = ['app', 'gh-cli', 'token']
 const connectedBy = (account: GitHubAccount, method: GitHubAuthMethod) =>
@@ -18,7 +18,7 @@ const connectedBy = (account: GitHubAccount, method: GitHubAuthMethod) =>
 
 function Connected({ login }: { login: string }) {
   const { t } = useTranslation()
-  const signOut = useCodexStore((s) => s.gitHubSignOut)
+  const signOut = useAppStore((s) => s.gitHubSignOut)
   return (
     <div className="github-connected">
       <i className="router-dot" aria-hidden />
@@ -62,7 +62,7 @@ function InstallLink() {
 
 function DeviceCode({ account }: { account: Extract<GitHubAccount, { status: 'pending' }> }) {
   const { t } = useTranslation()
-  const cancelSignIn = useCodexStore((s) => s.gitHubCancelSignIn)
+  const cancelSignIn = useAppStore((s) => s.gitHubCancelSignIn)
   function openGitHub() {
     // The code is on screen as well, so a blocked clipboard costs one more step, not the sign-in.
     void navigator.clipboard.writeText(account.userCode).catch(() => {})
@@ -87,7 +87,7 @@ function DeviceCode({ account }: { account: Extract<GitHubAccount, { status: 'pe
 
 function AppMethod({ account }: { account: GitHubAccount }) {
   const { t } = useTranslation()
-  const signIn = useCodexStore((s) => s.gitHubSignIn)
+  const signIn = useAppStore((s) => s.gitHubSignIn)
   if (account.status === 'pending') return <DeviceCode account={account} />
   return (
     <>
@@ -106,7 +106,7 @@ function AppMethod({ account }: { account: GitHubAccount }) {
 
 function CliMethod({ account }: { account: GitHubAccount }) {
   const { t } = useTranslation()
-  const connect = useCodexStore((s) => s.gitHubConnectCli)
+  const connect = useAppStore((s) => s.gitHubConnectCli)
   const [connecting, setConnecting] = useState(false)
   async function connectCli() {
     setConnecting(true)
@@ -130,7 +130,7 @@ function CliMethod({ account }: { account: GitHubAccount }) {
 
 function TokenMethod({ account }: { account: GitHubAccount }) {
   const { t } = useTranslation()
-  const connect = useCodexStore((s) => s.gitHubConnectToken)
+  const connect = useAppStore((s) => s.gitHubConnectToken)
   const [token, setToken] = useState('')
   const [saving, setSaving] = useState(false)
   const valid = gitHubTokenSchema.safeParse(token)
@@ -177,14 +177,14 @@ const METHOD_BODIES = { app: AppMethod, 'gh-cli': CliMethod, token: TokenMethod 
 
 export function GitHubSettingsPane() {
   const { t } = useTranslation()
-  const account = useCodexStore((s) => s.github)
+  const account = useAppStore((s) => s.github)
   const active = account.status === 'signed-in' ? account.method : null
   const [selected, setSelected] = useState<GitHubAuthMethod>(active ?? 'app')
   useEffect(() => {
     if (active) setSelected(active)
   }, [active])
   return (
-    <section className="codex-settings-section">
+    <section className="owls-settings-section">
       <h2>{t('github.title')}</h2>
       <p>{t('github.body')}</p>
       <div className="github-methods" role="radiogroup" aria-label={t('github.methods')}>

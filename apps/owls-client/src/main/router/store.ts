@@ -1,23 +1,23 @@
 import { and, asc, desc, eq, gt, inArray, max, sql } from 'drizzle-orm'
 import {
-  type CodexItem,
-  type CodexRouter,
   itemSchema,
+  type Router,
   routerSchema,
+  type SessionItem,
   type ThreadItem
-} from '../../shared/codex.js'
+} from '../../shared/app.js'
 import { type RouterWorker, workerSchema } from '../../shared/router.js'
 import {
-  codexCredentials,
-  codexInboxEvents,
-  codexRouterBatches,
-  codexRouterMessages,
-  codexThreadItems,
-  codexThreads,
-  codexWorkers
-} from '../codex/schema.js'
-import type { CodexStore } from '../codex/store.js'
-import { nextRev } from '../codex/sync-state.js'
+  credentialsTable,
+  inboxEventsTable,
+  routerBatchesTable,
+  routerMessagesTable,
+  threadItemsTable,
+  threadsTable,
+  workersTable
+} from '../app/schema.js'
+import type { OwlsStore } from '../app/store.js'
+import { nextRev } from '../app/sync-state.js'
 import { itemRecordId, logChange } from '../sync/sync-log.js'
 import {
   type BatchStatus,
@@ -30,8 +30,8 @@ import {
   type RouterBatch
 } from './events.js'
 
-type EventRow = typeof codexInboxEvents.$inferSelect
-type BatchRow = typeof codexRouterBatches.$inferSelect
+type EventRow = typeof inboxEventsTable.$inferSelect
+type BatchRow = typeof routerBatchesTable.$inferSelect
 const toEvent = (row: EventRow): InboxEvent => ({
   ...inboxEventBodySchema.parse(row.value),
   seq: row.seq
@@ -46,7 +46,7 @@ const toBatch = (row: BatchRow): RouterBatch => ({
 
 /** Router persistence in `owls.db`, sharing the Codex store's connection. */
 export class RouterStore {
-  constructor(private readonly store: CodexStore) {}
+  constructor(private readonly store: OwlsStore) {}
   private get db() {
     return this.store.db
   }
@@ -54,11 +54,11 @@ export class RouterStore {
   get deviceId(): string {
     return this.store.deviceId
   }
-  routers(): CodexRouter[] {
+  routers(): Router[] {
     return this.db
       .select()
-      .from(codexThreads)
-      .orderBy(desc(codexThreads.updatedAt), asc(codexThreads.id))
+      .from(threadsTable)
+      .orderBy(desc(threadsTable.updatedAt), asc(threadsTable.id))
       .all()
       .map((row) => routerSchema.parse(row.value))
   }
@@ -67,7 +67,7 @@ export class RouterStore {
    * returns. Writes go through this one connection, so versions commit in order
    * and a reader that asks for what came after its last version misses nothing.
    */
-  saveThread(value: CodexRouter, items: { item: CodexItem; position: number }[] = []): number {
+  saveThread(value: Router, items: { item: SessionItem; position: number }[] = []): number {
     return this.db.transaction((tx) => {
       const rev = nextRev(tx)
       const router = routerSchema.parse({ ...value, rev })
@@ -77,17 +77,17 @@ export class RouterStore {
         updatedAt: router.updatedAt,
         value: router
       }
-      tx.insert(codexThreads)
+      tx.insert(threadsTable)
         .values({ id: router.id, ...row })
-        .onConflictDoUpdate({ target: codexThreads.id, set: row })
+        .onConflictDoUpdate({ target: threadsTable.id, set: row })
         .run()
       logChange(tx, 'thread', router.id)
       for (const { item, position } of items) {
         const parsed = itemSchema.parse(item)
-        tx.insert(codexThreadItems)
+        tx.insert(threadItemsTable)
           .values({ threadId: router.id, itemId: parsed.id, position, rev, value: parsed })
           .onConflictDoUpdate({
-            target: [codexThreadItems.threadId, codexThreadItems.itemId],
+            target: [threadItemsTable.threadId, threadItemsTable.itemId],
             set: { rev, value: parsed }
           })
           .run()
@@ -99,9 +99,9 @@ export class RouterStore {
   items(routerId: string): ThreadItem[] {
     return this.db
       .select()
-      .from(codexThreadItems)
-      .where(eq(codexThreadItems.threadId, routerId))
-      .orderBy(asc(codexThreadItems.position))
+      .from(threadItemsTable)
+      .where(eq(threadItemsTable.threadId, routerId))
+      .orderBy(asc(threadItemsTable.position))
       .all()
       .map((row) => ({
         item: itemSchema.parse(row.value),
@@ -112,15 +112,15 @@ export class RouterStore {
   workers(): RouterWorker[] {
     return this.db
       .select()
-      .from(codexWorkers)
-      .orderBy(desc(codexWorkers.updatedAt), asc(codexWorkers.id))
+      .from(workersTable)
+      .orderBy(desc(workersTable.updatedAt), asc(workersTable.id))
       .all()
       .map((row) => workerSchema.parse(row.value))
   }
   saveWorker(value: RouterWorker): void {
     const worker = workerSchema.parse(value)
     this.db.transaction((tx) => {
-      tx.insert(codexWorkers)
+      tx.insert(workersTable)
         .values({
           id: worker.id,
           routerId: worker.routerId,
@@ -130,7 +130,7 @@ export class RouterStore {
           value: worker
         })
         .onConflictDoUpdate({
-          target: codexWorkers.id,
+          target: workersTable.id,
           set: { updatedAt: worker.updatedAt, value: worker }
         })
         .run()
@@ -140,9 +140,9 @@ export class RouterStore {
   messages(routerId: string): unknown[] {
     return this.db
       .select()
-      .from(codexRouterMessages)
-      .where(eq(codexRouterMessages.routerId, routerId))
-      .orderBy(asc(codexRouterMessages.seq))
+      .from(routerMessagesTable)
+      .where(eq(routerMessagesTable.routerId, routerId))
+      .orderBy(asc(routerMessagesTable.seq))
       .all()
       .map((row) => row.value)
   }
@@ -150,14 +150,14 @@ export class RouterStore {
     if (!messages.length) return
     this.db.transaction((tx) => {
       const last = tx
-        .select({ seq: max(codexRouterMessages.seq) })
-        .from(codexRouterMessages)
-        .where(eq(codexRouterMessages.routerId, routerId))
+        .select({ seq: max(routerMessagesTable.seq) })
+        .from(routerMessagesTable)
+        .where(eq(routerMessagesTable.routerId, routerId))
         .get()
       let seq = last?.seq ?? -1
       for (const value of messages) {
         seq++
-        tx.insert(codexRouterMessages).values({ routerId, seq, batchId, value }).run()
+        tx.insert(routerMessagesTable).values({ routerId, seq, batchId, value }).run()
       }
     })
   }
@@ -171,21 +171,21 @@ export class RouterStore {
     const value = inboxEventBodySchema.parse(body)
     return this.db.transaction((tx) => {
       const row = tx
-        .insert(codexInboxEvents)
+        .insert(inboxEventsTable)
         .values({ id, routerId, status: batchId ? 'batched' : 'pending', batchId, value })
         .returning()
         .get()
       if (batchId) {
         const batch = tx
           .select()
-          .from(codexRouterBatches)
-          .where(eq(codexRouterBatches.id, batchId))
+          .from(routerBatchesTable)
+          .where(eq(routerBatchesTable.id, batchId))
           .get()
         if (batch) {
           const current = batchValueSchema.parse(batch.value)
-          tx.update(codexRouterBatches)
+          tx.update(routerBatchesTable)
             .set({ value: { ...current, eventSeqs: [...current.eventSeqs, row.seq] } })
-            .where(eq(codexRouterBatches.id, batchId))
+            .where(eq(routerBatchesTable.id, batchId))
             .run()
         }
       }
@@ -195,9 +195,9 @@ export class RouterStore {
   events(routerId: string, status: InboxStatus): InboxEvent[] {
     return this.db
       .select()
-      .from(codexInboxEvents)
-      .where(and(eq(codexInboxEvents.routerId, routerId), eq(codexInboxEvents.status, status)))
-      .orderBy(asc(codexInboxEvents.seq))
+      .from(inboxEventsTable)
+      .where(and(eq(inboxEventsTable.routerId, routerId), eq(inboxEventsTable.status, status)))
+      .orderBy(asc(inboxEventsTable.seq))
       .all()
       .map(toEvent)
   }
@@ -205,7 +205,7 @@ export class RouterStore {
   event(
     seq: number
   ): { event: InboxEvent; routerId: string; status: InboxStatus; batchId: string | null } | null {
-    const row = this.db.select().from(codexInboxEvents).where(eq(codexInboxEvents.seq, seq)).get()
+    const row = this.db.select().from(inboxEventsTable).where(eq(inboxEventsTable.seq, seq)).get()
     return row
       ? {
           event: toEvent(row),
@@ -219,14 +219,14 @@ export class RouterStore {
   workerEvents(routerId: string, workerId: string, limit: number): InboxEvent[] {
     return this.db
       .select()
-      .from(codexInboxEvents)
+      .from(inboxEventsTable)
       .where(
         and(
-          eq(codexInboxEvents.routerId, routerId),
-          sql`json_extract(${codexInboxEvents.value}, '$.workerId') = ${workerId}`
+          eq(inboxEventsTable.routerId, routerId),
+          sql`json_extract(${inboxEventsTable.value}, '$.workerId') = ${workerId}`
         )
       )
-      .orderBy(desc(codexInboxEvents.seq))
+      .orderBy(desc(inboxEventsTable.seq))
       .limit(limit)
       .all()
       .map(toEvent)
@@ -236,24 +236,24 @@ export class RouterStore {
   eventsAfter(routerId: string, after: number, kind: InboxEventBody['kind']): InboxEvent[] {
     return this.db
       .select()
-      .from(codexInboxEvents)
+      .from(inboxEventsTable)
       .where(
         and(
-          eq(codexInboxEvents.routerId, routerId),
-          gt(codexInboxEvents.seq, after),
-          sql`json_extract(${codexInboxEvents.value}, '$.kind') = ${kind}`
+          eq(inboxEventsTable.routerId, routerId),
+          gt(inboxEventsTable.seq, after),
+          sql`json_extract(${inboxEventsTable.value}, '$.kind') = ${kind}`
         )
       )
-      .orderBy(asc(codexInboxEvents.seq))
+      .orderBy(asc(inboxEventsTable.seq))
       .all()
       .map(toEvent)
   }
   setEventStatus(seqs: number[], status: InboxStatus): void {
     if (!seqs.length) return
     this.db
-      .update(codexInboxEvents)
+      .update(inboxEventsTable)
       .set({ status })
-      .where(inArray(codexInboxEvents.seq, seqs))
+      .where(inArray(inboxEventsTable.seq, seqs))
       .run()
   }
   /** Records a batch as `sending` and claims its events in one transaction. */
@@ -272,7 +272,7 @@ export class RouterStore {
       durationMs: null
     }
     this.db.transaction((tx) => {
-      tx.insert(codexRouterBatches)
+      tx.insert(routerBatchesTable)
         .values({
           id: batch.id,
           routerId: batch.routerId,
@@ -282,9 +282,9 @@ export class RouterStore {
         })
         .run()
       if (seqs.length)
-        tx.update(codexInboxEvents)
+        tx.update(inboxEventsTable)
           .set({ status: 'batched', batchId: batch.id })
-          .where(inArray(codexInboxEvents.seq, seqs))
+          .where(inArray(inboxEventsTable.seq, seqs))
           .run()
     })
   }
@@ -294,47 +294,47 @@ export class RouterStore {
     result: Pick<BatchValue, 'tokens' | 'durationMs'> | null = null
   ): void {
     this.db.transaction((tx) => {
-      const row = tx.select().from(codexRouterBatches).where(eq(codexRouterBatches.id, id)).get()
+      const row = tx.select().from(routerBatchesTable).where(eq(routerBatchesTable.id, id)).get()
       if (!row) return
       const value = { ...batchValueSchema.parse(row.value), ...(result ?? {}) }
-      tx.update(codexRouterBatches)
+      tx.update(routerBatchesTable)
         .set({ status, value })
-        .where(eq(codexRouterBatches.id, id))
+        .where(eq(routerBatchesTable.id, id))
         .run()
     })
   }
   batches(status: BatchStatus): RouterBatch[] {
     return this.db
       .select()
-      .from(codexRouterBatches)
-      .where(eq(codexRouterBatches.status, status))
-      .orderBy(asc(codexRouterBatches.createdAt), asc(codexRouterBatches.id))
+      .from(routerBatchesTable)
+      .where(eq(routerBatchesTable.status, status))
+      .orderBy(asc(routerBatchesTable.createdAt), asc(routerBatchesTable.id))
       .all()
       .map(toBatch)
   }
   batch(id: string): RouterBatch | null {
-    const row = this.db.select().from(codexRouterBatches).where(eq(codexRouterBatches.id, id)).get()
+    const row = this.db.select().from(routerBatchesTable).where(eq(routerBatchesTable.id, id)).get()
     return row ? toBatch(row) : null
   }
   /** Returns a batch's events to the Inbox so the next batch sends them again. */
   requeueBatch(id: string): void {
     this.db.transaction((tx) => {
-      tx.update(codexRouterBatches)
+      tx.update(routerBatchesTable)
         .set({ status: 'retried' })
-        .where(eq(codexRouterBatches.id, id))
+        .where(eq(routerBatchesTable.id, id))
         .run()
-      tx.update(codexInboxEvents)
+      tx.update(inboxEventsTable)
         .set({ status: 'pending', batchId: null })
-        .where(and(eq(codexInboxEvents.batchId, id), eq(codexInboxEvents.status, 'batched')))
+        .where(and(eq(inboxEventsTable.batchId, id), eq(inboxEventsTable.status, 'batched')))
         .run()
     })
   }
   hasMessages(routerId: string): boolean {
     return Boolean(
       this.db
-        .select({ seq: codexRouterMessages.seq })
-        .from(codexRouterMessages)
-        .where(eq(codexRouterMessages.routerId, routerId))
+        .select({ seq: routerMessagesTable.seq })
+        .from(routerMessagesTable)
+        .where(eq(routerMessagesTable.routerId, routerId))
         .limit(1)
         .get()
     )
@@ -342,27 +342,27 @@ export class RouterStore {
   credential(providerId: string): { type: string; secret: string } | null {
     const row = this.db
       .select()
-      .from(codexCredentials)
-      .where(eq(codexCredentials.providerId, providerId))
+      .from(credentialsTable)
+      .where(eq(credentialsTable.providerId, providerId))
       .get()
     return row ? { type: row.type, secret: row.secret } : null
   }
   credentialIds(): string[] {
     return this.db
-      .select({ id: codexCredentials.providerId })
-      .from(codexCredentials)
+      .select({ id: credentialsTable.providerId })
+      .from(credentialsTable)
       .all()
       .map((row) => row.id)
       .sort()
   }
   saveCredential(providerId: string, type: string, secret: string): void {
     this.db
-      .insert(codexCredentials)
+      .insert(credentialsTable)
       .values({ providerId, type, secret })
-      .onConflictDoUpdate({ target: codexCredentials.providerId, set: { type, secret } })
+      .onConflictDoUpdate({ target: credentialsTable.providerId, set: { type, secret } })
       .run()
   }
   removeCredential(providerId: string): void {
-    this.db.delete(codexCredentials).where(eq(codexCredentials.providerId, providerId)).run()
+    this.db.delete(credentialsTable).where(eq(credentialsTable.providerId, providerId)).run()
   }
 }

@@ -310,7 +310,7 @@ html.pane-resizing * {
   user-select: none !important;
 }
 /* The title bar makes room for the window controls and the sidebar's toggle. */
-.router-stage.sidebar-hidden .codex-topbar,
+.router-stage.sidebar-hidden .owls-topbar,
 .router-stage.sidebar-hidden .map-hud {
   padding-left: calc(var(--owl-toggle-left) + var(--owl-toggle-size) + 12px);
 }
@@ -344,16 +344,16 @@ html.pane-resizing * {
   position: relative;
   min-height: 0;
 }
-.router-chat .codex-conversation-column {
+.router-chat .owls-conversation-column {
   min-height: 0;
 }
-.router-chat .codex-conversation {
+.router-chat .owls-conversation {
   padding-bottom: 48px;
 }
 .router-topbar {
   padding-left: 30px;
 }
-.router-topbar .codex-task-title {
+.router-topbar .owls-task-title {
   font-size: 13px;
   font-weight: 550;
 }
@@ -553,7 +553,7 @@ html.pane-resizing * {
 .router-tray-head button:hover {
   color: var(--color-foreground);
 }
-.router-tray .codex-request {
+.router-tray .owls-request {
   margin: 0;
 }
 .router-tray-more {
@@ -717,13 +717,13 @@ html.pane-resizing * {
   border-radius: 50%;
   background: var(--color-card-muted);
 }
-.router-row .codex-user-message,
-.router-row .codex-markdown,
+.router-row .owls-user-message,
+.router-row .owls-markdown,
 .router-editor textarea {
   font-size: 14px;
   line-height: 24px;
 }
-.router-row .codex-user-message {
+.router-row .owls-user-message {
   width: auto;
   max-width: none;
   margin: 0;
@@ -731,31 +731,31 @@ html.pane-resizing * {
   border-radius: 0;
   background: transparent;
 }
-.router-row .codex-assistant-message {
+.router-row .owls-assistant-message {
   margin: 0;
 }
-.router-row .codex-message-label {
+.router-row .owls-message-label {
   display: none;
 }
-.router-row .codex-message-actions {
+.router-row .owls-message-actions {
   position: absolute;
   top: 0;
   right: 0;
   margin: 0;
   opacity: 0;
 }
-.router-row:hover .codex-message-actions,
-.router-row .codex-message-actions:focus-within {
+.router-row:hover .owls-message-actions,
+.router-row .owls-message-actions:focus-within {
   opacity: 0.55;
 }
 .router-row .router-dispatch {
   margin: 0;
 }
-.router-row .codex-working {
+.router-row .owls-working {
   min-height: 24px;
   padding: 0;
 }
-.router-chat .codex-inline-error {
+.router-chat .owls-inline-error {
   margin: 12px 0 0 var(--owl-thread-gutter);
 }
 /* The first-run guide: a quiet page, on the same left edge as the thread. */
@@ -876,7 +876,7 @@ html.pane-resizing * {
   gap: 8px;
   margin-top: 12px;
 }
-.router-guide-detail .codex-inline-error {
+.router-guide-detail .owls-inline-error {
   margin-top: 10px;
 }
 .router-guide-skip {
@@ -913,7 +913,7 @@ html.pane-resizing * {
   background: transparent;
 }
 /* The page is the field, as in a document: the caret alone shows focus. */
-.codex-app .router-editor textarea:focus-visible {
+.owls-app .router-editor textarea:focus-visible {
   outline: none;
 }
 .router-editor .router-target {
@@ -967,20 +967,20 @@ html.pane-resizing * {
   white-space: nowrap;
 }
 /* One line on the map: the target, the input, and the send button side by side. */
-.router-composer .codex-composer {
+.router-composer .owls-composer {
   display: flex;
   align-items: flex-end;
   gap: 6px;
   padding: 6px 7px 6px 12px;
 }
-.router-composer .codex-composer textarea {
+.router-composer .owls-composer textarea {
   flex: 1;
   min-width: 0;
   min-height: 34px;
   max-height: 120px;
   padding: 7px 0;
 }
-.router-composer .codex-composer-toolbar {
+.router-composer .owls-composer-toolbar {
   flex-shrink: 0;
   padding: 0;
 }

@@ -1,5 +1,5 @@
 /**
- * The part of the better-sqlite3 client that drizzle and CodexStore use, over
+ * The part of the better-sqlite3 client that drizzle and OwlsStore use, over
  * Node's built-in `node:sqlite`. better-sqlite3 is built for Electron, so plain
  * Node tests open real databases through this instead.
  */

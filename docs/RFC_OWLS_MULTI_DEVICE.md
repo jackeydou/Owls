@@ -88,7 +88,7 @@ Dreaming 也只整理本机的 thread（RFC_OWLS_MEMORY 第 11.4 节）。新增
 
 ### 5.1 本机 Router
 
-- `CodexRouter` 增加 `deviceId`，创建时写入本机 id，之后不变。
+- `Router` 增加 `deviceId`，创建时写入本机 id，之后不变。
 - 只有 `deviceId` 等于本机的 thread 才会进入 `RouterService` 的调度：唤醒、批次、steer、转发目标。
 - Router 引擎、原生会话和 `router.cwd` 都不变。因为 thread 不会换设备运行，不需要迁移上下文。
 - 三个引擎在多设备下的行为一致，没有哪个引擎需要特殊对待。

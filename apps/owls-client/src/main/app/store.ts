@@ -3,21 +3,21 @@ import Database from 'better-sqlite3'
 import { desc, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import type { CodexProject, CodexSession, CodexSettings } from '../../shared/codex.js'
+import type { AppSettings, Project, Session } from '../../shared/app.js'
 import {
   defaultLayoutSettings,
   projectSchema,
   sessionSchema,
   settingsSchema
-} from '../../shared/codex.js'
+} from '../../shared/app.js'
 import { defaultMemorySettings } from '../../shared/memory.js'
 import { defaultRouterSettings } from '../../shared/router.js'
 import { loadDeviceIdentity } from '../sync/device-identity.js'
 import { logChange } from '../sync/sync-log.js'
-import { CodexRuntimeError } from './errors.js'
-import { codexCommands, codexProjects, codexSessions, codexSettings } from './schema.js'
+import { OwlsError } from './errors.js'
+import { commandsTable, projectsTable, sessionsTable, settingsTable } from './schema.js'
 
-export class CodexStore {
+export class OwlsStore {
   private readonly sqlite: Database.Database
   /** Shared with the Router store so both write through one connection. */
   readonly db
@@ -31,8 +31,8 @@ export class CodexStore {
     migrate(this.db, { migrationsFolder })
     this.deviceId = loadDeviceIdentity(this.db).deviceId
   }
-  settings(): CodexSettings {
-    const row = this.db.select().from(codexSettings).get()
+  settings(): AppSettings {
+    const row = this.db.select().from(settingsTable).get()
     return row
       ? settingsSchema.parse(row.value)
       : {
@@ -54,27 +54,27 @@ export class CodexStore {
           updateChannel: null
         }
   }
-  saveSettings(value: CodexSettings): CodexSettings {
+  saveSettings(value: AppSettings): AppSettings {
     const settings = settingsSchema.parse(value)
     this.db
-      .insert(codexSettings)
+      .insert(settingsTable)
       .values({ id: 'settings', value: settings })
-      .onConflictDoUpdate({ target: codexSettings.id, set: { value: settings } })
+      .onConflictDoUpdate({ target: settingsTable.id, set: { value: settings } })
       .run()
     return settings
   }
-  sessions(): CodexSession[] {
+  sessions(): Session[] {
     return this.db
       .select()
-      .from(codexSessions)
-      .orderBy(desc(codexSessions.updatedAt))
+      .from(sessionsTable)
+      .orderBy(desc(sessionsTable.updatedAt))
       .all()
       .map((row) => sessionSchema.parse(row.value))
   }
-  saveSession(value: CodexSession): void {
+  saveSession(value: Session): void {
     const session = sessionSchema.parse(value)
     this.db.transaction((tx) => {
-      tx.insert(codexSessions)
+      tx.insert(sessionsTable)
         .values({
           id: session.id,
           ownerDeviceId: this.deviceId,
@@ -82,7 +82,7 @@ export class CodexStore {
           value: session
         })
         .onConflictDoUpdate({
-          target: codexSessions.id,
+          target: sessionsTable.id,
           set: { updatedAt: session.updatedAt, value: session }
         })
         .run()
@@ -91,40 +91,40 @@ export class CodexStore {
   }
   removeSession(id: string): void {
     this.db.transaction((tx) => {
-      tx.delete(codexCommands).where(eq(codexCommands.sessionId, id)).run()
-      tx.delete(codexSessions).where(eq(codexSessions.id, id)).run()
+      tx.delete(commandsTable).where(eq(commandsTable.sessionId, id)).run()
+      tx.delete(sessionsTable).where(eq(sessionsTable.id, id)).run()
       logChange(tx, 'session', id)
     })
   }
-  projects(): CodexProject[] {
+  projects(): Project[] {
     return this.db
       .select()
-      .from(codexProjects)
+      .from(projectsTable)
       .all()
       .map((row) => projectSchema.parse(row.value))
       .sort((a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path))
   }
-  saveProject(project: CodexProject): void {
+  saveProject(project: Project): void {
     this.db.transaction((tx) => {
-      tx.insert(codexProjects)
+      tx.insert(projectsTable)
         .values({ id: project.id, ownerDeviceId: this.deviceId, value: project })
-        .onConflictDoUpdate({ target: codexProjects.id, set: { value: project } })
+        .onConflictDoUpdate({ target: projectsTable.id, set: { value: project } })
         .run()
       logChange(tx, 'project', project.id)
     })
   }
   acceptCommand(id: string, sessionId: string, text: string): boolean {
     const inputHash = createHash('sha256').update(sessionId).update('\0').update(text).digest('hex')
-    const existing = this.db.select().from(codexCommands).where(eq(codexCommands.id, id)).get()
+    const existing = this.db.select().from(commandsTable).where(eq(commandsTable.id, id)).get()
     if (existing) {
       if (existing.inputHash !== inputHash)
-        throw new CodexRuntimeError(
+        throw new OwlsError(
           'invalid_request',
           'Command ID was already used for a different message.'
         )
       return false
     }
-    this.db.insert(codexCommands).values({ id, sessionId, inputHash }).run()
+    this.db.insert(commandsTable).values({ id, sessionId, inputHash }).run()
     return true
   }
   close(): void {

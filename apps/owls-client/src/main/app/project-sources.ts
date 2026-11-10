@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync, realpathSync, statSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { parseGitHubRepo } from '../../shared/projects.js'
-import { CodexRuntimeError } from './errors.js'
+import { OwlsError } from './errors.js'
 
 const CLONE_TIMEOUT_MS = 10 * 60_000
 const GIT_TIMEOUT_MS = 30_000
@@ -33,7 +33,7 @@ function parentFolder(parent: string | null, defaultParent: string): string {
     return realpathSync(defaultParent)
   }
   if (!isAbsolute(parent) || !existsSync(parent) || !statSync(parent).isDirectory())
-    throw new CodexRuntimeError('invalid_request', 'Choose an existing folder.')
+    throw new OwlsError('invalid_request', 'Choose an existing folder.')
   return realpathSync(parent)
 }
 
@@ -47,7 +47,7 @@ export async function cloneGitHubProject(
   defaultParent: string
 ): Promise<string> {
   const ref = parseGitHubRepo(input.url)
-  if (!ref) throw new CodexRuntimeError('project_url_invalid', 'Paste a GitHub repository URL.')
+  if (!ref) throw new OwlsError('project_url_invalid', 'Paste a GitHub repository URL.')
   const target = join(parentFolder(input.parent, defaultParent), ref.repo)
   if (existsSync(target)) {
     const origin = await git(['remote', 'get-url', 'origin'], target)
@@ -58,11 +58,11 @@ export async function cloneGitHubProject(
       same.repo.toLowerCase() === ref.repo.toLowerCase()
     )
       return target
-    throw new CodexRuntimeError('project_exists', `A folder named ${ref.repo} already exists.`)
+    throw new OwlsError('project_exists', `A folder named ${ref.repo} already exists.`)
   }
   const clone = await git(['clone', '--', ref.cloneUrl, target], null, CLONE_TIMEOUT_MS)
   // Raw git output can hold paths and credentials, so it never reaches the UI.
-  if (!clone.ok) throw new CodexRuntimeError('project_clone_failed', 'git clone failed')
+  if (!clone.ok) throw new OwlsError('project_clone_failed', 'git clone failed')
   return target
 }
 
@@ -78,7 +78,7 @@ export async function createQuickProject(
 ): Promise<string> {
   const target = join(parentFolder(input.parent, defaultParent), input.name)
   if (existsSync(target))
-    throw new CodexRuntimeError('project_exists', `A folder named ${input.name} already exists.`)
+    throw new OwlsError('project_exists', `A folder named ${input.name} already exists.`)
   mkdirSync(target)
   if ((await git(['init', '--quiet'], target)).ok)
     await git(['commit', '--allow-empty', '--quiet', '-m', 'Initial commit'], target)
