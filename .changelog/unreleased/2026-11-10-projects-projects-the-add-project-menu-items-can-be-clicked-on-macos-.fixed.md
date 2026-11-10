@@ -1,0 +1,1 @@
+- Projects: the add-project menu items can be clicked on macOS; the menu no longer sits under the sidebar's window drag region.

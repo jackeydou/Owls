@@ -6,6 +6,10 @@ import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from 'reac
  * A dropdown menu built on Radix, which brings keyboard navigation, typeahead,
  * focus return, and dismissal. Compose `Menu`, `MenuTrigger`, and `MenuContent`
  * with `MenuItem`, `MenuSeparator`, and `MenuLabel` inside.
+ *
+ * The content opts out of window dragging: Electron gives a window drag region
+ * every click over it, whatever is stacked on top, and the sidebars a menu
+ * opens from are drag regions.
  */
 export const Menu = DropdownMenu.Root
 export const MenuTrigger = DropdownMenu.Trigger
@@ -20,7 +24,7 @@ export const MenuContent = forwardRef<
       sideOffset={sideOffset}
       collisionPadding={collisionPadding}
       className={cn(
-        'z-[90] min-w-[220px] max-w-[320px] rounded-xl border border-border/70 bg-card p-1 text-[13px] text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
+        'z-[90] min-w-[220px] [-webkit-app-region:no-drag] max-w-[320px] rounded-xl border border-border/70 bg-card p-1 text-[13px] text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
         className
       )}
       {...props}

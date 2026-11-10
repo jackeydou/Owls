@@ -4,7 +4,8 @@ import { type HTMLAttributes, useEffect, useRef } from 'react'
 /**
  * A modal built on the native `<dialog>`, which brings the focus trap, the
  * backdrop, and Escape. Mount it to open it. Escape stops here so a window-level
- * shortcut does not also go back a level behind the modal.
+ * shortcut does not also go back a level behind the modal. It opts out of
+ * window dragging so a drag region under it cannot swallow its clicks.
  */
 export function Dialog({
   onClose,
@@ -22,7 +23,7 @@ export function Dialog({
     <dialog
       ref={ref}
       className={cn(
-        'm-auto w-[min(480px,calc(100vw-48px))] rounded-xl border border-border bg-card p-5 text-foreground shadow-lg backdrop:bg-black/30',
+        'm-auto w-[min(480px,calc(100vw-48px))] [-webkit-app-region:no-drag] rounded-xl border border-border bg-card p-5 text-foreground shadow-lg backdrop:bg-black/30',
         className
       )}
       onCancel={(event) => {
