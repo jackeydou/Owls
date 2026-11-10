@@ -24,7 +24,7 @@
 }
 .codex-settings-nav hr {
   flex-shrink: 0;
-  margin: 8px;
+  margin: 10px 8px;
   border: 0;
   border-top: 1px solid var(--color-border);
 }
@@ -43,21 +43,24 @@
   min-height: 0;
   overflow: auto;
 }
+/* Left-aligned under the title bar, with a generous measure and one clear page title. */
 .codex-settings-content {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 0 32px 48px;
+  max-width: 852px;
+  padding: 20px 36px 64px;
 }
 .codex-settings-section h2 {
-  font-size: 15px;
-  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 .codex-settings-section h2 + p,
 .codex-section-heading p {
-  margin-top: 4px;
+  margin-top: 6px;
   color: var(--color-muted-foreground);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.55;
 }
 .codex-section-heading {
   display: flex;
@@ -105,32 +108,32 @@
   min-width: 0;
 }
 .codex-setting-row label {
-  font-size: 12px;
+  font-size: 13px;
 }
 /* One control column, so every row's right edge and width line up. */
 .codex-setting-row select,
 .codex-setting-row .router-input {
   flex-shrink: 0;
-  width: 220px;
+  width: 200px;
   min-width: 0;
   height: 30px;
-  padding: 0 8px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 13px;
 }
 /* Rows in a pane run edge to edge, split by a hairline; the guide reuses them without it. */
 .codex-settings-section .codex-setting-row {
   flex-wrap: wrap;
   row-gap: 0;
-  min-height: 56px;
+  min-height: 78px;
   margin: 0;
-  padding: 11px 0;
+  padding: 20px 0;
   border-top: 1px solid var(--color-border);
 }
 .codex-settings-section h2 + p + .codex-setting-row,
 .codex-settings-section h2 + .codex-setting-row,
 .codex-section-heading + .codex-setting-row {
-  margin-top: 8px;
+  margin-top: 16px;
   border-top: 0;
 }
 .codex-setting-text h3,
@@ -138,17 +141,18 @@
   display: block;
   overflow-wrap: anywhere;
   font-size: 13px;
-  font-weight: 450;
+  font-weight: 500;
 }
 .codex-setting-text small {
   color: var(--color-muted-foreground);
   font-size: 11px;
 }
+/* Same size as the name: color alone sets the two apart. */
 .codex-setting-text p {
-  margin-top: 2px;
+  margin-top: 4px;
   color: var(--color-muted-foreground);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.55;
 }
 .codex-setting-detail {
   flex: 0 0 100%;
@@ -172,8 +176,8 @@
 .codex-note {
   margin-top: 6px;
   color: var(--color-muted-foreground);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.55;
 }
 .codex-setting-row + .codex-note {
   padding-top: 12px;
@@ -217,7 +221,6 @@
 }
 /* The Dock artwork keeps Apple's icon margin, which reads as undersized inside the app. */
 .codex-logo-option img,
-.router-sidebar-logo img,
 .router-guide > img {
   transform: scale(1.24);
 }

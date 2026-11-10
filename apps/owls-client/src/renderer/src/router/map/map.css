@@ -462,6 +462,8 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
+  min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
 }
 .map-hud-title strong {
@@ -568,7 +570,7 @@
   padding-right: calc(var(--owl-panel-width) + 16px);
 }
 .router-stage:has(> .router-panel) .map-filter,
-.router-stage:has(> .router-panel) .map-hud > button:last-child {
+.router-stage:has(> .router-panel) .map-back {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {

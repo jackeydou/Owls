@@ -4,7 +4,12 @@ import { desc, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import type { CodexProject, CodexSession, CodexSettings } from '../../shared/codex.js'
-import { projectSchema, sessionSchema, settingsSchema } from '../../shared/codex.js'
+import {
+  defaultLayoutSettings,
+  projectSchema,
+  sessionSchema,
+  settingsSchema
+} from '../../shared/codex.js'
 import { defaultMemorySettings } from '../../shared/memory.js'
 import { defaultRouterSettings } from '../../shared/router.js'
 import { loadDeviceIdentity } from '../sync/device-identity.js'
@@ -44,7 +49,8 @@ export class CodexStore {
           claudeModel: null,
           claudeEffort: null,
           router: defaultRouterSettings,
-          memory: defaultMemorySettings
+          memory: defaultMemorySettings,
+          layout: defaultLayoutSettings
         }
   }
   saveSettings(value: CodexSettings): CodexSettings {

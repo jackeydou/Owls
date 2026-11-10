@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCodexStore } from '../codex/store'
 import { threadTitle, useThreadTitle } from './activity'
+import { ProjectsToggle } from './ProjectsSidebar'
 import { RequestTray } from './RequestTray'
 import { RouterGuide } from './RouterGuide'
 import { RouterSetupNotice, useRouterSetup } from './RouterSetup'
@@ -56,6 +57,7 @@ export function RouterChat() {
               onClick={() => showPanel({ kind: 'router', routerId: router.id })}
             />
           ) : null}
+          <ProjectsToggle />
         </div>
       </header>
       <div className="codex-conversation-column">

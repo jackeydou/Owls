@@ -10,8 +10,10 @@ import type {
   CodexRouter,
   CodexSession,
   CodexSettings,
+  ResizablePane,
   RespondCodexRequest
 } from '../../../shared/codex'
+import { defaultLayoutSettings, paneWidthBounds } from '../../../shared/codex'
 import type { GitHubAccount } from '../../../shared/github'
 import { defaultMemorySettings } from '../../../shared/memory'
 import { defaultRouterSettings } from '../../../shared/router'
@@ -86,12 +88,24 @@ type State = {
   /** Opens the folder picker. Resolves to the project's id, or null when canceled. */
   pickProject(): Promise<string | null>
   toggleSidebar(): void
+  toggleProjects(): void
+  /** Clamps and persists one pane's width, typically once a drag ends. */
+  setPaneWidth(pane: ResizablePane, width: number): void
   connect(): Promise<void>
   selectExecutable(): Promise<void>
   connectClaude(): Promise<void>
   selectClaudeExecutable(): Promise<void>
   saveSettings(settings: CodexSettings): Promise<void>
   respond(input: RespondCodexRequest): Promise<void>
+}
+export const paneWidthKey = {
+  sidebar: 'sidebarWidth',
+  projects: 'projectsWidth',
+  panel: 'panelWidth'
+} as const satisfies Record<ResizablePane, keyof typeof defaultLayoutSettings>
+export function clampPaneWidth(pane: ResizablePane, width: number): number {
+  const { min, max } = paneWidthBounds[pane]
+  return Math.round(Math.min(max, Math.max(min, width)))
 }
 /** The most recently active thread in a project, or across all of them. */
 function latestThread(routers: CodexRouter[], projectId?: string): CodexRouter | null {
@@ -136,7 +150,8 @@ export const useCodexStore = create<State>((set, get) => {
       claudeModel: null,
       claudeEffort: null,
       router: defaultRouterSettings,
-      memory: defaultMemorySettings
+      memory: defaultMemorySettings,
+      layout: defaultLayoutSettings
     },
     connection: {
       status: 'disconnected',
@@ -299,6 +314,23 @@ export const useCodexStore = create<State>((set, get) => {
       const { settings, saveSettings } = get()
       void saveSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })
     },
+    toggleProjects: () => {
+      const { settings, saveSettings } = get()
+      const layout = { ...settings.layout, projectsOpen: !settings.layout.projectsOpen }
+      // Applied before the save resolves, so the title bar button answers at once.
+      set({ settings: { ...settings, layout } })
+      void saveSettings({ ...settings, layout })
+    },
+    setPaneWidth: (pane, width) => {
+      const { settings, saveSettings } = get()
+      const next = clampPaneWidth(pane, width)
+      const key = paneWidthKey[pane]
+      if (settings.layout[key] === next) return
+      const layout = { ...settings.layout, [key]: next }
+      // Held locally first, so a released pane doesn't jump back while the save is in flight.
+      set({ settings: { ...settings, layout } })
+      void saveSettings({ ...settings, layout })
+    },
     connect: async () => {
       const connection = await action(() => window.codex.connect())
       if (connection) set({ connection })
@@ -335,7 +367,8 @@ export const useCodexStore = create<State>((set, get) => {
           claudeModel: settings.claudeModel,
           claudeEffort: settings.claudeEffort,
           router: settings.router,
-          memory: settings.memory
+          memory: settings.memory,
+          layout: settings.layout
         })
       )
       if (saved) set({ settings: saved })
