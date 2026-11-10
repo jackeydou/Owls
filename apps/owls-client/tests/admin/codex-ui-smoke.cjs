@@ -464,13 +464,34 @@ app
       await waitFor("Boolean(document.querySelector('.router-projects .router-project'))")
       await waitFor(() => host.snapshot().settings.layout.projectsOpen === true)
       // Adding a project asks how first: a folder, a GitHub repository, or Quick start.
-      const openAddMenu = () =>
-        evaluate(
-          "document.querySelector('.router-projects-head button').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }))"
-        )
+      // Real mouse input, not element.click(): the menu has to take an actual press.
+      const mouseClick = async (element) => {
+        const { x, y } = await evaluate(`(() => {
+          const rect = (${element}).getBoundingClientRect()
+          return { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) }
+        })()`)
+        window.webContents.sendInputEvent({ type: 'mouseMove', x, y })
+        window.webContents.sendInputEvent({
+          type: 'mouseDown',
+          x,
+          y,
+          button: 'left',
+          clickCount: 1
+        })
+        window.webContents.sendInputEvent({ type: 'mouseUp', x, y, button: 'left', clickCount: 1 })
+      }
+      const openAddMenu = () => mouseClick("document.querySelector('.router-projects-head button')")
       const menuItems = "[...document.querySelectorAll('[role=menuitem]')]"
       await openAddMenu()
       await waitFor(`${menuItems}.length === 4`)
+      // The sidebars are window drag regions, which take every click over them on macOS
+      // whatever is stacked on top, so the menu must opt out or its items never get one.
+      assert.equal(
+        await evaluate(
+          "getComputedStyle(document.querySelector('[role=menu]')).getPropertyValue('-webkit-app-region')"
+        ),
+        'no-drag'
+      )
       assert.deepEqual(await evaluate(`${menuItems}.map((item) => item.textContent)`), [
         '打开项目',
         '打开 GitHub 项目',
@@ -480,7 +501,7 @@ app
       await capture('add-project-menu')
       // Quick start shows where the project goes, and an existing folder is refused in place.
       mkdirSync(join(temp, 'projects', 'taken'), { recursive: true })
-      await evaluate(`${menuItems}[2].click()`)
+      await mouseClick(`${menuItems}[2]`)
       await waitFor("Boolean(document.querySelector('.router-new-project input'))")
       await evaluate(`(() => {
         const input = document.querySelector('.router-new-project input')
@@ -501,7 +522,7 @@ app
       await waitFor("!document.querySelector('.router-new-project')")
       await openAddMenu()
       await waitFor(`${menuItems}.length >= 3`)
-      await evaluate(`${menuItems}[1].click()`)
+      await mouseClick(`${menuItems}[1]`)
       await waitFor("Boolean(document.querySelector('.router-new-project input'))")
       await evaluate(`(() => {
         const input = document.querySelector('.router-new-project input')
@@ -516,6 +537,18 @@ app
         "document.querySelector('.router-new-project footer button[type=button]').click()"
       )
       await waitFor("!document.querySelector('.router-new-project')")
+      // Open project still goes to the system folder picker.
+      const systemPicker = dialog.showOpenDialog
+      let pickerAsks = 0
+      dialog.showOpenDialog = async () => {
+        pickerAsks += 1
+        return { canceled: true, filePaths: [] }
+      }
+      await openAddMenu()
+      await waitFor(`${menuItems}.length >= 3`)
+      await mouseClick(`${menuItems}[0]`)
+      await waitFor(() => pickerAsks === 1)
+      dialog.showOpenDialog = systemPicker
       // Every sidebar resizes; the keyboard steps the same handle a drag moves.
       const sidebarHandle = "document.querySelector('.router-sidebar > [role=separator]')"
       await evaluate(
