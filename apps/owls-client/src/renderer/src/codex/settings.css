@@ -315,3 +315,10 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* Inside a project only the selected page has a background: the project row and the other
+   pages show the pointer through their text color alone. */
+.codex-settings-nav .codex-settings-project:hover,
+.codex-settings-subnav .router-sidebar-item:not([aria-current="true"]):hover {
+  background: transparent;
+  color: var(--color-foreground);
+}
