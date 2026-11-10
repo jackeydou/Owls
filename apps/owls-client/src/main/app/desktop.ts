@@ -53,9 +53,9 @@ let quitPrompt = false
 
 function migrationsFolder(): string {
   const candidates = [
-    join(process.resourcesPath, 'drizzle-codex'),
-    join(app.getAppPath(), 'drizzle-codex'),
-    join(__dirname, '../../drizzle-codex')
+    join(process.resourcesPath, 'migrations'),
+    join(app.getAppPath(), 'migrations'),
+    join(__dirname, '../../migrations')
   ]
   const path = candidates.find((p) => existsSync(join(p, 'meta/_journal.json')))
   if (!path) throw new Error('The Codex database migrations are missing from this installation.')

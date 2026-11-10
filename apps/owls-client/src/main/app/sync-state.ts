@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 import { syncStateTable } from './schema.js'
 import type { OwlsStore } from './store.js'
 
-/** The row in `codex_sync_state` holding the change version. */
+/** The row in `sync_state` holding the change version. */
 const SYNC_ROW = 'account'
 /** The row holding the last `device_seq` handed to the sync log. */
 const DEVICE_SEQ_ROW = 'device-seq'

@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict'
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { memoryRouterStore } from '../fixtures/router-store.mjs'
 import { openSqlite } from '../fixtures/sqlite.mjs'
 
@@ -24,7 +22,7 @@ const {
   WorkerPool
 } = require('../../out/main/app/runtime.js')
 
-const MIGRATIONS = resolve(dirname(fileURLToPath(import.meta.url)), '../../drizzle-codex')
+const MIGRATIONS = resolve(dirname(fileURLToPath(import.meta.url)), '../../migrations')
 const NOW = '2026-11-08T12:00:00.000Z'
 const DEVICE_ID = /^dv_[0-9a-f]{8}$/
 
@@ -38,18 +36,6 @@ function openStore(t, path, migrations = MIGRATIONS) {
   const store = new OwlsStore(client, migrations)
   t.after(() => client.close())
   return { store, client }
-}
-/** The migrations up to and including `tag`, as an app that predates the rest shipped them. */
-function migrationsThrough(dir, tag) {
-  const out = join(dir, 'migrations')
-  cpSync(MIGRATIONS, out, { recursive: true })
-  const journalPath = join(out, 'meta', '_journal.json')
-  const journal = JSON.parse(readFileSync(journalPath, 'utf8'))
-  const last = journal.entries.findIndex((entry) => entry.tag === tag)
-  assert.ok(last >= 0, `migration ${tag} exists`)
-  journal.entries = journal.entries.slice(0, last + 1)
-  writeFileSync(journalPath, JSON.stringify(journal))
-  return out
 }
 function thread(id, overrides = {}) {
   return {
@@ -141,109 +127,6 @@ test('the device id is made once and kept across restarts', (t) => {
   assert.equal(again.store.deviceId, first.store.deviceId)
 })
 
-test('records from before device ids get this device as owner and enter the sync log', (t) => {
-  const dir = tempDir(t)
-  const path = join(dir, 'owls.db')
-  // A database written by the app before the multi-device migration.
-  const legacy = openSqlite(path)
-  migrate(drizzle(legacy), { migrationsFolder: migrationsThrough(dir, '0001_memory') })
-  const insert = (sql, ...params) => legacy.prepare(sql).run(...params)
-  insert('INSERT INTO codex_projects (id, value) VALUES (?, ?)', 'p1', '{}')
-  insert('INSERT INTO codex_projects (id, value) VALUES (?, ?)', 'p0', '{}')
-  insert(
-    'INSERT INTO codex_threads (id, rev, updated_at, value) VALUES (?, ?, ?, ?)',
-    't2',
-    2,
-    NOW,
-    JSON.stringify(thread('t2', { rev: 2 }))
-  )
-  insert(
-    'INSERT INTO codex_threads (id, rev, updated_at, value) VALUES (?, ?, ?, ?)',
-    't1',
-    1,
-    NOW,
-    JSON.stringify(thread('t1', { rev: 1 }))
-  )
-  for (const [threadId, itemId, position, rev] of [
-    ['t2', 'b', 1, 2],
-    ['t1', 'a', 0, 1]
-  ])
-    insert(
-      'INSERT INTO codex_thread_items (thread_id, item_id, position, rev, value) VALUES (?, ?, ?, ?, ?)',
-      threadId,
-      itemId,
-      position,
-      rev,
-      JSON.stringify(item(itemId))
-    )
-  insert(
-    'INSERT INTO codex_workers (id, router_id, session_id, updated_at, value) VALUES (?, ?, ?, ?, ?)',
-    'w_1',
-    't1',
-    's1',
-    NOW,
-    '{}'
-  )
-  insert('INSERT INTO codex_sessions (id, updated_at, value) VALUES (?, ?, ?)', 's1', NOW, '{}')
-  insert(
-    'INSERT INTO codex_memory_categories (id, rev, updated_at, value) VALUES (?, ?, ?, ?)',
-    'c1',
-    3,
-    NOW,
-    '{}'
-  )
-  insert(
-    'INSERT INTO codex_memories (id, rev, store, status, updated_at, value) VALUES (?, ?, ?, ?, ?, ?)',
-    'm1',
-    4,
-    'personal',
-    'active',
-    NOW,
-    '{}'
-  )
-  legacy.close()
-
-  const { store, client } = openStore(t, path)
-  const { deviceId } = store
-  assert.match(deviceId, DEVICE_ID)
-  for (const table of ['codex_projects', 'codex_threads', 'codex_workers', 'codex_sessions']) {
-    const owners = client.prepare(`SELECT DISTINCT owner_device_id AS owner FROM ${table}`).all()
-    assert.deepEqual(
-      owners.map((row) => row.owner),
-      [deviceId],
-      `${table} rows belong to this device`
-    )
-  }
-  assert.deepEqual(
-    new RouterStore(store).routers().map((r) => [r.id, r.deviceId]),
-    [
-      ['t1', deviceId],
-      ['t2', deviceId]
-    ],
-    'thread values carry the device id and still parse'
-  )
-  const log = new SyncLog(store)
-  // Seeded by kind, then by version or id, numbered from 1.
-  assert.deepEqual(entries(log), [
-    '1 project p0',
-    '2 project p1',
-    '3 thread t1',
-    '4 thread t2',
-    '5 item t1/a',
-    '6 item t2/b',
-    '7 worker w_1',
-    '8 session s1',
-    '9 memory-category c1',
-    '10 memory m1'
-  ])
-  client.close()
-
-  // A later start neither changes the id nor seeds again.
-  const reopened = openStore(t, path)
-  assert.equal(reopened.store.deviceId, deviceId)
-  assert.equal(new SyncLog(reopened.store).pending().length, 10)
-})
-
 test('saves log each record under the next device sequence, apart from the change version', (t) => {
   const { store, client } = openStore(t, join(tempDir(t), 'owls.db'))
   const routers = new RouterStore(store)
@@ -274,7 +157,7 @@ test('saves log each record under the next device sequence, apart from the chang
     '6 session s1',
     '7 memory-category c1'
   ])
-  for (const table of ['codex_projects', 'codex_threads', 'codex_workers', 'codex_sessions']) {
+  for (const table of ['projects', 'threads', 'workers', 'sessions']) {
     const row = client.prepare(`SELECT owner_device_id AS owner FROM ${table}`).get()
     assert.equal(row.owner, deviceId, `${table} rows are written as this device`)
   }

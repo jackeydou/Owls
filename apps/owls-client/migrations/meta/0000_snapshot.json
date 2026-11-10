@@ -1,11 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "2f398c76-4852-4b7d-bc77-5900b3c32770",
-  "prevId": "bfc21a93-58dc-4b75-b830-9844824cb1eb",
+  "id": "cb16cb54-e889-4c7c-a958-c029eb0e5acc",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "codex_commands": {
-      "name": "codex_commands",
+    "commands": {
+      "name": "commands",
       "columns": {
         "id": {
           "name": "id",
@@ -35,8 +35,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_credentials": {
-      "name": "codex_credentials",
+    "credentials": {
+      "name": "credentials",
       "columns": {
         "provider_id": {
           "name": "provider_id",
@@ -66,8 +66,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_inbox_events": {
-      "name": "codex_inbox_events",
+    "inbox_events": {
+      "name": "inbox_events",
       "columns": {
         "seq": {
           "name": "seq",
@@ -113,19 +113,14 @@
         }
       },
       "indexes": {
-        "codex_inbox_events_id_unique": {
-          "name": "codex_inbox_events_id_unique",
-          "columns": [
-            "id"
-          ],
+        "inbox_events_id_unique": {
+          "name": "inbox_events_id_unique",
+          "columns": ["id"],
           "isUnique": true
         },
-        "codex_inbox_events_router_status": {
-          "name": "codex_inbox_events_router_status",
-          "columns": [
-            "router_id",
-            "status"
-          ],
+        "inbox_events_router_status": {
+          "name": "inbox_events_router_status",
+          "columns": ["router_id", "status"],
           "isUnique": false
         }
       },
@@ -134,8 +129,39 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_memories": {
-      "name": "codex_memories",
+    "local_device": {
+      "name": "local_device",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "device_id": {
+          "name": "device_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "memories": {
+      "name": "memories",
       "columns": {
         "id": {
           "name": "id",
@@ -202,19 +228,14 @@
         }
       },
       "indexes": {
-        "codex_memories_rev": {
-          "name": "codex_memories_rev",
-          "columns": [
-            "rev"
-          ],
+        "memories_rev": {
+          "name": "memories_rev",
+          "columns": ["rev"],
           "isUnique": false
         },
-        "codex_memories_scope": {
-          "name": "codex_memories_scope",
-          "columns": [
-            "store",
-            "status"
-          ],
+        "memories_scope": {
+          "name": "memories_scope",
+          "columns": ["store", "status"],
           "isUnique": false
         }
       },
@@ -223,8 +244,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_memory_categories": {
-      "name": "codex_memory_categories",
+    "memory_categories": {
+      "name": "memory_categories",
       "columns": {
         "id": {
           "name": "id",
@@ -256,11 +277,9 @@
         }
       },
       "indexes": {
-        "codex_memory_categories_rev": {
-          "name": "codex_memory_categories_rev",
-          "columns": [
-            "rev"
-          ],
+        "memory_categories_rev": {
+          "name": "memory_categories_rev",
+          "columns": ["rev"],
           "isUnique": false
         }
       },
@@ -269,8 +288,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_memory_cursors": {
-      "name": "codex_memory_cursors",
+    "memory_cursors": {
+      "name": "memory_cursors",
       "columns": {
         "thread_id": {
           "name": "thread_id",
@@ -307,8 +326,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_memory_runs": {
-      "name": "codex_memory_runs",
+    "memory_runs": {
+      "name": "memory_runs",
       "columns": {
         "id": {
           "name": "id",
@@ -347,11 +366,9 @@
         }
       },
       "indexes": {
-        "codex_memory_runs_created": {
-          "name": "codex_memory_runs_created",
-          "columns": [
-            "created_at"
-          ],
+        "memory_runs_created": {
+          "name": "memory_runs_created",
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -360,14 +377,21 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_projects": {
-      "name": "codex_projects",
+    "projects": {
+      "name": "projects",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
           "notNull": true,
+          "autoincrement": false
+        },
+        "owner_device_id": {
+          "name": "owner_device_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "value": {
@@ -384,8 +408,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_router_batches": {
-      "name": "codex_router_batches",
+    "router_batches": {
+      "name": "router_batches",
       "columns": {
         "id": {
           "name": "id",
@@ -424,12 +448,9 @@
         }
       },
       "indexes": {
-        "codex_router_batches_router_status": {
-          "name": "codex_router_batches_router_status",
-          "columns": [
-            "router_id",
-            "status"
-          ],
+        "router_batches_router_status": {
+          "name": "router_batches_router_status",
+          "columns": ["router_id", "status"],
           "isUnique": false
         }
       },
@@ -438,8 +459,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_router_messages": {
-      "name": "codex_router_messages",
+    "router_messages": {
+      "name": "router_messages",
       "columns": {
         "router_id": {
           "name": "router_id",
@@ -473,25 +494,29 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "codex_router_messages_router_id_seq_pk": {
-          "columns": [
-            "router_id",
-            "seq"
-          ],
-          "name": "codex_router_messages_router_id_seq_pk"
+        "router_messages_router_id_seq_pk": {
+          "columns": ["router_id", "seq"],
+          "name": "router_messages_router_id_seq_pk"
         }
       },
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_sessions": {
-      "name": "codex_sessions",
+    "sessions": {
+      "name": "sessions",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
           "notNull": true,
+          "autoincrement": false
+        },
+        "owner_device_id": {
+          "name": "owner_device_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "updated_at": {
@@ -515,8 +540,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_settings": {
-      "name": "codex_settings",
+    "settings": {
+      "name": "settings",
       "columns": {
         "id": {
           "name": "id",
@@ -539,8 +564,57 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_sync_state": {
-      "name": "codex_sync_state",
+    "sync_log": {
+      "name": "sync_log",
+      "columns": {
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_id": {
+          "name": "record_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "device_seq": {
+          "name": "device_seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "acked": {
+          "name": "acked",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "sync_log_seq": {
+          "name": "sync_log_seq",
+          "columns": ["device_seq"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "sync_log_kind_record_id_pk": {
+          "columns": ["kind", "record_id"],
+          "name": "sync_log_kind_record_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "sync_state": {
+      "name": "sync_state",
       "columns": {
         "id": {
           "name": "id",
@@ -563,8 +637,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_thread_items": {
-      "name": "codex_thread_items",
+    "thread_items": {
+      "name": "thread_items",
       "columns": {
         "thread_id": {
           "name": "thread_id",
@@ -603,38 +677,29 @@
         }
       },
       "indexes": {
-        "codex_thread_items_position": {
-          "name": "codex_thread_items_position",
-          "columns": [
-            "thread_id",
-            "position"
-          ],
+        "thread_items_position": {
+          "name": "thread_items_position",
+          "columns": ["thread_id", "position"],
           "isUnique": false
         },
-        "codex_thread_items_rev": {
-          "name": "codex_thread_items_rev",
-          "columns": [
-            "thread_id",
-            "rev"
-          ],
+        "thread_items_rev": {
+          "name": "thread_items_rev",
+          "columns": ["thread_id", "rev"],
           "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "codex_thread_items_thread_id_item_id_pk": {
-          "columns": [
-            "thread_id",
-            "item_id"
-          ],
-          "name": "codex_thread_items_thread_id_item_id_pk"
+        "thread_items_thread_id_item_id_pk": {
+          "columns": ["thread_id", "item_id"],
+          "name": "thread_items_thread_id_item_id_pk"
         }
       },
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_threads": {
-      "name": "codex_threads",
+    "threads": {
+      "name": "threads",
       "columns": {
         "id": {
           "name": "id",
@@ -648,6 +713,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "owner_device_id": {
+          "name": "owner_device_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "updated_at": {
@@ -666,11 +738,9 @@
         }
       },
       "indexes": {
-        "codex_threads_rev": {
-          "name": "codex_threads_rev",
-          "columns": [
-            "rev"
-          ],
+        "threads_rev": {
+          "name": "threads_rev",
+          "columns": ["rev"],
           "isUnique": false
         }
       },
@@ -679,8 +749,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "codex_workers": {
-      "name": "codex_workers",
+    "workers": {
+      "name": "workers",
       "columns": {
         "id": {
           "name": "id",
@@ -703,6 +773,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "owner_device_id": {
+          "name": "owner_device_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "text",
@@ -719,11 +796,9 @@
         }
       },
       "indexes": {
-        "codex_workers_session_id_unique": {
-          "name": "codex_workers_session_id_unique",
-          "columns": [
-            "session_id"
-          ],
+        "workers_session_id_unique": {
+          "name": "workers_session_id_unique",
+          "columns": ["session_id"],
           "isUnique": true
         }
       },

@@ -80,7 +80,7 @@ buttons are never rebound to a new process.
 ## Persistence and recovery
 
 The database is `owls.db` under the existing configured data root.
-`drizzle-codex/` contains its independent forward-only schema.
+`migrations/` contains its independent forward-only schema.
 Existing Pi data is not imported. This change does not erase the user's
 native Codex account or native sessions.
 
@@ -126,7 +126,7 @@ workspace and remove it when finished. Logs report pass/fail and counts, not
 tokens or account credentials. Tool verification checks an actual file write
 and native command/file-change events.
 
-The packaged app must also be checked for its preload, `drizzle-codex` resources,
+The packaged app must also be checked for its preload, `migrations` resources,
 native database binding, local executable discovery, and the settings/task UI.
 
 After a macOS package build, run the same UI flow against its actual ASAR,

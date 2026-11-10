@@ -77,8 +77,8 @@ module.exports = {
       to: 'drizzle'
     },
     {
-      from: 'drizzle-codex',
-      to: 'drizzle-codex'
+      from: 'migrations',
+      to: 'migrations'
     },
     {
       from: 'resources/node',
