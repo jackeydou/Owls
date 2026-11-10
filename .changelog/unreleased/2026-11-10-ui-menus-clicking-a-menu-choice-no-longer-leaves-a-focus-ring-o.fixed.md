@@ -1,0 +1,1 @@
+- Menus: clicking a menu choice no longer leaves a focus ring on the button that opened it. (#56)
