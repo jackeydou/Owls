@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises'
-import { type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } from 'electron'
+import { dirname } from 'node:path'
+import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } from 'electron'
 import { z } from 'zod'
 import { type CodexReply, respondSchema, settingsUpdateSchema } from '../../shared/codex.js'
 import { gitHubTokenSchema } from '../../shared/github.js'
@@ -25,11 +26,23 @@ import {
   threadItemsSchema,
   workerActionSchema
 } from '../../shared/router.js'
+import type { AppUpdater } from '../updates/updater.js'
 import { applyAppLogo } from './app-logo.js'
 import { codexFailure } from './errors.js'
 import type { OwlsHost } from './host.js'
 
-export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow | null): void {
+/**
+ * Since Electron 43 an open dialog without `defaultPath` starts in Downloads and no longer
+ * remembers the last folder, so pickers start where the user last was, or in their home folder.
+ */
+const executableFolder = (path: string | null) => (path ? dirname(path) : app.getPath('home'))
+
+export function registerCodexIpc(
+  host: OwlsHost,
+  getWindow: () => BrowserWindow | null,
+  updates: Pick<AppUpdater, 'snapshot' | 'check' | 'install' | 'channelChanged'>
+): void {
+  let lastProjectParent = app.getPath('home')
   function handle<T>(channel: string, action: (input: unknown) => T | Promise<T>): void {
     ipcMain.handle(
       `codex:${channel}`,
@@ -63,6 +76,7 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
     const previous = host.snapshot().settings
     const saved = host.saveSettings({ ...previous, ...settingsUpdateSchema.parse(input) })
     if (saved.appLogo !== previous.appLogo) applyAppLogo(saved.appLogo, getWindow())
+    if (saved.updateChannel !== previous.updateChannel) updates.channelChanged()
     return saved
   })
   handle('respond', (input) => host.respond(respondSchema.parse(input)))
@@ -122,6 +136,9 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
   handle('memory-category', (input) => host.memoryCategory(memoryCategoryActionSchema.parse(input)))
   handle('memory-run', () => host.memoryRunNow())
   handle('memory-runs', () => host.memoryRuns())
+  handle('updates-snapshot', () => updates.snapshot())
+  handle('updates-check', () => updates.check())
+  handle('updates-install', () => updates.install())
   handle('memory-export', async (input) => {
     const format = memoryExportSchema.parse(input)
     const text = host.memoryExport(format)
@@ -146,8 +163,13 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
     await shell.openExternal(await host.signIn())
   })
   handle('pick-project', async () => {
-    const result = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
-    return result.canceled || !result.filePaths[0] ? null : host.addProject(result.filePaths[0])
+    const result = await dialog.showOpenDialog({
+      defaultPath: lastProjectParent,
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    lastProjectParent = dirname(result.filePaths[0])
+    return host.addProject(result.filePaths[0])
   })
   handle('projects-folder', () => host.projectsFolder())
   handle('choose-projects-folder', async () => {
@@ -164,13 +186,19 @@ export function registerCodexIpc(host: OwlsHost, getWindow: () => BrowserWindow 
     host.projectGitRefs(saveProjectSchema.shape.id.parse(input))
   )
   handle('select-executable', async () => {
-    const result = await dialog.showOpenDialog({ properties: ['openFile', 'showHiddenFiles'] })
+    const result = await dialog.showOpenDialog({
+      defaultPath: executableFolder(host.snapshot().settings.executablePath),
+      properties: ['openFile', 'showHiddenFiles']
+    })
     if (result.canceled || !result.filePaths[0]) return null
     host.saveSettings({ ...host.snapshot().settings, executablePath: result.filePaths[0] })
     return host.connect()
   })
   handle('select-claude-executable', async () => {
-    const result = await dialog.showOpenDialog({ properties: ['openFile', 'showHiddenFiles'] })
+    const result = await dialog.showOpenDialog({
+      defaultPath: executableFolder(host.snapshot().settings.claudeExecutablePath),
+      properties: ['openFile', 'showHiddenFiles']
+    })
     if (result.canceled || !result.filePaths[0]) return null
     host.saveSettings({ ...host.snapshot().settings, claudeExecutablePath: result.filePaths[0] })
     return host.connectClaude()

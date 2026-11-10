@@ -1,0 +1,1 @@
+- Electron: upgrade to Electron 45 and better-sqlite3 13; Owls now needs macOS 13 or later, and file pickers start from the home folder instead of Downloads.

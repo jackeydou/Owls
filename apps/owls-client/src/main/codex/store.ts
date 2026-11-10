@@ -50,7 +50,8 @@ export class CodexStore {
           claudeEffort: null,
           router: defaultRouterSettings,
           memory: defaultMemorySettings,
-          layout: defaultLayoutSettings
+          layout: defaultLayoutSettings,
+          updateChannel: null
         }
   }
   saveSettings(value: CodexSettings): CodexSettings {

@@ -4,6 +4,7 @@ import { createSdkMcpServer, query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
 import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { ClaudeConnection, CodexEvent } from '../../shared/codex.js'
+import type { UpdateSnapshot } from '../../shared/updates.js'
 import { ClaudeService } from '../claude/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { GitHubAuth } from '../github/auth.js'
@@ -30,6 +31,7 @@ import { RouterService } from '../router/service.js'
 import { RouterStore } from '../router/store.js'
 import { WorkerGitHub } from '../router/worker-github.js'
 import { GitWorkspaces } from '../router/worktrees.js'
+import { AppUpdater } from '../updates/updater.js'
 import { applyAppLogo } from './app-logo.js'
 import { OwlsHost } from './host.js'
 import { registerCodexIpc } from './ipc.js'
@@ -43,6 +45,7 @@ let window: BrowserWindow | null = null
 let service: OwlsHost | null = null
 let router: RouterService | null = null
 let triggers: DreamingTriggers | null = null
+let updater: AppUpdater | null = null
 /** The Router's own Codex app-server; started only when the Codex engine runs. */
 const codexRouter = new CodexRouterServer()
 let quitApproved = false
@@ -65,6 +68,22 @@ function emit(event: CodexEvent): void {
 }
 function memoryChanged(): void {
   if (window && !window.isDestroyed()) window.webContents.send('codex:memory-changed')
+}
+function updatesChanged(snapshot: UpdateSnapshot): void {
+  if (window && !window.isDestroyed()) window.webContents.send('codex:updates-changed', snapshot)
+}
+/** Resolves true when the user chooses to stop running tasks and quit. */
+async function askToStopTasks(): Promise<boolean> {
+  const chinese = service?.snapshot().settings.language === 'zh-CN'
+  const result = await dialog.showMessageBox({
+    type: 'question',
+    message: chinese ? '仍有任务正在运行' : 'Tasks are still running',
+    detail: chinese ? '退出会中断当前任务。' : 'Quitting will interrupt the current tasks.',
+    buttons: chinese ? ['继续工作', '停止并退出'] : ['Keep working', 'Stop and quit'],
+    defaultId: 0,
+    cancelId: 0
+  })
+  return result.response === 1
 }
 /** Router keys use the OS keychain through safeStorage; a plain-text fallback is refused. */
 const safeStorageCipher: SecretCipher = {
@@ -204,8 +223,18 @@ void app
       emit({ type: 'worker-github', workerId, status })
     )
     service.attachGitHub({ auth: github, workers: workerGitHub })
-    registerCodexIpc(service, () => window)
+    updater = new AppUpdater({
+      savedChannel: () => store.settings().updateChannel,
+      changed: updatesChanged,
+      approveQuit: async () => {
+        if (service?.hasActiveTasks() && !(await askToStopTasks())) return false
+        quitApproved = true
+        return true
+      }
+    })
+    registerCodexIpc(service, () => window, updater)
     createWindow()
+    updater.start()
     void service.connect()
     void service.connectClaude()
     app.on('activate', () => {
@@ -224,25 +253,17 @@ app.on('before-quit', (event) => {
   event.preventDefault()
   if (quitPrompt) return
   quitPrompt = true
-  const chinese = service.snapshot().settings.language === 'zh-CN'
-  void dialog
-    .showMessageBox({
-      type: 'question',
-      message: chinese ? '仍有任务正在运行' : 'Tasks are still running',
-      detail: chinese ? '退出会中断当前任务。' : 'Quitting will interrupt the current tasks.',
-      buttons: chinese ? ['继续工作', '停止并退出'] : ['Keep working', 'Stop and quit'],
-      defaultId: 0,
-      cancelId: 0
-    })
-    .then((result) => {
-      quitPrompt = false
-      if (result.response === 1) {
-        quitApproved = true
-        app.quit()
-      }
-    })
+  void askToStopTasks().then((approved) => {
+    quitPrompt = false
+    if (approved) {
+      quitApproved = true
+      app.quit()
+    }
+  })
 })
 app.on('will-quit', () => {
+  updater?.dispose()
+  updater = null
   service?.close()
   codexRouter.close()
   service = null

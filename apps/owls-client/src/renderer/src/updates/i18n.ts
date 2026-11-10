@@ -1,0 +1,52 @@
+export const updatesEn = {
+  'updates.title': 'Updates',
+  'updates.body':
+    'Owls checks for new versions in the background, downloads them, and installs them the next time it quits.',
+  'updates.version': 'Version',
+  'updates.versionValue': 'Owls {{version}}',
+  'updates.channel': 'Update channel',
+  'updates.channelHelp':
+    'Beta gets test releases before they ship and moves to stable releases when they are newer.',
+  'updates.channel.stable': 'Stable',
+  'updates.channel.beta': 'Beta',
+  'updates.check': 'Check for updates',
+  'updates.install': 'Restart to update',
+  'updates.status': 'Status',
+  'updates.state.idle': 'Not checked yet',
+  'updates.state.checking': 'Checking for updates…',
+  'updates.state.up-to-date': 'Owls is up to date. Last checked {{time}}.',
+  'updates.state.downloading': 'Downloading Owls {{version}}…',
+  'updates.state.ready': 'Owls {{version}} is ready. Restart to finish updating.',
+  'updates.failure.network':
+    'Owls could not reach the update server. Check your connection and try again.',
+  'updates.failure.feed': 'The update information could not be read. Try again later.',
+  'updates.failure.download': 'The update could not be downloaded or installed. Try again later.',
+  'updates.unsupported.development': 'Updates are only checked in the installed app.',
+  'updates.unsupported.platform': 'Automatic updates are only available on macOS.',
+  'updates.loadFailed': 'Update status is unavailable.'
+}
+
+export const updatesZh: Record<keyof typeof updatesEn, string> = {
+  'updates.title': '更新',
+  'updates.body': 'Owls 会在后台检查新版本并自动下载，下次退出时完成安装。',
+  'updates.version': '版本',
+  'updates.versionValue': 'Owls {{version}}',
+  'updates.channel': '更新渠道',
+  'updates.channelHelp': 'Beta 渠道会提前收到测试版本；正式版本更新时也会升级到正式版本。',
+  'updates.channel.stable': '正式版',
+  'updates.channel.beta': 'Beta',
+  'updates.check': '检查更新',
+  'updates.install': '重启以更新',
+  'updates.status': '状态',
+  'updates.state.idle': '尚未检查',
+  'updates.state.checking': '正在检查更新…',
+  'updates.state.up-to-date': 'Owls 已是最新版本。上次检查于 {{time}}。',
+  'updates.state.downloading': '正在下载 Owls {{version}}…',
+  'updates.state.ready': 'Owls {{version}} 已准备就绪，重启后完成更新。',
+  'updates.failure.network': '无法连接更新服务器，请检查网络后重试。',
+  'updates.failure.feed': '无法读取更新信息，请稍后重试。',
+  'updates.failure.download': '更新下载或安装失败，请稍后重试。',
+  'updates.unsupported.development': '只有安装后的应用才会检查更新。',
+  'updates.unsupported.platform': '自动更新目前仅支持 macOS。',
+  'updates.loadFailed': '无法获取更新状态。'
+}

@@ -227,12 +227,51 @@ Developer ID Application certificate exported with its private key and update
 `MAC_CSC_KEY_PASSWORD` to match. Apple Development certificates are not suitable
 for this outside-the-App-Store distribution flow.
 
-The release assets include the DMG for manual installation, the ZIP and channel
-metadata for the `jackeydou/Owls` GitHub Releases update feed, blockmaps, and
-SHA-256 checksums. The current app does not check for updates: it has no
-`electron-updater` client or update channel setting, so users install each
-release from its DMG. Keep publishing the feed metadata so a future updater can
-use it.
+The release assets include the DMG for manual installation, the ZIP that
+installed apps update from, binary delta patches when one could be made, and
+SHA-256 checksums.
+
+## Automatic Updates
+
+Installed macOS apps update through Electron's built-in `autoUpdater`
+(Squirrel.Mac, Electron 44.7 or later), which can apply a Sparkle `BinaryDelta`
+patch instead of downloading the whole ZIP.
+
+- **Feed.** Each channel and architecture has one JSON file, for example
+  `owls-beta-darwin-arm64.json`, attached to the fixed `update-feed` GitHub
+  Release. The file is a Squirrel.Mac update response (`url`, `sha256`, `size`,
+  `name`, `notes`, `pub_date`, optional `delta`) plus Owls' `version`. Do not
+  delete or rename the `update-feed` release or its files.
+- **Channels.** A beta release moves only the beta feed. A stable release moves
+  the stable feed, and the beta feed too when it is newer than the beta there.
+  The script refuses a release that is not newer than its own channel's feed.
+  Users pick Stable or Beta in Settings > Updates; until they do, a beta build
+  follows beta and a stable build follows stable.
+- **Version order.** The app reads its channel's feed, compares versions with
+  `isNewerRelease` in `apps/owls-client/src/shared/updates.ts` (a stable release
+  sorts after its betas), and only then hands the feed URL to Squirrel in its
+  default server mode. Squirrel's own JSON mode and
+  `ElectronSquirrelPreventDowngrades` cannot order `-beta.N` versions.
+- **Patches.** After verification, the workflow installs Sparkle's
+  `BinaryDelta` from the release pinned in the workflow (matching the Sparkle
+  sources Squirrel.Mac applies patches with) and runs
+  `scripts/release-update-feed.mjs`. For each channel it moves, the script
+  downloads the ZIP the feed served before, checks its sha256 and size, unpacks
+  both ZIPs with `ditto` as Squirrel does, creates a format 4 LZMA patch,
+  applies it once to check it, and records it with the previous build's
+  `CFBundleVersion` as `from_version`. A failed patch is a warning: that
+  release ships without one and Squirrel downloads the full ZIP. Users more
+  than one release behind also download the full ZIP.
+- **Bundle modes.** Squirrel strips group and other write bits on install, and
+  a patch only applies to a bundle with identical modes, so the packaging hook
+  runs `chmod -R go-w` on the app before signing.
+- **Order.** The workflow publishes the release first and uploads the feed
+  files last, so a feed never points at assets that are not public yet. A
+  `publish=false` run still builds the feed and patches, which exercises patch
+  creation, but uploads nothing.
+- **Bootstrap.** The first release built by this workflow has no earlier feed
+  entry, so it ships without a patch. Apps older than the first release with
+  the updater have no update client and must be updated from the DMG once.
 
 Do not upload only an Actions artifact. Actions artifacts expire and are not an
 application update feed. Do not create or move a version tag or publish artifacts without explicit

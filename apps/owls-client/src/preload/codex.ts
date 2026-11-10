@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { CodexAPI, CodexEvent } from '../shared/codex.js'
+import type { UpdateSnapshot } from '../shared/updates.js'
 
 const api: CodexAPI = {
   snapshot: () => ipcRenderer.invoke('codex:snapshot'),
@@ -55,6 +56,16 @@ const api: CodexAPI = {
       const handler = () => listener()
       ipcRenderer.on('codex:memory-changed', handler)
       return () => ipcRenderer.removeListener('codex:memory-changed', handler)
+    }
+  },
+  updates: {
+    snapshot: () => ipcRenderer.invoke('codex:updates-snapshot'),
+    check: () => ipcRenderer.invoke('codex:updates-check'),
+    install: () => ipcRenderer.invoke('codex:updates-install'),
+    onChanged: (listener) => {
+      const handler = (_: Electron.IpcRendererEvent, snapshot: UpdateSnapshot) => listener(snapshot)
+      ipcRenderer.on('codex:updates-changed', handler)
+      return () => ipcRenderer.removeListener('codex:updates-changed', handler)
     }
   }
 }

@@ -1,0 +1,1 @@
+- Updates: Owls checks for updates in the background and installs them on restart from Settings > Updates, with a stable or beta channel. Releases ship Sparkle binary delta patches so most updates download only what changed, falling back to the full ZIP.
