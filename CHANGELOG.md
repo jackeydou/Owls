@@ -11,6 +11,21 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.900-beta.3
+
+### Highlights
+
+- Installing and updating Owls is much faster: the app now ships a few hundred files instead of about 36,000.
+- The add-project menu items can be clicked on macOS.
+
+### Changes
+
+- macOS packaging: Keep JavaScript dependencies inside app.asar and stop shipping renderer-only and unused packages, cutting the bundle from about 36,000 files to a few hundred so installing and updating Owls is much faster. (#53)
+
+### Fixes
+
+- Projects: the add-project menu items can be clicked on macOS; the menu no longer sits under the sidebar's window drag region. (#54)
+
 ## 2026.11.900-beta.2
 
 ### Highlights
