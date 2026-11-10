@@ -37,9 +37,9 @@ html[data-platform="darwin"] {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  gap: 2px;
-  width: 232px;
-  padding: 0 10px 12px;
+  gap: 1px;
+  width: 224px;
+  padding: 0 8px 12px;
   border-right: 1px solid var(--color-border);
   background: var(--color-sidebar);
   -webkit-app-region: drag;
@@ -71,9 +71,9 @@ html[data-platform="darwin"] {
   flex-shrink: 0;
   gap: 9px;
   width: 100%;
-  height: 32px;
+  height: 28px;
   padding: 0 8px;
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--color-muted-foreground);
   font-size: 13px;
   text-align: left;
@@ -124,14 +124,14 @@ html[data-platform="darwin"] {
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  margin-top: 14px;
+  margin-top: 20px;
 }
 .router-sidebar-threads header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  height: 28px;
+  height: 24px;
   padding: 0 2px 0 8px;
 }
 .router-sidebar-threads h2,
@@ -195,7 +195,7 @@ html[data-platform="darwin"] {
 }
 .router-project-fold {
   position: absolute;
-  top: 6px;
+  top: 4px;
   right: 5px;
   width: 20px;
   height: 20px;
@@ -247,7 +247,7 @@ html[data-platform="darwin"] {
   flex-direction: column;
   flex-shrink: 0;
   gap: 2px;
-  padding: 0 10px 12px;
+  padding: 0 8px 12px;
   border-left: 1px solid var(--color-border);
   background: var(--color-sidebar);
   -webkit-app-region: drag;

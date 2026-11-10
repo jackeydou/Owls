@@ -141,7 +141,7 @@ export const threadItemSchema = z.object({
 export const appLogoSchema = z.enum(['line', 'solid', 'brow'])
 /** Width bounds, in CSS pixels, for each pane the user can drag wider or narrower. */
 export const paneWidthBounds = {
-  sidebar: { min: 180, max: 420, initial: 232 },
+  sidebar: { min: 180, max: 420, initial: 224 },
   projects: { min: 200, max: 440, initial: 260 },
   panel: { min: 360, max: 960, initial: 480 }
 } as const

@@ -456,12 +456,12 @@ app
       await evaluate(
         `${sidebarHandle}.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))`
       )
-      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 248)
-      assert.equal(await evaluate("document.querySelector('.router-sidebar').offsetWidth"), 248)
+      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 240)
+      assert.equal(await evaluate("document.querySelector('.router-sidebar').offsetWidth"), 240)
       await evaluate(
         `${sidebarHandle}.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`
       )
-      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 232)
+      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 224)
       await evaluate("document.querySelector('.router-editor textarea').focus()")
       const editorFocused =
         "document.activeElement === document.querySelector('.router-editor textarea')"
