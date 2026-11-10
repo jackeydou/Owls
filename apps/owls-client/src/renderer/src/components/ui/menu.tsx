@@ -1,6 +1,6 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { cn } from '@renderer/lib/utils'
-import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from 'react'
+import { type ComponentPropsWithoutRef, type ElementRef, forwardRef, useRef } from 'react'
 
 /**
  * A dropdown menu built on Radix, which brings keyboard navigation, typeahead,
@@ -10,6 +10,11 @@ import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from 'reac
  * The content opts out of window dragging: Electron gives a window drag region
  * every click over it, whatever is stacked on top, and the sidebars a menu
  * opens from are drag regions.
+ *
+ * Closing after a pointer choice leaves focus off the trigger. Chromium counts
+ * Radix's focus return as keyboard focus, so the trigger would light up its
+ * focus ring (and focus-opened tooltip) after a plain click. A keyboard choice
+ * or Escape still returns focus with its ring.
  */
 export const Menu = DropdownMenu.Root
 export const MenuTrigger = DropdownMenu.Trigger
@@ -17,20 +22,48 @@ export const MenuTrigger = DropdownMenu.Trigger
 export const MenuContent = forwardRef<
   ElementRef<typeof DropdownMenu.Content>,
   ComponentPropsWithoutRef<typeof DropdownMenu.Content>
->(({ className, sideOffset = 6, collisionPadding = 8, ...props }, ref) => (
-  <DropdownMenu.Portal>
-    <DropdownMenu.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      collisionPadding={collisionPadding}
-      className={cn(
-        'z-[90] min-w-[220px] [-webkit-app-region:no-drag] max-w-[320px] rounded-xl border border-border/70 bg-card p-1 text-[13px] text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
-        className
-      )}
-      {...props}
-    />
-  </DropdownMenu.Portal>
-))
+>(
+  (
+    {
+      className,
+      sideOffset = 6,
+      collisionPadding = 8,
+      onPointerDown,
+      onKeyDown,
+      onCloseAutoFocus,
+      ...props
+    },
+    ref
+  ) => {
+    const pointerChoice = useRef(false)
+    return (
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          ref={ref}
+          sideOffset={sideOffset}
+          collisionPadding={collisionPadding}
+          className={cn(
+            'z-[90] min-w-[220px] [-webkit-app-region:no-drag] max-w-[320px] rounded-xl border border-border/70 bg-card p-1 text-[13px] text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
+            className
+          )}
+          onPointerDown={(event) => {
+            pointerChoice.current = true
+            onPointerDown?.(event)
+          }}
+          onKeyDown={(event) => {
+            pointerChoice.current = false
+            onKeyDown?.(event)
+          }}
+          onCloseAutoFocus={(event) => {
+            onCloseAutoFocus?.(event)
+            if (pointerChoice.current) event.preventDefault()
+          }}
+          {...props}
+        />
+      </DropdownMenu.Portal>
+    )
+  }
+)
 MenuContent.displayName = 'MenuContent'
 
 export const MenuItem = forwardRef<

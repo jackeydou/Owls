@@ -548,6 +548,16 @@ app
       await waitFor(`${menuItems}.length >= 3`)
       await mouseClick(`${menuItems}[0]`)
       await waitFor(() => pickerAsks === 1)
+      // A clicked choice leaves focus off the trigger, which Chromium would otherwise
+      // ring as keyboard focus.
+      await waitFor("!document.querySelector('[role=menu]')")
+      assert.notEqual(
+        await evaluate(
+          "document.activeElement === document.querySelector('.router-projects-head button')"
+        ),
+        true,
+        'a clicked menu choice does not return focus to the add button'
+      )
       dialog.showOpenDialog = systemPicker
       // Every sidebar resizes; the keyboard steps the same handle a drag moves.
       const sidebarHandle = "document.querySelector('.router-sidebar > [role=separator]')"
