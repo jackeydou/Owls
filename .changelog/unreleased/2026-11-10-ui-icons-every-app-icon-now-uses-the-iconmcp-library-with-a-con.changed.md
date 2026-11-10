@@ -1,0 +1,1 @@
+- Icons: every app icon now uses the IconMCP library with a consistent 1.25px outline, and New thread shows a plus. (#57)
