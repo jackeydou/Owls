@@ -1,7 +1,7 @@
 import { Button } from '@renderer/components/ui/button'
 import { Dialog } from '@renderer/components/ui/dialog'
+import { LoaderIcon, PlusIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
-import { Loader2, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCodexStore } from '../codex/store'
@@ -58,7 +58,7 @@ function ForwardForm({ forwarding }: { forwarding: Forwarding }) {
             checked={target === NEW_THREAD}
             onChange={() => setTarget(NEW_THREAD)}
           />
-          <Plus size={13} aria-hidden />
+          <PlusIcon size={13} aria-hidden />
           <span>{t('thread.new')}</span>
         </label>
         {target === NEW_THREAD && projects.length ? (
@@ -100,7 +100,7 @@ function ForwardForm({ forwarding }: { forwarding: Forwarding }) {
           {t('forward.cancel')}
         </Button>
         <Button size="sm" disabled={sending} onClick={() => void submit()}>
-          {sending ? <Loader2 size={13} className="animate-spin" /> : null}
+          {sending ? <LoaderIcon size={13} className="animate-spin" /> : null}
           {t('forward.send')}
         </Button>
       </footer>

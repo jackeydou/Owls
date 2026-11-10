@@ -1,17 +1,17 @@
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { code } from '@streamdown/code'
 import {
-  Check,
-  ChevronRight,
-  Copy,
-  FileCode2,
-  GitBranch,
-  Loader2,
-  ShieldCheck,
-  Terminal,
-  Waypoints
-} from 'lucide-react'
+  CheckIcon,
+  ChevronRightIcon,
+  CopyIcon,
+  FileCodeIcon,
+  GitBranchIcon,
+  LoaderIcon,
+  ShieldCheckIcon,
+  TerminalIcon,
+  WaypointsIcon
+} from '@renderer/components/ui/icons'
+import { code } from '@streamdown/code'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Streamdown, type StreamdownProps } from 'streamdown'
@@ -41,7 +41,7 @@ export function ConversationItem({
       <article className="codex-assistant-message">
         <div className="codex-message-label">
           <span className="codex-agent-mark">
-            <Terminal size={12} />
+            <TerminalIcon size={12} />
           </span>
           {agent}
         </div>
@@ -63,7 +63,7 @@ export function ConversationItem({
               size="sm"
               label={t(copied ? 'copied' : 'copy')}
               tooltip={t(copied ? 'copied' : 'copy')}
-              icon={copied ? <Check size={13} /> : <Copy size={13} />}
+              icon={copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
               onClick={() => {
                 void navigator.clipboard.writeText(item.text).then(() => setCopied(true))
               }}
@@ -75,12 +75,12 @@ export function ConversationItem({
   if (item.kind === 'worker' || (!item.text && !item.detail)) return null
   const Icon =
     item.kind === 'command'
-      ? Terminal
+      ? TerminalIcon
       : item.kind === 'files'
-        ? FileCode2
+        ? FileCodeIcon
         : item.kind === 'reasoning'
-          ? Waypoints
-          : GitBranch
+          ? WaypointsIcon
+          : GitBranchIcon
   return (
     <details className={`codex-activity ${item.status}`}>
       <summary>
@@ -92,9 +92,9 @@ export function ConversationItem({
           <span className="codex-activity-preview">{item.text.split('\n')[0]}</span>
         )}
         {item.status === 'running' ? (
-          <Loader2 size={12} className="animate-spin" />
+          <LoaderIcon size={12} className="animate-spin" />
         ) : (
-          <ChevronRight size={12} />
+          <ChevronRightIcon size={12} />
         )}
       </summary>
       {item.kind !== 'command' ? <div className="codex-activity-content">{item.text}</div> : null}
@@ -143,7 +143,7 @@ export function RequestCard({
       }}
     >
       <div className="codex-request-title">
-        <ShieldCheck size={17} />
+        <ShieldCheckIcon size={17} />
         <strong>
           {t(request.kind === 'question' ? 'questionTitle' : 'approvalTitle', { agent })}
         </strong>
@@ -194,7 +194,7 @@ export function RequestCard({
           }
         >
           {pending || request.status === 'answering' ? (
-            <Loader2 size={13} className="animate-spin" />
+            <LoaderIcon size={13} className="animate-spin" />
           ) : null}
           {t(
             request.status === 'answering'

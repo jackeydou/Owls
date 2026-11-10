@@ -1,5 +1,5 @@
 import { Button } from '@renderer/components/ui/button'
-import { Settings2 } from 'lucide-react'
+import { SettingsIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider, CodexFailure, CodexRouter } from '../../../shared/codex'
 import { agentConnection, isAgentReady, type SettingsTab, useCodexStore } from '../codex/store'
@@ -82,7 +82,7 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
             variant={alternate ? 'outline' : 'default'}
             onClick={() => showSettings(settingsTabFor(need))}
           >
-            <Settings2 size={14} />
+            <SettingsIcon size={14} />
             {t('router.openSettings')}
           </Button>
         </div>

@@ -1,6 +1,14 @@
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { AlertCircle, Forward, GitBranch, Loader2, Square, Trash2, X } from 'lucide-react'
+import {
+  AlertCircleIcon,
+  ForwardIcon,
+  GitBranchIcon,
+  LoaderIcon,
+  StopIcon,
+  TrashIcon,
+  XIcon
+} from '@renderer/components/ui/icons'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexItem, CodexSession } from '../../../shared/codex'
@@ -43,7 +51,7 @@ function Activity({ session }: { session: CodexSession | undefined }) {
       ))}
       {session.error ? (
         <div className="codex-inline-error" role="alert">
-          <AlertCircle size={15} />
+          <AlertCircleIcon size={15} />
           <span>{failureMessage(session.error)}</span>
         </div>
       ) : null}
@@ -97,11 +105,11 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
           <small>
             {t(`workerState.${workerState(worker)}`)}
             {worker.status === 'running' ? (
-              <Loader2 size={11} className="animate-spin" aria-hidden />
+              <LoaderIcon size={11} className="animate-spin" aria-hidden />
             ) : null}
             {worker.workspace.kind === 'worktree' ? (
               <>
-                <GitBranch size={11} aria-hidden />
+                <GitBranchIcon size={11} aria-hidden />
                 <code>{worker.workspace.branch}</code>
               </>
             ) : null}
@@ -112,7 +120,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             size="sm"
             label={t('worker.stop')}
             tooltip={t('worker.stop')}
-            icon={<Square size={12} fill="currentColor" />}
+            icon={<StopIcon size={12} />}
             onClick={() => void stopWorker(worker.routerId, worker.id)}
           />
         ) : (
@@ -120,7 +128,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             size="sm"
             label={t('worker.remove')}
             tooltip={t('worker.remove')}
-            icon={<Trash2 size={13} />}
+            icon={<TrashIcon size={13} />}
             onClick={() => void removeWorker(worker.routerId, worker.id)}
           />
         )}
@@ -129,7 +137,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             size="sm"
             label={t('forward.action')}
             tooltip={t('forward.action')}
-            icon={<Forward size={13} />}
+            icon={<ForwardIcon size={13} />}
             onClick={() =>
               startForward({
                 source: { kind: 'worker', routerId: worker.routerId, workerId: worker.id },
@@ -143,7 +151,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
           size="sm"
           label={t('worker.close')}
           tooltip={t('worker.close')}
-          icon={<X size={15} />}
+          icon={<XIcon size={15} />}
           onClick={() => showPanel(null)}
         />
       </header>

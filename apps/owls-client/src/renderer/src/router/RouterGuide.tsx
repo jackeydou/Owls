@@ -1,5 +1,5 @@
 import { Button } from '@renderer/components/ui/button'
-import { Check, Loader2 } from 'lucide-react'
+import { CheckIcon, LoaderIcon } from '@renderer/components/ui/icons'
 import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider } from '../../../shared/codex'
@@ -50,7 +50,7 @@ function GuideOption({
       </span>
       {ready ? (
         <em>
-          <Check size={13} />
+          <CheckIcon size={13} />
           {t('router.guideConnected')}
         </em>
       ) : null}
@@ -98,7 +98,7 @@ function AgentConnect({ provider, body }: { provider: AgentProvider; body: strin
       ) : null}
       <div className="router-guide-actions">
         <Button size="sm" disabled={busy} onClick={() => void connect()}>
-          {busy ? <Loader2 size={14} className="animate-spin" /> : null}
+          {busy ? <LoaderIcon size={14} className="animate-spin" /> : null}
           {t('router.guideConnect', { agent: t(`agent.${provider}`) })}
         </Button>
         <Button size="sm" variant="outline" onClick={() => showSettings(provider)}>

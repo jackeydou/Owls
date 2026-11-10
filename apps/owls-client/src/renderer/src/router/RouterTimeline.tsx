@@ -1,6 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { AlertCircle, Forward, Loader2, Square } from 'lucide-react'
+import { AlertCircleIcon, ForwardIcon, LoaderIcon, StopIcon } from '@renderer/components/ui/icons'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexItem, CodexRouter } from '../../../shared/codex'
@@ -51,7 +51,7 @@ function ForwardedMessage({ item }: { item: CodexItem }) {
           disabled={!origin}
           onClick={() => origin && showThread(origin.routerId)}
         >
-          <Forward size={12} aria-hidden />
+          <ForwardIcon size={12} aria-hidden />
           {t('forward.from', { title: origin?.title ?? t('thread.untitled') })}
         </button>
         <p>{item.text}</p>
@@ -69,7 +69,7 @@ function ForwardAction({ item, router }: { item: CodexItem; router: CodexRouter 
       size="sm"
       label={t('forward.action')}
       tooltip={t('forward.action')}
-      icon={<Forward size={13} />}
+      icon={<ForwardIcon size={13} />}
       onClick={() =>
         startForward({
           source: { kind: 'item', routerId: router.id, itemId: item.id },
@@ -156,7 +156,7 @@ export function RouterTimeline({
         <div className="codex-conversation" ref={content}>
           {router?.itemCount && !loaded ? (
             <div className="codex-working" role="status">
-              <Loader2 size={13} className="animate-spin" />
+              <LoaderIcon size={13} className="animate-spin" />
               {t('thread.loading')}
             </div>
           ) : null}
@@ -191,13 +191,13 @@ export function RouterTimeline({
           {router && running ? (
             <ThreadRow speaker="router" follows={lastEntrySpeaker === 'router'}>
               <div className="codex-working" role="status">
-                <Loader2 size={13} className="animate-spin" />
+                <LoaderIcon size={13} className="animate-spin" />
                 {t('router.working')}
                 <IconButton
                   size="sm"
                   label={t('router.stop')}
                   tooltip={t('router.stop')}
-                  icon={<Square size={11} fill="currentColor" />}
+                  icon={<StopIcon size={11} />}
                   onClick={() => void interrupt(router.id)}
                 />
               </div>
@@ -205,7 +205,7 @@ export function RouterTimeline({
           ) : null}
           {router?.unknownBatches.map((batch) => (
             <div className="codex-inline-error router-unknown-batch" role="alert" key={batch.id}>
-              <AlertCircle size={15} />
+              <AlertCircleIcon size={15} />
               <span>{t('router.unknownBatch', { count: batch.events })}</span>
               <Button
                 size="sm"
@@ -225,7 +225,7 @@ export function RouterTimeline({
           ))}
           {router?.error && !isSetupFailure(router.error) ? (
             <div className="codex-inline-error" role="alert">
-              <AlertCircle size={15} />
+              <AlertCircleIcon size={15} />
               <span>{failureMessage(router.error)}</span>
             </div>
           ) : null}

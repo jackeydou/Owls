@@ -1,6 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
+import { LoaderIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
-import { Loader2 } from 'lucide-react'
 import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexRouter } from '../../../shared/codex'
@@ -68,7 +68,7 @@ export function ThreadEditor({ router }: { router: CodexRouter | undefined }) {
               onPointerDown={(event) => event.preventDefault()}
               onClick={() => void draft.submit()}
             >
-              {sending ? <Loader2 size={13} className="animate-spin" /> : null}
+              {sending ? <LoaderIcon size={13} className="animate-spin" /> : null}
               {t(addressed ? 'router.sendWorker' : 'router.send')}
               <kbd>⌘ ↵</kbd>
             </Button>

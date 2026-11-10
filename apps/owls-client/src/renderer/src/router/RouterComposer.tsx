@@ -1,5 +1,5 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { ArrowUp, Loader2, Square, X } from 'lucide-react'
+import { ArrowUpIcon, LoaderIcon, StopIcon, XIcon } from '@renderer/components/ui/icons'
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexRouter } from '../../../shared/codex'
@@ -179,7 +179,7 @@ export function DraftTarget({ worker, onClear }: { worker: RouterWorker; onClear
       <IconButton
         size="sm"
         label={t('router.clearTarget', { title: workerTitle(worker) })}
-        icon={<X size={12} />}
+        icon={<XIcon size={12} />}
         onClick={onClear}
       />
     </div>
@@ -234,7 +234,7 @@ export function RouterComposer({
               className="codex-stop"
               label={t('router.stop')}
               tooltip={t('router.stop')}
-              icon={<Square size={13} fill="currentColor" />}
+              icon={<StopIcon size={13} />}
               onClick={() => void interrupt(router.id)}
             />
           ) : null}
@@ -243,7 +243,13 @@ export function RouterComposer({
             className="codex-send"
             label={t(addressed ? 'router.sendWorker' : 'router.send')}
             tooltip={t(addressed ? 'router.sendWorker' : 'router.send')}
-            icon={sending ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={17} />}
+            icon={
+              sending ? (
+                <LoaderIcon size={16} className="animate-spin" />
+              ) : (
+                <ArrowUpIcon size={17} />
+              )
+            }
             disabled={!projectId || !text.trim() || sending}
             onClick={() => void draft.submit()}
           />

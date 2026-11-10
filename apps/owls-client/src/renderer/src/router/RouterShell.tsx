@@ -1,6 +1,11 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
+import {
+  AlertCircleIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+  XIcon
+} from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
-import { AlertCircle, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../codex/failures'
@@ -53,9 +58,14 @@ function ActionError() {
   if (!error) return null
   return (
     <div className="codex-error-toast" role="alert">
-      <AlertCircle size={16} />
+      <AlertCircleIcon size={16} />
       <span>{failureMessage(error)}</span>
-      <IconButton size="sm" label={t('dismissError')} icon={<X size={14} />} onClick={clearError} />
+      <IconButton
+        size="sm"
+        label={t('dismissError')}
+        icon={<XIcon size={14} />}
+        onClick={clearError}
+      />
     </div>
   )
 }
@@ -122,7 +132,7 @@ export function RouterShell() {
         label={sidebarLabel}
         tooltip={sidebarLabel}
         tooltipSide="bottom"
-        icon={collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        icon={collapsed ? <PanelLeftOpenIcon size={16} /> : <PanelLeftCloseIcon size={16} />}
         onClick={toggleSidebar}
       />
       <ForwardDialog />

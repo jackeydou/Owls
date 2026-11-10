@@ -103,7 +103,6 @@
     "front-matter": "^4.0.2",
     "gridstack": "^12.6.0",
     "i18next": "^26.0.8",
-    "lucide-react": "^1.11.0",
     "motion": "^12.38.0",
     "node-abi": "^4.40.0",
     "node-cron": "^4.2.1",

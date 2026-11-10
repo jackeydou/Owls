@@ -1,5 +1,10 @@
 import { Button } from '@renderer/components/ui/button'
-import { ExternalLink, FolderOpen, Loader2, RefreshCw } from 'lucide-react'
+import {
+  ExternalLinkIcon,
+  FolderOpenIcon,
+  LoaderIcon,
+  RefreshIcon
+} from '@renderer/components/ui/icons'
 import { type ReactNode, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexConnection, CodexFailure } from '../../../shared/codex'
@@ -64,7 +69,7 @@ function ExecutableRow({
       }
     >
       <Button size="sm" variant="outline" disabled={disabled} onClick={onBrowse}>
-        <FolderOpen size={14} />
+        <FolderOpenIcon size={14} />
         {t('browse')}
       </Button>
     </SettingRow>
@@ -110,7 +115,7 @@ export function ClaudeSettingsPane() {
           disabled={busy || running}
           onClick={() => void connectClaude()}
         >
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+          {busy ? <LoaderIcon size={14} className="animate-spin" /> : <RefreshIcon size={14} />}
           {busy ? t('connectingClaude') : t('useLocalClaude')}
         </Button>
       </SettingRow>
@@ -132,7 +137,7 @@ export function ClaudeSettingsPane() {
       <p className="codex-note">
         {t('claudeInstallHelp')}{' '}
         <a href="https://code.claude.com/docs/en/setup" target="_blank" rel="noreferrer">
-          {t('installLink')} <ExternalLink size={11} />
+          {t('installLink')} <ExternalLinkIcon size={11} />
         </a>
       </p>
     </AgentPane>
@@ -208,7 +213,7 @@ export function CodexSettingsPane() {
           ) : null}
           {connected && account.kind === 'signed-out' ? (
             <Button size="sm" variant="outline" disabled={signingIn} onClick={() => void signIn()}>
-              {signingIn ? <Loader2 size={14} className="animate-spin" /> : null}
+              {signingIn ? <LoaderIcon size={14} className="animate-spin" /> : null}
               {signingIn ? t('signingIn') : t('signIn')}
             </Button>
           ) : null}
@@ -218,7 +223,7 @@ export function CodexSettingsPane() {
             disabled={busy || running}
             onClick={() => void connect()}
           >
-            {busy ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            {busy ? <LoaderIcon size={14} className="animate-spin" /> : <RefreshIcon size={14} />}
             {busy ? t('importing') : t('useLocal')}
           </Button>
         </div>
@@ -240,7 +245,7 @@ export function CodexSettingsPane() {
       <p className="codex-note">
         {t('installHelp')}{' '}
         <a href="https://developers.openai.com/codex/cli" target="_blank" rel="noreferrer">
-          {t('installLink')} <ExternalLink size={11} />
+          {t('installLink')} <ExternalLinkIcon size={11} />
         </a>
       </p>
     </AgentPane>
