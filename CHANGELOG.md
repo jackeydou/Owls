@@ -11,6 +11,26 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.900-beta.2
+
+### Highlights
+
+- Owls now updates itself: it checks in the background and installs on restart from Settings > Updates, with a stable or beta channel, and most updates download only what changed.
+- Projects have their own settings for name, description, worktree branch and remote, branch cleanup, and extra worker instructions.
+- The add button opens a menu to open a folder, clone a GitHub repository, or Quick start an empty project.
+- Every sidebar resizes by dragging, and Projects move to a right-hand sidebar opened from the title bar.
+- Owls now needs macOS 13 or later.
+
+### Changes
+
+- Electron: upgrade to Electron 45 and better-sqlite3 13; Owls now needs macOS 13 or later, and file pickers start from the home folder instead of Downloads. (#51)
+- Sidebars: every sidebar resizes by dragging, sidebar actions highlight and show shortcuts only on hover, the logo row is gone, and Projects move to a right-hand sidebar opened from the title bar. Settings get a larger page title, 13px descriptions, and roomier rows. (#47)
+- Updates: Owls checks for updates in the background and installs them on restart from Settings > Updates, with a stable or beta channel. Releases ship Sparkle binary delta patches so most updates download only what changed, falling back to the full ZIP. (#51)
+- Projects: each project has its own settings for its name and description, the branch and remote its worktrees use, deleting pushed branches when a worker is removed, and extra instructions for workers, including code review and pull request preferences. (#50)
+- Projects: the add button opens a menu to open a folder, clone a GitHub repository, or Quick start an empty project, with recent projects below. (#48)
+
+### Fixes
+
 ## 2026.11.900-beta.1
 
 ### Highlights
