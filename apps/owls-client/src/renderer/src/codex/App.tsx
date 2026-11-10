@@ -1,6 +1,6 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
+import { AlertCircleIcon, LoaderIcon, XIcon } from '@renderer/components/ui/icons'
 import i18next from 'i18next'
-import { AlertCircle, Loader2, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RouterShell } from '../router/RouterShell'
@@ -37,18 +37,18 @@ export default function CodexApp() {
         <RouterShell />
       ) : (
         <main className="codex-loading" role="status">
-          <Loader2 size={20} className="animate-spin" />
+          <LoaderIcon size={20} className="animate-spin" />
           {t('loading')}
         </main>
       )}
       {error ? (
         <div className="codex-error-toast" role="alert">
-          <AlertCircle size={16} />
+          <AlertCircleIcon size={16} />
           <span>{failureMessage(error)}</span>
           <IconButton
             size="sm"
             label={t('dismissError')}
-            icon={<X size={14} />}
+            icon={<XIcon size={14} />}
             onClick={clearError}
           />
         </div>

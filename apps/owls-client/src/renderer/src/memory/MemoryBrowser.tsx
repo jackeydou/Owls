@@ -1,7 +1,7 @@
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
+import { EllipsisIcon, PlusIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
-import { Ellipsis, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MemoryCategoryView } from '../../../shared/memory'
@@ -164,7 +164,7 @@ function CategoryNav() {
           <IconButton
             size="custom"
             className="memory-nav-more"
-            icon={<Ellipsis size={13} />}
+            icon={<EllipsisIcon size={13} />}
             label={t('memory.category.manage', { name: category.name })}
             tooltip={t('memory.category.manage', { name: category.name })}
             onClick={() => setManaging(category)}
@@ -180,7 +180,7 @@ function CategoryNav() {
           className="memory-nav-add"
           onClick={() => setAdding(true)}
         >
-          <Plus size={13} aria-hidden />
+          <PlusIcon size={13} aria-hidden />
           {t('memory.category.add')}
         </Button>
       )}
@@ -278,7 +278,7 @@ function MemoryList() {
           disabled={!canAdd}
           onClick={() => setAdding(true)}
         >
-          <Plus size={13} aria-hidden />
+          <PlusIcon size={13} aria-hidden />
           {t('memory.add')}
         </Button>
       )}

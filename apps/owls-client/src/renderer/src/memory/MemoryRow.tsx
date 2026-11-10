@@ -1,7 +1,7 @@
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
+import { PencilIcon, PinIcon, PinOffIcon, TrashIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
-import { Pencil, Pin, PinOff, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type {
@@ -154,7 +154,7 @@ export function MemoryRow({
       <div className="memory-row-text">
         <p>
           {memory.pinned ? (
-            <Pin size={12} className="memory-pin" aria-label={t('memory.pinnedLabel')} />
+            <PinIcon size={12} className="memory-pin" aria-label={t('memory.pinnedLabel')} />
           ) : null}
           {memory.text}
         </p>
@@ -183,7 +183,7 @@ export function MemoryRow({
         <div className="memory-row-actions">
           <IconButton
             size="custom"
-            icon={memory.pinned ? <PinOff size={13} /> : <Pin size={13} />}
+            icon={memory.pinned ? <PinOffIcon size={13} /> : <PinIcon size={13} />}
             label={memory.pinned ? t('memory.unpin') : t('memory.pin')}
             tooltip={memory.pinned ? t('memory.unpin') : t('memory.pin')}
             onClick={() =>
@@ -197,14 +197,14 @@ export function MemoryRow({
           />
           <IconButton
             size="custom"
-            icon={<Pencil size={13} />}
+            icon={<PencilIcon size={13} />}
             label={t('memory.edit')}
             tooltip={t('memory.edit')}
             onClick={() => setEditing(true)}
           />
           <IconButton
             size="custom"
-            icon={<Trash2 size={13} />}
+            icon={<TrashIcon size={13} />}
             label={t('memory.delete')}
             tooltip={t('memory.delete')}
             onClick={() => setDeleting(true)}

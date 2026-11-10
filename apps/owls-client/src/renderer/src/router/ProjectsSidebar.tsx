@@ -1,7 +1,12 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FolderKanbanIcon,
+  SettingsIcon
+} from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { ChevronDown, ChevronRight, FolderKanban, Settings2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexProject } from '../../../shared/codex'
@@ -96,7 +101,7 @@ function ProjectRow({ project }: { project: CodexProject }) {
         label={settingsLabel}
         tooltip={settingsLabel}
         tooltipSide="left"
-        icon={<Settings2 size={13} />}
+        icon={<SettingsIcon size={13} />}
         onClick={() => showProjectSettings(project.id)}
       />
       {workers.length ? (
@@ -107,7 +112,7 @@ function ProjectRow({ project }: { project: CodexProject }) {
           tooltip={foldLabel}
           tooltipSide="left"
           aria-expanded={!folded}
-          icon={folded ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+          icon={folded ? <ChevronRightIcon size={13} /> : <ChevronDownIcon size={13} />}
           onClick={() => toggleProjectFold(project.id)}
         />
       ) : null}
@@ -137,7 +142,7 @@ export function ProjectsToggle() {
       tooltip={label}
       tooltipSide="bottom"
       aria-pressed={open}
-      icon={<FolderKanban size={16} />}
+      icon={<FolderKanbanIcon size={16} />}
       onClick={toggleProjects}
     />
   )

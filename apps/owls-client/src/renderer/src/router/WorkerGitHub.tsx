@@ -1,13 +1,13 @@
 import { Button } from '@renderer/components/ui/button'
 import {
-  ChevronRight,
-  CircleCheck,
-  CircleDashed,
-  CircleMinus,
-  CircleX,
-  GitPullRequest,
-  type LucideIcon
-} from 'lucide-react'
+  ChevronRightIcon,
+  CircleCheckIcon,
+  CircleDashedIcon,
+  CircleMinusIcon,
+  CircleXIcon,
+  GitPullRequestIcon,
+  type IconComponent
+} from '@renderer/components/ui/icons'
 import { type ReactNode, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -19,11 +19,11 @@ import type { RouterWorker } from '../../../shared/router'
 import { useCodexStore } from '../codex/store'
 import { useRouterStore } from './store'
 
-const CHECK_ICONS: Record<WorkerCheckState, LucideIcon> = {
-  success: CircleCheck,
-  failure: CircleX,
-  pending: CircleDashed,
-  neutral: CircleMinus
+const CHECK_ICONS: Record<WorkerCheckState, IconComponent> = {
+  success: CircleCheckIcon,
+  failure: CircleXIcon,
+  pending: CircleDashedIcon,
+  neutral: CircleMinusIcon
 }
 
 function CheckIcon({ state }: { state: WorkerCheckState }) {
@@ -48,7 +48,7 @@ function Checks({ pullRequest }: { pullRequest: WorkerPullRequest }) {
       >
         <CheckIcon state={checksState} />
         <span>{t(`github.checks.${checksState}`, { count: failing })}</span>
-        <ChevronRight size={12} className={open ? 'open' : undefined} aria-hidden />
+        <ChevronRightIcon size={12} className={open ? 'open' : undefined} aria-hidden />
       </Button>
       {open ? (
         <ul className="router-github-checks">
@@ -75,7 +75,7 @@ function PullRequestStatus({ pullRequest }: { pullRequest: WorkerPullRequest }) 
   return (
     <>
       <div className="router-github-title">
-        <GitPullRequest size={13} aria-hidden />
+        <GitPullRequestIcon size={13} aria-hidden />
         <a href={pullRequest.url} target="_blank" rel="noreferrer">
           #{pullRequest.number} {pullRequest.title}
         </a>

@@ -1,6 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
+import { DownloadIcon, LoaderIcon, SparklesIcon, XIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
-import { Download, Loader2, Sparkles, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MemoryRun, MemorySettings } from '../../../shared/memory'
@@ -151,7 +151,7 @@ function RunStatus() {
   return (
     <div className="memory-status">
       <span role="status" className={last?.status === 'failed' && !running ? 'failed' : undefined}>
-        {running ? <Loader2 size={12} className="animate-spin" aria-hidden /> : null}
+        {running ? <LoaderIcon size={12} className="animate-spin" aria-hidden /> : null}
         {status}
       </span>
       <div className="codex-settings-actions">
@@ -161,11 +161,11 @@ function RunStatus() {
           disabled={!learn || running}
           onClick={() => void runNow()}
         >
-          <Sparkles size={13} aria-hidden />
+          <SparklesIcon size={13} aria-hidden />
           {t('memory.runNow')}
         </Button>
         <Button size="sm" variant="outline" onClick={() => void exportAs('markdown')}>
-          <Download size={13} aria-hidden />
+          <DownloadIcon size={13} aria-hidden />
           {t('memory.export.markdown')}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => void exportAs('json')}>
@@ -239,7 +239,7 @@ export function SettingsMemoryPane() {
             aria-label={t('memory.error.dismiss')}
             onClick={clearError}
           >
-            <X size={13} aria-hidden />
+            <XIcon size={13} aria-hidden />
           </Button>
         </div>
       ) : null}

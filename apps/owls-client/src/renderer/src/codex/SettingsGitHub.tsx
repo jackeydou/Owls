@@ -1,5 +1,5 @@
 import { Button } from '@renderer/components/ui/button'
-import { ExternalLink, Loader2 } from 'lucide-react'
+import { ExternalLinkIcon, LoaderIcon } from '@renderer/components/ui/icons'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -73,7 +73,7 @@ function DeviceCode({ account }: { account: Extract<GitHubAccount, { status: 'pe
       <p>{t('github.pendingHelp')}</p>
       <div className="github-device">
         <code>{account.userCode}</code>
-        <Loader2 size={15} className="animate-spin" aria-label={t('github.waiting')} />
+        <LoaderIcon size={15} className="animate-spin" aria-label={t('github.waiting')} />
         <Button size="sm" onClick={openGitHub}>
           {t('github.copyAndOpen')}
         </Button>
@@ -119,7 +119,7 @@ function CliMethod({ account }: { account: GitHubAccount }) {
       {connectedBy(account, 'gh-cli') ? null : (
         <div className="github-method-actions">
           <Button size="sm" disabled={connecting} onClick={() => void connectCli()}>
-            {connecting ? <Loader2 size={14} className="animate-spin" /> : null}
+            {connecting ? <LoaderIcon size={14} className="animate-spin" /> : null}
             {t('github.useCli')}
           </Button>
         </div>
@@ -156,7 +156,7 @@ function TokenMethod({ account }: { account: GitHubAccount }) {
             onChange={(event) => setToken(event.target.value)}
           />
           <Button size="sm" disabled={!valid.success || saving} onClick={() => void save()}>
-            {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+            {saving ? <LoaderIcon size={14} className="animate-spin" /> : null}
             {t('github.saveToken')}
           </Button>
           <a
@@ -165,7 +165,7 @@ function TokenMethod({ account }: { account: GitHubAccount }) {
             target="_blank"
             rel="noreferrer"
           >
-            {t('github.createToken')} <ExternalLink size={11} aria-hidden className="inline" />
+            {t('github.createToken')} <ExternalLinkIcon size={11} aria-hidden className="inline" />
           </a>
         </div>
       )}

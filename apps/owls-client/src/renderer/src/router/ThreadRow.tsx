@@ -1,4 +1,4 @@
-import { User } from 'lucide-react'
+import { UserIcon } from '@renderer/components/ui/icons'
 import type { ReactNode } from 'react'
 import { AppLogoMark } from '../codex/AppLogo'
 
@@ -17,7 +17,7 @@ export function ThreadRow({
   return (
     <div className={`router-row ${speaker}${follows ? ' follows' : ''}`}>
       <div className="router-row-avatar" aria-hidden="true">
-        {follows ? null : speaker === 'router' ? <AppLogoMark /> : <User size={14} />}
+        {follows ? null : speaker === 'router' ? <AppLogoMark /> : <UserIcon size={14} />}
       </div>
       <div className="router-row-body">{children}</div>
     </div>

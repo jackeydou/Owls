@@ -1,21 +1,21 @@
 import { Button } from '@renderer/components/ui/button'
+import {
+  ArrowLeftIcon,
+  BrainIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  GitBranchIcon,
+  GitPullRequestIcon,
+  type IconComponent,
+  InfoIcon,
+  PaletteIcon,
+  RefreshIcon,
+  RouteIcon,
+  ScrollTextIcon,
+  SlidersIcon
+} from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Select } from '@renderer/components/ui/select'
-import {
-  ArrowLeft,
-  Brain,
-  ChevronDown,
-  ChevronRight,
-  GitBranch,
-  GitPullRequest,
-  Info,
-  type LucideIcon,
-  Palette,
-  RefreshCw,
-  Route,
-  ScrollText,
-  SlidersHorizontal
-} from 'lucide-react'
 import { Fragment, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { appLogoSchema, settingsSchema } from '../../../shared/codex'
@@ -38,22 +38,22 @@ import {
   useCodexStore
 } from './store'
 
-type TabEntry = { id: Exclude<SettingsTab, 'project'>; label: string; icon: LucideIcon | null }
+type TabEntry = { id: Exclude<SettingsTab, 'project'>; label: string; icon: IconComponent | null }
 
 const TAB_GROUPS: TabEntry[][] = [
   [
-    { id: 'router', label: 'routerSettings.title', icon: Route },
-    { id: 'workers', label: 'defaults', icon: SlidersHorizontal },
-    { id: 'memory', label: 'memory.title', icon: Brain }
+    { id: 'router', label: 'routerSettings.title', icon: RouteIcon },
+    { id: 'workers', label: 'defaults', icon: SlidersIcon },
+    { id: 'memory', label: 'memory.title', icon: BrainIcon }
   ],
   [
     { id: 'claude-code', label: 'agent.claude-code', icon: null },
     { id: 'codex', label: 'agent.codex', icon: null }
   ],
   [
-    { id: 'github', label: 'github.title', icon: GitPullRequest },
-    { id: 'appearance', label: 'appearance', icon: Palette },
-    { id: 'updates', label: 'updates.title', icon: RefreshCw }
+    { id: 'github', label: 'github.title', icon: GitPullRequestIcon },
+    { id: 'appearance', label: 'appearance', icon: PaletteIcon },
+    { id: 'updates', label: 'updates.title', icon: RefreshIcon }
   ]
 ]
 
@@ -62,10 +62,10 @@ function TabIcon({ tab }: { tab: TabEntry }) {
   return tab.icon ? <tab.icon size={15} /> : null
 }
 
-const PROJECT_PAGE_ICONS: Record<ProjectSettingsPage, LucideIcon> = {
-  general: Info,
-  git: GitBranch,
-  instructions: ScrollText
+const PROJECT_PAGE_ICONS: Record<ProjectSettingsPage, IconComponent> = {
+  general: InfoIcon,
+  git: GitBranchIcon,
+  instructions: ScrollTextIcon
 }
 
 /**
@@ -90,7 +90,7 @@ function ProjectsNav() {
       {projects.map((project) => {
         const selected = current?.projectId === project.id
         const open = selected && !folded
-        const Chevron = open ? ChevronDown : ChevronRight
+        const Chevron = open ? ChevronDownIcon : ChevronRightIcon
         return (
           <Fragment key={project.id}>
             <button
@@ -157,7 +157,7 @@ function SettingsNav() {
           className="codex-settings-back"
           onClick={leaveSettings}
         >
-          <ArrowLeft size={15} />
+          <ArrowLeftIcon size={15} />
           {t('back')}
         </Button>
       </div>

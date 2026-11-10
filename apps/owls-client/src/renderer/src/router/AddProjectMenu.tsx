@@ -2,6 +2,14 @@ import { Button } from '@renderer/components/ui/button'
 import { Dialog } from '@renderer/components/ui/dialog'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import {
+  FolderIcon,
+  FolderOpenIcon,
+  FolderPlusIcon,
+  GlobeIcon,
+  LoaderIcon,
+  PlusIcon
+} from '@renderer/components/ui/icons'
+import {
   Menu,
   MenuContent,
   MenuGroup,
@@ -11,7 +19,6 @@ import {
   MenuTrigger
 } from '@renderer/components/ui/menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { Folder, FolderOpen, FolderPlus, Globe, Loader2, Plus } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexFailure } from '../../../shared/codex'
@@ -69,7 +76,7 @@ export function AddProjectMenu() {
         <Tooltip>
           <TooltipTrigger asChild>
             <MenuTrigger asChild>
-              <IconButton size="sm" label={t('addProject')} icon={<Plus size={14} />} />
+              <IconButton size="sm" label={t('addProject')} icon={<PlusIcon size={14} />} />
             </MenuTrigger>
           </TooltipTrigger>
           <TooltipContent side="bottom">{t('addProject')}</TooltipContent>
@@ -82,15 +89,15 @@ export function AddProjectMenu() {
           }}
         >
           <MenuItem onSelect={() => void pickProject()}>
-            <FolderOpen size={15} aria-hidden />
+            <FolderOpenIcon size={15} aria-hidden />
             {t('project.add.open')}
           </MenuItem>
           <MenuItem onSelect={() => open('github')}>
-            <Globe size={15} aria-hidden />
+            <GlobeIcon size={15} aria-hidden />
             {t('project.add.github')}
           </MenuItem>
           <MenuItem onSelect={() => open('quick')}>
-            <FolderPlus size={15} aria-hidden />
+            <FolderPlusIcon size={15} aria-hidden />
             {t('project.add.quick')}
           </MenuItem>
           {recents.length ? (
@@ -100,7 +107,7 @@ export function AddProjectMenu() {
                 <MenuLabel>{t('project.add.recents')}</MenuLabel>
                 {recents.map((project) => (
                   <MenuItem key={project.id} onSelect={() => showChat(project.id)}>
-                    <Folder size={15} aria-hidden />
+                    <FolderIcon size={15} aria-hidden />
                     <span className="truncate">{project.name}</span>
                   </MenuItem>
                 ))}
@@ -212,7 +219,7 @@ function NewProjectDialog({ source, onClose }: { source: Source; onClose: () => 
             {t('forward.cancel')}
           </Button>
           <Button type="submit" size="sm" disabled={!valid || busy}>
-            {busy ? <Loader2 size={13} className="animate-spin" aria-hidden /> : null}
+            {busy ? <LoaderIcon size={13} className="animate-spin" aria-hidden /> : null}
             {t(busy ? `project.${source}.busy` : `project.${source}.submit`)}
           </Button>
         </footer>

@@ -1,5 +1,5 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { Info } from 'lucide-react'
+import { InfoIcon } from '@renderer/components/ui/icons'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCodexStore } from '../codex/store'
@@ -53,7 +53,7 @@ export function RouterChat() {
               className="codex-bar-button"
               label={t('router.details')}
               tooltip={t('router.details')}
-              icon={<Info size={16} />}
+              icon={<InfoIcon size={16} />}
               onClick={() => showPanel({ kind: 'router', routerId: router.id })}
             />
           ) : null}

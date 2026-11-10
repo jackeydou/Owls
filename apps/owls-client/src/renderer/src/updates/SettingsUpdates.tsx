@@ -1,7 +1,7 @@
 import { Button } from '@renderer/components/ui/button'
+import { LoaderIcon, RefreshIcon, RotateCcwIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import type { TFunction } from 'i18next'
-import { Loader2, RefreshCw, RotateCcw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type UpdateSnapshot, type UpdateState, updateChannelSchema } from '../../../shared/updates'
@@ -55,7 +55,7 @@ function UpdateAction({ state }: { state: UpdateState }) {
   if (state.status === 'ready') {
     return (
       <Button size="sm" onClick={() => void window.codex.updates.install()}>
-        <RotateCcw size={13} aria-hidden />
+        <RotateCcwIcon size={13} aria-hidden />
         {t('updates.install')}
       </Button>
     )
@@ -69,9 +69,9 @@ function UpdateAction({ state }: { state: UpdateState }) {
       onClick={() => void window.codex.updates.check()}
     >
       {busy ? (
-        <Loader2 size={13} className="animate-spin" aria-hidden />
+        <LoaderIcon size={13} className="animate-spin" aria-hidden />
       ) : (
-        <RefreshCw size={13} aria-hidden />
+        <RefreshIcon size={13} aria-hidden />
       )}
       {t('updates.check')}
     </Button>

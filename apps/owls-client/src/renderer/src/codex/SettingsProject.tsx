@@ -1,6 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
+import { ChevronDownIcon, ChevronRightIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
-import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexProject } from '../../../shared/codex'
@@ -308,7 +308,7 @@ function InstructionRow({
         aria-controls={open ? fieldId : undefined}
         onClick={() => setOpen(!open)}
       >
-        {open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+        {open ? <ChevronDownIcon size={15} /> : <ChevronRightIcon size={15} />}
       </Button>
     </SettingRow>
   )

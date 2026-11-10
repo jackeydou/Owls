@@ -1,5 +1,10 @@
 import { Button } from '@renderer/components/ui/button'
-import { ArrowRight, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
+import {
+  ArrowRightIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  LoaderIcon
+} from '@renderer/components/ui/icons'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapNode } from '../../../../shared/worker-map'
@@ -38,7 +43,7 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
       onClick={() => showChat(node.projectId)}
     >
       {t('map.enter')}
-      <ArrowRight size={11} aria-hidden />
+      <ArrowRightIcon size={11} aria-hidden />
     </button>
   )
   if (!project || node.quiet)
@@ -65,7 +70,7 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
         ) : null}
       </span>
       <span className={busy ? 'map-project-line busy' : 'map-project-line'}>
-        {busy ? <Loader2 size={11} className="animate-spin" aria-hidden /> : null}
+        {busy ? <LoaderIcon size={11} className="animate-spin" aria-hidden /> : null}
         {busy ? t('router.working') : (routerLine(project) ?? t('map.notStarted'))}
       </span>
       {enter}
@@ -225,7 +230,7 @@ export const MapNodeView = memo(function MapNodeView({
         <WorkerBody node={node} now={now} />
       ) : node.kind === 'done' ? (
         <>
-          {node.open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          {node.open ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />}
           <span>{t('map.done', { count: node.count })}</span>
         </>
       ) : (

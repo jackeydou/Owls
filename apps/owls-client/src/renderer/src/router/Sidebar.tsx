@@ -1,5 +1,5 @@
+import { NetworkIcon, PlusIcon, SettingsIcon } from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
-import { Network, Settings2, SquarePen } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexRouter } from '../../../shared/codex'
@@ -52,7 +52,7 @@ export function Sidebar() {
         aria-current={drafting || undefined}
         onClick={() => newThread()}
       >
-        <SquarePen size={15} />
+        <PlusIcon size={15} />
         <span>{t('thread.new')}</span>
         <kbd>⌘ N</kbd>
       </button>
@@ -62,7 +62,7 @@ export function Sidebar() {
         aria-current={onMap || undefined}
         onClick={showMap}
       >
-        <Network size={15} />
+        <NetworkIcon size={15} />
         <span>{t('map.title')}</span>
         <kbd>⌘ J</kbd>
       </button>
@@ -85,7 +85,7 @@ export function Sidebar() {
         className={`router-sidebar-item router-sidebar-action router-sidebar-settings ${connection.status}`}
         onClick={() => showSettings()}
       >
-        <Settings2 size={15} />
+        <SettingsIcon size={15} />
         <span>{t('settings')}</span>
       </button>
       <ResizeHandle {...handle} />

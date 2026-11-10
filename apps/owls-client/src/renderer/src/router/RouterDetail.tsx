@@ -1,6 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { Settings2, X } from 'lucide-react'
+import { SettingsIcon, XIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import type { CodexRouter } from '../../../shared/codex'
 import { useCodexStore } from '../codex/store'
@@ -40,7 +40,7 @@ export function RouterDetail({ router }: { router: CodexRouter | undefined }) {
           size="sm"
           label={t('worker.close')}
           tooltip={t('worker.close')}
-          icon={<X size={15} />}
+          icon={<XIcon size={15} />}
           onClick={() => showPanel(null)}
         />
       </header>
@@ -58,7 +58,7 @@ export function RouterDetail({ router }: { router: CodexRouter | undefined }) {
           ) : null}
         </dl>
         <Button size="sm" variant="outline" onClick={() => showSettings('router')}>
-          <Settings2 size={14} />
+          <SettingsIcon size={14} />
           {t('router.openSettings')}
         </Button>
         {router && kept.length ? (
