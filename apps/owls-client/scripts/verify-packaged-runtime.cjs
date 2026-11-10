@@ -65,8 +65,7 @@ function probeRuntime(archive) {
     '@modelcontextprotocol/sdk/client/index.js',
     '@modelcontextprotocol/sdk/client/stdio.js',
     '@modelcontextprotocol/sdk/client/streamableHttp.js',
-    '@modelcontextprotocol/sdk/server/mcp.js',
-    'node-pty'
+    '@modelcontextprotocol/sdk/server/mcp.js'
   ]) {
     appRequire(entry)
   }
@@ -83,7 +82,7 @@ function probeRuntime(archive) {
       throw new Error(`Runtime dependency loaded from outside the app: ${filename}`)
     }
   }
-  console.log(`Packaged runtime verified: ${count} packages, MCP transports, SQLite, and PTY.`)
+  console.log(`Packaged runtime verified: ${count} packages, MCP transports and SQLite.`)
 }
 
 function verifyPackagedApp(appPath) {

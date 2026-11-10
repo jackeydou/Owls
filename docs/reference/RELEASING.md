@@ -175,7 +175,7 @@ dependencies from an otherwise signed and notarized app.
 Every macOS package runs a runtime gate in `afterPack`, before signing. The gate
 walks the packaged production dependency manifests, rejects missing required
 dependencies or links outside the app, then uses the packaged Electron binary to
-load MCP client/server transports, load PTY, and query an in-memory SQLite database.
+load MCP client/server transports and query an in-memory SQLite database.
 It runs in Electron's Node mode without starting Owls or opening user data. Missing
 optional platform packages are allowed; installed optional packages must have their
 required dependencies. This validates dependency packaging and native loading, not

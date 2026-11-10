@@ -59,18 +59,18 @@ module.exports = {
     '!node_modules/@owls/mac-*/src/**',
     '!node_modules/@owls/mac-*/Cargo.*',
     '!node_modules/@owls/mac-*/build.rs',
+    // better-sqlite3 loads its N-API prebuilds; the bundled SQLite and C++ sources are build-only.
+    '!node_modules/better-sqlite3/{deps,src}/**',
+    '!node_modules/better-sqlite3/binding.gyp',
     '!electron.vite.config.{js,ts,mjs,cjs}',
     '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}',
     '!{.env,.env.*,.npmrc,pnpm-lock.yaml}',
     '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   ],
-  asarUnpack: [
-    'resources/**',
-    'node_modules/**',
-    '**/*.node',
-    '**/node_modules/trash/lib/macos-trash',
-    'out/main/compiled-workflow/stage-worker-entry.js'
-  ],
+  // Keep JavaScript dependencies inside app.asar. Unpacking all of node_modules put tens of
+  // thousands of small files in the bundle, which made copying, signing, and verifying the
+  // app slow. Unpack only native addons.
+  asarUnpack: ['resources/**', '**/*.node', 'out/main/compiled-workflow/stage-worker-entry.js'],
   extraResources: [
     {
       from: 'drizzle',
