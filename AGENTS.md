@@ -261,7 +261,7 @@ Release MR flow:
 - Renderer app: `apps/owls-client/src/renderer/src/`.
 - Shared cross-process types: `apps/owls-client/src/shared/`.
 - Database schema and migrations: `apps/owls-client/src/main/app/schema.ts` and
-  `apps/owls-client/drizzle-codex/` (`owls.db`).
+  `apps/owls-client/migrations/` (`owls.db`).
 - Legacy Pi runtime (kept for reference, not built, type-checked, or tested):
   `apps/owls-client/legacy/`. Do not import from it or add code to it.
 - Plugin system design and implementation: `docs/PLUGIN_SYSTEM.md` and `apps/owls-client/src/main/plugins/`.
@@ -380,8 +380,8 @@ Release MR flow:
 ### Database And Data Root
 
 - For schema changes, update `src/main/app/schema.ts`, generate Drizzle migration
-  files with `db:generate:codex`, and commit generated SQL plus
-  `drizzle-codex/meta/_journal.json` together.
+  files with `db:generate:app`, and commit generated SQL plus
+  `migrations/meta/_journal.json` together.
 - Keep data-root behavior behind `owls-paths.ts` and the persisted settings in
   `src/main/app/store.ts`; do not
   add alternate path/config mechanisms without explicit need.

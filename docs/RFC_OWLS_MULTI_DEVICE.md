@@ -271,7 +271,7 @@ type SealedRecord = {
 - **共享记录。** `memory` 和 `memory-category` 任何设备都能写，同步服务按 `baseRev` 比较：
   等于当前 `rev` 才接受，否则返回 `stale`。新建记录的 id 由设备生成，重试是幂等的。
 - **拉取。** 设备按 `rev > 上次` 分页拉取所有记录，应用到本地表里，并标上 `owner`。
-  本地的 `codex_sync_state.rev` 仍然只管本机的读者，和同步服务的 `rev` 分开记录。
+  本地的 `sync_state.rev` 仍然只管本机的读者，和同步服务的 `rev` 分开记录。
 
 ### 8.2 消息
 
@@ -344,11 +344,11 @@ type SealedRecord = {
 
 数据库：
 
-- `codex_threads`、`codex_projects`、`codex_workers`、`codex_sessions` 增加 `owner_device_id`，thread 条目跟随所属 thread。首次启动生成设备 id 后，
+- `threads`、`projects`、`workers`、`sessions` 增加 `owner_device_id`，thread 条目跟随所属 thread。首次启动生成设备 id 后，
   把已有行回填为本机。
-- 新增 `codex_devices`、`codex_device_commands`、`codex_command_receipts`、`codex_sync_log`（`deviceSeq`、记录 id、是否已确认）、
-  `codex_sync_cursor`（同步服务的 `rev`）。
-- 按仓库规则修改 `schema.ts`，用 `db:generate:codex` 生成迁移。
+- 新增 `devices`、`device_commands`、`command_receipts`、`sync_log`（`deviceSeq`、记录 id、是否已确认）、
+  `sync_cursor`（同步服务的 `rev`）。
+- 按仓库规则修改 `schema.ts`，用 `db:generate:app` 生成迁移。
 
 renderer：
 

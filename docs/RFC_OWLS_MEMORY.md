@@ -62,10 +62,10 @@
 沿用现有表的写法：几列用于索引，其余放 `value` JSON，由 zod 解析。
 
 ```text
-codex_memory_categories  id, rev, updated_at, value        （只有个人记忆用）
-codex_memories           id, rev, store, project_id, category_id, kind, status, updated_at, value
-codex_memory_cursors     thread_id, item_rev, event_seq, updated_at
-codex_memory_runs        id, thread_id, status, created_at, value
+memory_categories  id, rev, updated_at, value        （只有个人记忆用）
+memories           id, rev, store, project_id, category_id, kind, status, updated_at, value
+memory_cursors     thread_id, item_rev, event_seq, updated_at
+memory_runs        id, thread_id, status, created_at, value
 ```
 
 类型定义放在 `shared/memory.ts`：
@@ -96,7 +96,7 @@ type Memory = MemoryScope & {
   text: string              // 一条独立成立的事实，≤ 300 字符
   /** `deleted` 是墓碑：只留 id、rev 和时间，正文和来源都清空。 */
   status: 'active' | 'archived' | 'deleted'
-  /** 取自全局版本号 `codex_sync_state`，每次修改（包括删除）都取下一个值。 */
+  /** 取自全局版本号 `sync_state`，每次修改（包括删除）都取下一个值。 */
   rev: number
   pinned: boolean
   /** 有时效的事实，例如「这周在出差」；过期后不再注入和检索。 */
@@ -125,7 +125,7 @@ type Memory = MemoryScope & {
   墓碑保留 90 天后清理，比设备离线后重新同步的上限更长。
 - **取代用归档，不覆盖原条目。** 事实变化时（例如换了工作），Dreaming 新建一条，旧条目改为 `archived` 并填写 `supersededBy`。
   设置页默认隐藏已归档条目。
-- **每个 thread 有一个处理进度。** `item_rev` 是已处理到的 `codex_thread_items.rev`，`event_seq` 是已处理到的 Inbox 事件序号，
+- **每个 thread 有一个处理进度。** `item_rev` 是已处理到的 `thread_items.rev`，`event_seq` 是已处理到的 Inbox 事件序号，
   `worker_report` 事件从这里取。`rev` 本来就是全局递增的版本号，可以直接拿来当增量游标。
 - 设置项加在 `AppSettings.memory`：
 
@@ -141,7 +141,7 @@ type Memory = MemoryScope & {
 
   两个模型分开存，切换 provider 时各自的选择不会丢，写法和 `RouterSettings.claudeModel`、`codexModel` 一致。
   已有用户的设置行里没有这个字段，所以 schema 要给默认值。
-- Schema 修改后用 `db:generate:codex` 生成迁移。
+- Schema 修改后用 `db:generate:app` 生成迁移。
 
 ### 4.1 项目记忆的五类
 
@@ -199,9 +199,9 @@ type Memory = MemoryScope & {
 
 一次运行处理一个 thread 在进度之后的新内容，按顺序渲染成一段文本：
 
-1. **Router 对话。** 用户消息、Router 回复和转发条目，从 `codex_thread_items` 里取 `rev > item_rev` 的部分。
+1. **Router 对话。** 用户消息、Router 回复和转发条目，从 `thread_items` 里取 `rev > item_rev` 的部分。
 2. **Worker 结果。** 区间内每条 `worker_report` 事件：Worker 的 goal、项目、状态、summary、artifacts 和分支，
-   再加上该 Worker 会话最后几条 assistant 消息（从 `codex_sessions.value.items` 截取）。
+   再加上该 Worker 会话最后几条 assistant 消息（从 `sessions.value.items` 截取）。
    报告的 summary 截断在 1000 字符，单靠它信息不够。
 3. **现有目录。** 个人记忆的全部类别（名称、说明、条数）；本次涉及的每个项目，列出五类各自的条数，
    以及该项目最近的条目。
@@ -261,7 +261,7 @@ type MemoryOp =
 
 ### 5.6 运行记录
 
-`codex_memory_runs` 记录每次运行的 thread、处理区间、引擎、token、状态、错误，以及新增、更新、归档、复核保留的条目 id
+`memory_runs` 记录每次运行的 thread、处理区间、引擎、token、状态、错误，以及新增、更新、归档、复核保留的条目 id
 和合并掉的类别 id。
 设置页显示最近 20 次运行，方便用户知道某条 memory 是什么时候、从哪里整理出来的。
 

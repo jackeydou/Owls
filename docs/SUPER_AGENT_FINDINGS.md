@@ -286,7 +286,7 @@ hook 和插件信息，未入库。
 ### F22 失败的模型回复会进入 pi `Agent` 的消息记录
 
 - 现象：F21 的失败批次之后，`agent.state.messages` 中留下了一条 `stopReason: 'error'`、内容为空的
-  assistant 消息，并被持久化到 `codex_router_messages`。下一批次会把它带进上下文。
+  assistant 消息，并被持久化到 `router_messages`。下一批次会把它带进上下文。
 - 处理：批次以 `error` 或 `aborted` 结束时，从内存和持久化记录中去掉这条 assistant 消息，保留用户
   消息。回归测试：`router-runtime.test.mjs`「a failed model response is not kept」。
 

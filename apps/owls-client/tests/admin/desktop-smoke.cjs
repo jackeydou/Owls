@@ -15,7 +15,7 @@ app
     let reopened
     try {
       const database = join(temp, 'test.db')
-      const migrations = resolve(__dirname, '../../drizzle-codex')
+      const migrations = resolve(__dirname, '../../migrations')
       const store = new OwlsStore(database, migrations)
       store.saveSettings({ ...store.settings(), executablePath: fixture })
       let wake = () => {}

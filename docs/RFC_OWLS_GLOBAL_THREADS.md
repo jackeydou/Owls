@@ -21,9 +21,9 @@
 ## 2. 存储
 
 ```text
-codex_sync_state    一行，全局递增的版本号
-codex_threads       id, rev, updated_at, value（Router，不含 items）
-codex_thread_items  thread_id, item_id, position, rev, value（SessionItem）
+sync_state    一行，全局递增的版本号
+threads       id, rev, updated_at, value（Router，不含 items）
+thread_items  thread_id, item_id, position, rev, value（SessionItem）
 ```
 
 - `RouterStore.saveThread` 在一个事务里取下一个版本号，写入 thread 和本次变化的条目。写入都走同一个连接，
@@ -35,7 +35,7 @@ codex_thread_items  thread_id, item_id, position, rev, value（SessionItem）
 - renderer 在 `items` 里按 thread 保存条目。`threadItems` 取到的页面可能比途中到达的事件旧，
   所以合并时不覆盖未保存的条目和更高版本的条目。
 
-暂未加入：条目删除（墓碑）、`codex_workers` 的版本号。多设备同步时再加。
+暂未加入：条目删除（墓碑）、`workers` 的版本号。多设备同步时再加。
 
 ## 3. 项目列表
 
