@@ -11,6 +11,18 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1100-beta.1
+
+### Highlights
+
+- Chat and composer text is larger and easier to read at 16px, with one consistent type and spacing scale across the app.
+
+### Changes
+
+- UI: unified type and spacing scale; chat and composer text is now 16px and app chrome 14px. (#58)
+
+### Fixes
+
 ## 2026.11.1000-beta.1
 
 ### Highlights
