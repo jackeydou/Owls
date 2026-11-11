@@ -112,8 +112,12 @@ export function elapsed(from: string, now: number): { unit: 'm' | 'h'; value: nu
     : { unit: 'h', value: Math.round(minutes / 60) }
 }
 const HUES = 4
-/** Stable across restarts and added projects, so a project keeps its color. */
-export function projectHue(projectId: string): string {
+/**
+ * The project's chosen palette color, or one stable across restarts and added
+ * projects, so a project keeps its color.
+ */
+export function projectHue(projectId: string, color: number | null = null): string {
+  if (color) return `var(--owl-hue-${color})`
   let sum = 0
   for (const char of projectId) sum += char.charCodeAt(0)
   return `var(--owl-hue-${(sum % HUES) + 1})`

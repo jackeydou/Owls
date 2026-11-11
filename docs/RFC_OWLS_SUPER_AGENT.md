@@ -726,6 +726,9 @@ F12–F16）：
 「指令」三页，右侧 Projects 栏的项目行悬停时也有入口。保存走 `owls:save-project`，分支和 remote
 列表走 `owls:project-git-refs`。每次读取都取最新的项目记录，所以修改从 Worker 的下一轮开始生效。
 
+- `icon` 和 `color`：项目在列表、设置页和地图上的图标（首字母、emoji 或图片）与颜色。图片在设置页裁成
+  96×96 的方形后以 PNG/JPEG data URL 保存（≤ 256 KB，不接受 SVG 和文件路径），随项目记录同步；`color` 为
+  null 时按项目 id 取色。Router 不读这两项。
 - `description`：Router 的项目列表（有多个项目时）在项目后附上描述，帮助它选择项目。
 - `git.baseBranch`：`base: 'head'` 的新 worktree 改从这个分支开始。名字形如 `<remote>/<branch>` 且
   remote 存在时先 `git fetch`（与 `default-branch` 相同的超时和凭据限制），否则视为本地分支；分支

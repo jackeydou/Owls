@@ -11,6 +11,7 @@ import {
   type ProjectInstructions,
   type ProjectSettings
 } from '../../../shared/projects'
+import { ProjectIconSetting } from './ProjectIconSetting'
 import { SettingRow } from './SettingRow'
 import { useAppStore } from './store'
 
@@ -107,6 +108,7 @@ function GeneralPage({ project }: { project: Project }) {
           onCommit={(name) => void save({ name })}
         />
       </SettingRow>
+      <ProjectIconSetting project={project} onSave={(settings) => void save({ settings })} />
       <SettingRow
         label={t('projectSettings.location')}
         description={t('projectSettings.locationHelp')}

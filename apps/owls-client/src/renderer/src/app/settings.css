@@ -326,3 +326,96 @@
   flex-shrink: 0;
   color: var(--color-muted-foreground);
 }
+.owls-project-icon-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+/* The preview is the tile at the size the settings page can show it well. */
+.owls-project-icon-preview > .owls-project-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-sidebar-active);
+  font-size: 15px;
+  font-weight: 600;
+}
+.owls-project-icon-preview > .owls-project-icon.colored {
+  background: color-mix(in srgb, var(--owl-c) 18%, transparent);
+}
+.owls-project-icon-preview > .owls-project-icon.emoji {
+  font-size: 18px;
+}
+.owls-project-icon-preview > .owls-project-icon.image {
+  background: transparent;
+}
+.owls-segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+}
+.owls-segmented > button {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+}
+.owls-segmented > button[aria-pressed="true"] {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+.owls-setting-detail .router-input.owls-project-emoji {
+  width: 72px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  text-align: center;
+}
+.owls-project-colors {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.owls-project-colors .swatch {
+  position: relative;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--owl-c);
+}
+/* Automatic: the hashed color, marked with a dashed ring so it reads as "no choice". */
+.owls-project-colors .swatch.auto {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--owl-c);
+  outline: 1px dashed var(--color-border);
+  outline-offset: 2px;
+}
+.owls-project-colors .swatch:has(input:checked) {
+  box-shadow:
+    0 0 0 2px var(--color-background),
+    0 0 0 3.5px var(--owl-c);
+}
+.owls-project-colors .swatch.auto:has(input:checked) {
+  box-shadow:
+    inset 0 0 0 1.5px var(--owl-c),
+    0 0 0 2px var(--color-background),
+    0 0 0 3.5px var(--owl-c);
+  outline: none;
+}
+.owls-project-icon-error {
+  flex: 0 0 100%;
+  color: var(--owl-bad);
+  font-size: 13px;
+}
+.owls-project-colors .swatch:has(input:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}

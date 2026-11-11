@@ -100,9 +100,33 @@ export const projectInstructionsSchema = z.object({
   codeReview: instructionText,
   pullRequest: instructionText
 })
+/** How many project colors the app's palette has (`--owl-hue-1` to `--owl-hue-N`). */
+export const PROJECT_COLORS = 4
+/** Longest image icon kept, as a data URL; the settings page scales images down to fit. */
+export const PROJECT_ICON_IMAGE_LIMIT = 256 * 1024
+/**
+ * What stands for a project in lists: its initial, an emoji or short text, or a small
+ * image. Images are raster data URLs, never a file path, so they sync with the record.
+ */
+export const projectIconSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('letter') }),
+  z.object({ kind: z.literal('emoji'), value: z.string().trim().min(1).max(16) }),
+  z.object({
+    kind: z.literal('image'),
+    src: z
+      .string()
+      .max(PROJECT_ICON_IMAGE_LIMIT)
+      .regex(/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+=*$/, 'Invalid image')
+  })
+])
+export type ProjectIcon = z.infer<typeof projectIconSchema>
 export const projectSettingsSchema = z.object({
   /** What the project is, for the Router choosing where a task belongs. */
   description: z.string().max(500),
+  /** Added after project settings first shipped, so older settings get the defaults. */
+  icon: projectIconSchema.default({ kind: 'letter' }),
+  /** One of the palette colors; null picks one from the project's id. */
+  color: z.number().int().min(1).max(PROJECT_COLORS).nullable().default(null),
   git: projectGitSettingsSchema,
   instructions: projectInstructionsSchema
 })
@@ -111,6 +135,8 @@ export type ProjectInstructions = z.infer<typeof projectInstructionsSchema>
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>
 export const defaultProjectSettings: ProjectSettings = {
   description: '',
+  icon: { kind: 'letter' },
+  color: null,
   git: { baseBranch: null, remote: null, deletePushedBranches: false },
   instructions: { general: '', codeReview: '', pullRequest: '' }
 }

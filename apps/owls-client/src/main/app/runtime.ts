@@ -1,5 +1,5 @@
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
-export { parseGitHubRepo } from '../../shared/projects.js'
+export { parseGitHubRepo, saveProjectSchema } from '../../shared/projects.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'
 export { discoverClaudeExecutable } from '../claude/discovery.js'
 export * as claudeNormalize from '../claude/normalize.js'
