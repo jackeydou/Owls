@@ -1,0 +1,1 @@
+- Router: new threads no longer preset a project; type @ in the editor to pick one. (#65)
