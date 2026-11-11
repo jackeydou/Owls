@@ -107,10 +107,16 @@ export function MapView() {
     down(focused)
     return on
   }, [focused, byId, parents, map])
+  const projectRecords = useAppStore((s) => s.projects)
   const hueOf = useCallback(
     (node: MapNode) =>
-      node.kind === 'root' ? 'var(--color-muted-foreground)' : projectHue(node.projectId),
-    []
+      node.kind === 'root'
+        ? 'var(--color-muted-foreground)'
+        : projectHue(
+            node.projectId,
+            projectRecords.find((p) => p.id === node.projectId)?.settings.color ?? null
+          ),
+    [projectRecords]
   )
   const select = useCallback(
     (node: MapNode) => {

@@ -1,0 +1,1 @@
+- Projects: each project can show an initial, an emoji, or an image as its icon, in a color you choose, across the Projects sidebar, Settings, and the map.

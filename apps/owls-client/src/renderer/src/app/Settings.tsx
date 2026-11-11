@@ -22,6 +22,7 @@ import { appLogoSchema, settingsSchema } from '../../../shared/app'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
 import { AgentIcon } from '../router/AgentIcon'
 import { projectHue } from '../router/activity'
+import { ProjectIcon } from '../router/ProjectIcon'
 import { usePaneWidth } from '../router/pane-width'
 import { RouterSettingsSection } from '../router/RouterSettings'
 import { SettingsUpdatesPane } from '../updates/SettingsUpdates'
@@ -96,14 +97,16 @@ function ProjectsNav() {
             <button
               type="button"
               className="router-sidebar-item owls-settings-project"
-              style={{ '--owl-c': projectHue(project.id) } as React.CSSProperties}
+              style={
+                { '--owl-c': projectHue(project.id, project.settings.color) } as React.CSSProperties
+              }
               aria-expanded={open}
               onClick={() => {
                 if (selected) setFolded(!folded)
                 else showProjectSettings(project.id)
               }}
             >
-              <b aria-hidden="true">{project.name.slice(0, 1).toUpperCase()}</b>
+              <ProjectIcon project={project} />
               <span>{project.name}</span>
               <Chevron size={14} className="owls-settings-chevron" aria-hidden="true" />
             </button>

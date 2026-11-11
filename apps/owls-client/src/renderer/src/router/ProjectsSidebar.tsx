@@ -15,6 +15,7 @@ import { isInPlay } from '../../../shared/worker-map'
 import { useAppStore } from '../app/store'
 import { AddProjectMenu } from './AddProjectMenu'
 import { byAge, isWaitingOnUser, isWorking, projectHue, workerState, workerTitle } from './activity'
+import { ProjectIcon } from './ProjectIcon'
 import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
 import { WorkerDot } from './WorkerLink'
@@ -82,11 +83,13 @@ function ProjectRow({ project }: { project: Project }) {
           <button
             type="button"
             className={workers.length ? 'router-project foldable' : 'router-project'}
-            style={{ '--owl-c': projectHue(project.id) } as React.CSSProperties}
+            style={
+              { '--owl-c': projectHue(project.id, project.settings.color) } as React.CSSProperties
+            }
             aria-label={label}
             onClick={() => showChat(project.id)}
           >
-            <b aria-hidden="true">{project.name.slice(0, 1).toUpperCase()}</b>
+            <ProjectIcon project={project} />
             <span>{project.name}</span>
             {state ? <i className={state} aria-hidden /> : null}
           </button>

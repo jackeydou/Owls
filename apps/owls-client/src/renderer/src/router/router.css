@@ -1460,3 +1460,24 @@ html.pane-resizing * {
     box-shadow: -4px 0 8px rgb(0 0 0 / 0.06);
   }
 }
+/* Project icon tiles, wherever a project is listed. */
+.owls-project-icon {
+  overflow: hidden;
+  line-height: 1;
+}
+.owls-project-icon.colored {
+  background: color-mix(in srgb, var(--owl-c) 18%, transparent);
+  color: var(--owl-c);
+}
+.owls-project-icon.emoji {
+  font-size: 12px;
+  font-weight: 400;
+}
+.owls-project-icon.image {
+  background: transparent;
+}
+.owls-project-icon.image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

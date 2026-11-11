@@ -9,6 +9,7 @@ import test from 'node:test'
 const require = createRequire(import.meta.url)
 const {
   parseGitHubRepo,
+  saveProjectSchema,
   cloneGitHubProject,
   createQuickProject
 } = require('../../out/main/app/runtime.js')
@@ -95,5 +96,37 @@ test('importing a repository that is already cloned there reuses the folder', as
   await assert.rejects(
     cloneGitHubProject({ url: 'not a repo', parent: root }, root),
     (error) => error.code === 'project_url_invalid'
+  )
+})
+
+test('project settings default their icon and accept only small raster image icons', () => {
+  const base = {
+    id: 'p1',
+    name: 'demo',
+    settings: {
+      description: '',
+      git: { baseBranch: null, remote: null, deletePushedBranches: false },
+      instructions: { general: '', codeReview: '', pullRequest: '' }
+    }
+  }
+  const parsed = saveProjectSchema.parse(base)
+  assert.deepEqual(parsed.settings.icon, { kind: 'letter' }, 'settings saved before icons')
+  assert.equal(parsed.settings.color, null)
+  const withIcon = (icon, color = null) =>
+    saveProjectSchema.safeParse({ ...base, settings: { ...base.settings, icon, color } }).success
+  assert.ok(withIcon({ kind: 'emoji', value: '🦉' }, 2))
+  assert.ok(withIcon({ kind: 'image', src: 'data:image/png;base64,iVBORw0KGgo=' }))
+  assert.equal(withIcon({ kind: 'emoji', value: '  ' }), false)
+  assert.equal(withIcon({ kind: 'letter' }, 5), false, 'only palette colors')
+  assert.equal(withIcon({ kind: 'image', src: 'file:///Users/me/icon.png' }), false)
+  assert.equal(
+    withIcon({ kind: 'image', src: 'data:image/svg+xml;base64,PHN2Zz4=' }),
+    false,
+    'no SVG'
+  )
+  assert.equal(
+    withIcon({ kind: 'image', src: `data:image/png;base64,${'A'.repeat(300 * 1024)}` }),
+    false,
+    'size limit'
   )
 })
