@@ -1,1 +1,1 @@
-- Data: the local database tables no longer use a codex_ prefix. Existing threads, projects, settings, and memories are not carried over, so Owls starts as on a fresh install. (#60)
+- Data: the local database tables no longer use a codex_ prefix. Existing threads, projects, settings, and memories are not carried over, so Owls starts as on a fresh install. (#61)
