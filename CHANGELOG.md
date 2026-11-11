@@ -11,6 +11,24 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1000-beta.1
+
+### Highlights
+
+- This beta starts with a fresh database: threads, projects, settings, and memories from earlier versions are not carried over.
+- Each project can show an initial, an emoji, or an image as its icon, in a color you choose.
+- App icons now share one consistent outline style.
+
+### Changes
+
+- Data: the local database tables no longer use a codex_ prefix. Existing threads, projects, settings, and memories are not carried over, so Owls starts as on a fresh install. (#61)
+- Icons: every app icon now uses the IconMCP library with a consistent 1.25px outline, and New thread shows a plus. (#57)
+- Projects: each project can show an initial, an emoji, or an image as its icon, in a color you choose, across the Projects sidebar, Settings, and the map. (#62)
+
+### Fixes
+
+- Menus: clicking a menu choice no longer leaves a focus ring on the button that opened it. (#56)
+
 ## 2026.11.900-beta.3
 
 ### Highlights
