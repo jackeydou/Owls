@@ -1,0 +1,64 @@
+.owls-update-popup {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 50;
+  display: flex;
+  gap: 12px;
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  box-shadow: 0 8px 28px #0000001a;
+  animation: owls-update-popup-in 160ms ease-out;
+}
+.owls-update-popup-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-card-muted);
+}
+.owls-update-popup-body {
+  flex: 1;
+  min-width: 0;
+}
+.owls-update-popup-body h2 {
+  margin: 0;
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+  line-height: var(--owl-leading-tight);
+}
+.owls-update-popup-body p {
+  margin: 4px 0 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+}
+.owls-update-popup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.owls-update-popup-close {
+  flex-shrink: 0;
+  margin: -6px -6px 0 0;
+  color: var(--color-muted-foreground);
+}
+@keyframes owls-update-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .owls-update-popup {
+    animation: none;
+  }
+}

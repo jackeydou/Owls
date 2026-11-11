@@ -4,6 +4,7 @@ import i18next from 'i18next'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RouterShell } from '../router/RouterShell'
+import { UpdatePopup } from '../updates/UpdatePopup'
 import { failureMessage } from './failures'
 import { useAppStore } from './store'
 import './app.css'
@@ -41,6 +42,7 @@ export default function App() {
           {t('loading')}
         </main>
       )}
+      {loaded ? <UpdatePopup /> : null}
       {error ? (
         <div className="owls-error-toast" role="alert">
           <AlertCircleIcon size={16} />
