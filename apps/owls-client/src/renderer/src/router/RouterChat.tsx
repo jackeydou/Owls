@@ -2,7 +2,7 @@ import { IconButton } from '@renderer/components/ui/icon-button'
 import { InfoIcon } from '@renderer/components/ui/icons'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useCodexStore } from '../codex/store'
+import { useAppStore } from '../app/store'
 import { threadTitle, useThreadTitle } from './activity'
 import { ProjectsToggle } from './ProjectsSidebar'
 import { RequestTray } from './RequestTray'
@@ -16,15 +16,15 @@ import { ThreadEditor } from './ThreadEditor'
 /** The home screen: one thread with its Router, or a new thread's first line. */
 export function RouterChat() {
   const { t } = useTranslation()
-  const threadId = useCodexStore((s) => s.threadId)
+  const threadId = useAppStore((s) => s.threadId)
   const showPanel = useRouterStore((s) => s.showPanel)
   const loadItems = useRouterStore((s) => s.loadItems)
   const router = useRouterStore((s) => s.routers.find((r) => r.id === threadId))
-  const projectName = useCodexStore((s) => s.projects.find((p) => p.id === router?.projectId)?.name)
+  const projectName = useAppStore((s) => s.projects.find((p) => p.id === router?.projectId)?.name)
   const untitled = useThreadTitle()
   const setup = useRouterSetup(router)
   const guideSkipped = useRouterStore((s) => s.guideSkipped)
-  const connecting = useCodexStore(
+  const connecting = useAppStore(
     (s) => s.connection.status === 'connecting' || s.claude.status === 'connecting'
   )
   // Agents connect as the app starts, so a working setup must not flash the guide. Later
@@ -38,19 +38,19 @@ export function RouterChat() {
     if (threadId) void loadItems(threadId)
   }, [threadId, loadItems])
   return (
-    <main className="codex-chat router-chat">
-      <header className="codex-topbar router-topbar">
+    <main className="owls-chat router-chat">
+      <header className="owls-topbar router-topbar">
         {router ? (
           <div className="router-thread-heading">
             <strong>{threadTitle(router, untitled)}</strong>
             {projectName ? <span>{projectName}</span> : null}
           </div>
         ) : null}
-        <div className="codex-topbar-actions">
+        <div className="owls-topbar-actions">
           <StatusEntry />
           {router ? (
             <IconButton
-              className="codex-bar-button"
+              className="owls-bar-button"
               label={t('router.details')}
               tooltip={t('router.details')}
               icon={<InfoIcon size={16} />}
@@ -60,7 +60,7 @@ export function RouterChat() {
           <ProjectsToggle />
         </div>
       </header>
-      <div className="codex-conversation-column">
+      <div className="owls-conversation-column">
         {missing && !guideSkipped && !router?.itemCount ? (
           <RouterGuide need={missing} />
         ) : (

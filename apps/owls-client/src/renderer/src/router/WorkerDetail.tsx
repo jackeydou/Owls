@@ -11,11 +11,11 @@ import {
 } from '@renderer/components/ui/icons'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexItem, CodexSession } from '../../../shared/codex'
+import type { Session, SessionItem } from '../../../shared/app'
 import type { RouterWorker } from '../../../shared/router'
-import { ConversationItem, RequestCard } from '../codex/Conversation'
-import { failureMessage } from '../codex/failures'
-import { useCodexStore } from '../codex/store'
+import { ConversationItem, RequestCard } from '../app/Conversation'
+import { failureMessage } from '../app/failures'
+import { useAppStore } from '../app/store'
 import { canStop, openRequests, workerState, workerTitle } from './activity'
 import { DiffView } from './DiffView'
 import { useRouterStore } from './store'
@@ -26,7 +26,15 @@ const TABS = ['activity', 'changes', 'report'] as const
 type Tab = (typeof TABS)[number]
 
 /** A worker's `user` items came from the Router, so the user sees what it was actually told. */
-function ActivityItem({ item, first, agent }: { item: CodexItem; first: boolean; agent: string }) {
+function ActivityItem({
+  item,
+  first,
+  agent
+}: {
+  item: SessionItem
+  first: boolean
+  agent: string
+}) {
   const { t } = useTranslation()
   if (item.kind !== 'user') return <ConversationItem item={item} agent={agent} />
   return (
@@ -36,7 +44,7 @@ function ActivityItem({ item, first, agent }: { item: CodexItem; first: boolean;
     </div>
   )
 }
-function Activity({ session }: { session: CodexSession | undefined }) {
+function Activity({ session }: { session: Session | undefined }) {
   const { t } = useTranslation()
   if (!session) return <p className="router-panel-empty">{t('worker.notStarted')}</p>
   const agent = t(`agent.${session.provider}`)
@@ -50,7 +58,7 @@ function Activity({ session }: { session: CodexSession | undefined }) {
         <RequestCard key={request.id} request={request} sessionId={session.id} agent={agent} />
       ))}
       {session.error ? (
-        <div className="codex-inline-error" role="alert">
+        <div className="owls-inline-error" role="alert">
           <AlertCircleIcon size={15} />
           <span>{failureMessage(session.error)}</span>
         </div>
@@ -86,8 +94,8 @@ function Report({ worker, projectPath }: { worker: RouterWorker; projectPath: st
 }
 export function WorkerDetail({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
-  const session = useCodexStore((s) => s.sessions.find((x) => x.id === worker.sessionId))
-  const projectPath = useCodexStore(
+  const session = useAppStore((s) => s.sessions.find((x) => x.id === worker.sessionId))
+  const projectPath = useAppStore(
     (s) => s.projects.find((p) => p.id === worker.projectId)?.path ?? ''
   )
   const { stopWorker, removeWorker, showPanel, startForward } = useRouterStore()

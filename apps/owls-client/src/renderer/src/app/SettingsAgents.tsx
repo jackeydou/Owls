@@ -7,10 +7,10 @@ import {
 } from '@renderer/components/ui/icons'
 import { type ReactNode, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexConnection, CodexFailure } from '../../../shared/codex'
+import type { CodexConnection, Failure } from '../../../shared/app'
 import { failureMessage, uiFailure } from './failures'
 import { SettingRow } from './SettingRow'
-import { useCodexStore } from './store'
+import { useAppStore } from './store'
 
 function AgentPane({
   title,
@@ -25,13 +25,13 @@ function AgentPane({
 }) {
   const { t } = useTranslation()
   return (
-    <section className="codex-settings-section">
-      <div className="codex-section-heading">
+    <section className="owls-settings-section">
+      <div className="owls-section-heading">
         <div>
           <h2>{title}</h2>
           <p>{body}</p>
         </div>
-        <span className={`codex-connection ${status}`}>
+        <span className={`owls-connection ${status}`}>
           <i />
           {t(`connection.${status}`)}
         </span>
@@ -63,8 +63,8 @@ function ExecutableRow({
       description={body}
       detail={
         <>
-          <code className="codex-path">{path}</code>
-          {version ? <div className="codex-version">{version}</div> : null}
+          <code className="owls-path">{path}</code>
+          {version ? <div className="owls-version">{version}</div> : null}
         </>
       }
     >
@@ -78,17 +78,17 @@ function ExecutableRow({
 
 export function ClaudeSettingsPane() {
   const { t } = useTranslation()
-  const claude = useCodexStore((s) => s.claude)
-  const settings = useCodexStore((s) => s.settings)
-  const running = useCodexStore((s) =>
+  const claude = useAppStore((s) => s.claude)
+  const settings = useAppStore((s) => s.settings)
+  const running = useAppStore((s) =>
     s.sessions.some(
       (session) =>
         session.provider === 'claude-code' &&
         ['running', 'starting', 'waiting'].includes(session.status)
     )
   )
-  const connectClaude = useCodexStore((s) => s.connectClaude)
-  const selectClaudeExecutable = useCodexStore((s) => s.selectClaudeExecutable)
+  const connectClaude = useAppStore((s) => s.connectClaude)
+  const selectClaudeExecutable = useAppStore((s) => s.selectClaudeExecutable)
   const account = claude.account
   const busy = claude.status === 'connecting'
   return (
@@ -120,7 +120,7 @@ export function ClaudeSettingsPane() {
         </Button>
       </SettingRow>
       {claude.error ? (
-        <div role="alert" className="codex-inline-error">
+        <div role="alert" className="owls-inline-error">
           {failureMessage(claude.error)}
         </div>
       ) : null}
@@ -132,9 +132,9 @@ export function ClaudeSettingsPane() {
         disabled={busy || running}
         onBrowse={() => void selectClaudeExecutable()}
       />
-      <p className="codex-note">{t('claudeSignInHelp')}</p>
-      <p className="codex-note">{t('claudeAuthPrivacy')}</p>
-      <p className="codex-note">
+      <p className="owls-note">{t('claudeSignInHelp')}</p>
+      <p className="owls-note">{t('claudeAuthPrivacy')}</p>
+      <p className="owls-note">
         {t('claudeInstallHelp')}{' '}
         <a href="https://code.claude.com/docs/en/setup" target="_blank" rel="noreferrer">
           {t('installLink')} <ExternalLinkIcon size={11} />
@@ -144,20 +144,20 @@ export function ClaudeSettingsPane() {
   )
 }
 
-export function CodexSettingsPane() {
+export function AgentSettingsPane() {
   const { t } = useTranslation()
-  const connection = useCodexStore((s) => s.connection)
-  const settings = useCodexStore((s) => s.settings)
-  const connect = useCodexStore((s) => s.connect)
-  const selectExecutable = useCodexStore((s) => s.selectExecutable)
-  const running = useCodexStore((s) =>
+  const connection = useAppStore((s) => s.connection)
+  const settings = useAppStore((s) => s.settings)
+  const connect = useAppStore((s) => s.connect)
+  const selectExecutable = useAppStore((s) => s.selectExecutable)
+  const running = useAppStore((s) =>
     s.sessions.some(
       (session) =>
         session.provider === 'codex' && ['running', 'starting', 'waiting'].includes(session.status)
     )
   )
   const [signingIn, setSigningIn] = useState(false)
-  const [loginError, setLoginError] = useState<CodexFailure | null>(null)
+  const [loginError, setLoginError] = useState<Failure | null>(null)
   const account = connection.account
   const connected = connection.status === 'ready'
   const busy = connection.status === 'connecting'
@@ -168,7 +168,7 @@ export function CodexSettingsPane() {
     setSigningIn(true)
     setLoginError(null)
     try {
-      const result = await window.codex.signIn()
+      const result = await window.owls.signIn()
       if (!result.ok) {
         setLoginError(result.error)
         setSigningIn(false)
@@ -196,13 +196,13 @@ export function CodexSettingsPane() {
             : t('nativeRuntime')
         }
       >
-        <div className="codex-settings-actions">
+        <div className="owls-settings-actions">
           {signingIn ? (
             <Button
               size="sm"
               variant="ghost"
               onClick={() => {
-                void window.codex.cancelSignIn().then((result) => {
+                void window.owls.cancelSignIn().then((result) => {
                   if (!result.ok) setLoginError(result.error)
                   setSigningIn(false)
                 })
@@ -229,7 +229,7 @@ export function CodexSettingsPane() {
         </div>
       </SettingRow>
       {connection.error || loginError ? (
-        <div role="alert" className="codex-inline-error">
+        <div role="alert" className="owls-inline-error">
           {failureMessage(loginError ?? connection.error)}
         </div>
       ) : null}
@@ -241,8 +241,8 @@ export function CodexSettingsPane() {
         disabled={busy || running}
         onBrowse={() => void selectExecutable()}
       />
-      <p className="codex-note">{t('authPrivacy')}</p>
-      <p className="codex-note">
+      <p className="owls-note">{t('authPrivacy')}</p>
+      <p className="owls-note">
         {t('installHelp')}{' '}
         <a href="https://developers.openai.com/codex/cli" target="_blank" rel="noreferrer">
           {t('installLink')} <ExternalLinkIcon size={11} />

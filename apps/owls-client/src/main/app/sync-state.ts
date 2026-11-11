@@ -1,21 +1,21 @@
 import { sql } from 'drizzle-orm'
-import { codexSyncState } from './schema.js'
-import type { CodexStore } from './store.js'
+import { syncStateTable } from './schema.js'
+import type { OwlsStore } from './store.js'
 
 /** The row in `codex_sync_state` holding the change version. */
 const SYNC_ROW = 'account'
 /** The row holding the last `device_seq` handed to the sync log. */
 const DEVICE_SEQ_ROW = 'device-seq'
 
-type Writer = Pick<CodexStore['db'], 'insert'>
+type Writer = Pick<OwlsStore['db'], 'insert'>
 
 function bump(tx: Writer, id: string): number {
   return tx
-    .insert(codexSyncState)
+    .insert(syncStateTable)
     .values({ id, rev: 1 })
     .onConflictDoUpdate({
-      target: codexSyncState.id,
-      set: { rev: sql`${codexSyncState.rev} + 1` }
+      target: syncStateTable.id,
+      set: { rev: sql`${syncStateTable.rev} + 1` }
     })
     .returning()
     .get().rev

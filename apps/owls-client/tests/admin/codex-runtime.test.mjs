@@ -10,7 +10,7 @@ const {
   normalizeItem,
   parseModels,
   safeText
-} = require('../../out/main/codex/runtime.js')
+} = require('../../out/main/app/runtime.js')
 const fixture = fileURLToPath(new URL('../fixtures/codex/mock-codex.cjs', import.meta.url))
 chmodSync(fixture, 0o755)
 

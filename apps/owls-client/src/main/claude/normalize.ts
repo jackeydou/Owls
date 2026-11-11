@@ -1,13 +1,13 @@
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk/core'
 import { z } from 'zod'
 import type {
+  AgentRequest,
+  AppSettings,
   ClaudeAccount,
-  CodexItem,
   CodexModel,
-  CodexRequest,
-  CodexSettings
-} from '../../shared/codex.js'
-import { effortSchema } from '../../shared/codex.js'
+  SessionItem
+} from '../../shared/app.js'
+import { effortSchema } from '../../shared/app.js'
 import { recordSchema, safeText, string } from '../codex/protocol.js'
 
 export const claudeEffortSchema = z.enum(['low', 'medium', 'high', 'xhigh', 'max'])
@@ -62,7 +62,7 @@ export function parseClaudeAccount(value: unknown): ClaudeAccount {
  * classifier cannot decide are still routed to the user.
  */
 export function permissionOptions(
-  permission: CodexSettings['permission'],
+  permission: AppSettings['permission'],
   autoMode: boolean
 ): { permissionMode: PermissionMode; disallowedTools?: string[] } {
   if (permission === 'read-only')
@@ -88,7 +88,7 @@ export function toolItem(
   name: string,
   rawInput: unknown,
   turnId: string | null
-): CodexItem {
+): SessionItem {
   const input = recordSchema.catch({}).parse(rawInput)
   const base = { id, turnId, status: 'running' as const }
   if (COMMAND_TOOLS.has(name))
@@ -137,7 +137,7 @@ export function toolResultText(content: unknown): string {
     .join('\n')
 }
 
-export function completeToolItem(item: CodexItem, output: string, isError: boolean): CodexItem {
+export function completeToolItem(item: SessionItem, output: string, isError: boolean): SessionItem {
   const status = isError ? 'failed' : 'completed'
   if (item.kind === 'command') return { ...item, status, detail: output.slice(-100_000) }
   if (item.kind === 'files')
@@ -146,7 +146,7 @@ export function completeToolItem(item: CodexItem, output: string, isError: boole
   return { ...item, status }
 }
 
-export function turnDiff(items: CodexItem[], turnId: string): string {
+export function turnDiff(items: SessionItem[], turnId: string): string {
   return items
     .filter((item) => item.turnId === turnId && item.kind === 'files' && item.status !== 'failed')
     .map((item) => item.detail)
@@ -169,7 +169,7 @@ export function permissionRequest(
   rawInput: Record<string, unknown>,
   context: { title?: string; decisionReason?: string; blockedPath?: string },
   turnId: string
-): CodexRequest {
+): AgentRequest {
   const id = crypto.randomUUID()
   if (toolName === 'AskUserQuestion') {
     return {
@@ -220,7 +220,7 @@ export function permissionRequest(
 /** Builds AskUserQuestion answers keyed by the original question text. */
 export function questionAnswers(
   rawInput: Record<string, unknown>,
-  request: CodexRequest,
+  request: AgentRequest,
   answers: Record<string, string[]>
 ): Record<string, string> {
   const questions = questionsSchema.parse(rawInput.questions)

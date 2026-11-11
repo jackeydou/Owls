@@ -9,10 +9,10 @@ import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexProject } from '../../../shared/codex'
+import type { Project } from '../../../shared/app'
 import type { RouterWorker } from '../../../shared/router'
 import { isInPlay } from '../../../shared/worker-map'
-import { useCodexStore } from '../codex/store'
+import { useAppStore } from '../app/store'
 import { AddProjectMenu } from './AddProjectMenu'
 import { byAge, isWaitingOnUser, isWorking, projectHue, workerState, workerTitle } from './activity'
 import { usePaneWidth } from './pane-width'
@@ -21,9 +21,9 @@ import { WorkerDot } from './WorkerLink'
 
 function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: string }) {
   const { t } = useTranslation()
-  const inChat = useCodexStore((s) => s.view === 'chat')
-  const focusProject = useCodexStore((s) => s.focusProject)
-  const showThread = useCodexStore((s) => s.showThread)
+  const inChat = useAppStore((s) => s.view === 'chat')
+  const focusProject = useAppStore((s) => s.focusProject)
+  const showThread = useAppStore((s) => s.showThread)
   const showPanel = useRouterStore((s) => s.showPanel)
   const current = useRouterStore(
     (s) => s.panel?.kind === 'worker' && s.panel.workerId === worker.id
@@ -57,10 +57,10 @@ function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: str
     </li>
   )
 }
-function ProjectRow({ project }: { project: CodexProject }) {
+function ProjectRow({ project }: { project: Project }) {
   const { t } = useTranslation()
-  const showChat = useCodexStore((s) => s.showChat)
-  const showProjectSettings = useCodexStore((s) => s.showProjectSettings)
+  const showChat = useAppStore((s) => s.showChat)
+  const showProjectSettings = useAppStore((s) => s.showProjectSettings)
   const allWorkers = useRouterStore((s) => s.workers)
   const folded = useRouterStore((s) => s.foldedProjects.has(project.id))
   const toggleProjectFold = useRouterStore((s) => s.toggleProjectFold)
@@ -132,12 +132,12 @@ function ProjectRow({ project }: { project: CodexProject }) {
 /** The title bar button that opens and closes the Projects sidebar. */
 export function ProjectsToggle() {
   const { t } = useTranslation()
-  const open = useCodexStore((s) => s.settings.layout.projectsOpen)
-  const toggleProjects = useCodexStore((s) => s.toggleProjects)
+  const open = useAppStore((s) => s.settings.layout.projectsOpen)
+  const toggleProjects = useAppStore((s) => s.toggleProjects)
   const label = t(open ? 'router.hideProjects' : 'router.showProjects')
   return (
     <IconButton
-      className="codex-bar-button router-projects-toggle"
+      className="owls-bar-button router-projects-toggle"
       label={label}
       tooltip={label}
       tooltipSide="bottom"
@@ -151,7 +151,7 @@ export function ProjectsToggle() {
 export function ProjectsSidebar() {
   const { t } = useTranslation()
   const { width, handle } = usePaneWidth('projects', 'left')
-  const projects = useCodexStore((s) => s.projects)
+  const projects = useAppStore((s) => s.projects)
   return (
     <aside className="router-projects" style={{ width }} aria-label={t('router.projectsPanel')}>
       <header className="router-projects-head">

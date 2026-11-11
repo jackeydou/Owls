@@ -1,4 +1,4 @@
-import type { AgentProvider } from '../../../shared/codex'
+import type { AgentProvider } from '../../../shared/app'
 
 // Claude Code's mark comes from simple-icons (CC0); the OpenAI mark, for Codex, matches
 // resources/openai.svg. Both are their owners' trademarks and stay unmodified.

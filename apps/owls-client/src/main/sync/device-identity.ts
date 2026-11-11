@@ -1,17 +1,17 @@
 import { randomBytes } from 'node:crypto'
 import { asc, eq, isNull, sql } from 'drizzle-orm'
-import { deviceIdSchema } from '../../shared/codex.js'
+import { deviceIdSchema } from '../../shared/app.js'
 import {
-  codexLocalDevice,
-  codexMemories,
-  codexMemoryCategories,
-  codexProjects,
-  codexSessions,
-  codexThreadItems,
-  codexThreads,
-  codexWorkers
-} from '../codex/schema.js'
-import type { CodexStore } from '../codex/store.js'
+  localDeviceTable,
+  memoriesTable,
+  memoryCategoriesTable,
+  projectsTable,
+  sessionsTable,
+  threadItemsTable,
+  threadsTable,
+  workersTable
+} from '../app/schema.js'
+import type { OwlsStore } from '../app/store.js'
 import { itemRecordId, logChange } from './sync-log.js'
 
 /** The only row of `codex_local_device`. */
@@ -33,15 +33,15 @@ export function newDeviceId(): string {
  * gives every existing record this device as its owner and enters each one in
  * the sync log, so the log covers every local record from then on.
  */
-export function loadDeviceIdentity(db: CodexStore['db']): DeviceIdentity {
+export function loadDeviceIdentity(db: OwlsStore['db']): DeviceIdentity {
   return db.transaction((tx) => {
-    const row = tx.select().from(codexLocalDevice).where(eq(codexLocalDevice.id, LOCAL_ROW)).get()
+    const row = tx.select().from(localDeviceTable).where(eq(localDeviceTable.id, LOCAL_ROW)).get()
     if (row) return { deviceId: deviceIdSchema.parse(row.deviceId), createdAt: row.createdAt }
     const identity: DeviceIdentity = {
       deviceId: newDeviceId(),
       createdAt: new Date().toISOString()
     }
-    tx.insert(codexLocalDevice)
+    tx.insert(localDeviceTable)
       .values({ id: LOCAL_ROW, ...identity })
       .run()
     adoptRecords(tx, identity.deviceId)
@@ -49,74 +49,74 @@ export function loadDeviceIdentity(db: CodexStore['db']): DeviceIdentity {
   })
 }
 
-type Tx = Pick<CodexStore['db'], 'insert' | 'select' | 'update'>
+type Tx = Pick<OwlsStore['db'], 'insert' | 'select' | 'update'>
 
 /** Backfills owners and seeds the sync log in a fixed order: by kind, then by version or id. */
 function adoptRecords(tx: Tx, deviceId: string): void {
-  tx.update(codexProjects)
+  tx.update(projectsTable)
     .set({ ownerDeviceId: deviceId })
-    .where(isNull(codexProjects.ownerDeviceId))
+    .where(isNull(projectsTable.ownerDeviceId))
     .run()
-  tx.update(codexThreads)
+  tx.update(threadsTable)
     .set({
       ownerDeviceId: deviceId,
-      value: sql`json_set(${codexThreads.value}, '$.deviceId', ${deviceId})`
+      value: sql`json_set(${threadsTable.value}, '$.deviceId', ${deviceId})`
     })
-    .where(isNull(codexThreads.ownerDeviceId))
+    .where(isNull(threadsTable.ownerDeviceId))
     .run()
-  tx.update(codexWorkers)
+  tx.update(workersTable)
     .set({ ownerDeviceId: deviceId })
-    .where(isNull(codexWorkers.ownerDeviceId))
+    .where(isNull(workersTable.ownerDeviceId))
     .run()
-  tx.update(codexSessions)
+  tx.update(sessionsTable)
     .set({ ownerDeviceId: deviceId })
-    .where(isNull(codexSessions.ownerDeviceId))
+    .where(isNull(sessionsTable.ownerDeviceId))
     .run()
 
   const ids = (rows: { id: string }[]) => rows.map((r) => r.id)
   const projects = ids(
-    tx.select({ id: codexProjects.id }).from(codexProjects).orderBy(asc(codexProjects.id)).all()
+    tx.select({ id: projectsTable.id }).from(projectsTable).orderBy(asc(projectsTable.id)).all()
   )
   for (const id of projects) logChange(tx, 'project', id)
   const threads = ids(
     tx
-      .select({ id: codexThreads.id })
-      .from(codexThreads)
-      .orderBy(asc(codexThreads.rev), asc(codexThreads.id))
+      .select({ id: threadsTable.id })
+      .from(threadsTable)
+      .orderBy(asc(threadsTable.rev), asc(threadsTable.id))
       .all()
   )
   for (const id of threads) logChange(tx, 'thread', id)
   const items = tx
-    .select({ threadId: codexThreadItems.threadId, itemId: codexThreadItems.itemId })
-    .from(codexThreadItems)
+    .select({ threadId: threadItemsTable.threadId, itemId: threadItemsTable.itemId })
+    .from(threadItemsTable)
     .orderBy(
-      asc(codexThreadItems.rev),
-      asc(codexThreadItems.threadId),
-      asc(codexThreadItems.position)
+      asc(threadItemsTable.rev),
+      asc(threadItemsTable.threadId),
+      asc(threadItemsTable.position)
     )
     .all()
   for (const { threadId, itemId } of items) logChange(tx, 'item', itemRecordId(threadId, itemId))
   const workers = ids(
-    tx.select({ id: codexWorkers.id }).from(codexWorkers).orderBy(asc(codexWorkers.id)).all()
+    tx.select({ id: workersTable.id }).from(workersTable).orderBy(asc(workersTable.id)).all()
   )
   for (const id of workers) logChange(tx, 'worker', id)
   const sessions = ids(
-    tx.select({ id: codexSessions.id }).from(codexSessions).orderBy(asc(codexSessions.id)).all()
+    tx.select({ id: sessionsTable.id }).from(sessionsTable).orderBy(asc(sessionsTable.id)).all()
   )
   for (const id of sessions) logChange(tx, 'session', id)
   const categories = ids(
     tx
-      .select({ id: codexMemoryCategories.id })
-      .from(codexMemoryCategories)
-      .orderBy(asc(codexMemoryCategories.rev), asc(codexMemoryCategories.id))
+      .select({ id: memoryCategoriesTable.id })
+      .from(memoryCategoriesTable)
+      .orderBy(asc(memoryCategoriesTable.rev), asc(memoryCategoriesTable.id))
       .all()
   )
   for (const id of categories) logChange(tx, 'memory-category', id)
   const memories = ids(
     tx
-      .select({ id: codexMemories.id })
-      .from(codexMemories)
-      .orderBy(asc(codexMemories.rev), asc(codexMemories.id))
+      .select({ id: memoriesTable.id })
+      .from(memoriesTable)
+      .orderBy(asc(memoriesTable.rev), asc(memoriesTable.id))
       .all()
   )
   for (const id of memories) logChange(tx, 'memory', id)

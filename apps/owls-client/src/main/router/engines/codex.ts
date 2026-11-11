@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import type { CodexFailure, CodexItem } from '../../../shared/codex.js'
+import type { Failure, SessionItem } from '../../../shared/app.js'
+import { toFailure } from '../../app/errors.js'
 import { CodexClient } from '../../codex/client.js'
-import { codexFailure } from '../../codex/errors.js'
 import { type RpcFrame, record, recordSchema, safeText, string } from '../../codex/protocol.js'
 import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
 import { type RouterTool, toolErrorText, toolJsonSchema } from '../tools.js'
@@ -444,7 +444,7 @@ function routerItem(
   item: Record<string, unknown>,
   turnId: string,
   completed: boolean
-): CodexItem | null {
+): SessionItem | null {
   const id = string(item.id)
   if (!id) return null
   if (item.type === 'agentMessage') {
@@ -479,8 +479,8 @@ function routerItem(
   return null
 }
 
-function failure(error: unknown): CodexFailure {
-  const value = codexFailure(error)
+function failure(error: unknown): Failure {
+  const value = toFailure(error)
   return value.code === 'native_error' && !value.message
     ? { code: 'disconnected', message: '' }
     : value

@@ -3,9 +3,11 @@ import { join } from 'node:path'
 import { createSdkMcpServer, query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
 import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
-import type { ClaudeConnection, CodexEvent } from '../../shared/codex.js'
+import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
 import { ClaudeService } from '../claude/service.js'
+import { safeText } from '../codex/protocol.js'
+import { CodexService } from '../codex/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { GitHubAuth } from '../github/auth.js'
 import { DreamingRunner } from '../memory/dreaming.js'
@@ -34,10 +36,8 @@ import { GitWorkspaces } from '../router/worktrees.js'
 import { AppUpdater } from '../updates/updater.js'
 import { applyAppLogo } from './app-logo.js'
 import { OwlsHost } from './host.js'
-import { registerCodexIpc } from './ipc.js'
-import { safeText } from './protocol.js'
-import { CodexService } from './service.js'
-import { CodexStore } from './store.js'
+import { registerIpc } from './ipc.js'
+import { OwlsStore } from './store.js'
 
 const profile = configureDevAppInstanceProfile()
 app.setName(profile ? `Owls — ${profile.name}` : 'Owls')
@@ -61,16 +61,16 @@ function migrationsFolder(): string {
   if (!path) throw new Error('The Codex database migrations are missing from this installation.')
   return path
 }
-function emit(event: CodexEvent): void {
+function emit(event: AppEvent): void {
   router?.observe(event)
   triggers?.observe(event)
-  if (window && !window.isDestroyed()) window.webContents.send('codex:event', event)
+  if (window && !window.isDestroyed()) window.webContents.send('owls:event', event)
 }
 function memoryChanged(): void {
-  if (window && !window.isDestroyed()) window.webContents.send('codex:memory-changed')
+  if (window && !window.isDestroyed()) window.webContents.send('owls:memory-changed')
 }
 function updatesChanged(snapshot: UpdateSnapshot): void {
-  if (window && !window.isDestroyed()) window.webContents.send('codex:updates-changed', snapshot)
+  if (window && !window.isDestroyed()) window.webContents.send('owls:updates-changed', snapshot)
 }
 /** Resolves true when the user chooses to stop running tasks and quit. */
 async function askToStopTasks(): Promise<boolean> {
@@ -156,7 +156,7 @@ void app
   .then(() => {
     const root = getDataRoot()
     mkdirSync(root, { recursive: true })
-    const store = new CodexStore(join(root, 'owls.db'), migrationsFolder())
+    const store = new OwlsStore(join(root, 'owls.db'), migrationsFolder())
     service = new OwlsHost(
       new CodexService(store, emit),
       new ClaudeService(store, emit, { query }),
@@ -241,7 +241,7 @@ void app
         return true
       }
     })
-    registerCodexIpc(service, () => window, updater)
+    registerIpc(service, () => window, updater)
     createWindow()
     updater.start()
     void service.connect()

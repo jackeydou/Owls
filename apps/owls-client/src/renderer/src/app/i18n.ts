@@ -275,12 +275,12 @@ const zh: Record<keyof typeof en, string> = {
 }
 void i18next.use(initReactI18next).init({
   resources: {
-    en: { codex: { ...en, ...routerEn, ...memoryEn, ...projectSettingsEn, ...updatesEn } },
-    'zh-CN': { codex: { ...zh, ...routerZh, ...memoryZh, ...projectSettingsZh, ...updatesZh } }
+    en: { owls: { ...en, ...routerEn, ...memoryEn, ...projectSettingsEn, ...updatesEn } },
+    'zh-CN': { owls: { ...zh, ...routerZh, ...memoryZh, ...projectSettingsZh, ...updatesZh } }
   },
   lng: navigator.language.startsWith('zh') ? 'zh-CN' : 'en',
   fallbackLng: 'en',
-  defaultNS: 'codex',
+  defaultNS: 'owls',
   interpolation: { escapeValue: false },
   react: { useSuspense: false }
 })

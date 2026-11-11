@@ -3,12 +3,12 @@ const { chmodSync, mkdtempSync, rmSync } = require('node:fs')
 const { tmpdir } = require('node:os')
 const { join, resolve } = require('node:path')
 const { app } = require('electron')
-const { CodexService, CodexStore } = require('../../out/main/codex/runtime.js')
+const { CodexService, OwlsStore } = require('../../out/main/app/runtime.js')
 
 app
   .whenReady()
   .then(async () => {
-    const temp = mkdtempSync(join(tmpdir(), 'owls-codex-smoke-'))
+    const temp = mkdtempSync(join(tmpdir(), 'owls-smoke-'))
     const fixture = resolve(__dirname, '../fixtures/codex/mock-codex.cjs')
     chmodSync(fixture, 0o755)
     let host
@@ -16,7 +16,7 @@ app
     try {
       const database = join(temp, 'test.db')
       const migrations = resolve(__dirname, '../../drizzle-codex')
-      const store = new CodexStore(database, migrations)
+      const store = new OwlsStore(database, migrations)
       store.saveSettings({ ...store.settings(), executablePath: fixture })
       let wake = () => {}
       host = new CodexService(store, () => wake())
@@ -70,7 +70,7 @@ app
       const nativeThreadId = state().threadId
       host.close()
       host = null
-      reopened = new CodexService(new CodexStore(database, migrations), () => {})
+      reopened = new CodexService(new OwlsStore(database, migrations), () => {})
       assert.equal(reopened.snapshot().sessions[0].items.filter((i) => i.kind === 'user').length, 4)
       assert.equal(reopened.snapshot().sessions[0].status, 'interrupted')
       assert.equal(reopened.snapshot().sessions[0].error.code, 'disconnected')

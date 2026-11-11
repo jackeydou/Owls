@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import test from 'node:test'
 
 const require = createRequire(import.meta.url)
-const { buildWorkerMap, signalRoute, workerSignals } = require('../../out/main/codex/runtime.js')
+const { buildWorkerMap, signalRoute, workerSignals } = require('../../out/main/app/runtime.js')
 
 let clock = 0
 function worker(id, options = {}) {

@@ -1,9 +1,9 @@
 import './assets/main.css'
-import './codex/i18n'
+import './app/i18n'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './codex/App'
+import App from './app/App'
 
 document.documentElement.dataset.platform = window.owlsPlatform
 

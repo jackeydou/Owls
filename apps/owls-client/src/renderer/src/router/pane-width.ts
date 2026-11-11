@@ -1,8 +1,8 @@
 import type { ResizeHandleProps } from '@renderer/components/ui/resize-handle'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { paneWidthBounds, type ResizablePane } from '../../../shared/codex'
-import { paneWidthKey, useCodexStore } from '../codex/store'
+import { paneWidthBounds, type ResizablePane } from '../../../shared/app'
+import { paneWidthKey, useAppStore } from '../app/store'
 
 /**
  * A pane's live width and the props for its resize handle. The drag previews locally and
@@ -13,8 +13,8 @@ export function usePaneWidth(
   edge: ResizeHandleProps['edge']
 ): { width: number; handle: ResizeHandleProps } {
   const { t } = useTranslation()
-  const stored = useCodexStore((s) => s.settings.layout[paneWidthKey[pane]])
-  const setPaneWidth = useCodexStore((s) => s.setPaneWidth)
+  const stored = useAppStore((s) => s.settings.layout[paneWidthKey[pane]])
+  const setPaneWidth = useAppStore((s) => s.setPaneWidth)
   const [draft, setDraft] = useState<number | null>(null)
   const width = draft ?? stored
   const { min, max, initial } = paneWidthBounds[pane]

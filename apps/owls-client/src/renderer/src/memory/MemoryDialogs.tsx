@@ -123,7 +123,7 @@ export function CategoryDialog({
             onChange={(event) => setDescription(event.target.value)}
           />
           {category.createdBy === 'agent' ? (
-            <p className="codex-note">{t('memory.category.byAgent')}</p>
+            <p className="owls-note">{t('memory.category.byAgent')}</p>
           ) : null}
         </div>
       ) : mode === 'merge' ? (

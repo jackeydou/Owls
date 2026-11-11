@@ -4,23 +4,24 @@ import { basename } from 'node:path'
 import { promisify } from 'node:util'
 import { z } from 'zod'
 import type {
+  AgentRequest,
+  AppEvent,
+  AppSettings,
+  AppSnapshot,
   CodexConnection,
-  CodexEvent,
-  CodexFailure,
-  CodexProject,
-  CodexRequest,
-  CodexSession,
-  CodexSettings,
-  CodexSnapshot,
-  CreateCodexSession,
-  RespondCodexRequest,
-  SendCodexMessage
-} from '../../shared/codex.js'
-import { questionSchema } from '../../shared/codex.js'
+  CreateSession,
+  Failure,
+  Project,
+  RespondRequest,
+  SendMessage,
+  Session
+} from '../../shared/app.js'
+import { questionSchema } from '../../shared/app.js'
 import { defaultProjectSettings, type SaveProject } from '../../shared/projects.js'
+import { OwlsError, toFailure } from '../app/errors.js'
+import type { OwlsStore } from '../app/store.js'
 import type { TurnOutcome, TurnProfiles } from '../router/service.js'
 import { CodexClient, discoverExecutable } from './client.js'
-import { CodexRuntimeError, codexFailure } from './errors.js'
 import {
   normalizeItem,
   parseModels,
@@ -30,10 +31,9 @@ import {
   safeText,
   string
 } from './protocol.js'
-import type { CodexStore } from './store.js'
 
 const execFileAsync = promisify(execFile)
-const active = (s: CodexSession): boolean => ['starting', 'running', 'waiting'].includes(s.status)
+const active = (s: Session): boolean => ['starting', 'running', 'waiting'].includes(s.status)
 type PendingRequest = {
   wireId: string | number
   sessionId: string
@@ -41,7 +41,7 @@ type PendingRequest = {
   params: Record<string, unknown>
 }
 export class CodexService {
-  private readonly sessions = new Map<string, CodexSession>()
+  private readonly sessions = new Map<string, Session>()
   private readonly loaded = new Set<string>()
   private readonly requests = new Map<string, PendingRequest>()
   private readonly cancelled = new Set<string>()
@@ -62,8 +62,8 @@ export class CodexService {
     error: null
   }
   constructor(
-    private readonly store: CodexStore,
-    private readonly emit: (event: CodexEvent) => void
+    private readonly store: OwlsStore,
+    private readonly emit: (event: AppEvent) => void
   ) {
     for (const session of store.sessions()) {
       if (session.provider !== 'codex') continue
@@ -87,7 +87,7 @@ export class CodexService {
   setTurnProfiles(profiles: TurnProfiles): void {
     this.profiles = profiles
   }
-  snapshot(): Omit<CodexSnapshot, 'claude' | 'github' | 'routers' | 'workers'> {
+  snapshot(): Omit<AppSnapshot, 'claude' | 'github' | 'routers' | 'workers'> {
     this.flush()
     return {
       sessions: [...this.sessions.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
@@ -102,7 +102,7 @@ export class CodexService {
   connect(): Promise<CodexConnection> {
     if (this.connecting) return this.connecting
     if ([...this.sessions.values()].some(active))
-      throw new CodexRuntimeError('busy', 'Stop active tasks before reconnecting Codex.')
+      throw new OwlsError('busy', 'Stop active tasks before reconnecting Codex.')
     this.connecting = this.openConnection().finally(() => {
       this.connecting = null
     })
@@ -147,22 +147,22 @@ export class CodexService {
       return this.connection
     }
   }
-  saveSettings(settings: CodexSettings): CodexSettings {
+  saveSettings(settings: AppSettings): AppSettings {
     if (
       settings.executablePath !== this.store.settings().executablePath &&
       [...this.sessions.values()].some(active)
     ) {
-      throw new CodexRuntimeError('busy', 'Stop active tasks before changing the Codex executable.')
+      throw new OwlsError('busy', 'Stop active tasks before changing the Codex executable.')
     }
     return this.store.saveSettings(settings)
   }
   addProject(path: string) {
     const canonical = realpathSync(path)
     if (!statSync(canonical).isDirectory())
-      throw new CodexRuntimeError('project_required', 'Select a project directory.')
+      throw new OwlsError('project_required', 'Select a project directory.')
     const existing = this.store.projects().find((p) => p.path === canonical)
     if (existing) return existing
-    const project: CodexProject = {
+    const project: Project = {
       id: crypto.randomUUID(),
       name: basename(canonical),
       path: canonical,
@@ -172,10 +172,10 @@ export class CodexService {
     return project
   }
   /** Renames a project and replaces its settings; its id and path never change. */
-  saveProject(input: SaveProject): CodexProject {
+  saveProject(input: SaveProject): Project {
     const existing = this.store.projects().find((p) => p.id === input.id)
-    if (!existing) throw new CodexRuntimeError('project_required', 'This project no longer exists.')
-    const project: CodexProject = { ...existing, name: input.name, settings: input.settings }
+    if (!existing) throw new OwlsError('project_required', 'This project no longer exists.')
+    const project: Project = { ...existing, name: input.name, settings: input.settings }
     this.store.saveProject(project)
     return project
   }
@@ -183,14 +183,14 @@ export class CodexService {
    * `worker` marks a session in a worker's worktree of a registered project,
    * which may not exist yet.
    */
-  createSession(input: CreateCodexSession, worker?: { projectPath: string }): CodexSession {
+  createSession(input: CreateSession, worker?: { projectPath: string }): Session {
     const cwd = worker ? input.cwd : realpathSync(input.cwd)
     const projectPath = worker?.projectPath ?? cwd
     if (!this.store.projects().some((p) => p.path === projectPath))
-      throw new CodexRuntimeError('project_required', 'Choose a project before starting a task.')
+      throw new OwlsError('project_required', 'Choose a project before starting a task.')
     this.validateSelection(input.model, input.effort)
     const now = new Date().toISOString()
-    const session: CodexSession = {
+    const session: Session = {
       id: crypto.randomUUID(),
       provider: 'codex',
       threadId: null,
@@ -213,11 +213,11 @@ export class CodexService {
     this.changed(session, true)
     return session
   }
-  async send(input: SendCodexMessage): Promise<void> {
+  async send(input: SendMessage): Promise<void> {
     const session = this.getSession(input.sessionId)
     const client = this.readyClient()
     if (active(session))
-      throw new CodexRuntimeError('busy', 'Wait for the current task or stop it before sending.')
+      throw new OwlsError('busy', 'Wait for the current task or stop it before sending.')
     this.validateSelection(session.model, session.effort)
     if (!this.store.acceptCommand(input.commandId, session.id, input.text)) return
     const previous = session.status
@@ -301,7 +301,7 @@ export class CodexService {
       this.settle(session, 'failed')
       this.changed(session, true)
       this.reportTurn(session, 'failed', null)
-      throw new CodexRuntimeError(session.error.code, session.error.message)
+      throw new OwlsError(session.error.code, session.error.message)
     }
   }
   /** Adds a message to the running turn with `turn/steer`; not_running when there is none. */
@@ -343,12 +343,12 @@ export class CodexService {
       await pending
     }
   }
-  respond(input: RespondCodexRequest): void {
+  respond(input: RespondRequest): void {
     const session = this.getSession(input.sessionId)
     const pending = this.requests.get(input.requestId)
     const request = session.requests.find((r) => r.id === input.requestId)
     if (!pending || pending.sessionId !== session.id || request?.status !== 'pending') {
-      throw new CodexRuntimeError('request_unavailable', 'This request is no longer available.')
+      throw new OwlsError('request_unavailable', 'This request is no longer available.')
     }
     let result: unknown
     if (request.kind === 'question') {
@@ -356,10 +356,7 @@ export class CodexService {
       if (input.decision === 'accept') {
         for (const question of request.questions) {
           if (!answers[question.id]?.some((answer) => answer.trim()))
-            throw new CodexRuntimeError(
-              'answer_required',
-              'Answer each question before continuing.'
-            )
+            throw new OwlsError('answer_required', 'Answer each question before continuing.')
         }
       }
       result = {
@@ -380,7 +377,7 @@ export class CodexService {
   }
   archive(id: string): void {
     const session = this.getSession(id)
-    if (active(session)) throw new CodexRuntimeError('busy', 'Stop the task before removing it.')
+    if (active(session)) throw new OwlsError('busy', 'Stop the task before removing it.')
     this.store.removeSession(id)
     this.sessions.delete(id)
     this.loaded.delete(id)
@@ -393,7 +390,7 @@ export class CodexService {
     this.loginId = z.string().parse(response.loginId)
     const url = new URL(z.string().parse(response.authUrl))
     if (url.protocol !== 'https:' || !['auth.openai.com', 'chatgpt.com'].includes(url.hostname)) {
-      throw new CodexRuntimeError('unsupported_login', 'Codex returned an unsupported sign-in URL.')
+      throw new OwlsError('unsupported_login', 'Codex returned an unsupported sign-in URL.')
     }
     return url.href
   }
@@ -584,7 +581,7 @@ export class CodexService {
     }
     this.changed(session)
   }
-  private openRequest(session: CodexSession, frame: RpcFrame): void {
+  private openRequest(session: Session, frame: RpcFrame): void {
     if (frame.id === undefined || !frame.method) return
     const params = frame.params ?? {}
     const kind =
@@ -602,7 +599,7 @@ export class CodexService {
       return
     }
     const id = crypto.randomUUID()
-    const request: CodexRequest = {
+    const request: AgentRequest = {
       id,
       kind,
       title: safeText(params.command ?? params.reason),
@@ -619,7 +616,7 @@ export class CodexService {
     if (kind !== 'question' || params.isBlocking !== false) session.status = 'waiting'
     this.changed(session, true)
   }
-  private settle(session: CodexSession, status: 'completed' | 'failed' | 'interrupted'): void {
+  private settle(session: Session, status: 'completed' | 'failed' | 'interrupted'): void {
     for (const item of session.items) if (item.status === 'running') item.status = status
     for (const request of session.requests) {
       if (request.status === 'pending' || request.status === 'answering')
@@ -652,10 +649,7 @@ export class CodexService {
    * Returns the directories outside `cwd` the agent may also write, or null
    * when it was stopped or lost its connection and the turn must not start.
    */
-  private async prepared(
-    session: CodexSession,
-    previous: CodexSession['status']
-  ): Promise<string[] | null> {
+  private async prepared(session: Session, previous: Session['status']): Promise<string[] | null> {
     let writableRoots: string[]
     try {
       writableRoots = (await this.profiles?.prepare(session.id)) ?? []
@@ -677,50 +671,43 @@ export class CodexService {
     return null
   }
   /** Tells the Router how a worker's turn ended; the report is the turn's final message. */
-  private reportTurn(
-    session: CodexSession,
-    status: TurnOutcome['status'],
-    turnId: string | null
-  ): void {
+  private reportTurn(session: Session, status: TurnOutcome['status'], turnId: string | null): void {
     if (!this.profiles || this.closed) return
     const text =
       session.items.findLast((i) => i.kind === 'assistant' && (!turnId || i.turnId === turnId))
         ?.text ?? ''
     this.profiles.settled(session.id, { status, structured: null, text })
   }
-  private validateSelection(model: string | null, effort: CodexSession['effort']): void {
+  private validateSelection(model: string | null, effort: Session['effort']): void {
     if (!model && effort)
-      throw new CodexRuntimeError(
+      throw new OwlsError(
         'effort_unavailable',
         'Choose a model before selecting its reasoning effort.'
       )
     if (!model) return
     const entry = this.connection.models.find((m) => m.id === model)
     if (!entry)
-      throw new CodexRuntimeError(
+      throw new OwlsError(
         'model_unavailable',
         'This model is not available in the connected Codex account.'
       )
     if (effort && !entry.efforts.includes(effort))
-      throw new CodexRuntimeError(
+      throw new OwlsError(
         'effort_unavailable',
         'This reasoning effort is not supported by the selected model.'
       )
   }
   private readyClient(): CodexClient {
     if (!this.client || this.connection.status !== 'ready')
-      throw new CodexRuntimeError(
-        'not_connected',
-        'Connect your local Codex installation in Settings.'
-      )
+      throw new OwlsError('not_connected', 'Connect your local Codex installation in Settings.')
     return this.client
   }
-  private getSession(id: string): CodexSession {
+  private getSession(id: string): Session {
     const session = this.sessions.get(id)
-    if (!session) throw new CodexRuntimeError('task_not_found', 'Task not found.')
+    if (!session) throw new OwlsError('task_not_found', 'Task not found.')
     return session
   }
-  private changed(session: CodexSession, immediate = false): void {
+  private changed(session: Session, immediate = false): void {
     if (this.closed) return
     session.updatedAt = new Date().toISOString()
     this.dirty.add(session.id)
@@ -741,8 +728,8 @@ export class CodexService {
   private emitConnection(): void {
     this.emit({ type: 'connection', connection: this.connection })
   }
-  private errorText(error: unknown): CodexFailure {
-    return codexFailure(error)
+  private errorText(error: unknown): Failure {
+    return toFailure(error)
   }
   hasActiveTasks(): boolean {
     return [...this.sessions.values()].some(active)

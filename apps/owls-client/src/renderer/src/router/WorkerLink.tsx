@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useContext } from 'react'
 import type { RouterWorker } from '../../../shared/router'
-import type { MarkdownExtension } from '../codex/Conversation'
+import type { MarkdownExtension } from '../app/Conversation'
 import { workerTitle, workerTone } from './activity'
 import { useRouterStore } from './store'
 

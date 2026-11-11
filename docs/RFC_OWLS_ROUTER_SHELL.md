@@ -149,7 +149,7 @@ parentId: z.string().nullable().default(null),
 
 ### 4.3 对话条目
 
-`itemSchema`（`src/shared/codex.ts`）：
+`itemSchema`（`src/shared/app.ts`）：
 
 - `kind` 增加 `worker`：Router 派出 Worker 的记录。
 - 增加可选的 `workerId`：`worker` 条目表示派出的 Worker，`user` 条目表示这条消息指向的 Worker。
@@ -198,7 +198,7 @@ Router，由 Router 告诉用户。`routerTurns` 和 `followUp` 因此可以全�
 
 renderer 从 `sessions` 派生待处理请求，不需要新事件：取当前 Router 的 Worker，取其会话中
 `pending` 或 `answering` 的请求，按 Worker 的 `createdAt` 和 `id` 排序，响应仍走现有的
-`window.codex.respond`。
+`window.owls.respond`。
 
 | 位置 | 显示 |
 | --- | --- |
@@ -213,18 +213,18 @@ Worker 的 `needs_input` 汇报不进托盘：它走 Inbox，由 Router 在对�
 
 ### 4.6 IPC
 
-保持 main、`preload/codex.ts`、`shared/codex.ts` 和 renderer store 同步。
+保持 main、`preload/owls.ts`、`shared/app.ts` 和 renderer store 同步。
 
 | 通道 | 变化 |
 | --- | --- |
-| `codex:create-session` | 删除 |
-| `codex:send` | 删除，`host.send` 只留给 Worker 内部使用 |
-| `codex:interrupt` | 删除，由下一行替代 |
-| `codex:router-stop-worker` | 新增，`{ routerId, workerId }`，走 `pool.stop` |
-| `codex:archive` | 删除，由下一行替代 |
-| `codex:router-remove-worker` | 新增，`{ routerId, workerId }`，弹确认框后走 `archive` 流程 |
-| `codex:router-send` | 增加 `workerId` |
-| `codex:respond` | 保留 |
+| `owls:create-session` | 删除 |
+| `owls:send` | 删除，`host.send` 只留给 Worker 内部使用 |
+| `owls:interrupt` | 删除，由下一行替代 |
+| `owls:router-stop-worker` | 新增，`{ routerId, workerId }`，走 `pool.stop` |
+| `owls:archive` | 删除，由下一行替代 |
+| `owls:router-remove-worker` | 新增，`{ routerId, workerId }`，弹确认框后走 `archive` 流程 |
+| `owls:router-send` | 增加 `workerId` |
+| `owls:respond` | 保留 |
 
 用户停止排队中的 Worker 时，`pool.stop` 现在不产生事件，Router 不会知道。新增处理：写入
 `worker_stopped`，`wake` 为 false。
@@ -242,7 +242,7 @@ Worker 的 `needs_input` 汇报不进托盘：它走 Inbox，由 Router 在对�
 | `router/events.ts` | 删除 `followUp`；`user_message` 增加可选 `workerId` |
 | `router/prompt.ts` | 见下；`ROUTER_PROMPT_VERSION` 在 M1 改为 4，M2 改为 5，M4 删除 follow-up 一句后改为 6，修复 Codex 引擎轮询后改为 7 |
 | `codex/host.ts` | `snapshot` 过滤会话；删除公开的 `createSession`；`WorkerHost` 增加 `remove(sessionId)`，由它调用现有 `archive`；新增 Router 入口 |
-| `codex/ipc.ts`、`preload/codex.ts` | 第 4.6 节 |
+| `app/ipc.ts`、`preload/owls.ts` | 第 4.6 节 |
 | `codex/service.ts`、`claude/service.ts` | 删除 `role: 'task'` 分支，所有会话都是 Worker |
 | `router/workers.ts`（`TurnProfile`） | 去掉联合类型，只保留 Worker 形状 |
 
@@ -296,7 +296,7 @@ shared/
 
 - **不引入图形库。** 仓库里没有图形依赖，这里只需要固定的左右树布局，不需要手动连线或拖动节点。
   布局是一个不到 100 行的纯函数，原型已经验证过。节点是 React 元素，分支是一层 SVG。
-- **建图和布局是纯函数**，放在 `shared/`，从 `main/codex/runtime.ts` 导出供测试使用。输入是项目、
+- **建图和布局是纯函数**，放在 `shared/`，从 `main/app/runtime.ts` 导出供测试使用。输入是项目、
   Router、Worker 和筛选状态，输出节点坐标和分支。排序确定：在推进的子树在前，同组按 `createdAt`
   和 `id`。父节点已移除时，子节点挂到最近的未移除祖先。节点高度按类型固定，不需要测量 DOM。
 - **全景的数据都已存在。** `snapshot` 已包含所有项目的 Router 和 Worker，事件也不分项目，
@@ -355,9 +355,9 @@ shared/
 | 阶段 | 内容 | 验证 |
 | --- | --- | --- |
 | M1 契约 | `title`、`parentId`、`worker` 条目、取消排队事件、`shared/worker-map.ts`、`stop-worker`、`remove-worker`、定向消息、提示 v4（不含审批措辞） | `pnpm --filter owls-client test:admin`；`router-runtime.test.mjs` 增加父节点校验、去重、定向投递、`to` 事件头、取消排队；布局测试覆盖节点不重叠、两侧不换边、结果确定 |
-| M2 应用壳和全景 | 第 6 节组件，替换 `App.tsx`，删除任务 UI；全景的布局、相机、节点审批、跟随输入框；`worker_waiting` 不唤醒和审批提示随托盘一起上线（提示 v5） | `typecheck`；`test:codex:ui` 重写任务相关步骤（第 262–320 行等），覆盖首页、全景、详情、审批托盘、节点批准、`@`、中英文；`router-runtime.test.mjs` 新增 `worker_waiting` 不发起批次的用例（目前没有覆盖） |
+| M2 应用壳和全景 | 第 6 节组件，替换 `App.tsx`，删除任务 UI；全景的布局、相机、节点审批、跟随输入框；`worker_waiting` 不唤醒和审批提示随托盘一起上线（提示 v5） | `typecheck`；`test:ui` 重写任务相关步骤（第 262–320 行等），覆盖首页、全景、详情、审批托盘、节点批准、`@`、中英文；`router-runtime.test.mjs` 新增 `worker_waiting` 不发起批次的用例（目前没有覆盖） |
 | M3 动效 | 对话和全景的缩放过渡、分支流动、信号、新节点生长 | 在可见窗口里实际操作；开启减少动态效果后确认全部关闭；4 个 Worker 同时流式输出时确认帧率 |
-| M4 收尾 | 删除 `create-session`、`send`、`interrupt`、`archive` 通道，`role: 'task'`、`followUp`、`routerTurns`、`workerProvider`；`snapshot` 过滤；更新基准和 `codex-desktop-smoke.cjs` 中对 `host.createSession` 的调用 | `test:admin`、`test:codex:desktop`、`bench:router`，记录新的追问 p50 / p95 和请求数；`verify:codex`、`verify:claude` 真实 CLI 各跑一次；更新 RFC |
+| M4 收尾 | 删除 `create-session`、`send`、`interrupt`、`archive` 通道，`role: 'task'`、`followUp`、`routerTurns`、`workerProvider`；`snapshot` 过滤；更新基准和 `desktop-smoke.cjs` 中对 `host.createSession` 的调用 | `test:admin`、`test:desktop`、`bench:router`，记录新的追问 p50 / p95 和请求数；`verify:codex`、`verify:claude` 真实 CLI 各跑一次；更新 RFC |
 
 每个 MR 添加 `.changelog/unreleased` 片段。M2 改变了整个用户工作流，需要在发布说明里明确写出。
 

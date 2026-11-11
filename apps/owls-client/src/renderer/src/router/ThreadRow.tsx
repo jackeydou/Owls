@@ -1,6 +1,6 @@
 import { UserIcon } from '@renderer/components/ui/icons'
 import type { ReactNode } from 'react'
-import { AppLogoMark } from '../codex/AppLogo'
+import { AppLogoMark } from '../app/AppLogo'
 
 export type ThreadSpeaker = 'router' | 'user'
 

@@ -1,11 +1,11 @@
 import type {
-  CodexEvent,
-  CodexFailure,
-  CodexItem,
-  CodexRouter,
+  AppEvent,
+  Failure,
   ForwardOrigin,
+  Router,
+  SessionItem,
   ThreadItem
-} from '../../shared/codex.js'
+} from '../../shared/app.js'
 import type { ProjectGitRefs } from '../../shared/projects.js'
 import type {
   CreateThread,
@@ -20,7 +20,7 @@ import type {
   WorkerPullRequestLink,
   WorkerReport
 } from '../../shared/router.js'
-import { CodexRuntimeError } from '../codex/errors.js'
+import { OwlsError } from '../app/errors.js'
 import type { RouterMemory } from '../memory/service.js'
 import type { RouterCredentials } from './credentials.js'
 import type { RouterBatchOutcome, RouterEngine, RouterSink } from './engine.js'
@@ -77,7 +77,7 @@ function titleOf(text: string): string {
  * Only threads whose `deviceId` is this device run here; others are read-only.
  */
 export class RouterService implements TurnProfiles {
-  private readonly routers = new Map<string, CodexRouter>()
+  private readonly routers = new Map<string, Router>()
   private readonly logs = new Map<string, ThreadLog>()
   private readonly engines = new Map<string, { engine: RouterEngine; key: string }>()
   private readonly active = new Map<string, ActiveBatch>()
@@ -98,7 +98,7 @@ export class RouterService implements TurnProfiles {
     private readonly credentials: RouterCredentials,
     private readonly commands: { acceptCommand(id: string, scope: string, text: string): boolean },
     private readonly host: WorkerHost,
-    private readonly emit: (event: CodexEvent) => void,
+    private readonly emit: (event: AppEvent) => void,
     private readonly createEngine: EngineFactory,
     private readonly workspaces: WorkerWorkspaces = checkoutOnly,
     private readonly memory: RouterMemory = noMemory
@@ -153,7 +153,7 @@ export class RouterService implements TurnProfiles {
     return this.pool.recovered
   }
 
-  snapshot(): { routers: CodexRouter[]; workers: RouterWorker[] } {
+  snapshot(): { routers: Router[]; workers: RouterWorker[] } {
     return {
       routers: [...this.routers.values()].sort(
         (a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)
@@ -163,14 +163,14 @@ export class RouterService implements TurnProfiles {
   }
 
   /** Starts an empty thread. `id` lets a forward stay idempotent. */
-  createThread(input: CreateThread, id: string = crypto.randomUUID()): CodexRouter {
+  createThread(input: CreateThread, id: string = crypto.randomUUID()): Router {
     const project = input.projectId
       ? this.host.projects().find((p) => p.id === input.projectId)
       : null
     if (input.projectId && !project)
-      throw new CodexRuntimeError('project_required', 'This project no longer exists.')
+      throw new OwlsError('project_required', 'This project no longer exists.')
     const now = new Date().toISOString()
-    const router: CodexRouter = {
+    const router: Router = {
       id,
       deviceId: this.store.deviceId,
       title: null,
@@ -234,7 +234,7 @@ export class RouterService implements TurnProfiles {
    * the worker's report starts that batch as usual.
    */
   private async sendToWorker(
-    router: CodexRouter,
+    router: Router,
     input: SendRouterMessage,
     workerId: string
   ): Promise<void> {
@@ -263,11 +263,11 @@ export class RouterService implements TurnProfiles {
    * through the Inbox, so every engine gets it the same way. Returns the thread
    * that received it; `commandId` names a new one so a repeated call finds it.
    */
-  forward(input: ForwardMessage): CodexRouter {
+  forward(input: ForwardMessage): Router {
     const source = this.getRouter(input.source.routerId)
     const targetId = input.target.kind === 'thread' ? input.target.routerId : input.commandId
     if (targetId === source.id)
-      throw new CodexRuntimeError('invalid_request', 'This content is already in that thread.')
+      throw new OwlsError('invalid_request', 'This content is already in that thread.')
     if (input.target.kind === 'thread') this.ownRouter(targetId)
     const content = this.forwardContent(input, source)
     const note = input.note || null
@@ -313,14 +313,14 @@ export class RouterService implements TurnProfiles {
   /** The text to freeze and where it came from. Refuses anything with nothing to forward. */
   private forwardContent(
     input: ForwardMessage,
-    source: CodexRouter
+    source: Router
   ): {
     text: string
     origin: ForwardOrigin & { goal?: string; artifacts: WorkerReport['artifacts'] }
   } {
     const base = { routerId: source.id, title: source.title, artifacts: [] }
     const unavailable = () =>
-      new CodexRuntimeError('request_unavailable', 'This content can no longer be forwarded.')
+      new OwlsError('request_unavailable', 'This content can no longer be forwarded.')
     if (input.source.kind === 'item') {
       const item = this.log(source).get(input.source.itemId)?.item
       if (!item?.text || !['user', 'assistant', 'forward'].includes(item.kind)) throw unavailable()
@@ -349,7 +349,7 @@ export class RouterService implements TurnProfiles {
   removeWorker(input: WorkerAction): void {
     const worker = this.pool.get(input.workerId)
     if (!worker || worker.routerId !== this.ownRouter(input.routerId).id)
-      throw new CodexRuntimeError('request_unavailable', 'This worker no longer exists.')
+      throw new OwlsError('request_unavailable', 'This worker no longer exists.')
     if (worker.status !== 'removed') this.host.remove(worker.sessionId)
   }
 
@@ -359,7 +359,7 @@ export class RouterService implements TurnProfiles {
       return await call()
     } catch (error) {
       if (error instanceof RouterToolError)
-        throw new CodexRuntimeError('request_unavailable', 'This worker cannot take this action.')
+        throw new OwlsError('request_unavailable', 'This worker cannot take this action.')
       throw error
     }
   }
@@ -374,7 +374,7 @@ export class RouterService implements TurnProfiles {
     const router = this.ownRouter(input.routerId)
     const batch = this.store.batch(input.batchId)
     if (!batch || batch.routerId !== router.id || batch.status !== 'dispatch_unknown')
-      throw new CodexRuntimeError('request_unavailable', 'This batch is no longer waiting.')
+      throw new OwlsError('request_unavailable', 'This batch is no longer waiting.')
     if (input.decision === 'retry') this.store.requeueBatch(batch.id)
     else this.store.finishBatch(batch.id, 'ignored')
     router.unknownBatches = router.unknownBatches.filter((b) => b.id !== batch.id)
@@ -437,7 +437,7 @@ export class RouterService implements TurnProfiles {
   }
 
   /** Follows task and connection events on behalf of the workers and engines. */
-  observe(event: CodexEvent): void {
+  observe(event: AppEvent): void {
     if (this.closed) return
     if (event.type === 'claude-connection') this.dropIdleEngines()
     this.pool.observe(event)
@@ -570,7 +570,7 @@ export class RouterService implements TurnProfiles {
 
   private async runBatch(
     engine: RouterEngine,
-    router: CodexRouter,
+    router: Router,
     batch: ActiveBatch,
     events: InboxEvent[],
     context: { state: string | null; projects: string | null; memory: string | null }
@@ -585,7 +585,7 @@ export class RouterService implements TurnProfiles {
         this.sink(router, batch)
       )
     } catch {
-      const error: CodexFailure = { code: 'native_error', message: 'The Router engine failed.' }
+      const error: Failure = { code: 'native_error', message: 'The Router engine failed.' }
       return { status: 'failed', error, native: router.native ?? { engine: 'owls' } }
     }
   }
@@ -595,7 +595,7 @@ export class RouterService implements TurnProfiles {
    * history: after an engine switch, or when Claude Code has no session to
    * resume. The batch then opens with the current worker summary (RFC 12).
    */
-  private needsState(router: CodexRouter, engine: RouterEngineId, history: boolean): boolean {
+  private needsState(router: Router, engine: RouterEngineId, history: boolean): boolean {
     const native = router.native
     if (!history) return false
     if (engine === 'owls') return native !== null && native.engine !== 'owls'
@@ -603,7 +603,7 @@ export class RouterService implements TurnProfiles {
   }
 
   /** True once an engine has run for this thread or it has workers. */
-  private hasHistory(router: CodexRouter): boolean {
+  private hasHistory(router: Router): boolean {
     return (
       router.native !== null ||
       this.pool.list(router.id).length > 0 ||
@@ -611,7 +611,7 @@ export class RouterService implements TurnProfiles {
     )
   }
 
-  private engine(router: CodexRouter): RouterEngine | CodexFailure {
+  private engine(router: Router): RouterEngine | Failure {
     const settings = this.host.settings().router
     const memory = this.memory.enabled()
     const key = JSON.stringify([settings, memory])
@@ -651,7 +651,7 @@ export class RouterService implements TurnProfiles {
    * item because Claude Code runs a tool before it delivers the text leading
    * up to the call, and the dispatch must read after that text.
    */
-  private showDispatches(router: CodexRouter, batch: ActiveBatch): void {
+  private showDispatches(router: Router, batch: ActiveBatch): void {
     for (const workerId of batch.dispatches) {
       const id = `dispatch:${workerId}`
       if (this.log(router).get(id)) continue
@@ -668,9 +668,9 @@ export class RouterService implements TurnProfiles {
     batch.dispatches.clear()
   }
 
-  private sink(router: CodexRouter, batch: ActiveBatch): RouterSink {
+  private sink(router: Router, batch: ActiveBatch): RouterSink {
     return {
-      item: (item: CodexItem) => {
+      item: (item: SessionItem) => {
         this.put(router, item)
         if (item.kind === 'tool') this.showDispatches(router, batch)
       },
@@ -763,22 +763,22 @@ export class RouterService implements TurnProfiles {
       if (this.routers.get(id)?.status !== 'running') this.engines.delete(id)
     }
   }
-  private getRouter(id: string): CodexRouter {
+  private getRouter(id: string): Router {
     const router = this.routers.get(id)
-    if (!router) throw new CodexRuntimeError('task_not_found', 'Router not found.')
+    if (!router) throw new OwlsError('task_not_found', 'Router not found.')
     return router
   }
   /** A thread whose Router runs on this device, which alone may change it. */
-  private ownRouter(id: string): CodexRouter {
+  private ownRouter(id: string): Router {
     const router = this.getRouter(id)
     if (!this.local(router))
-      throw new CodexRuntimeError('request_unavailable', 'This thread runs on another device.')
+      throw new OwlsError('request_unavailable', 'This thread runs on another device.')
     return router
   }
-  private local(router: CodexRouter): boolean {
+  private local(router: Router): boolean {
     return router.deviceId === this.store.deviceId
   }
-  private log(router: CodexRouter): ThreadLog {
+  private log(router: Router): ThreadLog {
     let log = this.logs.get(router.id)
     if (!log) {
       log = new ThreadLog(this.store.items(router.id))
@@ -791,7 +791,7 @@ export class RouterService implements TurnProfiles {
    * lacks them. A context the engine trimmed also lost the memory block, so it
    * gets a line naming the categories it can still search.
    */
-  private stateOf(router: CodexRouter, trimmed = false): string {
+  private stateOf(router: Router, trimmed = false): string {
     const projects = renderProjects(this.host.projects(), router.projectId)
     const workers = renderState(this.pool.list(router.id), (worker) =>
       projects ? this.pool.projectName(worker) : null
@@ -800,7 +800,7 @@ export class RouterService implements TurnProfiles {
     return [workers, projects, memory].filter(Boolean).join('\n\n')
   }
   /** Inserts or replaces an item. Streaming only reaches the UI; a finished item is saved. */
-  private put(router: CodexRouter, item: CodexItem): void {
+  private put(router: Router, item: SessionItem): void {
     if (this.closed) return
     const log = this.log(router)
     log.put(item)
@@ -814,10 +814,10 @@ export class RouterService implements TurnProfiles {
     if (item.kind === 'assistant' && item.text) router.preview = item.text.slice(-PREVIEW_LIMIT)
     this.changed(router)
   }
-  private finishItems(router: CodexRouter, status: RouterBatchOutcome['status']): void {
+  private finishItems(router: Router, status: RouterBatchOutcome['status']): void {
     for (const item of this.log(router).running()) this.put(router, { ...item, status })
   }
-  private changed(router: CodexRouter): void {
+  private changed(router: Router): void {
     if (this.closed) return
     router.updatedAt = new Date().toISOString()
     this.dirty.add(router.id)

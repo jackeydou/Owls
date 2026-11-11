@@ -18,7 +18,7 @@ import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Select } from '@renderer/components/ui/select'
 import { Fragment, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { appLogoSchema, settingsSchema } from '../../../shared/codex'
+import { appLogoSchema, settingsSchema } from '../../../shared/app'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
 import { AgentIcon } from '../router/AgentIcon'
 import { projectHue } from '../router/activity'
@@ -28,14 +28,14 @@ import { SettingsUpdatesPane } from '../updates/SettingsUpdates'
 import { appLogoIcons } from './AppLogo'
 import { TaskOptions } from './Controls'
 import { SettingRow } from './SettingRow'
-import { ClaudeSettingsPane, CodexSettingsPane } from './SettingsAgents'
+import { AgentSettingsPane, ClaudeSettingsPane } from './SettingsAgents'
 import { GitHubSettingsPane } from './SettingsGitHub'
 import { ProjectSettingsPane } from './SettingsProject'
 import {
   type ProjectSettingsPage,
   projectSettingsPages,
   type SettingsTab,
-  useCodexStore
+  useAppStore
 } from './store'
 
 type TabEntry = { id: Exclude<SettingsTab, 'project'>; label: string; icon: IconComponent | null }
@@ -74,9 +74,9 @@ const PROJECT_PAGE_ICONS: Record<ProjectSettingsPage, IconComponent> = {
  */
 function ProjectsNav() {
   const { t } = useTranslation()
-  const projects = useCodexStore((s) => s.projects)
-  const current = useCodexStore((s) => (s.settingsTab === 'project' ? s.settingsProject : null))
-  const showProjectSettings = useCodexStore((s) => s.showProjectSettings)
+  const projects = useAppStore((s) => s.projects)
+  const current = useAppStore((s) => (s.settingsTab === 'project' ? s.settingsProject : null))
+  const showProjectSettings = useAppStore((s) => s.showProjectSettings)
   const [folded, setFolded] = useState(false)
   // Opening any project page, from here or the Projects sidebar, unfolds it again.
   useEffect(() => {
@@ -86,7 +86,7 @@ function ProjectsNav() {
   return (
     <>
       <hr />
-      <h2 className="codex-settings-group">{t('projectSettings.group')}</h2>
+      <h2 className="owls-settings-group">{t('projectSettings.group')}</h2>
       {projects.map((project) => {
         const selected = current?.projectId === project.id
         const open = selected && !folded
@@ -95,7 +95,7 @@ function ProjectsNav() {
           <Fragment key={project.id}>
             <button
               type="button"
-              className="router-sidebar-item codex-settings-project"
+              className="router-sidebar-item owls-settings-project"
               style={{ '--owl-c': projectHue(project.id) } as React.CSSProperties}
               aria-expanded={open}
               onClick={() => {
@@ -105,11 +105,11 @@ function ProjectsNav() {
             >
               <b aria-hidden="true">{project.name.slice(0, 1).toUpperCase()}</b>
               <span>{project.name}</span>
-              <Chevron size={14} className="codex-settings-chevron" aria-hidden="true" />
+              <Chevron size={14} className="owls-settings-chevron" aria-hidden="true" />
             </button>
             {open ? (
               <ul
-                className="codex-settings-subnav"
+                className="owls-settings-subnav"
                 aria-label={t('projectSettings.pages', { project: project.name })}
               >
                 {projectSettingsPages.map((page) => {
@@ -139,14 +139,14 @@ function ProjectsNav() {
 
 function SettingsNav() {
   const { t } = useTranslation()
-  const current = useCodexStore((s) => s.settingsTab)
-  const showSettings = useCodexStore((s) => s.showSettings)
-  const leaveSettings = useCodexStore((s) => s.leaveSettings)
+  const current = useAppStore((s) => s.settingsTab)
+  const showSettings = useAppStore((s) => s.showSettings)
+  const leaveSettings = useAppStore((s) => s.leaveSettings)
   // Shares the main sidebar's width, so switching to Settings keeps the same edge.
   const { width, handle } = usePaneWidth('sidebar', 'right')
   return (
     <nav
-      className="router-sidebar codex-settings-nav"
+      className="router-sidebar owls-settings-nav"
       style={{ width }}
       aria-label={t('settingsTitle')}
     >
@@ -154,7 +154,7 @@ function SettingsNav() {
         <Button
           size="custom"
           variant="ghost"
-          className="codex-settings-back"
+          className="owls-settings-back"
           onClick={leaveSettings}
         >
           <ArrowLeftIcon size={15} />
@@ -188,7 +188,7 @@ function SettingsNav() {
 function WorkerDefaultsPane() {
   const { t } = useTranslation()
   return (
-    <section className="codex-settings-section">
+    <section className="owls-settings-section">
       <h2>{t('defaults')}</h2>
       <p>{t('defaultsBody')}</p>
       <TaskOptions />
@@ -198,15 +198,15 @@ function WorkerDefaultsPane() {
 
 function AppearancePane() {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
-  const saveSettings = useCodexStore((s) => s.saveSettings)
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
   const logoLabel = useId()
   return (
-    <section className="codex-settings-section">
+    <section className="owls-settings-section">
       <h2>{t('appearance')}</h2>
-      <SettingRow label={t('theme')} htmlFor="codex-theme">
+      <SettingRow label={t('theme')} htmlFor="owls-theme">
         <Select
-          id="codex-theme"
+          id="owls-theme"
           value={settings.theme}
           onChange={(event) =>
             void saveSettings({
@@ -222,9 +222,9 @@ function AppearancePane() {
           ))}
         </Select>
       </SettingRow>
-      <SettingRow label={t('language')} htmlFor="codex-language">
+      <SettingRow label={t('language')} htmlFor="owls-language">
         <Select
-          id="codex-language"
+          id="owls-language"
           value={settings.language}
           onChange={(event) =>
             void saveSettings({
@@ -242,12 +242,12 @@ function AppearancePane() {
         labelId={logoLabel}
         description={t('appLogoHelp')}
         detail={
-          <div className="codex-logo-options" role="radiogroup" aria-labelledby={logoLabel}>
+          <div className="owls-logo-options" role="radiogroup" aria-labelledby={logoLabel}>
             {appLogoSchema.options.map((logo) => (
-              <label className="codex-logo-option" key={logo}>
+              <label className="owls-logo-option" key={logo}>
                 <input
                   type="radio"
-                  name="codex-app-logo"
+                  name="owls-app-logo"
                   className="sr-only"
                   checked={settings.appLogo === logo}
                   onChange={() => void saveSettings({ ...settings, appLogo: logo })}
@@ -268,26 +268,26 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   workers: WorkerDefaultsPane,
   memory: SettingsMemoryPane,
   'claude-code': ClaudeSettingsPane,
-  codex: CodexSettingsPane,
+  codex: AgentSettingsPane,
   github: GitHubSettingsPane,
   appearance: AppearancePane,
   updates: SettingsUpdatesPane,
   project: ProjectSettingsPane
 }
 
-export function CodexSettingsPage() {
-  const tab = useCodexStore((s) => s.settingsTab)
-  const project = useCodexStore((s) => s.settingsProject)
+export function SettingsPage() {
+  const tab = useAppStore((s) => s.settingsTab)
+  const project = useAppStore((s) => s.settingsProject)
   const Pane = PANES[tab]
   const key = tab === 'project' && project ? `project:${project.projectId}:${project.page}` : tab
   return (
     <>
       <SettingsNav />
-      <main className="codex-settings-page">
-        <div className="codex-settings-drag" />
+      <main className="owls-settings-page">
+        <div className="owls-settings-drag" />
         {/* Keyed so each tab opens at its top. */}
-        <div className="codex-settings-scroll" key={key}>
-          <div className="codex-settings-content">
+        <div className="owls-settings-scroll" key={key}>
+          <div className="owls-settings-content">
             <Pane />
           </div>
         </div>

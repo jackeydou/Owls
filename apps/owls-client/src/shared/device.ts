@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { deviceIdSchema, effortSchema, permissionSchema, providerSchema } from './codex.js'
+import { deviceIdSchema, effortSchema, permissionSchema, providerSchema } from './app.js'
 import { worktreeBaseSchema } from './router.js'
 
 /**

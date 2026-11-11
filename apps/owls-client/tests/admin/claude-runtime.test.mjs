@@ -7,7 +7,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
-const { ClaudeService, claudeNormalize } = require('../../out/main/codex/runtime.js')
+const { ClaudeService, claudeNormalize } = require('../../out/main/app/runtime.js')
 const fixture = fileURLToPath(new URL('../fixtures/claude/mock-claude.cjs', import.meta.url))
 chmodSync(fixture, 0o755)
 

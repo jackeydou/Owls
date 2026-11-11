@@ -16,7 +16,7 @@ const {
   looksSecret,
   renderInjection,
   renderMarkdown
-} = require('../../out/main/codex/runtime.js')
+} = require('../../out/main/app/runtime.js')
 
 const PROJECTS = [
   { id: 'p1', name: 'Owls', path: '/tmp/owls' },

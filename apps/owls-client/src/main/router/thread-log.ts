@@ -1,4 +1,4 @@
-import type { CodexItem, ThreadItem } from '../../shared/codex.js'
+import type { SessionItem, ThreadItem } from '../../shared/app.js'
 
 /**
  * One thread's items in memory, loaded the first time the thread is used. An
@@ -20,7 +20,7 @@ export class ThreadLog {
     return this.index.get(id)
   }
   /** Inserts or replaces the item with the same id. Its `rev` is unset until it is saved. */
-  put(item: CodexItem): ThreadItem {
+  put(item: SessionItem): ThreadItem {
     const existing = this.index.get(item.id)
     if (existing) {
       existing.item = item
@@ -33,7 +33,7 @@ export class ThreadLog {
     this.index.set(item.id, entry)
     return entry
   }
-  running(): CodexItem[] {
+  running(): SessionItem[] {
     return this.entries.filter((e) => e.item.status === 'running').map((e) => e.item)
   }
   /** Items changed after `rev`, with unsaved ones, in position order. */

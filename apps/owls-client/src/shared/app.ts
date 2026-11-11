@@ -76,7 +76,7 @@ export const failureSchema = z.object({
   ]),
   message: z.string()
 })
-export type CodexFailure = z.infer<typeof failureSchema>
+export type Failure = z.infer<typeof failureSchema>
 /** Where forwarded content came from. A record of its origin, not a live link to it. */
 export const forwardOriginSchema = z.object({
   routerId: z.string(),
@@ -241,17 +241,17 @@ export const routerSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string()
 })
-export type CodexRouter = z.infer<typeof routerSchema>
-export type CodexItem = z.infer<typeof itemSchema>
+export type Router = z.infer<typeof routerSchema>
+export type SessionItem = z.infer<typeof itemSchema>
 export type ThreadItem = z.infer<typeof threadItemSchema>
 export type ForwardOrigin = z.infer<typeof forwardOriginSchema>
-export type CodexRequest = z.infer<typeof requestSchema>
-export type CodexSession = z.infer<typeof sessionSchema>
-export type CodexSettings = z.infer<typeof settingsSchema>
+export type AgentRequest = z.infer<typeof requestSchema>
+export type Session = z.infer<typeof sessionSchema>
+export type AppSettings = z.infer<typeof settingsSchema>
 export type AppLogo = z.infer<typeof appLogoSchema>
-export type CodexProject = z.infer<typeof projectSchema>
+export type Project = z.infer<typeof projectSchema>
 export type CodexModel = z.infer<typeof modelSchema>
-export type CodexEffort = z.infer<typeof effortSchema>
+export type Effort = z.infer<typeof effortSchema>
 export type AgentProvider = z.infer<typeof providerSchema>
 export type CodexAccount =
   | { kind: 'chatgpt'; email: string | null; plan: string | null }
@@ -264,7 +264,7 @@ export type CodexConnection = {
   version: string | null
   account: CodexAccount
   models: CodexModel[]
-  error: CodexFailure | null
+  error: Failure | null
 }
 export type ClaudeAccount =
   | { kind: 'claude'; email: string | null; plan: string | null }
@@ -277,110 +277,110 @@ export type ClaudeConnection = {
   version: string | null
   account: ClaudeAccount
   models: CodexModel[]
-  error: CodexFailure | null
+  error: Failure | null
 }
-export type CodexSnapshot = {
-  sessions: CodexSession[]
-  projects: CodexProject[]
-  settings: CodexSettings
+export type AppSnapshot = {
+  sessions: Session[]
+  projects: Project[]
+  settings: AppSettings
   connection: CodexConnection
   claude: ClaudeConnection
-  routers: CodexRouter[]
+  routers: Router[]
   workers: RouterWorker[]
   github: GitHubAccount
 }
-export type CodexEvent =
+export type AppEvent =
   | { type: 'connection'; connection: CodexConnection }
   | { type: 'claude-connection'; connection: ClaudeConnection }
-  | { type: 'session'; session: CodexSession }
+  | { type: 'session'; session: Session }
   | { type: 'removed'; sessionId: string }
-  | { type: 'router'; router: CodexRouter }
+  | { type: 'router'; router: Router }
   /** Items that changed, in position order. Streaming items carry `rev: null`. */
   | { type: 'thread-items'; routerId: string; items: ThreadItem[] }
   | { type: 'worker'; worker: RouterWorker }
   | { type: 'github-account'; account: GitHubAccount }
   | { type: 'worker-github'; workerId: string; status: WorkerGitHubStatus }
-export type CodexReply<T> = { ok: true; value: T } | { ok: false; error: CodexFailure }
+export type Reply<T> = { ok: true; value: T } | { ok: false; error: Failure }
 export const respondSchema = z.object({
   sessionId: z.string().uuid(),
   requestId: z.string().uuid(),
   decision: z.enum(['accept', 'decline', 'cancel']),
   answers: z.record(z.string(), z.array(z.string())).optional()
 })
-export type CreateCodexSession = {
+export type CreateSession = {
   provider: AgentProvider
   cwd: string
   model: string | null
-  effort: CodexSettings['effort']
-  permission: CodexSettings['permission']
+  effort: AppSettings['effort']
+  permission: AppSettings['permission']
 }
-export type SendCodexMessage = { sessionId: string; commandId: string; text: string }
-export type RespondCodexRequest = z.infer<typeof respondSchema>
-export interface CodexAPI {
-  snapshot(): Promise<CodexReply<CodexSnapshot>>
-  connect(): Promise<CodexReply<CodexConnection>>
-  selectExecutable(): Promise<CodexReply<CodexConnection | null>>
-  connectClaude(): Promise<CodexReply<ClaudeConnection>>
-  selectClaudeExecutable(): Promise<CodexReply<ClaudeConnection | null>>
-  signIn(): Promise<CodexReply<void>>
-  cancelSignIn(): Promise<CodexReply<void>>
-  saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<CodexReply<CodexSettings>>
-  pickProject(): Promise<CodexReply<CodexProject | null>>
+export type SendMessage = { sessionId: string; commandId: string; text: string }
+export type RespondRequest = z.infer<typeof respondSchema>
+export interface OwlsAPI {
+  snapshot(): Promise<Reply<AppSnapshot>>
+  connect(): Promise<Reply<CodexConnection>>
+  selectExecutable(): Promise<Reply<CodexConnection | null>>
+  connectClaude(): Promise<Reply<ClaudeConnection>>
+  selectClaudeExecutable(): Promise<Reply<ClaudeConnection | null>>
+  signIn(): Promise<Reply<void>>
+  cancelSignIn(): Promise<Reply<void>>
+  saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<Reply<AppSettings>>
+  pickProject(): Promise<Reply<Project | null>>
   /** The folder new projects go into unless the user picks another. */
-  projectsFolder(): Promise<CodexReply<string>>
+  projectsFolder(): Promise<Reply<string>>
   /** Opens the system folder picker for where a new project goes; null when canceled. */
-  chooseProjectsFolder(): Promise<CodexReply<string | null>>
-  cloneProject(input: CloneProject): Promise<CodexReply<CodexProject>>
-  createProject(input: CreateProject): Promise<CodexReply<CodexProject>>
+  chooseProjectsFolder(): Promise<Reply<string | null>>
+  cloneProject(input: CloneProject): Promise<Reply<Project>>
+  createProject(input: CreateProject): Promise<Reply<Project>>
   /** Saves a project's name and settings; resolves to the saved project. */
-  saveProject(input: SaveProject): Promise<CodexReply<CodexProject>>
+  saveProject(input: SaveProject): Promise<Reply<Project>>
   /** The project repository's branches and remotes; null when it is not a git repository. */
-  projectGitRefs(projectId: string): Promise<CodexReply<ProjectGitRefs | null>>
-  respond(input: RespondCodexRequest): Promise<CodexReply<void>>
-  createThread(input: CreateThread): Promise<CodexReply<CodexRouter>>
-  threadItems(input: ThreadItemsRequest): Promise<CodexReply<ThreadItem[]>>
-  sendRouter(input: SendRouterMessage): Promise<CodexReply<void>>
+  projectGitRefs(projectId: string): Promise<Reply<ProjectGitRefs | null>>
+  respond(input: RespondRequest): Promise<Reply<void>>
+  createThread(input: CreateThread): Promise<Reply<Router>>
+  threadItems(input: ThreadItemsRequest): Promise<Reply<ThreadItem[]>>
+  sendRouter(input: SendRouterMessage): Promise<Reply<void>>
   /** Resolves to the thread that received the content. */
-  forward(input: ForwardMessage): Promise<CodexReply<CodexRouter>>
-  interruptRouter(routerId: string): Promise<CodexReply<void>>
-  resolveBatch(input: ResolveBatch): Promise<CodexReply<void>>
-  discardWorktree(input: WorkerAction): Promise<CodexReply<void>>
-  stopWorker(input: WorkerAction): Promise<CodexReply<void>>
-  removeWorker(input: WorkerAction): Promise<CodexReply<void>>
-  routerProviders(): Promise<CodexReply<RouterProviderInfo[]>>
-  setRouterKey(input: SetRouterKey): Promise<CodexReply<void>>
-  removeRouterKey(providerId: string): Promise<CodexReply<void>>
-  gitHubSignIn(): Promise<CodexReply<GitHubAccount>>
-  gitHubConnectCli(): Promise<CodexReply<GitHubAccount>>
-  gitHubConnectToken(token: string): Promise<CodexReply<GitHubAccount>>
-  gitHubCancelSignIn(): Promise<CodexReply<void>>
-  gitHubSignOut(): Promise<CodexReply<void>>
-  watchWorkerGitHub(input: WorkerAction): Promise<CodexReply<void>>
-  unwatchWorkerGitHub(input: WorkerAction): Promise<CodexReply<void>>
-  onEvent(listener: (event: CodexEvent) => void): () => void
+  forward(input: ForwardMessage): Promise<Reply<Router>>
+  interruptRouter(routerId: string): Promise<Reply<void>>
+  resolveBatch(input: ResolveBatch): Promise<Reply<void>>
+  discardWorktree(input: WorkerAction): Promise<Reply<void>>
+  stopWorker(input: WorkerAction): Promise<Reply<void>>
+  removeWorker(input: WorkerAction): Promise<Reply<void>>
+  routerProviders(): Promise<Reply<RouterProviderInfo[]>>
+  setRouterKey(input: SetRouterKey): Promise<Reply<void>>
+  removeRouterKey(providerId: string): Promise<Reply<void>>
+  gitHubSignIn(): Promise<Reply<GitHubAccount>>
+  gitHubConnectCli(): Promise<Reply<GitHubAccount>>
+  gitHubConnectToken(token: string): Promise<Reply<GitHubAccount>>
+  gitHubCancelSignIn(): Promise<Reply<void>>
+  gitHubSignOut(): Promise<Reply<void>>
+  watchWorkerGitHub(input: WorkerAction): Promise<Reply<void>>
+  unwatchWorkerGitHub(input: WorkerAction): Promise<Reply<void>>
+  onEvent(listener: (event: AppEvent) => void): () => void
   memory: MemoryAPI
   updates: UpdatesAPI
 }
-/** `window.codex.updates`. The channel is a setting, saved through `saveSettings`. */
+/** `window.owls.updates`. The channel is a setting, saved through `saveSettings`. */
 export interface UpdatesAPI {
-  snapshot(): Promise<CodexReply<UpdateSnapshot>>
+  snapshot(): Promise<Reply<UpdateSnapshot>>
   /** Resolves once the feed has been read; a newer release then keeps downloading. */
-  check(): Promise<CodexReply<UpdateSnapshot>>
+  check(): Promise<Reply<UpdateSnapshot>>
   /** Quits and installs a downloaded update, after asking about running tasks. */
-  install(): Promise<CodexReply<void>>
+  install(): Promise<Reply<void>>
   onChanged(listener: (snapshot: UpdateSnapshot) => void): () => void
 }
-/** `window.codex.memory` (RFC_OWLS_MEMORY 9). */
+/** `window.owls.memory` (RFC_OWLS_MEMORY 9). */
 export interface MemoryAPI {
-  list(input: MemoryListRequest): Promise<CodexReply<MemoryView[]>>
-  overview(): Promise<CodexReply<MemoryOverview>>
-  save(input: MemorySave): Promise<CodexReply<MemoryView>>
-  remove(input: MemoryRemove): Promise<CodexReply<void>>
-  category(input: MemoryCategoryAction): Promise<CodexReply<void>>
+  list(input: MemoryListRequest): Promise<Reply<MemoryView[]>>
+  overview(): Promise<Reply<MemoryOverview>>
+  save(input: MemorySave): Promise<Reply<MemoryView>>
+  remove(input: MemoryRemove): Promise<Reply<void>>
+  category(input: MemoryCategoryAction): Promise<Reply<void>>
   /** Starts Dreaming over every thread with new content; resolves once it is queued. */
-  runNow(): Promise<CodexReply<void>>
-  runs(): Promise<CodexReply<MemoryRun[]>>
+  runNow(): Promise<Reply<void>>
+  runs(): Promise<Reply<MemoryRun[]>>
   /** Opens a save dialog; resolves to false when the user canceled it. */
-  export(format: MemoryExportFormat): Promise<CodexReply<boolean>>
+  export(format: MemoryExportFormat): Promise<Reply<boolean>>
   onChanged(listener: () => void): () => void
 }

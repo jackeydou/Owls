@@ -21,10 +21,10 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexFailure } from '../../../shared/codex'
+import type { Failure } from '../../../shared/app'
 import { parseGitHubRepo, projectNameSchema } from '../../../shared/projects'
-import { failureMessage } from '../codex/failures'
-import { useCodexStore } from '../codex/store'
+import { failureMessage } from '../app/failures'
+import { useAppStore } from '../app/store'
 import { useRouterStore } from './store'
 
 /** Projects offered under Recents; the rest are in the sidebar list. */
@@ -34,7 +34,7 @@ type Source = 'github' | 'quick'
 
 /** Projects by their latest thread activity, most recent first; untouched ones last. */
 function useRecentProjects() {
-  const projects = useCodexStore((s) => s.projects)
+  const projects = useAppStore((s) => s.projects)
   const routers = useRouterStore((s) => s.routers)
   return useMemo(() => {
     const latest = new Map<string, string>()
@@ -60,8 +60,8 @@ function useRecentProjects() {
  */
 export function AddProjectMenu() {
   const { t } = useTranslation()
-  const pickProject = useCodexStore((s) => s.pickProject)
-  const showChat = useCodexStore((s) => s.showChat)
+  const pickProject = useAppStore((s) => s.pickProject)
+  const showChat = useAppStore((s) => s.showChat)
   const recents = useRecentProjects()
   const [source, setSource] = useState<Source | null>(null)
   // A form opening from the menu keeps its focus instead of returning it to the button.
@@ -124,16 +124,16 @@ export function AddProjectMenu() {
 /** The form behind "Open GitHub project" and "Quick start". */
 function NewProjectDialog({ source, onClose }: { source: Source; onClose: () => void }) {
   const { t } = useTranslation()
-  const projectsFolder = useCodexStore((s) => s.projectsFolder)
-  const chooseProjectsFolder = useCodexStore((s) => s.chooseProjectsFolder)
-  const cloneProject = useCodexStore((s) => s.cloneProject)
-  const createProject = useCodexStore((s) => s.createProject)
+  const projectsFolder = useAppStore((s) => s.projectsFolder)
+  const chooseProjectsFolder = useAppStore((s) => s.chooseProjectsFolder)
+  const cloneProject = useAppStore((s) => s.cloneProject)
+  const createProject = useAppStore((s) => s.createProject)
   const titleId = useId()
   const [value, setValue] = useState('')
   const [parent, setParent] = useState<string | null>(null)
   const [defaultParent, setDefaultParent] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [failure, setFailure] = useState<CodexFailure | null>(null)
+  const [failure, setFailure] = useState<Failure | null>(null)
   useEffect(() => {
     let live = true
     void projectsFolder().then((folder) => {

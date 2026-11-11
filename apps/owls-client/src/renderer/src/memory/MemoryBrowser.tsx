@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MemoryCategoryView } from '../../../shared/memory'
 import { MEMORY_TEXT_LIMIT, projectMemoryKindSchema } from '../../../shared/memory'
-import { useCodexStore } from '../codex/store'
+import { useAppStore } from '../app/store'
 import { CategoryDialog } from './MemoryDialogs'
 import { MemoryEditor, MemoryRow } from './MemoryRow'
 import { newRecordId, useMemoryStore } from './store'
@@ -16,7 +16,7 @@ function StoreTabs() {
   const store = useMemoryStore((s) => s.store)
   const projectId = useMemoryStore((s) => s.projectId)
   const setFilter = useMemoryStore((s) => s.setFilter)
-  const projects = useCodexStore((s) => s.projects)
+  const projects = useAppStore((s) => s.projects)
   return (
     <div className="memory-toolbar">
       <div className="memory-tabs" role="tablist" aria-label={t('memory.storesLabel')}>
@@ -120,7 +120,7 @@ function NewCategory({ onDone }: { onDone: () => void }) {
         value={description}
         onChange={(event) => setDescription(event.target.value)}
       />
-      <div className="codex-settings-actions">
+      <div className="owls-settings-actions">
         <Button type="button" size="sm" variant="ghost" onClick={onDone}>
           {t('memory.cancel')}
         </Button>

@@ -1,8 +1,8 @@
 import { Button } from '@renderer/components/ui/button'
 import { SettingsIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
-import type { AgentProvider, CodexFailure, CodexRouter } from '../../../shared/codex'
-import { agentConnection, isAgentReady, type SettingsTab, useCodexStore } from '../codex/store'
+import type { AgentProvider, Failure, Router } from '../../../shared/app'
+import { agentConnection, isAgentReady, type SettingsTab, useAppStore } from '../app/store'
 import { ThreadRow } from './ThreadRow'
 
 const SETUP_FAILURES = [
@@ -12,7 +12,7 @@ const SETUP_FAILURES = [
   'claude_not_connected',
   'not_connected'
 ]
-export const isSetupFailure = (failure: CodexFailure) => SETUP_FAILURES.includes(failure.code)
+export const isSetupFailure = (failure: Failure) => SETUP_FAILURES.includes(failure.code)
 
 export type RouterSetupNeed =
   | { kind: 'owls' | 'claude' | 'codex'; alternate: AgentProvider | null }
@@ -26,10 +26,10 @@ function settingsTabFor(need: RouterSetupNeed): SettingsTab {
   return need.kind === 'claude' ? 'claude-code' : 'codex'
 }
 /** What stands between the user and a working Router, or null when nothing does. */
-export function useRouterSetup(router?: CodexRouter): RouterSetupNeed | null {
-  const settings = useCodexStore((s) => s.settings)
-  const claude = useCodexStore((s) => s.claude)
-  const connection = useCodexStore((s) => s.connection)
+export function useRouterSetup(router?: Router): RouterSetupNeed | null {
+  const settings = useAppStore((s) => s.settings)
+  const claude = useAppStore((s) => s.claude)
+  const connection = useAppStore((s) => s.connection)
   const ready = (provider: AgentProvider) =>
     isAgentReady(agentConnection({ claude, connection }, provider))
   const engine = settings.router.engine
@@ -54,9 +54,9 @@ const COPY = {
 /** What the Router still needs, for a thread already underway or a skipped guide. */
 export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
-  const save = useCodexStore((s) => s.saveSettings)
-  const showSettings = useCodexStore((s) => s.showSettings)
+  const settings = useAppStore((s) => s.settings)
+  const save = useAppStore((s) => s.saveSettings)
+  const showSettings = useAppStore((s) => s.showSettings)
   const { alternate } = need
   const agent = t(`agent.${need.kind === 'worker' ? need.provider : 'codex'}`)
   function switchTo(provider: AgentProvider) {

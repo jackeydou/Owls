@@ -3,8 +3,8 @@ import { LoaderIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexRouter } from '../../../shared/codex'
-import { useCodexStore } from '../codex/store'
+import type { Router } from '../../../shared/app'
+import { useAppStore } from '../app/store'
 import { DraftTarget, MentionMenu, useRouterDraft } from './RouterComposer'
 import { ThreadRow } from './ThreadRow'
 
@@ -16,13 +16,13 @@ const isCommandEnter = (event: KeyboardEvent) =>
  * is a new line, as in any editor; Command-Enter sends. A new thread picks its
  * default project here, and with no projects at all, sending asks for a folder.
  */
-export function ThreadEditor({ router }: { router: CodexRouter | undefined }) {
+export function ThreadEditor({ router }: { router: Router | undefined }) {
   const { t } = useTranslation()
-  const projects = useCodexStore((s) => s.projects)
-  const projectId = useCodexStore((s) => s.routerProjectId)
-  const focusProject = useCodexStore((s) => s.focusProject)
-  const pickProject = useCodexStore((s) => s.pickProject)
-  const showThread = useCodexStore((s) => s.showThread)
+  const projects = useAppStore((s) => s.projects)
+  const projectId = useAppStore((s) => s.routerProjectId)
+  const focusProject = useAppStore((s) => s.focusProject)
+  const pickProject = useAppStore((s) => s.pickProject)
+  const showThread = useAppStore((s) => s.showThread)
   const draft = useRouterDraft({
     projectId,
     router,

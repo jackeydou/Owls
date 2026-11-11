@@ -1,7 +1,7 @@
 @import "./conversation.css";
 @import "./settings.css";
 
-.codex-app {
+.owls-app {
   display: flex;
   width: 100vw;
   height: 100dvh;
@@ -10,14 +10,14 @@
   color: var(--color-foreground);
   font-size: 13px;
 }
-.codex-chat,
-.codex-settings-page {
+.owls-chat,
+.owls-settings-page {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
-.codex-topbar {
+.owls-topbar {
   height: var(--owl-bar-height);
   flex-shrink: 0;
   border-bottom: 1px solid var(--color-border);
@@ -27,15 +27,15 @@
   padding: 0 24px;
   -webkit-app-region: drag;
 }
-.codex-topbar button {
+.owls-topbar button {
   -webkit-app-region: no-drag;
 }
-.codex-bar-button {
+.owls-bar-button {
   width: var(--owl-toggle-size);
   height: var(--owl-toggle-size);
   border-radius: 7px;
 }
-.codex-task-title {
+.owls-task-title {
   display: flex;
   align-items: center;
   min-width: 0;
@@ -45,7 +45,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.codex-task-title > span {
+.owls-task-title > span {
   display: inline-flex;
   gap: 5px;
   align-items: center;
@@ -53,38 +53,38 @@
   font-size: 11px;
   flex-shrink: 0;
 }
-.codex-topbar-actions {
+.owls-topbar-actions {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 15px;
   flex-shrink: 0;
 }
-.codex-chat-body {
+.owls-chat-body {
   display: flex;
   flex: 1;
   min-height: 0;
   position: relative;
 }
-.codex-conversation-column {
+.owls-conversation-column {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
-.codex-conversation-scroll {
+.owls-conversation-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   scroll-behavior: auto;
 }
-.codex-conversation {
+.owls-conversation {
   max-width: 810px;
   padding: 30px 36px 28px;
   margin: 0 auto;
   min-height: 100%;
 }
-.codex-inline-error {
+.owls-inline-error {
   display: flex;
   gap: 9px;
   padding: 13px;
@@ -96,11 +96,11 @@
   margin: 15px 0;
   overflow-wrap: anywhere;
 }
-.codex-inline-error > svg {
+.owls-inline-error > svg {
   flex-shrink: 0;
   margin-top: 2px;
 }
-.codex-error-toast {
+.owls-error-toast {
   position: fixed;
   bottom: 25px;
   left: 50%;
@@ -117,14 +117,14 @@
   font-size: 12px;
   z-index: 50;
 }
-.codex-error-toast > svg {
+.owls-error-toast > svg {
   flex-shrink: 0;
   color: #c87870;
 }
-.codex-error-toast > span {
+.owls-error-toast > span {
   overflow-wrap: anywhere;
 }
-.codex-loading {
+.owls-loading {
   flex: 1;
   display: flex;
   justify-content: center;
@@ -132,15 +132,15 @@
   gap: 12px;
   color: var(--color-muted-foreground);
 }
-.codex-app button:focus-visible,
-.codex-app input:focus-visible,
-.codex-app textarea:focus-visible,
-.codex-activity summary:focus-visible {
+.owls-app button:focus-visible,
+.owls-app input:focus-visible,
+.owls-app textarea:focus-visible,
+.owls-activity summary:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .codex-app .animate-spin {
+  .owls-app .animate-spin {
     animation: none;
   }
 }

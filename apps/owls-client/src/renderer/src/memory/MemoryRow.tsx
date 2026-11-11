@@ -11,7 +11,7 @@ import type {
   ProjectMemoryKind
 } from '../../../shared/memory'
 import { MEMORY_TEXT_LIMIT, projectMemoryKindSchema } from '../../../shared/memory'
-import { useCodexStore } from '../codex/store'
+import { useAppStore } from '../app/store'
 import { DeleteMemoryDialog } from './MemoryDialogs'
 import { useMemoryStore } from './store'
 
@@ -91,7 +91,7 @@ export function MemoryEditor({
             ))}
           </Select>
         )}
-        <div className="codex-settings-actions">
+        <div className="owls-settings-actions">
           <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
             {t('memory.cancel')}
           </Button>
@@ -113,7 +113,7 @@ export function MemoryRow({
 }) {
   const { t } = useTranslation()
   const save = useMemoryStore((s) => s.save)
-  const showThread = useCodexStore((s) => s.showThread)
+  const showThread = useAppStore((s) => s.showThread)
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   if (editing)

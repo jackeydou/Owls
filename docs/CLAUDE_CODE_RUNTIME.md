@@ -9,7 +9,7 @@ and `owls.db`.
 
 ## Entries and ownership
 
-- Host routing: `apps/owls-client/src/main/codex/host.ts`.
+- Host routing: `apps/owls-client/src/main/app/host.ts`.
 - Discovery: `src/main/claude/discovery.ts`.
 - Session orchestration: `src/main/claude/service.ts`.
 - Event, tool, and permission normalization: `src/main/claude/normalize.ts`.
@@ -70,7 +70,7 @@ sends an SDK interrupt and aborts the process if the turn does not end.
 
 ```bash
 pnpm --filter owls-client test:claude
-pnpm --filter owls-client test:codex:ui
+pnpm --filter owls-client test:ui
 pnpm --filter owls-client verify:claude
 pnpm --filter owls-client verify:claude --prompt
 pnpm --filter owls-client verify:claude --tools

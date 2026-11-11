@@ -3,7 +3,7 @@ import { CheckIcon, KeyIcon, LoaderIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { permissionSchema } from '../../../shared/codex'
+import { permissionSchema } from '../../../shared/app'
 import {
   type OwlsModelSettings,
   owlsModelSchema,
@@ -11,8 +11,8 @@ import {
   owlsThinkingSchema,
   routerEngineSchema
 } from '../../../shared/router'
-import { SettingRow } from '../codex/SettingRow'
-import { useCodexStore } from '../codex/store'
+import { SettingRow } from '../app/SettingRow'
+import { useAppStore } from '../app/store'
 import { useRouterStore } from './store'
 
 function draftFrom(model: OwlsModelSettings | null): OwlsModelSettings {
@@ -21,15 +21,15 @@ function draftFrom(model: OwlsModelSettings | null): OwlsModelSettings {
 
 export function RouterSettingsSection() {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
-  const saveSettings = useCodexStore((s) => s.saveSettings)
-  const claude = useCodexStore((s) => s.claude)
-  const codex = useCodexStore((s) => s.connection)
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
+  const claude = useAppStore((s) => s.claude)
+  const codex = useAppStore((s) => s.connection)
   async function saveRouter(router: typeof settings.router) {
     await saveSettings({ ...settings, router })
   }
   return (
-    <section className="codex-settings-section">
+    <section className="owls-settings-section">
       <h2>{t('routerSettings.title')}</h2>
       <p>{t('routerSettings.body')}</p>
       <SettingRow
@@ -145,8 +145,8 @@ export function RouterSettingsSection() {
  */
 export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
-  const saveSettings = useCodexStore((s) => s.saveSettings)
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
   const { providers, loadProviders, setKey, removeKey } = useRouterStore()
   const [draft, setDraft] = useState(() => draftFrom(settings.router.owls))
   const [key, setKeyText] = useState('')
@@ -253,7 +253,7 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
         </Select>
       </SettingRow>
       {guided ? null : (
-        <div className="codex-settings-actions">
+        <div className="owls-settings-actions">
           <Button
             size="sm"
             disabled={!valid.success || unchanged}
@@ -292,7 +292,7 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
       </SettingRow>
       {guided ? <p className="router-settings-help">{t('routerSettings.keyHelp')}</p> : null}
       {guided ? (
-        <div className="codex-settings-actions">
+        <div className="owls-settings-actions">
           <Button
             size="sm"
             className="router-guide-continue"
@@ -304,7 +304,7 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
           </Button>
         </div>
       ) : (
-        <div className="codex-settings-actions">
+        <div className="owls-settings-actions">
           <Button size="sm" disabled={!key.trim() || savingKey} onClick={() => void saveKey()}>
             {savingKey ? <LoaderIcon size={14} className="animate-spin" /> : <KeyIcon size={14} />}
             {t('routerSettings.saveKey')}

@@ -2,16 +2,16 @@ import { NetworkIcon, PlusIcon, SettingsIcon } from '@renderer/components/ui/ico
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexRouter } from '../../../shared/codex'
-import { agentConnection, useCodexStore } from '../codex/store'
+import type { Router } from '../../../shared/app'
+import { agentConnection, useAppStore } from '../app/store'
 import { byRecent, isWaitingOnUser, isWorking, threadTitle, useThreadTitle } from './activity'
 import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
 
-function ThreadEntry({ thread }: { thread: CodexRouter }) {
+function ThreadEntry({ thread }: { thread: Router }) {
   const { t } = useTranslation()
-  const current = useCodexStore((s) => s.view === 'chat' && s.threadId === thread.id)
-  const showThread = useCodexStore((s) => s.showThread)
+  const current = useAppStore((s) => s.view === 'chat' && s.threadId === thread.id)
+  const showThread = useAppStore((s) => s.showThread)
   const untitled = useThreadTitle()
   const state = useRouterStore((s) => {
     const workers = s.workers.filter((w) => w.routerId === thread.id && w.status !== 'removed')
@@ -35,14 +35,14 @@ function ThreadEntry({ thread }: { thread: CodexRouter }) {
 export function Sidebar() {
   const { t } = useTranslation()
   const { width, handle } = usePaneWidth('sidebar', 'right')
-  const onMap = useCodexStore((s) => s.view === 'map')
-  const drafting = useCodexStore((s) => s.view === 'chat' && s.threadId === null)
-  const { showMap, showSettings, newThread } = useCodexStore()
+  const onMap = useAppStore((s) => s.view === 'map')
+  const drafting = useAppStore((s) => s.view === 'chat' && s.threadId === null)
+  const { showMap, showSettings, newThread } = useAppStore()
   const routers = useRouterStore((s) => s.routers)
   // A thread exists once it has its first message; this hides one whose send failed.
   const threads = useMemo(() => routers.filter((r) => r.itemCount).sort(byRecent), [routers])
-  const provider = useCodexStore((s) => s.settings.provider)
-  const connection = useCodexStore((s) => agentConnection(s, provider))
+  const provider = useAppStore((s) => s.settings.provider)
+  const connection = useAppStore((s) => agentConnection(s, provider))
   return (
     <nav className="router-sidebar" style={{ width }} aria-label={t('router.sidebar')}>
       <div className="router-sidebar-head" />

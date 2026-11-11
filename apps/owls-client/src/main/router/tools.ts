@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { permissionSchema, providerSchema } from '../../shared/codex.js'
+import { permissionSchema, providerSchema } from '../../shared/app.js'
 import { workerStatusSchema, worktreeBaseSchema } from '../../shared/router.js'
 import { type SearchMemoryInput, searchMemoryInput } from '../memory/search-input.js'
 

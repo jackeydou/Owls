@@ -4,7 +4,7 @@ import { LoaderIcon, PlusIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useCodexStore } from '../codex/store'
+import { useAppStore } from '../app/store'
 import { byRecent, threadTitle, useThreadTitle } from './activity'
 import { type Forwarding, useRouterStore } from './store'
 
@@ -21,8 +21,8 @@ function ForwardForm({ forwarding }: { forwarding: Forwarding }) {
   const { t } = useTranslation()
   const routers = useRouterStore((s) => s.routers)
   const { cancelForward, forward } = useRouterStore()
-  const projects = useCodexStore((s) => s.projects)
-  const showThread = useCodexStore((s) => s.showThread)
+  const projects = useAppStore((s) => s.projects)
+  const showThread = useAppStore((s) => s.showThread)
   const untitled = useThreadTitle()
   const [target, setTarget] = useState(NEW_THREAD)
   const [projectId, setProjectId] = useState(forwarding.projectId)

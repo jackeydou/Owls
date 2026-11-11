@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { RequestCard } from '../codex/Conversation'
-import { useCodexStore } from '../codex/store'
+import { RequestCard } from '../app/Conversation'
+import { useAppStore } from '../app/store'
 import { byAge, openRequests, workerTitle } from './activity'
 import { useRouterStore } from './store'
 
 /** Requests from this Router's workers, oldest worker first. */
 function useWorkerRequests(routerId: string) {
-  const sessions = useCodexStore((s) => s.sessions)
+  const sessions = useAppStore((s) => s.sessions)
   const workers = useRouterStore((s) => s.workers)
   return useMemo(
     () =>

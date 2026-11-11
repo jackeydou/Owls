@@ -2,11 +2,11 @@ import { Button } from '@renderer/components/ui/button'
 import { CheckIcon, LoaderIcon } from '@renderer/components/ui/icons'
 import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { AgentProvider } from '../../../shared/codex'
+import type { AgentProvider } from '../../../shared/app'
 import type { RouterEngineId } from '../../../shared/router'
-import { AppLogoMark } from '../codex/AppLogo'
-import { failureMessage } from '../codex/failures'
-import { agentConnection, isAgentReady, useCodexStore } from '../codex/store'
+import { AppLogoMark } from '../app/AppLogo'
+import { failureMessage } from '../app/failures'
+import { agentConnection, isAgentReady, useAppStore } from '../app/store'
 import { AgentIcon } from './AgentIcon'
 import { OwlsModelFields } from './RouterSettings'
 import type { RouterSetupNeed } from './RouterSetup'
@@ -18,7 +18,7 @@ const ENGINES: RouterEngineId[] = [...AGENTS, 'owls']
 const isAgent = (engine: RouterEngineId): engine is AgentProvider => engine !== 'owls'
 
 function useAgentReady(provider: AgentProvider) {
-  return useCodexStore((s) => isAgentReady(agentConnection(s, provider)))
+  return useAppStore((s) => isAgentReady(agentConnection(s, provider)))
 }
 function GuideOption({
   icon,
@@ -84,15 +84,15 @@ function AgentOption({
 /** Signing in and custom executables stay in Settings; the guide only starts the connection. */
 function AgentConnect({ provider, body }: { provider: AgentProvider; body: string }) {
   const { t } = useTranslation()
-  const connection = useCodexStore((s) => agentConnection(s, provider))
-  const connect = useCodexStore((s) => (provider === 'codex' ? s.connect : s.connectClaude))
-  const showSettings = useCodexStore((s) => s.showSettings)
+  const connection = useAppStore((s) => agentConnection(s, provider))
+  const connect = useAppStore((s) => (provider === 'codex' ? s.connect : s.connectClaude))
+  const showSettings = useAppStore((s) => s.showSettings)
   const busy = connection.status === 'connecting'
   return (
     <div className="router-guide-detail">
       <p>{body}</p>
       {connection.error ? (
-        <div role="alert" className="codex-inline-error">
+        <div role="alert" className="owls-inline-error">
           {failureMessage(connection.error)}
         </div>
       ) : null}
@@ -110,8 +110,8 @@ function AgentConnect({ provider, body }: { provider: AgentProvider; body: strin
 }
 function EngineStep() {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
-  const save = useCodexStore((s) => s.saveSettings)
+  const settings = useAppStore((s) => s.settings)
+  const save = useAppStore((s) => s.saveSettings)
   const { engine } = settings.router
   // Owls is the default engine, not a choice yet: its form opens only when it is picked.
   const [chosen, setChosen] = useState<RouterEngineId | null>(engine === 'owls' ? null : engine)
@@ -160,8 +160,8 @@ function EngineStep() {
 }
 function WorkerStep() {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
-  const save = useCodexStore((s) => s.saveSettings)
+  const settings = useAppStore((s) => s.settings)
+  const save = useAppStore((s) => s.saveSettings)
   const { provider } = settings
   return (
     <>
@@ -196,7 +196,7 @@ function GuidePage({
   const { t } = useTranslation()
   const skipGuide = useRouterStore((s) => s.skipGuide)
   return (
-    <div className="codex-conversation-scroll">
+    <div className="owls-conversation-scroll">
       <div className="router-guide">
         <AppLogoMark />
         <h1>{t('router.guideWelcome')}</h1>
@@ -212,7 +212,7 @@ function GuidePage({
 }
 /** First run: what the Router needs, one step at a time. It ends when nothing is missing. */
 export function RouterGuide({ need }: { need: RouterSetupNeed }) {
-  const provider = useCodexStore((s) => s.settings.provider)
+  const provider = useAppStore((s) => s.settings.provider)
   const workerReady = useAgentReady(provider)
   if (need.kind === 'worker')
     return (

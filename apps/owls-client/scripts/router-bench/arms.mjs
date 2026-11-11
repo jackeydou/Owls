@@ -13,7 +13,7 @@ const {
   RouterCredentials,
   RouterService,
   ROUTER_INSTRUCTIONS
-} = require('../../out/main/codex/runtime.js')
+} = require('../../out/main/app/runtime.js')
 
 const PROJECT = { id: 'bench', name: 'bench', path: '/tmp/owls-router-bench' }
 /** Matches WORKER_LIMIT, so every architecture runs at most four tasks at once. */

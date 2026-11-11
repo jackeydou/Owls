@@ -3,7 +3,7 @@ import { ChevronDownIcon, ChevronRightIcon } from '@renderer/components/ui/icons
 import { Select } from '@renderer/components/ui/select'
 import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexProject } from '../../../shared/codex'
+import type { Project } from '../../../shared/app'
 import {
   DEFAULT_REMOTE,
   PROJECT_INSTRUCTIONS_LIMIT,
@@ -12,11 +12,11 @@ import {
   type ProjectSettings
 } from '../../../shared/projects'
 import { SettingRow } from './SettingRow'
-import { useCodexStore } from './store'
+import { useAppStore } from './store'
 
 /** Saves a change to one project, merging it into the project as it is now. */
-function useProjectSaver(project: CodexProject) {
-  const saveProject = useCodexStore((s) => s.saveProject)
+function useProjectSaver(project: Project) {
+  const saveProject = useAppStore((s) => s.saveProject)
   return (change: { name?: string; settings?: Partial<ProjectSettings> }) =>
     saveProject({
       id: project.id,
@@ -85,12 +85,12 @@ function DraftText({
   )
 }
 
-function GeneralPage({ project }: { project: CodexProject }) {
+function GeneralPage({ project }: { project: Project }) {
   const { t } = useTranslation()
   const save = useProjectSaver(project)
   const descriptionLabel = useId()
   return (
-    <section className="codex-settings-section">
+    <section className="owls-settings-section">
       <h2>{t('projectSettings.page.general')}</h2>
       <SettingRow
         label={t('projectSettings.name')}
@@ -110,7 +110,7 @@ function GeneralPage({ project }: { project: CodexProject }) {
       <SettingRow
         label={t('projectSettings.location')}
         description={t('projectSettings.locationHelp')}
-        detail={<code className="codex-path">{project.path}</code>}
+        detail={<code className="owls-path">{project.path}</code>}
       />
       <SettingRow
         label={t('projectSettings.description')}
@@ -118,7 +118,7 @@ function GeneralPage({ project }: { project: CodexProject }) {
         description={t('projectSettings.descriptionHelp')}
         detail={
           <DraftText
-            className="codex-setting-textarea"
+            className="owls-setting-textarea"
             aria-labelledby={descriptionLabel}
             maxLength={500}
             placeholder={t('projectSettings.descriptionPlaceholder')}
@@ -135,12 +135,12 @@ function GeneralPage({ project }: { project: CodexProject }) {
 const withSaved = (list: string[], saved: string | null) =>
   saved && !list.includes(saved) ? [saved, ...list] : list
 
-function GitPage({ project }: { project: CodexProject }) {
+function GitPage({ project }: { project: Project }) {
   const { t } = useTranslation()
   const save = useProjectSaver(project)
-  const projectGitRefs = useCodexStore((s) => s.projectGitRefs)
-  const worktrees = useCodexStore((s) => s.settings.router.worktrees)
-  const showSettings = useCodexStore((s) => s.showSettings)
+  const projectGitRefs = useAppStore((s) => s.projectGitRefs)
+  const worktrees = useAppStore((s) => s.settings.router.worktrees)
+  const showSettings = useAppStore((s) => s.showSettings)
   const [refs, setRefs] = useState<ProjectGitRefs | null | 'loading'>('loading')
   useEffect(() => {
     let live = true
@@ -163,16 +163,16 @@ function GitPage({ project }: { project: CodexProject }) {
       : localBranches
   const remotes = withSaved(refs && refs !== 'loading' ? refs.remotes : [], git.remote)
   return (
-    <section className="codex-settings-section">
+    <section className="owls-settings-section">
       <h2>{t('projectSettings.page.git')}</h2>
       <p>{t('projectSettings.gitBody')}</p>
       {worktrees ? null : (
-        <p className="codex-note">
+        <p className="owls-note">
           {t('projectSettings.worktreesOff')}
           <Button
             size="custom"
             variant="link"
-            className="codex-inline-link"
+            className="owls-inline-link"
             onClick={() => showSettings('router')}
           >
             {t('projectSettings.openRouterSettings')}
@@ -180,9 +180,9 @@ function GitPage({ project }: { project: CodexProject }) {
         </p>
       )}
       {refs === 'loading' ? (
-        <p className="codex-note">{t('projectSettings.loadingRefs')}</p>
+        <p className="owls-note">{t('projectSettings.loadingRefs')}</p>
       ) : refs === null ? (
-        <p className="codex-note">{t('projectSettings.notGit')}</p>
+        <p className="owls-note">{t('projectSettings.notGit')}</p>
       ) : (
         <>
           <SettingRow
@@ -265,7 +265,7 @@ function InstructionRow({
   project,
   kind
 }: {
-  project: CodexProject
+  project: Project
   kind: (typeof INSTRUCTION_KINDS)[number]
 }) {
   const { t } = useTranslation()
@@ -285,7 +285,7 @@ function InstructionRow({
         open ? (
           <DraftText
             id={fieldId}
-            className="codex-setting-textarea code"
+            className="owls-setting-textarea code"
             aria-labelledby={labelId}
             maxLength={PROJECT_INSTRUCTIONS_LIMIT}
             placeholder={t('projectSettings.instructionsPlaceholder')}
@@ -302,7 +302,7 @@ function InstructionRow({
       <Button
         size="custom"
         variant="ghost"
-        className="codex-setting-disclosure"
+        className="owls-setting-disclosure"
         aria-label={toggle}
         aria-expanded={open}
         aria-controls={open ? fieldId : undefined}
@@ -314,10 +314,10 @@ function InstructionRow({
   )
 }
 
-function InstructionsPage({ project }: { project: CodexProject }) {
+function InstructionsPage({ project }: { project: Project }) {
   const { t } = useTranslation()
   return (
-    <section className="codex-settings-section">
+    <section className="owls-settings-section">
       <h2>{t('projectSettings.page.instructions')}</h2>
       <p>{t('projectSettings.instructionsBody')}</p>
       {INSTRUCTION_KINDS.map((kind) => (
@@ -332,12 +332,12 @@ const PAGES = { general: GeneralPage, git: GitPage, instructions: InstructionsPa
 /** The page of one project's settings that the Settings navigation selected. */
 export function ProjectSettingsPane() {
   const { t } = useTranslation()
-  const target = useCodexStore((s) => s.settingsProject)
-  const project = useCodexStore((s) => s.projects.find((p) => p.id === target?.projectId))
+  const target = useAppStore((s) => s.settingsProject)
+  const project = useAppStore((s) => s.projects.find((p) => p.id === target?.projectId))
   if (!target || !project)
     return (
-      <section className="codex-settings-section">
-        <p className="codex-note">{t('projectSettings.missing')}</p>
+      <section className="owls-settings-section">
+        <p className="owls-note">{t('projectSettings.missing')}</p>
       </section>
     )
   const Page = PAGES[target.page]

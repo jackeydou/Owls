@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { app, type BrowserWindow, nativeImage } from 'electron'
-import type { AppLogo } from '../../shared/codex.js'
+import type { AppLogo } from '../../shared/app.js'
 
 /**
  * Applies the logo to the running app. The bundle's own icon stays as shipped, because

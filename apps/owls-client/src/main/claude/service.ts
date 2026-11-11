@@ -12,17 +12,17 @@ import type {
 } from '@anthropic-ai/claude-agent-sdk/core'
 import { z } from 'zod'
 import type {
+  AppEvent,
   ClaudeConnection,
-  CodexEvent,
-  CodexItem,
-  CodexSession,
-  CreateCodexSession,
-  RespondCodexRequest,
-  SendCodexMessage
-} from '../../shared/codex.js'
-import { CodexRuntimeError, codexFailure } from '../codex/errors.js'
+  CreateSession,
+  RespondRequest,
+  SendMessage,
+  Session,
+  SessionItem
+} from '../../shared/app.js'
+import { OwlsError, toFailure } from '../app/errors.js'
+import type { OwlsStore } from '../app/store.js'
 import { record, recordSchema, safeText, string } from '../codex/protocol.js'
-import type { CodexStore } from '../codex/store.js'
 import type { TurnProfiles } from '../router/service.js'
 import { discoverClaudeExecutable } from './discovery.js'
 import { type InputStream, inputStream } from './input.js'
@@ -40,7 +40,7 @@ import {
 } from './normalize.js'
 
 const execFileAsync = promisify(execFile)
-const active = (s: CodexSession): boolean => ['starting', 'running', 'waiting'].includes(s.status)
+const active = (s: Session): boolean => ['starting', 'running', 'waiting'].includes(s.status)
 
 /** The subset of the Agent SDK this service uses; injected so tests can replace it. */
 export type ClaudeSdk = {
@@ -52,7 +52,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   return Promise.race([
     promise,
     new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new CodexRuntimeError('claude_disconnected', message)), ms)
+      timer = setTimeout(() => reject(new OwlsError('claude_disconnected', message)), ms)
     })
   ]).finally(() => clearTimeout(timer))
 }
@@ -80,7 +80,7 @@ type PendingPermission = {
 }
 
 export class ClaudeService {
-  private readonly sessions = new Map<string, CodexSession>()
+  private readonly sessions = new Map<string, Session>()
   private readonly runtimes = new Map<string, Runtime>()
   private readonly permissions = new Map<string, PendingPermission>()
   private readonly dirty = new Set<string>()
@@ -99,8 +99,8 @@ export class ClaudeService {
     error: null
   }
   constructor(
-    private readonly store: CodexStore,
-    private readonly emit: (event: CodexEvent) => void,
+    private readonly store: OwlsStore,
+    private readonly emit: (event: AppEvent) => void,
     private readonly sdk: ClaudeSdk
   ) {
     for (const session of store.sessions()) {
@@ -128,7 +128,7 @@ export class ClaudeService {
   owns(sessionId: string): boolean {
     return this.sessions.has(sessionId)
   }
-  sessionList(): CodexSession[] {
+  sessionList(): Session[] {
     this.flush()
     return [...this.sessions.values()]
   }
@@ -141,7 +141,7 @@ export class ClaudeService {
   connect(): Promise<ClaudeConnection> {
     if (this.connecting) return this.connecting
     if (this.hasActiveTasks())
-      throw new CodexRuntimeError('busy', 'Stop active tasks before reconnecting Claude Code.')
+      throw new OwlsError('busy', 'Stop active tasks before reconnecting Claude Code.')
     this.connecting = this.openConnection().finally(() => {
       this.connecting = null
     })
@@ -212,14 +212,14 @@ export class ClaudeService {
    * `worker` marks a session in a worker's worktree of a registered project,
    * which may not exist yet.
    */
-  createSession(input: CreateCodexSession, worker?: { projectPath: string }): CodexSession {
+  createSession(input: CreateSession, worker?: { projectPath: string }): Session {
     const cwd = worker ? input.cwd : realpathSync(input.cwd)
     const projectPath = worker?.projectPath ?? cwd
     if (!this.store.projects().some((p) => p.path === projectPath))
-      throw new CodexRuntimeError('project_required', 'Choose a project before starting a task.')
+      throw new OwlsError('project_required', 'Choose a project before starting a task.')
     this.validateSelection(input.model, input.effort)
     const now = new Date().toISOString()
-    const session: CodexSession = {
+    const session: Session = {
       id: crypto.randomUUID(),
       provider: 'claude-code',
       threadId: null,
@@ -242,11 +242,11 @@ export class ClaudeService {
     this.changed(session, true)
     return session
   }
-  async send(input: SendCodexMessage): Promise<void> {
+  async send(input: SendMessage): Promise<void> {
     const session = this.getSession(input.sessionId)
     const executable = this.readyExecutable()
     if (active(session))
-      throw new CodexRuntimeError('busy', 'Wait for the current task or stop it before sending.')
+      throw new OwlsError('busy', 'Wait for the current task or stop it before sending.')
     this.validateSelection(session.model, session.effort)
     if (!this.store.acceptCommand(input.commandId, session.id, input.text)) return
     const previous = session.status
@@ -319,7 +319,7 @@ export class ClaudeService {
       session.error = this.failure(error, 'claude_disconnected')
       this.changed(session, true)
       this.profiles?.settled(session.id, { status: 'failed', structured: null, text: '' })
-      throw new CodexRuntimeError(session.error.code, session.error.message)
+      throw new OwlsError(session.error.code, session.error.message)
     }
     runtime.input.push({
       type: 'user',
@@ -354,7 +354,7 @@ export class ClaudeService {
     this.changed(session, true)
     return 'steered'
   }
-  private async consume(session: CodexSession, runtime: Runtime, query: Query): Promise<void> {
+  private async consume(session: Session, runtime: Runtime, query: Query): Promise<void> {
     try {
       for await (const message of query) {
         if (this.runtimes.get(session.id) !== runtime) break
@@ -371,7 +371,7 @@ export class ClaudeService {
     }
   }
   /** Ends the session's ownership by this turn; a turn that ended without a result failed. */
-  private release(session: CodexSession, runtime: Runtime): void {
+  private release(session: Session, runtime: Runtime): void {
     this.runtimes.delete(session.id)
     this.expirePermissions(session)
     if (active(session)) {
@@ -397,7 +397,7 @@ export class ClaudeService {
         text: runtime.resultText
       })
   }
-  private apply(session: CodexSession, runtime: Runtime, message: SDKMessage): void {
+  private apply(session: Session, runtime: Runtime, message: SDKMessage): void {
     switch (message.type) {
       case 'system':
         if (message.subtype === 'init' && session.threadId !== message.session_id) {
@@ -450,7 +450,7 @@ export class ClaudeService {
         return
     }
   }
-  private applyStream(session: CodexSession, runtime: Runtime, raw: unknown): void {
+  private applyStream(session: Session, runtime: Runtime, raw: unknown): void {
     const event = record(raw)
     if (event.type === 'message_start') {
       runtime.messageId = string(record(event.message).id) || null
@@ -491,7 +491,7 @@ export class ClaudeService {
       this.changed(session)
     }
   }
-  private applyAssistant(session: CodexSession, runtime: Runtime, raw: unknown): void {
+  private applyAssistant(session: Session, runtime: Runtime, raw: unknown): void {
     const message = record(raw)
     const messageId = string(message.id) || crypto.randomUUID()
     const blocks = z.array(recordSchema).catch([]).parse(message.content)
@@ -521,7 +521,7 @@ export class ClaudeService {
     })
     this.changed(session)
   }
-  private applyToolResults(session: CodexSession, raw: unknown): void {
+  private applyToolResults(session: Session, raw: unknown): void {
     const content = record(raw).content
     if (!Array.isArray(content)) return
     for (const block of z.array(recordSchema).catch([]).parse(content)) {
@@ -536,7 +536,7 @@ export class ClaudeService {
     }
     this.changed(session)
   }
-  private upsert(session: CodexSession, item: CodexItem): void {
+  private upsert(session: Session, item: SessionItem): void {
     const index = session.items.findIndex((i) => i.id === item.id)
     if (index >= 0) session.items[index] = { ...session.items[index], ...item }
     else session.items.push(item)
@@ -578,12 +578,12 @@ export class ClaudeService {
       )
     })
   }
-  respond(input: RespondCodexRequest): void {
+  respond(input: RespondRequest): void {
     const session = this.getSession(input.sessionId)
     const pending = this.permissions.get(input.requestId)
     const request = session.requests.find((r) => r.id === input.requestId)
     if (!pending || pending.sessionId !== session.id || request?.status !== 'pending') {
-      throw new CodexRuntimeError('request_unavailable', 'This request is no longer available.')
+      throw new OwlsError('request_unavailable', 'This request is no longer available.')
     }
     let result: PermissionResult
     if (input.decision !== 'accept') {
@@ -598,7 +598,7 @@ export class ClaudeService {
     } else if (request.kind === 'question') {
       const answers = input.answers ?? {}
       if (request.questions.some((q) => !answers[q.id]?.some((answer) => answer.trim())))
-        throw new CodexRuntimeError('answer_required', 'Answer each question before continuing.')
+        throw new OwlsError('answer_required', 'Answer each question before continuing.')
       result = {
         behavior: 'allow',
         updatedInput: {
@@ -639,7 +639,7 @@ export class ClaudeService {
   }
   archive(id: string): void {
     const session = this.getSession(id)
-    if (active(session)) throw new CodexRuntimeError('busy', 'Stop the task before removing it.')
+    if (active(session)) throw new OwlsError('busy', 'Stop the task before removing it.')
     this.store.removeSession(id)
     this.sessions.delete(id)
     this.emit({ type: 'removed', sessionId: id })
@@ -649,10 +649,7 @@ export class ClaudeService {
    * is already starting, so it can be stopped but not removed meanwhile. False
    * when it was stopped and the turn must not start.
    */
-  private async prepared(
-    session: CodexSession,
-    previous: CodexSession['status']
-  ): Promise<boolean> {
+  private async prepared(session: Session, previous: Session['status']): Promise<boolean> {
     const preparing = { stopped: false }
     this.preparing.set(session.id, preparing)
     try {
@@ -670,7 +667,7 @@ export class ClaudeService {
     this.profiles?.settled(session.id, { status: 'interrupted', structured: null, text: '' })
     return false
   }
-  private expirePermissions(session: CodexSession): void {
+  private expirePermissions(session: Session): void {
     for (const request of session.requests) {
       const pending = this.permissions.get(request.id)
       if (pending) {
@@ -682,11 +679,11 @@ export class ClaudeService {
     }
     this.refreshWaiting(session)
   }
-  private refreshWaiting(session: CodexSession): void {
+  private refreshWaiting(session: Session): void {
     if (session.status === 'waiting' && !session.requests.some((r) => r.status === 'pending'))
       session.status = 'running'
   }
-  private settle(session: CodexSession, status: 'completed' | 'failed' | 'interrupted'): void {
+  private settle(session: Session, status: 'completed' | 'failed' | 'interrupted'): void {
     for (const item of session.items) if (item.status === 'running') item.status = status
     this.expirePermissions(session)
   }
@@ -702,45 +699,45 @@ export class ClaudeService {
       }
     }
   }
-  private validateSelection(model: string | null, effort: CodexSession['effort']): void {
+  private validateSelection(model: string | null, effort: Session['effort']): void {
     if (!model && effort)
-      throw new CodexRuntimeError(
+      throw new OwlsError(
         'effort_unavailable',
         'Choose a model before selecting its reasoning effort.'
       )
     if (!model) return
     const entry = this.connection.models.find((m) => m.id === model)
     if (!entry)
-      throw new CodexRuntimeError(
+      throw new OwlsError(
         'model_unavailable',
         'This model is not available in the connected Claude Code account.'
       )
     if (effort && !entry.efforts.includes(effort))
-      throw new CodexRuntimeError(
+      throw new OwlsError(
         'effort_unavailable',
         'This reasoning effort is not supported by the selected model.'
       )
   }
   private readyExecutable(): string {
     if (this.connection.status !== 'ready' || !this.connection.executablePath)
-      throw new CodexRuntimeError(
+      throw new OwlsError(
         'claude_not_connected',
         'Connect your local Claude Code installation in Settings.'
       )
     return this.connection.executablePath
   }
-  private getSession(id: string): CodexSession {
+  private getSession(id: string): Session {
     const session = this.sessions.get(id)
-    if (!session) throw new CodexRuntimeError('task_not_found', 'Task not found.')
+    if (!session) throw new OwlsError('task_not_found', 'Task not found.')
     return session
   }
   private failure(error: unknown, fallback: 'claude_not_connected' | 'claude_disconnected') {
-    const failure = codexFailure(error)
+    const failure = toFailure(error)
     return failure.code === 'native_error' && !failure.message
       ? { code: fallback, message: '' }
       : failure
   }
-  private changed(session: CodexSession, immediate = false): void {
+  private changed(session: Session, immediate = false): void {
     if (this.closed) return
     session.updatedAt = new Date().toISOString()
     this.dirty.add(session.id)

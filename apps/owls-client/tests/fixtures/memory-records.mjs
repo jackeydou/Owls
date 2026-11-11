@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 
 const require = createRequire(import.meta.url)
-const { liveCategory } = require('../../out/main/codex/runtime.js')
+const { liveCategory } = require('../../out/main/app/runtime.js')
 
 /**
  * In-memory stand-in for MemoryStore with the same method surface, since

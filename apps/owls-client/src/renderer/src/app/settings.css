@@ -1,10 +1,10 @@
 /* The whole window while open: navigation on the left, one tab's details on the right. */
-.codex-settings-nav .router-sidebar-head {
+.owls-settings-nav .router-sidebar-head {
   display: flex;
   align-items: center;
   padding-left: calc(var(--owl-toggle-left) - 10px);
 }
-.codex-settings-back {
+.owls-settings-back {
   gap: 5px;
   height: var(--owl-toggle-size);
   padding: 0 8px 0 5px;
@@ -13,7 +13,7 @@
   font-size: 13px;
   font-weight: 450;
 }
-.codex-settings-nav h1 {
+.owls-settings-nav h1 {
   display: flex;
   align-items: center;
   height: 32px;
@@ -22,53 +22,53 @@
   font-size: 13px;
   font-weight: 600;
 }
-.codex-settings-nav hr {
+.owls-settings-nav hr {
   flex-shrink: 0;
   margin: 10px 8px;
   border: 0;
   border-top: 1px solid var(--color-border);
 }
-.codex-settings-nav .router-agent-icon {
+.owls-settings-nav .router-agent-icon {
   flex-shrink: 0;
   width: 15px;
   height: 15px;
 }
-.codex-settings-drag {
+.owls-settings-drag {
   flex-shrink: 0;
   height: var(--owl-bar-height);
   -webkit-app-region: drag;
 }
-.codex-settings-scroll {
+.owls-settings-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 /* Left-aligned under the title bar, with a generous measure and one clear page title. */
-.codex-settings-content {
+.owls-settings-content {
   max-width: 852px;
   padding: 20px 36px 64px;
 }
-.codex-settings-section h2 {
+.owls-settings-section h2 {
   margin-bottom: 4px;
   font-size: 23px;
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.3;
 }
-.codex-settings-section h2 + p,
-.codex-section-heading p {
+.owls-settings-section h2 + p,
+.owls-section-heading p {
   margin-top: 6px;
   color: var(--color-muted-foreground);
   font-size: 13px;
   line-height: 1.55;
 }
-.codex-section-heading {
+.owls-section-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
 }
-.codex-connection {
+.owls-connection {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -76,22 +76,22 @@
   color: var(--color-muted-foreground);
   font-size: 12px;
 }
-.codex-connection i {
+.owls-connection i {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--owl-queue);
 }
-.codex-connection.ready i {
+.owls-connection.ready i {
   background: var(--owl-run);
 }
-.codex-connection.connecting i {
+.owls-connection.connecting i {
   background: var(--owl-wait);
 }
-.codex-connection.error i {
+.owls-connection.error i {
   background: var(--owl-bad);
 }
-.codex-setting-row {
+.owls-setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -99,20 +99,20 @@
   min-height: 30px;
   margin-top: 6px;
 }
-.codex-setting-row > button,
-.codex-setting-row > .codex-settings-actions {
+.owls-setting-row > button,
+.owls-setting-row > .owls-settings-actions {
   flex-shrink: 0;
 }
-.codex-setting-text {
+.owls-setting-text {
   flex: 1 1 0;
   min-width: 0;
 }
-.codex-setting-row label {
+.owls-setting-row label {
   font-size: 13px;
 }
 /* One control column, so every row's right edge and width line up. */
-.codex-setting-row select,
-.codex-setting-row .router-input {
+.owls-setting-row select,
+.owls-setting-row .router-input {
   flex-shrink: 0;
   width: 200px;
   min-width: 0;
@@ -122,7 +122,7 @@
   font-size: 13px;
 }
 /* Rows in a pane run edge to edge, split by a hairline; the guide reuses them without it. */
-.codex-settings-section .codex-setting-row {
+.owls-settings-section .owls-setting-row {
   flex-wrap: wrap;
   row-gap: 0;
   min-height: 78px;
@@ -130,60 +130,60 @@
   padding: 20px 0;
   border-top: 1px solid var(--color-border);
 }
-.codex-settings-section h2 + p + .codex-setting-row,
-.codex-settings-section h2 + .codex-setting-row,
-.codex-section-heading + .codex-setting-row {
+.owls-settings-section h2 + p + .owls-setting-row,
+.owls-settings-section h2 + .owls-setting-row,
+.owls-section-heading + .owls-setting-row {
   margin-top: 16px;
   border-top: 0;
 }
-.codex-setting-text h3,
-.codex-settings-section .codex-setting-text label {
+.owls-setting-text h3,
+.owls-settings-section .owls-setting-text label {
   display: block;
   overflow-wrap: anywhere;
   font-size: 13px;
   font-weight: 500;
 }
-.codex-setting-text small {
+.owls-setting-text small {
   color: var(--color-muted-foreground);
   font-size: 11px;
 }
 /* Same size as the name: color alone sets the two apart. */
-.codex-setting-text p {
+.owls-setting-text p {
   margin-top: 4px;
   color: var(--color-muted-foreground);
   font-size: 13px;
   line-height: 1.55;
 }
-.codex-setting-detail {
+.owls-setting-detail {
   flex: 0 0 100%;
   min-width: 0;
   margin-top: 10px;
 }
-.codex-settings-actions {
+.owls-settings-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
-.codex-settings-section > .codex-settings-actions {
+.owls-settings-section > .owls-settings-actions {
   justify-content: flex-end;
   padding-bottom: 12px;
 }
-.codex-settings-section > .codex-inline-error {
+.owls-settings-section > .owls-inline-error {
   margin-bottom: 12px;
   padding: 8px 10px;
 }
-.codex-note {
+.owls-note {
   margin-top: 6px;
   color: var(--color-muted-foreground);
   font-size: 13px;
   line-height: 1.55;
 }
-.codex-setting-row + .codex-note {
+.owls-setting-row + .owls-note {
   padding-top: 12px;
   border-top: 1px solid var(--color-border);
 }
-.codex-note a {
+.owls-note a {
   display: inline-flex;
   gap: 3px;
   align-items: center;
@@ -192,12 +192,12 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.codex-logo-options {
+.owls-logo-options {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
-.codex-logo-option {
+.owls-logo-option {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -207,24 +207,24 @@
   font-size: 12px;
   cursor: pointer;
 }
-.codex-logo-option:has(input:checked) {
+.owls-logo-option:has(input:checked) {
   border-color: var(--color-accent);
 }
-.codex-logo-option:has(input:focus-visible) {
+.owls-logo-option:has(input:focus-visible) {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
-.codex-logo-option img {
+.owls-logo-option img {
   width: 24px;
   height: 24px;
   border-radius: 5px;
 }
 /* The Dock artwork keeps Apple's icon margin, which reads as undersized inside the app. */
-.codex-logo-option img,
+.owls-logo-option img,
 .router-guide > img {
   transform: scale(1.24);
 }
-.codex-path {
+.owls-path {
   display: block;
   padding: 6px 8px;
   border: 1px solid var(--color-border);
@@ -232,16 +232,16 @@
   font-size: 11px;
   word-break: break-all;
 }
-.codex-version {
+.owls-version {
   margin-top: 4px;
   font-size: 11px;
   color: var(--color-muted-foreground);
 }
 /* Many projects scroll inside the navigation instead of growing the window. */
-.codex-settings-nav {
+.owls-settings-nav {
   overflow-y: auto;
 }
-.codex-settings-group {
+.owls-settings-group {
   display: flex;
   align-items: center;
   height: 24px;
@@ -251,7 +251,7 @@
   font-size: 11px;
   font-weight: 500;
 }
-.codex-settings-project > b {
+.owls-settings-project > b {
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -262,14 +262,14 @@
   font-size: 10px;
   font-weight: 600;
 }
-.codex-settings-project[aria-expanded="true"] {
+.owls-settings-project[aria-expanded="true"] {
   color: var(--color-foreground);
 }
-.codex-settings-project[aria-expanded="true"] > b {
+.owls-settings-project[aria-expanded="true"] > b {
   box-shadow: inset 0 0 0 1.5px var(--owl-c);
 }
 /* The open project's pages hang from a rule under its tile. */
-.codex-settings-subnav {
+.owls-settings-subnav {
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -277,7 +277,7 @@
   padding-left: 8px;
   border-left: 1px solid var(--color-border);
 }
-.codex-setting-textarea {
+.owls-setting-textarea {
   display: block;
   width: 100%;
   min-height: 96px;
@@ -291,22 +291,22 @@
   resize: vertical;
   outline: none;
 }
-.codex-setting-textarea.code {
+.owls-setting-textarea.code {
   min-height: 140px;
   font-family: var(--font-mono);
   font-size: 12px;
 }
-.codex-setting-textarea::placeholder {
+.owls-setting-textarea::placeholder {
   color: var(--color-muted-foreground);
 }
-.codex-setting-row > .codex-setting-disclosure {
+.owls-setting-row > .owls-setting-disclosure {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
   border-radius: 7px;
   color: var(--color-muted-foreground);
 }
-.codex-inline-link {
+.owls-inline-link {
   margin-left: 5px;
   padding: 0;
   color: var(--color-foreground);
@@ -317,12 +317,12 @@
 }
 /* Inside a project only the selected page has a background: the project row and the other
    pages show the pointer through their text color alone. */
-.codex-settings-nav .codex-settings-project:hover,
-.codex-settings-subnav .router-sidebar-item:not([aria-current="true"]):hover {
+.owls-settings-nav .owls-settings-project:hover,
+.owls-settings-subnav .router-sidebar-item:not([aria-current="true"]):hover {
   background: transparent;
   color: var(--color-foreground);
 }
-.codex-settings-chevron {
+.owls-settings-chevron {
   flex-shrink: 0;
   color: var(--color-muted-foreground);
 }

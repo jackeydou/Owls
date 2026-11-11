@@ -1,4 +1,4 @@
-import type { CodexEffort } from '../../shared/codex.js'
+import type { Effort } from '../../shared/app.js'
 import type {
   DispatchTaskInput,
   DispatchTaskResult,
@@ -17,7 +17,7 @@ export type WorkerDispatch = {
   /** Set by a sender that chose the id, as a command from another device does. */
   workerId?: string
   /** Model and effort chosen by the sender; omitted, they come from this device's settings. */
-  selection?: { model: string | null; effort: CodexEffort | null }
+  selection?: { model: string | null; effort: Effort | null }
   /** Goal hashes of workers dispatched in the current batch, so a retried call reuses them. */
   seen?: Map<string, string>
 }

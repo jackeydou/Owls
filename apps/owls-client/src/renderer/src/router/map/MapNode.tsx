@@ -8,8 +8,8 @@ import {
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapNode } from '../../../../shared/worker-map'
-import { AppLogoMark } from '../../codex/AppLogo'
-import { useCodexStore } from '../../codex/store'
+import { AppLogoMark } from '../../app/AppLogo'
+import { useAppStore } from '../../app/store'
 import {
   elapsed,
   isWaitingOnUser,
@@ -34,7 +34,7 @@ function routerLine(project: WorkerProject | undefined): string | null {
 }
 function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerProject }) {
   const { t } = useTranslation()
-  const showChat = useCodexStore((s) => s.showChat)
+  const showChat = useAppStore((s) => s.showChat)
   const enter = (
     <button
       type="button"
@@ -79,9 +79,9 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
 }
 function Approval({ node }: { node: WorkerNode }) {
   const { t } = useTranslation()
-  const respond = useCodexStore((s) => s.respond)
+  const respond = useAppStore((s) => s.respond)
   const { sessionId } = node.worker
-  const request = useCodexStore((s) =>
+  const request = useAppStore((s) =>
     openRequests(s.sessions.find((x) => x.id === sessionId)).find((r) => r.kind !== 'question')
   )
   if (!request) return null
@@ -124,13 +124,13 @@ function WorkerBody({ node, now }: { node: WorkerNode; now: number }) {
   const { worker } = node
   const toggleCollapsed = useRouterStore((s) => s.toggleCollapsed)
   // A primitive, so a node re-renders when its line changes and not on every streamed delta.
-  const line = useCodexStore((s) => {
+  const line = useAppStore((s) => {
     if (worker.status !== 'running' && worker.status !== 'waiting' && worker.status !== 'starting')
       return ''
     const live = liveLine(s.sessions.find((x) => x.id === worker.sessionId))
     return live ? `${live.mono ? 'm' : 't'}${live.text}` : ''
   })
-  const hasQuestion = useCodexStore((s) =>
+  const hasQuestion = useAppStore((s) =>
     openRequests(s.sessions.find((x) => x.id === worker.sessionId)).some(
       (r) => r.kind === 'question'
     )

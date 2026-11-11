@@ -5,8 +5,8 @@ import type { TFunction } from 'i18next'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type UpdateSnapshot, type UpdateState, updateChannelSchema } from '../../../shared/updates'
-import { SettingRow } from '../codex/SettingRow'
-import { useCodexStore } from '../codex/store'
+import { SettingRow } from '../app/SettingRow'
+import { useAppStore } from '../app/store'
 
 const clock = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
@@ -38,10 +38,10 @@ function useUpdateSnapshot(): UpdateSnapshot | null | undefined {
   const [snapshot, setSnapshot] = useState<UpdateSnapshot | null | undefined>(undefined)
   useEffect(() => {
     let active = true
-    void window.codex.updates.snapshot().then((reply) => {
+    void window.owls.updates.snapshot().then((reply) => {
       if (active) setSnapshot(reply.ok ? reply.value : null)
     })
-    const unsubscribe = window.codex.updates.onChanged((next) => setSnapshot(next))
+    const unsubscribe = window.owls.updates.onChanged((next) => setSnapshot(next))
     return () => {
       active = false
       unsubscribe()
@@ -54,7 +54,7 @@ function UpdateAction({ state }: { state: UpdateState }) {
   const { t } = useTranslation()
   if (state.status === 'ready') {
     return (
-      <Button size="sm" onClick={() => void window.codex.updates.install()}>
+      <Button size="sm" onClick={() => void window.owls.updates.install()}>
         <RotateCcwIcon size={13} aria-hidden />
         {t('updates.install')}
       </Button>
@@ -66,7 +66,7 @@ function UpdateAction({ state }: { state: UpdateState }) {
       size="sm"
       variant="outline"
       disabled={busy}
-      onClick={() => void window.codex.updates.check()}
+      onClick={() => void window.owls.updates.check()}
     >
       {busy ? (
         <LoaderIcon size={13} className="animate-spin" aria-hidden />
@@ -80,11 +80,11 @@ function UpdateAction({ state }: { state: UpdateState }) {
 
 export function SettingsUpdatesPane() {
   const { t } = useTranslation()
-  const settings = useCodexStore((s) => s.settings)
-  const saveSettings = useCodexStore((s) => s.saveSettings)
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
   const snapshot = useUpdateSnapshot()
   return (
-    <section className="codex-settings-section">
+    <section className="owls-settings-section">
       <h2>{t('updates.title')}</h2>
       <p>{t('updates.body')}</p>
       {snapshot === undefined ? null : snapshot === null ? (

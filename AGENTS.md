@@ -18,7 +18,7 @@
 
 - **Never** introduce runtime configuration via environment variables.
 - In `apps/owls-client`, prefer persisted settings, bootstrap files, or explicit code constants over `process.env` and `import.meta.env`.
-- If a new runtime knob is needed, route it through the existing persisted settings / bootstrap path flow (`src/main/codex/store.ts` settings → `owls-paths.ts`) instead of env-based overrides.
+- If a new runtime knob is needed, route it through the existing persisted settings / bootstrap path flow (`src/main/app/store.ts` settings → `owls-paths.ts`) instead of env-based overrides.
 
 ### Package Manager
 
@@ -260,7 +260,7 @@ Release MR flow:
 - Preload bridge and renderer API types: `apps/owls-client/src/preload/`.
 - Renderer app: `apps/owls-client/src/renderer/src/`.
 - Shared cross-process types: `apps/owls-client/src/shared/`.
-- Database schema and migrations: `apps/owls-client/src/main/codex/schema.ts` and
+- Database schema and migrations: `apps/owls-client/src/main/app/schema.ts` and
   `apps/owls-client/drizzle-codex/` (`owls.db`).
 - Legacy Pi runtime (kept for reference, not built, type-checked, or tested):
   `apps/owls-client/legacy/`. Do not import from it or add code to it.
@@ -309,15 +309,15 @@ Release MR flow:
   UI messages.
 - Long-running listeners, timers, streams, child processes, and subscriptions
   must have an explicit cleanup path. Renderer effects should return cleanup
-  functions when they subscribe to `window.codex` events.
+  functions when they subscribe to `window.owls` events.
 - Sort unordered data before showing it to agents, persisting generated output,
   producing prompt text, or comparing in tests.
 
 ### Renderer
 
-- Inspect existing views, stores, components, and `apps/owls-client/src/renderer/src/codex/i18n.ts` before adding UI patterns.
+- Inspect existing views, stores, components, and `apps/owls-client/src/renderer/src/app/i18n.ts` before adding UI patterns.
 - All user-facing renderer copy, including accessibility text, must go through i18next with English and Simplified Chinese entries.
-- Renderer state should follow the existing Zustand store pattern and call main-process behavior through `window.codex`.
+- Renderer state should follow the existing Zustand store pattern and call main-process behavior through `window.owls`.
 - Keep renderer code presentation-focused. Do not read Node APIs, filesystem
   paths, Electron internals, database state, or plugin internals directly from
   React components.
@@ -345,9 +345,9 @@ Release MR flow:
 
 ### IPC
 
-- Keep IPC changes synchronized across main handlers, `preload/codex.ts`,
-  `preload/codex.d.ts`, shared types, and renderer stores/components.
-- Prefer typed request/response shapes and existing `window.codex` namespaces over
+- Keep IPC changes synchronized across main handlers, `preload/owls.ts`,
+  `preload/owls.d.ts`, shared types, and renderer stores/components.
+- Prefer typed request/response shapes and existing `window.owls` namespaces over
   ad hoc channels.
 - Treat IPC as an untrusted boundary. Validate request payloads in main before
   using them, and return stable response shapes instead of raw exceptions.
@@ -379,11 +379,11 @@ Release MR flow:
 
 ### Database And Data Root
 
-- For schema changes, update `src/main/codex/schema.ts`, generate Drizzle migration
+- For schema changes, update `src/main/app/schema.ts`, generate Drizzle migration
   files with `db:generate:codex`, and commit generated SQL plus
   `drizzle-codex/meta/_journal.json` together.
 - Keep data-root behavior behind `owls-paths.ts` and the persisted settings in
-  `src/main/codex/store.ts`; do not
+  `src/main/app/store.ts`; do not
   add alternate path/config mechanisms without explicit need.
 - Migrations must be forward-only and deterministic. Do not edit existing
   applied migrations unless the task explicitly targets unreleased migration

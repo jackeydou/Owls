@@ -307,7 +307,7 @@
   gap: 8px;
   margin-top: 14px;
 }
-.codex-note + .memory-status {
+.owls-note + .memory-status {
   border-top: 0;
 }
 /* "All" leaves room for the manage button the category rows have, so counts line up. */

@@ -1,7 +1,7 @@
 import { accessSync, constants, existsSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
-import { CodexRuntimeError } from '../codex/errors.js'
+import { OwlsError } from '../app/errors.js'
 
 export function claudeExecutableCandidates(explicit: string | null): string[] {
   if (explicit) return [explicit]
@@ -33,7 +33,7 @@ export function discoverClaudeExecutable(explicit: string | null): string {
       /* Try the next installation. */
     }
   }
-  throw new CodexRuntimeError(
+  throw new OwlsError(
     'claude_not_installed',
     'Claude Code CLI was not found. Select your local Claude Code executable in Settings.'
   )

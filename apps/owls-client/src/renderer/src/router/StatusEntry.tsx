@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RouterWorker } from '../../../shared/router'
 import { isInPlay } from '../../../shared/worker-map'
-import { useCodexStore } from '../codex/store'
+import { useAppStore } from '../app/store'
 import { isWaitingOnUser, isWorking, workerTone } from './activity'
 import { useRouterStore } from './store'
 
@@ -29,7 +29,7 @@ function MiniTree({ workers }: { workers: RouterWorker[] }) {
 }
 export function StatusEntry() {
   const { t } = useTranslation()
-  const showMap = useCodexStore((s) => s.showMap)
+  const showMap = useAppStore((s) => s.showMap)
   const workers = useRouterStore((s) => s.workers)
   const { visible, waiting, working, inPlay } = useMemo(() => {
     const visible = workers.filter((w) => w.status !== 'removed')

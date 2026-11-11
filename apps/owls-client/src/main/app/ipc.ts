@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } from 'electron'
 import { z } from 'zod'
-import { type CodexReply, respondSchema, settingsUpdateSchema } from '../../shared/codex.js'
+import { type Reply, respondSchema, settingsUpdateSchema } from '../../shared/app.js'
 import { gitHubTokenSchema } from '../../shared/github.js'
 import {
   memoryCategoryActionSchema,
@@ -28,7 +28,7 @@ import {
 } from '../../shared/router.js'
 import type { AppUpdater } from '../updates/updater.js'
 import { applyAppLogo } from './app-logo.js'
-import { codexFailure } from './errors.js'
+import { toFailure } from './errors.js'
 import type { OwlsHost } from './host.js'
 
 /**
@@ -37,7 +37,7 @@ import type { OwlsHost } from './host.js'
  */
 const executableFolder = (path: string | null) => (path ? dirname(path) : app.getPath('home'))
 
-export function registerCodexIpc(
+export function registerIpc(
   host: OwlsHost,
   getWindow: () => BrowserWindow | null,
   updates: Pick<AppUpdater, 'snapshot' | 'check' | 'install' | 'channelChanged'>
@@ -45,8 +45,8 @@ export function registerCodexIpc(
   let lastProjectParent = app.getPath('home')
   function handle<T>(channel: string, action: (input: unknown) => T | Promise<T>): void {
     ipcMain.handle(
-      `codex:${channel}`,
-      async (event: IpcMainInvokeEvent, input: unknown): Promise<CodexReply<T>> => {
+      `owls:${channel}`,
+      async (event: IpcMainInvokeEvent, input: unknown): Promise<Reply<T>> => {
         const window = getWindow()
         if (
           !window ||
@@ -63,7 +63,7 @@ export function registerCodexIpc(
             error:
               error instanceof z.ZodError
                 ? { code: 'invalid_request', message: '' }
-                : codexFailure(error)
+                : toFailure(error)
           }
         }
       }

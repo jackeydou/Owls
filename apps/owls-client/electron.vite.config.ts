@@ -30,9 +30,9 @@ export default defineConfig(({ command, mode }) => {
         rollupOptions: {
           preserveEntrySignatures: 'strict',
           input: {
-            index: resolve('src/main/codex/desktop.ts'),
-            'codex/runtime': resolve('src/main/codex/runtime.ts'),
-            'codex/ipc': resolve('src/main/codex/ipc.ts'),
+            index: resolve('src/main/app/desktop.ts'),
+            'app/runtime': resolve('src/main/app/runtime.ts'),
+            'app/ipc': resolve('src/main/app/ipc.ts'),
             'tools/computer-use/helper-entry': resolve(
               'src/main/tools/computer-use/helper-entry.ts'
             )
@@ -53,7 +53,7 @@ export default defineConfig(({ command, mode }) => {
       build: {
         rollupOptions: {
           input: {
-            index: resolve('src/preload/codex.ts'),
+            index: resolve('src/preload/owls.ts'),
             'browser-annotation': resolve('src/preload/browser-annotation.ts')
           }
         }

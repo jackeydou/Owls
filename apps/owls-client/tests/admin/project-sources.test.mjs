@@ -11,7 +11,7 @@ const {
   parseGitHubRepo,
   cloneGitHubProject,
   createQuickProject
-} = require('../../out/main/codex/runtime.js')
+} = require('../../out/main/app/runtime.js')
 
 function tempRoot(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'owls-project-sources-')))
