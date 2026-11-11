@@ -1,0 +1,1 @@
+- Settings: select dropdowns get an inset chevron and a styled popover with a checkmark. (#68)

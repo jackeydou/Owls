@@ -216,6 +216,111 @@
 }
 
 @layer components {
+  /*
+   * Shared select (components/ui/select.tsx). `base-select` keeps the native element and its
+   * events but lets the trigger, chevron, popover, and options be styled. The chevron sits in
+   * the trigger's right padding instead of hugging the edge, and the popover reuses the menu
+   * surface: rounded card, soft shadow, padded rows, a tinted selected row, a trailing check.
+   */
+  .owls-select {
+    --owls-select-fill: color-mix(in srgb, var(--color-foreground) 2.5%, var(--color-card));
+    appearance: base-select;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 10px 0 12px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 8px;
+    background: var(--owls-select-fill);
+    color: var(--color-foreground);
+    font: inherit;
+    font-size: var(--owl-text-sm);
+    line-height: var(--owl-leading-tight);
+    text-align: start;
+    outline: none;
+    cursor: default;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+  .owls-select:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-foreground) 5%, var(--color-card));
+  }
+  .owls-select:focus-visible {
+    border-color: color-mix(in srgb, var(--color-foreground) 30%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-foreground) 8%, transparent);
+  }
+  .owls-select:disabled {
+    opacity: 0.5;
+  }
+  .owls-select::picker-icon {
+    content: "";
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    margin-inline-start: auto;
+    background-color: var(--color-muted-foreground);
+    mask:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    rotate: none;
+    transition: none;
+  }
+  .owls-select::picker(select) {
+    appearance: base-select;
+    -webkit-app-region: no-drag;
+    min-width: anchor-size(width);
+    max-height: min(320px, 60vh);
+    margin-block: 6px;
+    padding: 4px;
+    border: 1px solid color-mix(in srgb, var(--color-border-strong) 70%, transparent);
+    border-radius: 12px;
+    background: var(--color-card);
+    color: var(--color-foreground);
+    box-shadow: 0 8px 28px rgb(0 0 0 / 0.12);
+  }
+  html[data-theme="dark"] .owls-select::picker(select) {
+    border-color: rgb(255 255 255 / 0.12);
+    background: var(--color-card-elevated);
+    box-shadow: 0 8px 28px rgb(0 0 0 / 0.45);
+  }
+  .owls-select option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 8px;
+    outline: none;
+    font-weight: 400;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .owls-select option:hover,
+  .owls-select option:focus-visible {
+    background: color-mix(in srgb, var(--color-foreground) 4%, transparent);
+  }
+  .owls-select option:checked {
+    background: color-mix(in srgb, var(--color-foreground) 6%, transparent);
+  }
+  .owls-select option:disabled {
+    opacity: 0.45;
+    background: transparent;
+  }
+  .owls-select option::checkmark {
+    content: "";
+    order: 1;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-inline-start: auto;
+    background-color: currentColor;
+    mask:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+  }
+
   .titlebar-safe-area {
     height: var(--titlebar-height);
   }
