@@ -242,7 +242,7 @@ app
       chmodSync(fixture, 0o755)
       const store = new OwlsStore(
         join(temp, 'test.db'),
-        join(resources ?? artifactRoot, 'drizzle-codex')
+        join(resources ?? artifactRoot, 'migrations')
       )
       const claudeFixture = resolve(__dirname, '../fixtures/claude/mock-claude.cjs')
       chmodSync(claudeFixture, 0o755)

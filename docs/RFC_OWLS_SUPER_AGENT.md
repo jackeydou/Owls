@@ -309,7 +309,7 @@ Inbox 事件来源：用户发给 Router 的消息、Worker 汇报、Worker 的�
 这一节原来描述的追问直通已删除：Worker 不再有独立的任务视图，所有 turn 都由 `WorkerPool` 发起，
 不需要区分 turn 的来源。
 
-没有建 `codex_event_threads` 和 `codex_subscriptions` 表。等引入第二个事件源（IM、GitHub、CI）时
+没有建 `event_threads` 和 `subscriptions` 表。等引入第二个事件源（IM、GitHub、CI）时
 再设计，`recall` 届时增加 EventThread ID。
 
 ## 9. 实现设计
@@ -342,7 +342,7 @@ type RouterBatchInput = {
 type RouterBatchOutcome = {
   status: 'completed' | 'failed' | 'interrupted'
   usage: { input: number; output: number; cacheRead: number; cacheWrite: number } | null
-  native: RouterNativeState // 见第 10 节 codex_routers.value.native
+  native: RouterNativeState // 见第 10 节 routers.value.native
   error: Failure | null
 }
 ```
@@ -374,7 +374,7 @@ type RouterBatchOutcome = {
   前缀相同，provider 的提示缓存可以命中（F30）。被裁掉的早期批次只从请求中移除，完整记录仍在
   数据库中，可以通过 `recall` 取回。
 - **持久化**：每个批次结束（`agent_end`）后，把新增的 `AgentMessage` 追加到
-  `codex_router_messages`；重启后用这些记录作为 `initialState.messages` 重建 Agent。
+  `router_messages`；重启后用这些记录作为 `initialState.messages` 重建 Agent。
 - **事件**：`message_update` 的文本增量写入助手 item；`tool_execution_start/end` 写入工具 item；
   助手消息的 `usage` 汇总到批次。
 - **中断**：`agent.abort()`，批次记为 `interrupted`。
@@ -395,7 +395,7 @@ OpenAI 的「Sign in with ChatGPT」共享订阅额度目前只对通过审核�
 这些来源是二手报道，实施前要核对官方条款。想使用订阅额度的用户，选择 Claude Code 或
 Codex 引擎即可，这正是保留这两个选项的原因。
 
-**存储。** `src/main/router/credentials.ts` 把 key 存在 `codex_credentials` 表中，密钥用
+**存储。** `src/main/router/credentials.ts` 把 key 存在 `credentials` 表中，密钥用
 Electron `safeStorage` 加密。系统不支持加密，或 Linux 上退化为 `basic_text` 时，拒绝保存
 （与旧 `openai-oauth.ts` 的规则一致）。实现时没有接入 pi-ai 的 `CredentialStore`：只存 API key
 时不需要它的 OAuth 刷新和锁，key 改为在创建引擎时解密一次，经 `Agent.getApiKey` 显式传给请求；
@@ -440,7 +440,7 @@ type TurnOutcome = {
 - 两个 service 新增 `steer(sessionId, text)`：Claude 追加到当前 runtime 的输入流，
   Codex 调用 `turn/steer` 并带 `expectedTurnId`。没有运行中的 turn 时返回 `not_running`。
 
-所有会话都由 Router 创建。会话本身的 schema 不变，Worker 关系只记录在 `codex_workers` 中。
+所有会话都由 Router 创建。会话本身的 schema 不变，Worker 关系只记录在 `workers` 中。
 
 ### 9.5 代码布局
 
@@ -482,7 +482,7 @@ type TurnOutcome = {
 - Router 的引擎和模型通过现有的 `saveSettings` 保存（9.8 节）。
 - `AppSnapshot` 增加 `routers` 和 `workers`；`AppEvent` 增加 `router`、`worker`、
   `inbox` 三种事件，均为单个对象的整体替换，和 `session` 事件一致。
-- 所有输入在 main 中用 zod 校验；`commandId` 沿用 `codex_commands` 去重。
+- 所有输入在 main 中用 zod 校验；`commandId` 沿用 `commands` 去重。
 - Worker 的审批、中断和追问仍走现有的 `respond`、`interrupt`、`send`。
 
 ### 9.7 Router 视图
@@ -513,34 +513,34 @@ type TurnOutcome = {
 
 ## 10. 数据模型
 
-新增表放在 `drizzle-codex/` 下，用 forward-only 迁移，每个阶段一个迁移文件。沿用现有表的
+新增表放在 `migrations/` 下，用 forward-only 迁移，每个阶段一个迁移文件。沿用现有表的
 写法：查询用到的列单独存放，其余字段放在 zod 校验的 JSON `value` 中。
 
 | 表 | 独立列 | `value` 中的主要字段 | 引入阶段 |
 | --- | --- | --- | --- |
-| `codex_routers` | `id`、`project_id`（唯一） | `items`（展示用对话记录）、`native`、`maxPermission`、`status` | M1 |
-| `codex_workers` | `id`、`router_id`、`session_id`（唯一）、`updated_at` | `goal`、`context`、`status`、`lastReport`、`dispatchKey` | M1 |
-| `codex_router_messages` | `router_id` + `seq`（联合主键）、`batch_id` | 一条 pi `AgentMessage` | M1 |
-| `codex_credentials` | `provider_id`（主键）、`type` | 加密后的密钥（base64） | M1 |
-| `codex_inbox_events` | `seq`（自增主键）、`id`（唯一）、`router_id`、`status`、`batch_id` | `kind`、`source`、`eventThreadId`、`payload` | M2 |
-| `codex_router_batches` | `id`、`router_id`、`status`、`created_at` | `engine`、`eventSeqs`、`promptVersion`、`tokens`、`durationMs` | M2 |
-| `codex_event_threads` | `id`、`router_id`、`key`（唯一） | `summary` | 推迟（8.2 节） |
-| `codex_subscriptions` | `worker_id` + `event_thread_id`（联合主键） | 无 | 推迟（8.2 节） |
+| `routers` | `id`、`project_id`（唯一） | `items`（展示用对话记录）、`native`、`maxPermission`、`status` | M1 |
+| `workers` | `id`、`router_id`、`session_id`（唯一）、`updated_at` | `goal`、`context`、`status`、`lastReport`、`dispatchKey` | M1 |
+| `router_messages` | `router_id` + `seq`（联合主键）、`batch_id` | 一条 pi `AgentMessage` | M1 |
+| `credentials` | `provider_id`（主键）、`type` | 加密后的密钥（base64） | M1 |
+| `inbox_events` | `seq`（自增主键）、`id`（唯一）、`router_id`、`status`、`batch_id` | `kind`、`source`、`eventThreadId`、`payload` | M2 |
+| `router_batches` | `id`、`router_id`、`status`、`created_at` | `engine`、`eventSeqs`、`promptVersion`、`tokens`、`durationMs` | M2 |
+| `event_threads` | `id`、`router_id`、`key`（唯一） | `summary` | 推迟（8.2 节） |
+| `subscriptions` | `worker_id` + `event_thread_id`（联合主键） | 无 | 推迟（8.2 节） |
 
-- `native` 记录当前引擎的会话状态：`{ engine: 'owls' }`（记录在 `codex_router_messages`）、
+- `native` 记录当前引擎的会话状态：`{ engine: 'owls' }`（记录在 `router_messages`）、
   `{ engine: 'claude-code', sessionId }` 或 `{ engine: 'codex', threadId }`。
-- `codex_router_messages` 只由 Owls 引擎写入；切换到其他引擎后保留，以便切换回来时继续使用。
+- `router_messages` 只由 Owls 引擎写入；切换到其他引擎后保留，以便切换回来时继续使用。
 - 事件状态：`pending` → `batched`，另有 `superseded` 和 `dropped`（所属 Worker 被移除）。
 - 批次状态：`sending` → `delivered`，另有 `dispatch_unknown`、`retried` 和 `ignored`。
-- `codex_routers.value` 另有 `unknownBatches`（`dispatch_unknown` 批次的 ID、事件数和时间），
+- `routers.value` 另有 `unknownBatches`（`dispatch_unknown` 批次的 ID、事件数和时间），
   供 Router 视图显示提示条；启动时由批次表重算。
 - 用户退出时选择「停止并退出」，进行中的批次记为 `delivered`（用户主动中断），不进入
   `dispatch_unknown`。
 - Worker 记录增加 `context` 和 `permission`，排队的 Worker 据此在之后启动，并判断是否是写入者；
   `workspace` 记录 Worker 在 checkout 还是自己的 worktree 中运行（11.1 节）。
 - 写入 Inbox、生成批次、更新事件状态在同一事务中完成。
-- 移除 Worker 任务时，`codex_workers` 中的记录标记为 `removed`，不删除，以免 Router 的
-  历史批次引用悬空；移除 Router 时级联删除它的 Inbox、批次和 `codex_router_messages`。
+- 移除 Worker 任务时，`workers` 中的记录标记为 `removed`，不删除，以免 Router 的
+  历史批次引用悬空；移除 Router 时级联删除它的 Inbox、批次和 `router_messages`。
 - 凭据不进入设置 JSON、快照或日志；删除 key 时直接删除对应行。
 
 Worker 状态：`queued → starting → running → reported → idle`，另有 `waiting`（等待审批）、
@@ -666,13 +666,13 @@ F12–F16）：
 - 有未提交修改时不删除：worktree 记为 `kept`，Router 视图列出保留的 worktree（目标、分支、
   路径）并提供「丢弃」操作。用户确认后，Owls 通过 `owls:router-discard-worktree` 执行
   `git worktree remove --force`，分支按上一条规则处理。没有用户的操作，Owls 不会丢弃未提交的修改。
-- Owls 只删除自己创建、并且记录在 `codex_workers` 中的 worktree 和 `owls/*` 分支。
+- Owls 只删除自己创建、并且记录在 `workers` 中的 worktree 和 `owls/*` 分支。
 
 **重启恢复。**
 
 - Worker 记录增加 `workspace` 字段：`{ kind: 'checkout' }`，或
   `{ kind: 'worktree', path, cwd, branch, baseCommit, state }`，`state` 为 `active`、`kept` 或
-  `released`。字段保存在 `codex_workers.value` 中，旧记录默认为 `{ kind: 'checkout' }`，不需要迁移。
+  `released`。字段保存在 `workers.value` 中，旧记录默认为 `{ kind: 'checkout' }`，不需要迁移。
 - 每一轮开始前（无论由 Router 发起还是用户追问），任务 service 调用新增的
   `TurnProfiles.prepare(sessionId)`，由 `WorkerPool` 确认 worktree 存在：目录在就直接使用；目录不在
   但分支在，就用 `git worktree add <path> owls/<id>` 重新检出；两者都不在，就按新 Worker 创建。
@@ -706,7 +706,7 @@ F12–F16）：
 「可写的 Worker 在独立的 git worktree 中运行」。关闭后回到同目录串行。
 
 **不做的事。** 自动合并和冲突处理；push 和开 PR；把未提交的修改复制到 worktree（例如
-`git stash create`）；在 worktree 中自动安装依赖；worktree 的磁盘配额；清理不在 `codex_workers`
+`git stash create`）；在 worktree 中自动安装依赖；worktree 的磁盘配额；清理不在 `workers`
 中的目录（数据库丢失后留下的目录由用户自行删除，`git worktree prune` 会清理它们的元数据）。
 
 **验证。**
@@ -721,7 +721,7 @@ F12–F16）：
 ### 11.2 项目设置
 
 状态：已实现（2026-11-10）。每个项目可以单独设置基础信息、worktree 行为和给 Worker 的额外指令。
-设置保存在 `codex_projects.value.settings` 中（`shared/projects.ts` 的 `projectSettingsSchema`），旧记录
+设置保存在 `projects.value.settings` 中（`shared/projects.ts` 的 `projectSettingsSchema`），旧记录
 默认为 `defaultProjectSettings`，不需要迁移。设置页在「项目」分组下为每个项目提供「基本信息」「Git」
 「指令」三页，右侧 Projects 栏的项目行悬停时也有入口。保存走 `owls:save-project`，分支和 remote
 列表走 `owls:project-git-refs`。每次读取都取最新的项目记录，所以修改从 Worker 的下一轮开始生效。
@@ -742,7 +742,7 @@ worktree Worker 的角色说明从「不要 push」改为「除非任务要求�
 
 ## 12. 恢复语义
 
-- Router 会话：重启后按 `native` 恢复。Owls 引擎用 `codex_router_messages` 重建 Agent；
+- Router 会话：重启后按 `native` 恢复。Owls 引擎用 `router_messages` 重建 Agent；
   Claude Code 引擎用原生 `resume`；Codex 引擎在 Router 专用进程中 `thread/resume`
   （两个 CLI 都已验证工具仍可用，F7 需在 0.166 上复测）。Inbox 中未投递的事件在下一批次发送。
 - 批次：`sending` 状态的批次在重启后标记为 `dispatch_unknown`，在 Router 视图中提示用户，
@@ -777,7 +777,7 @@ worktree Worker 的角色说明从「不要 push」改为「除非任务要求�
 | 层次 | 内容 | 入口 |
 | --- | --- | --- |
 | 纯函数 | 批次渲染的排序、截断、转义；上下文预算裁剪；汇报解析与降级；工具输入校验与去重 | `tests/admin/router-*.test.mjs` |
-| Owls 引擎 | 用 pi-ai 的 `fauxProvider` 驱动：消息 → 分派 → 汇报 → 回复；运行中注入；工具失败；`prepareRequest` 的上下文内容；重启后从 `codex_router_messages` 重建 | `pnpm --filter owls-client test:router`（新增脚本） |
+| Owls 引擎 | 用 pi-ai 的 `fauxProvider` 驱动：消息 → 分派 → 汇报 → 回复；运行中注入；工具失败；`prepareRequest` 的上下文内容；重启后从 `router_messages` 重建 | `pnpm --filter owls-client test:router`（新增脚本） |
 | Claude Code 与 Codex 引擎 | 脚本化 SDK 和 Codex 进程 fixture；用 `tests/fixtures/providers/` 校验原生帧解析 | 同上 |
 | 凭据 | 用替身 `safeStorage` 测试加密存储、加密不可用时拒绝、`list()` 不含密钥、无凭据时不发请求 | 同上 |
 | Worker | `ClaudeService` 与 `CodexService` 的 worker profile、`steer`、`settled` 回调 | `test:claude`、`test:codex` |
@@ -920,7 +920,7 @@ worktree 模式不受写入串行影响。基准的模型脚本已按这个行�
 | 阶段 | 内容 | 退出标准 |
 | --- | --- | --- |
 | 前置 | 把构建入口不可达的旧代码移到 `legacy/`（不删除），pi 升级到 `1.5.0` 并锁定版本 | 已完成：类型检查、`pnpm test` 通过 |
-| M1 | `RouterEngine` 接口与 **Owls 引擎**（默认）、凭据存储、设置中的「协调者」分组（先只有 Owls 引擎）、Worker turn profile、`dispatch_task`、Worker 汇报、`codex_routers`、`codex_workers`、`codex_router_messages`、`codex_credentials` 表、Router 视图的最小 UI。M1 的 Inbox 在内存中，重启时丢弃未投递事件 | 已实现：faux provider 测试跑通「消息 → 分派 → 汇报 → 回复」；本机 Ollama（`qwen3.6:27b`）实测一次。任务 service 的 `steer`、`testRouterModel`、`retryBatch` 移到用到它们的阶段（M3、M2） |
+| M1 | `RouterEngine` 接口与 **Owls 引擎**（默认）、凭据存储、设置中的「协调者」分组（先只有 Owls 引擎）、Worker turn profile、`dispatch_task`、Worker 汇报、`routers`、`workers`、`router_messages`、`credentials` 表、Router 视图的最小 UI。M1 的 Inbox 在内存中，重启时丢弃未投递事件 | 已实现：faux provider 测试跑通「消息 → 分派 → 汇报 → 回复」；本机 Ollama（`qwen3.6:27b`）实测一次。任务 service 的 `steer`、`testRouterModel`、`retryBatch` 移到用到它们的阶段（M3、M2） |
 | M2 | **Claude Code 引擎**与引擎切换、Inbox 持久化、批处理、用户消息注入、`dispatch_unknown`、重启恢复、`queued` 调度 | 已实现：`router-runtime.test.mjs` 覆盖合并批次与 `superseded`、注入、`dispatch_unknown` 与重发、排队与写入者串行、移除 Worker、引擎切换后的状态摘要、Claude Code 引擎的隔离选项与 `resume`；UI 冒烟在 SQLite 上验证 Inbox 恢复和重发；真实 Claude Code 实测一次（F24、F25）。`testRouterModel` 未做，`dispatch_task` 超出排队上限（16）时返回 `worker_limit_reached` |
 | M3 | **Codex 引擎**、`message_worker`、`stop_worker`、`list_workers`、`recall`、订阅直通 | 已实现：三个引擎都可在设置中切换；追问的结果不发起批次（测试覆盖），Router 决策次数的量化放到 M4；Codex 引擎脚本化测试覆盖隔离参数、工具调用、`resume`、线程丢失和提示版本变化；真实 Codex 实测一次（F26–F28）。`ROUTER_PROMPT_VERSION` 升为 2。`CodexService.steer` 只有 M0 的协议 fixture，没有 service 级测试 |
 | M4 | 消融实验：用脚本化 provider 复现文章 7.1 节，对比单会话与双层架构，以及三种 Router 引擎 | 已实现：`bench:router` 输出 p50/p95 完成时间、模型请求与批次数、token 数据（14.1 节），同一种子结果完全可复现；实验发现并修复了上下文裁剪导致的缓存失效（F30）。引擎差异按 F24、F28 的固定上下文模拟，未运行原生 CLI |

@@ -30,7 +30,7 @@
     "verify:packaged": "node scripts/verify-packaged-runtime.cjs",
     "validate:plugin": "node --experimental-strip-types scripts/validate-plugin.mjs",
     "db:generate": "drizzle-kit generate",
-    "db:generate:codex": "drizzle-kit generate --config drizzle.codex.config.ts",
+    "db:generate:app": "drizzle-kit generate --config drizzle.app.config.ts",
     "db:studio": "drizzle-kit studio --port 4984",
     "postinstall": "electron-builder install-app-deps && electron-rebuild -o better-sqlite3,node-pty",
     "prestart": "pnpm run build:workspace-deps",

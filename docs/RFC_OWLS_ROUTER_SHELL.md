@@ -128,7 +128,7 @@ parentId: z.string().nullable().default(null),
 
 `goal` 最长 4000 字符，写给 Worker 看，不能直接当节点标题，所以需要单独的 `title`。
 
-两个字段都存在 `codex_workers.value` 的 JSON 里，树在内存中构建，不需要按父节点查询，
+两个字段都存在 `workers.value` 的 JSON 里，树在内存中构建，不需要按父节点查询，
 **不需要 SQL 迁移**。旧行由 zod 默认值补成 `null`，成为根节点的子节点。
 
 ### 4.2 Router 工具
@@ -339,11 +339,11 @@ shared/
 | 数据 | 处理 |
 | --- | --- |
 | SQLite schema | 不变，没有 Drizzle 迁移 |
-| `codex_workers.value` | 新字段有默认值 |
-| `codex_routers.value` | 新字段有默认值；旧 `tool` 条目保留但不显示 |
-| `codex_inbox_events.value` | 旧行的 `followUp` 被 zod 忽略；`user_message.workerId` 可选 |
+| `workers.value` | 新字段有默认值 |
+| `routers.value` | 新字段有默认值；旧 `tool` 条目保留但不显示 |
+| `inbox_events.value` | 旧行的 `followUp` 被 zod 忽略；`user_message.workerId` 可选 |
 | 设置 | 读取时，`workerProvider` 非空就写入 `provider`，再丢弃该字段 |
-| 用户直接创建的旧任务 | **保留数据，不再显示**：`codex_sessions` 不删，`snapshot` 不返回，原生历史仍在各 CLI 中 |
+| 用户直接创建的旧任务 | **保留数据，不再显示**：`sessions` 不删，`snapshot` 不返回，原生历史仍在各 CLI 中 |
 
 旧任务不提供入口，这符合不做向后兼容的决定；但删除用户数据不可恢复，这次改造也不需要删除，所以数据保留。
 
