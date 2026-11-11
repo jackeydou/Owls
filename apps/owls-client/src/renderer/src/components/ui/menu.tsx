@@ -43,7 +43,7 @@ export const MenuContent = forwardRef<
           sideOffset={sideOffset}
           collisionPadding={collisionPadding}
           className={cn(
-            'z-[90] min-w-[220px] [-webkit-app-region:no-drag] max-w-[320px] rounded-xl border border-border/70 bg-card p-1 text-[13px] text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
+            'z-[90] min-w-[220px] [-webkit-app-region:no-drag] max-w-[320px] rounded-xl border border-border/70 bg-card p-1 text-(length:--owl-text-sm) text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
             className
           )}
           onPointerDown={(event) => {
@@ -99,7 +99,10 @@ export const MenuLabel = forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenu.Label
     ref={ref}
-    className={cn('px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-muted-foreground', className)}
+    className={cn(
+      'px-2.5 pt-1.5 pb-1 text-(length:--owl-text-xs) font-medium text-muted-foreground',
+      className
+    )}
     {...props}
   />
 ))

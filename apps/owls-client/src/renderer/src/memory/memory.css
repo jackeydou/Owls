@@ -13,7 +13,7 @@
   align-items: center;
   gap: 6px;
   color: var(--color-muted-foreground);
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .memory-status > span.failed {
   color: var(--owl-bad);
@@ -22,7 +22,7 @@
   align-items: center;
   justify-content: space-between;
   margin: 0 0 12px;
-  padding: 8px 10px;
+  padding: 8px 12px;
 }
 .memory-browser {
   padding-top: 12px;
@@ -36,7 +36,7 @@
 }
 .memory-toolbar select {
   height: 30px;
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .memory-tabs {
   display: flex;
@@ -53,7 +53,7 @@
   min-width: 160px;
   height: 30px;
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .memory-columns {
   display: grid;
@@ -81,7 +81,7 @@
   min-width: 0;
   padding: 6px 8px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--owl-text-sm);
   text-align: left;
 }
 .memory-nav button:hover {
@@ -97,14 +97,14 @@
 .memory-nav em {
   display: block;
   color: var(--color-muted-foreground);
-  font-size: 11px;
+  font-size: var(--owl-text-xs);
   font-style: normal;
-  line-height: 1.4;
+  line-height: var(--owl-leading-tight);
 }
 .memory-nav small {
   flex-shrink: 0;
   color: var(--color-muted-foreground);
-  font-size: 11px;
+  font-size: var(--owl-text-xs);
   font-variant-numeric: tabular-nums;
 }
 .memory-nav-row {
@@ -137,7 +137,7 @@
 .memory-dialog-fields .router-input {
   min-width: 0;
   height: 30px;
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .memory-list {
   min-width: 0;
@@ -153,13 +153,13 @@
 .memory-empty {
   padding: 16px 0;
   color: var(--color-muted-foreground);
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .memory-row {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 10px 0;
+  padding: 12px 0;
   border-top: 1px solid var(--color-border);
 }
 .memory-row.archived .memory-row-text p {
@@ -173,24 +173,24 @@
   min-width: 0;
 }
 .memory-row-text p {
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 .memory-pin {
   display: inline;
-  margin-right: 5px;
+  margin-right: 6px;
   vertical-align: -1px;
   color: var(--color-accent);
 }
 .memory-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 10px;
-  margin-top: 3px;
+  gap: 2px 12px;
+  margin-top: 4px;
   color: var(--color-muted-foreground);
-  font-size: 11px;
+  font-size: var(--owl-text-xs);
 }
 .memory-source {
   text-decoration: underline;
@@ -221,12 +221,12 @@
 }
 .memory-editor textarea {
   width: 100%;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: transparent;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
   resize: vertical;
   outline: none;
 }
@@ -242,7 +242,7 @@
 }
 .memory-editor-bar select {
   height: 30px;
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .memory-archived {
   display: inline-flex;
@@ -250,18 +250,18 @@
   gap: 6px;
   margin-top: 12px;
   color: var(--color-muted-foreground);
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .memory-runs {
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--color-border);
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .memory-runs summary {
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 450;
+  font-size: var(--owl-text-sm);
+  font-weight: 400;
 }
 .memory-runs ul {
   display: flex;
@@ -284,15 +284,15 @@
 }
 .memory-dialog h2 {
   margin-bottom: 12px;
-  font-size: 15px;
+  font-size: var(--owl-text-lg);
   font-weight: 600;
 }
 .memory-dialog p {
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
 }
 .memory-dialog-quote {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   padding: 8px 12px;
   border-radius: 8px;
   background: var(--color-card-muted);
@@ -305,7 +305,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 16px;
 }
 .owls-note + .memory-status {
   border-top: 0;

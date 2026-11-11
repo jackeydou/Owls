@@ -1,0 +1,1 @@
+- UI: unified type and spacing scale; chat and composer text is now 16px and app chrome 14px. (#58)

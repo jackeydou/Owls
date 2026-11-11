@@ -2,16 +2,16 @@
 .owls-settings-nav .router-sidebar-head {
   display: flex;
   align-items: center;
-  padding-left: calc(var(--owl-toggle-left) - 10px);
+  padding-left: calc(var(--owl-toggle-left) - 12px);
 }
 .owls-settings-back {
-  gap: 5px;
+  gap: 6px;
   height: var(--owl-toggle-size);
-  padding: 0 8px 0 5px;
+  padding: 0 8px 0 6px;
   border-radius: 7px;
   color: var(--color-muted-foreground);
-  font-size: 13px;
-  font-weight: 450;
+  font-size: var(--owl-text-sm);
+  font-weight: 400;
 }
 .owls-settings-nav h1 {
   display: flex;
@@ -19,12 +19,12 @@
   height: 32px;
   margin-bottom: 8px;
   padding: 0 8px;
-  font-size: 13px;
+  font-size: var(--owl-text-sm);
   font-weight: 600;
 }
 .owls-settings-nav hr {
   flex-shrink: 0;
-  margin: 10px 8px;
+  margin: 12px 8px;
   border: 0;
   border-top: 1px solid var(--color-border);
 }
@@ -50,17 +50,17 @@
 }
 .owls-settings-section h2 {
   margin-bottom: 4px;
-  font-size: 23px;
+  font-size: var(--owl-text-2xl);
   font-weight: 500;
   letter-spacing: -0.01em;
-  line-height: 1.3;
+  line-height: var(--owl-leading-tight);
 }
 .owls-settings-section h2 + p,
 .owls-section-heading p {
   margin-top: 6px;
   color: var(--color-muted-foreground);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
 }
 .owls-section-heading {
   display: flex;
@@ -74,7 +74,7 @@
   align-items: center;
   gap: 6px;
   color: var(--color-muted-foreground);
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .owls-connection i {
   width: 7px;
@@ -108,7 +108,7 @@
   min-width: 0;
 }
 .owls-setting-row label {
-  font-size: 13px;
+  font-size: var(--owl-text-sm);
 }
 /* One control column, so every row's right edge and width line up. */
 .owls-setting-row select,
@@ -116,16 +116,16 @@
   flex-shrink: 0;
   width: 200px;
   min-width: 0;
-  height: 30px;
-  padding: 0 10px;
+  height: 32px;
+  padding: 0 12px;
   border-radius: 7px;
-  font-size: 13px;
+  font-size: var(--owl-text-sm);
 }
 /* Rows in a pane run edge to edge, split by a hairline; the guide reuses them without it. */
 .owls-settings-section .owls-setting-row {
   flex-wrap: wrap;
   row-gap: 0;
-  min-height: 78px;
+  min-height: 80px;
   margin: 0;
   padding: 20px 0;
   border-top: 1px solid var(--color-border);
@@ -140,24 +140,24 @@
 .owls-settings-section .owls-setting-text label {
   display: block;
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: var(--owl-text-sm);
   font-weight: 500;
 }
 .owls-setting-text small {
   color: var(--color-muted-foreground);
-  font-size: 11px;
+  font-size: var(--owl-text-xs);
 }
 /* Same size as the name: color alone sets the two apart. */
 .owls-setting-text p {
   margin-top: 4px;
   color: var(--color-muted-foreground);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
 }
 .owls-setting-detail {
   flex: 0 0 100%;
   min-width: 0;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 .owls-settings-actions {
   display: flex;
@@ -171,13 +171,13 @@
 }
 .owls-settings-section > .owls-inline-error {
   margin-bottom: 12px;
-  padding: 8px 10px;
+  padding: 8px 12px;
 }
 .owls-note {
   margin-top: 6px;
   color: var(--color-muted-foreground);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
 }
 .owls-setting-row + .owls-note {
   padding-top: 12px;
@@ -185,10 +185,10 @@
 }
 .owls-note a {
   display: inline-flex;
-  gap: 3px;
+  gap: 4px;
   align-items: center;
   color: var(--color-foreground);
-  margin-left: 5px;
+  margin-left: 6px;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -201,10 +201,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 8px;
+  padding: 6px 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
   cursor: pointer;
 }
 .owls-logo-option:has(input:checked) {
@@ -229,12 +229,12 @@
   padding: 6px 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  font-size: 11px;
+  font-size: var(--owl-text-xs);
   word-break: break-all;
 }
 .owls-version {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: var(--owl-text-xs);
   color: var(--color-muted-foreground);
 }
 /* Many projects scroll inside the navigation instead of growing the window. */
@@ -248,7 +248,7 @@
   margin-bottom: 2px;
   padding: 0 8px;
   color: var(--color-muted-foreground);
-  font-size: 11px;
+  font-size: var(--owl-text-xs);
   font-weight: 500;
 }
 .owls-settings-project > b {
@@ -259,7 +259,7 @@
   height: 18px;
   border-radius: 5px;
   background: var(--color-sidebar-active);
-  font-size: 10px;
+  font-size: var(--owl-text-2xs);
   font-weight: 600;
 }
 .owls-settings-project[aria-expanded="true"] {
@@ -281,20 +281,20 @@
   display: block;
   width: 100%;
   min-height: 96px;
-  padding: 10px 12px;
+  padding: 12px 12px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-card);
   color: var(--color-foreground);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
   resize: vertical;
   outline: none;
 }
 .owls-setting-textarea.code {
   min-height: 140px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
 }
 .owls-setting-textarea::placeholder {
   color: var(--color-muted-foreground);
@@ -307,11 +307,11 @@
   color: var(--color-muted-foreground);
 }
 .owls-inline-link {
-  margin-left: 5px;
+  margin-left: 6px;
   padding: 0;
   color: var(--color-foreground);
-  font-size: 13px;
-  font-weight: 450;
+  font-size: var(--owl-text-sm);
+  font-weight: 400;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -330,7 +330,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 /* The preview is the tile at the size the settings page can show it well. */
 .owls-project-icon-preview > .owls-project-icon {
@@ -340,14 +340,14 @@
   height: 32px;
   border-radius: 8px;
   background: var(--color-sidebar-active);
-  font-size: 15px;
+  font-size: var(--owl-text-lg);
   font-weight: 600;
 }
 .owls-project-icon-preview > .owls-project-icon.colored {
   background: color-mix(in srgb, var(--owl-c) 18%, transparent);
 }
 .owls-project-icon-preview > .owls-project-icon.emoji {
-  font-size: 18px;
+  font-size: var(--owl-text-lg);
 }
 .owls-project-icon-preview > .owls-project-icon.image {
   background: transparent;
@@ -361,10 +361,10 @@
 }
 .owls-segmented > button {
   height: 26px;
-  padding: 0 10px;
+  padding: 0 12px;
   border-radius: 6px;
   color: var(--color-muted-foreground);
-  font-size: 13px;
+  font-size: var(--owl-text-sm);
 }
 .owls-segmented > button[aria-pressed="true"] {
   background: var(--color-sidebar-active);
@@ -413,7 +413,7 @@
 .owls-project-icon-error {
   flex: 0 0 100%;
   color: var(--owl-bad);
-  font-size: 13px;
+  font-size: var(--owl-text-sm);
 }
 .owls-project-colors .swatch:has(input:focus-visible) {
   outline: 2px solid var(--color-accent);
