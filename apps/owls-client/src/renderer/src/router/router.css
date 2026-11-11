@@ -625,12 +625,6 @@ html.pane-resizing * {
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
 }
-.router-editor-project {
-  height: 26px;
-  margin-right: auto;
-  padding: 0 6px;
-  font-size: var(--owl-text-xs);
-}
 .router-forward h2 {
   margin-bottom: 12px;
   font-size: var(--owl-text-lg);
@@ -719,7 +713,7 @@ html.pane-resizing * {
 }
 .router-row .owls-user-message,
 .router-row .owls-markdown,
-.router-editor textarea {
+.router-editor .router-draft-input {
   font-size: var(--owl-text-base);
   line-height: var(--owl-leading-relaxed);
 }
@@ -902,18 +896,11 @@ html.pane-resizing * {
 .router-editor {
   min-width: 0;
 }
-.router-editor textarea {
-  display: block;
-  field-sizing: content;
-  width: 100%;
+.router-editor .router-draft-input {
   min-height: 24px;
-  overflow: hidden;
-  resize: none;
-  outline: none;
-  background: transparent;
 }
 /* The page is the field, as in a document: the caret alone shows focus. */
-.owls-app .router-editor textarea:focus-visible {
+.owls-app .router-editor .router-draft-input:focus-visible {
   outline: none;
 }
 .router-editor .router-target {
@@ -973,9 +960,11 @@ html.pane-resizing * {
   gap: 6px;
   padding: 6px 8px 6px 12px;
 }
-.router-composer .owls-composer textarea {
+.router-composer .owls-composer .router-draft {
   flex: 1;
   min-width: 0;
+}
+.router-composer .owls-composer .router-draft-input {
   min-height: 34px;
   max-height: 120px;
   padding: 8px 0;
@@ -1022,6 +1011,52 @@ html.pane-resizing * {
 }
 .router-mentions button[aria-selected="true"] {
   background: var(--color-sidebar-hover);
+}
+.router-mentions button > small {
+  margin-left: auto;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+.router-mentions .owls-project-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--color-sidebar-active);
+  font-size: var(--owl-text-2xs);
+  font-weight: 600;
+}
+
+/* The draft's rich text field: plain paragraphs and project mentions. */
+.router-draft {
+  min-width: 0;
+}
+.router-draft-input {
+  position: relative;
+  overflow-y: auto;
+  outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.router-draft-input p {
+  margin: 0;
+}
+.router-draft-input[contenteditable="false"] {
+  cursor: default;
+}
+.router-draft-input[data-placeholder]::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  color: var(--color-muted-foreground);
+  pointer-events: none;
+}
+.router-mention {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--color-sidebar-hover);
+  font-weight: 500;
 }
 
 /* Detail panel */

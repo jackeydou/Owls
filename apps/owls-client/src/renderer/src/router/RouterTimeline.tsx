@@ -100,7 +100,7 @@ function DirectedMessage({ item }: { item: SessionItem }) {
 function focusEditor(scroller: HTMLElement) {
   if (!window.getSelection()?.isCollapsed) return
   scroller
-    .querySelector<HTMLTextAreaElement>('.router-editor textarea')
+    .querySelector<HTMLElement>('.router-editor .router-draft-input')
     ?.focus({ preventScroll: true })
 }
 export function RouterTimeline({

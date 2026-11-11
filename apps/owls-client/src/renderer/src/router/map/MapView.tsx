@@ -149,7 +149,11 @@ export function MapView() {
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       const target = event.target as Element
-      if (target.closest?.('textarea, input, .router-panel') || event.metaKey || event.ctrlKey)
+      if (
+        target.closest?.('textarea, input, [contenteditable="true"], .router-panel') ||
+        event.metaKey ||
+        event.ctrlKey
+      )
         return
       const active = (document.activeElement as HTMLElement | null)?.dataset?.node
       const step = {
