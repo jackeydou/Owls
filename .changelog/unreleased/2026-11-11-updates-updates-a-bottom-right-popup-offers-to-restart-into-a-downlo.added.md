@@ -1,0 +1,1 @@
+- Updates: a bottom-right popup offers to restart into a downloaded update, and can be hidden. (#67)

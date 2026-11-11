@@ -23,7 +23,12 @@ export const updatesEn = {
   'updates.failure.download': 'The update could not be downloaded or installed. Try again later.',
   'updates.unsupported.development': 'Updates are only checked in the installed app.',
   'updates.unsupported.platform': 'Automatic updates are only available on macOS.',
-  'updates.loadFailed': 'Update status is unavailable.'
+  'updates.loadFailed': 'Update status is unavailable.',
+  'updates.popup.title': 'Update available',
+  'updates.popup.body': 'Owls {{version}} has been downloaded. Restart to finish updating.',
+  'updates.popup.update': 'Update',
+  'updates.popup.later': 'Later',
+  'updates.popup.dismiss': 'Hide update notice'
 }
 
 export const updatesZh: Record<keyof typeof updatesEn, string> = {
@@ -48,5 +53,10 @@ export const updatesZh: Record<keyof typeof updatesEn, string> = {
   'updates.failure.download': '更新下载或安装失败，请稍后重试。',
   'updates.unsupported.development': '只有安装后的应用才会检查更新。',
   'updates.unsupported.platform': '自动更新目前仅支持 macOS。',
-  'updates.loadFailed': '无法获取更新状态。'
+  'updates.loadFailed': '无法获取更新状态。',
+  'updates.popup.title': '有可用更新',
+  'updates.popup.body': 'Owls {{version}} 已下载完成，重启后完成更新。',
+  'updates.popup.update': '更新',
+  'updates.popup.later': '稍后',
+  'updates.popup.dismiss': '隐藏更新提示'
 }

@@ -2,11 +2,11 @@ import { Button } from '@renderer/components/ui/button'
 import { LoaderIcon, RefreshIcon, RotateCcwIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import type { TFunction } from 'i18next'
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { type UpdateSnapshot, type UpdateState, updateChannelSchema } from '../../../shared/updates'
+import { type UpdateState, updateChannelSchema } from '../../../shared/updates'
 import { SettingRow } from '../app/SettingRow'
 import { useAppStore } from '../app/store'
+import { useUpdateSnapshot } from './use-update-snapshot'
 
 const clock = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
@@ -31,23 +31,6 @@ function statusText(state: UpdateState, t: TFunction): string {
     case 'failed':
       return t(`updates.failure.${state.failure}`)
   }
-}
-
-/** `undefined` while loading, null when the main process could not answer. */
-function useUpdateSnapshot(): UpdateSnapshot | null | undefined {
-  const [snapshot, setSnapshot] = useState<UpdateSnapshot | null | undefined>(undefined)
-  useEffect(() => {
-    let active = true
-    void window.owls.updates.snapshot().then((reply) => {
-      if (active) setSnapshot(reply.ok ? reply.value : null)
-    })
-    const unsubscribe = window.owls.updates.onChanged((next) => setSnapshot(next))
-    return () => {
-      active = false
-      unsubscribe()
-    }
-  }, [])
-  return snapshot
 }
 
 function UpdateAction({ state }: { state: UpdateState }) {
