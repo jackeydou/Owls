@@ -1,16 +1,15 @@
 import { cn } from '@renderer/lib/utils'
 import { forwardRef, type SelectHTMLAttributes } from 'react'
 
+/**
+ * A native `<select>` drawn with Chromium's customizable select (`appearance: base-select`),
+ * so callers keep the plain `<option>` children and `onChange` event while the trigger, chevron,
+ * popover, and checkmark follow the app's design. The styles live in `.owls-select` in
+ * `assets/main.css` because they target pseudo-elements such as `::picker(select)`.
+ */
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
   ({ className, ...props }, ref) => (
-    <select
-      ref={ref}
-      className={cn(
-        'h-9 rounded-lg border border-border bg-card px-3 text-(length:--owl-text-sm) text-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-50',
-        className
-      )}
-      {...props}
-    />
+    <select ref={ref} className={cn('owls-select', className)} {...props} />
   )
 )
 Select.displayName = 'Select'
