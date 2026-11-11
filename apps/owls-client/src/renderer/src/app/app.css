@@ -1,6 +1,22 @@
 @import "./conversation.css";
 @import "./settings.css";
 
+/* Type and spacing scale. Reading text (chat, composer) uses --owl-text-base;
+   app chrome uses --owl-text-sm. Spacing sits on a 4px grid with 2px and 6px
+   half steps for tight controls. */
+:root {
+  --owl-text-2xs: 12px;
+  --owl-text-xs: 13px;
+  --owl-text-sm: 14px;
+  --owl-text-base: 16px;
+  --owl-text-lg: 18px;
+  --owl-text-xl: 24px;
+  --owl-text-2xl: 28px;
+  --owl-leading-tight: 1.3;
+  --owl-leading-normal: 1.5;
+  --owl-leading-relaxed: 1.65;
+}
+
 .owls-app {
   display: flex;
   width: 100vw;
@@ -8,7 +24,7 @@
   overflow: hidden;
   background: var(--color-background);
   color: var(--color-foreground);
-  font-size: 13px;
+  font-size: var(--owl-text-sm);
 }
 .owls-chat,
 .owls-settings-page {
@@ -23,7 +39,7 @@
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 0 24px;
   -webkit-app-region: drag;
 }
@@ -39,25 +55,25 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  gap: 14px;
-  font-size: 12px;
+  gap: 16px;
+  font-size: var(--owl-text-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .owls-task-title > span {
   display: inline-flex;
-  gap: 5px;
+  gap: 6px;
   align-items: center;
   color: var(--color-muted-foreground);
-  font-size: 11px;
+  font-size: var(--owl-text-xs);
   flex-shrink: 0;
 }
 .owls-topbar-actions {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 16px;
   flex-shrink: 0;
 }
 .owls-chat-body {
@@ -80,20 +96,20 @@
 }
 .owls-conversation {
   max-width: 810px;
-  padding: 30px 36px 28px;
+  padding: 32px 36px 28px;
   margin: 0 auto;
   min-height: 100%;
 }
 .owls-inline-error {
   display: flex;
-  gap: 9px;
-  padding: 13px;
+  gap: 8px;
+  padding: 12px;
   border: 1px solid #c8787040;
   border-radius: 8px;
   color: #c87870;
-  font-size: 11px;
-  line-height: 1.65;
-  margin: 15px 0;
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-relaxed);
+  margin: 16px 0;
   overflow-wrap: anywhere;
 }
 .owls-inline-error > svg {
@@ -107,14 +123,14 @@
   transform: translateX(-50%);
   max-width: 620px;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   border: 1px solid var(--color-border);
   background: var(--color-card);
   border-radius: 11px;
-  padding: 11px 13px;
+  padding: 12px 12px;
   box-shadow: 0 6px 25px #00000015;
-  font-size: 12px;
+  font-size: var(--owl-text-xs);
   z-index: 50;
 }
 .owls-error-toast > svg {
