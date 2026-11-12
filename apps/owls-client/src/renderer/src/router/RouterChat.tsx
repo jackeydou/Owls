@@ -1,7 +1,4 @@
-import { IconButton } from '@renderer/components/ui/icon-button'
-import { InfoIcon } from '@renderer/components/ui/icons'
 import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../app/store'
 import { threadTitle, useThreadTitle } from './activity'
 import { ProjectsToggle } from './ProjectsSidebar'
@@ -9,15 +6,12 @@ import { RequestTray } from './RequestTray'
 import { RouterGuide } from './RouterGuide'
 import { RouterSetupNotice, useRouterSetup } from './RouterSetup'
 import { RouterTimeline } from './RouterTimeline'
-import { StatusEntry } from './StatusEntry'
 import { useRouterStore } from './store'
 import { ThreadEditor } from './ThreadEditor'
 
 /** The home screen: one thread with its Router, or a new thread's first line. */
 export function RouterChat() {
-  const { t } = useTranslation()
   const threadId = useAppStore((s) => s.threadId)
-  const showPanel = useRouterStore((s) => s.showPanel)
   const loadItems = useRouterStore((s) => s.loadItems)
   const router = useRouterStore((s) => s.routers.find((r) => r.id === threadId))
   const projectName = useAppStore((s) => s.projects.find((p) => p.id === router?.projectId)?.name)
@@ -47,16 +41,6 @@ export function RouterChat() {
           </div>
         ) : null}
         <div className="owls-topbar-actions">
-          <StatusEntry />
-          {router ? (
-            <IconButton
-              className="owls-bar-button"
-              label={t('router.details')}
-              tooltip={t('router.details')}
-              icon={<InfoIcon size={18} />}
-              onClick={() => showPanel({ kind: 'router', routerId: router.id })}
-            />
-          ) : null}
           <ProjectsToggle />
         </div>
       </header>

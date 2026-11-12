@@ -1,0 +1,1 @@
+- UI: the title bar drops the Overview status pill and Router details button; both sidebars open wider by default and keep dragged widths; Overview cards use a white surface with project icons and Router/worker owl avatars.

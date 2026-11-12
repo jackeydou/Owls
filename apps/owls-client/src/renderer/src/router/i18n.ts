@@ -66,7 +66,6 @@ export const routerEn = {
   'router.moreRequests_other': '{{count}} more requests are waiting',
   'router.statusWorking': '{{count}} working',
   'router.statusWaiting': '{{count}} waiting on you',
-  'router.openMap': 'Open the overview map',
   'router.guideWelcome': 'Welcome to Owls',
   'router.guideBody':
     'Hand your work to the Router. It plans the work and sends out workers. First, set up what runs it.',
@@ -344,7 +343,6 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'router.moreRequests_other': '还有 {{count}} 个请求等待处理',
   'router.statusWorking': '{{count}} 个在工作',
   'router.statusWaiting': '{{count}} 个等你',
-  'router.openMap': '打开全景',
   'router.guideWelcome': '欢迎使用 Owls',
   'router.guideBody': '把工作交给协调者，它会规划任务并派出 Worker。先设置由谁来运行它。',
   'router.guideStep': '第 {{step}} 步，共 {{total}} 步',

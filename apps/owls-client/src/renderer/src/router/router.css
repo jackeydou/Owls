@@ -397,56 +397,10 @@ html.pane-resizing * {
   font-size: var(--owl-text-xs);
 }
 
-/* Status entry with a live thumbnail of the map */
-.router-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 28px;
-  padding: 0 8px 0 6px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 14px;
-  background: var(--color-card);
-  font-size: var(--owl-text-xs);
-  white-space: nowrap;
-}
-.router-status:hover {
-  background: var(--color-sidebar-hover);
-}
-.router-status.wait {
-  border-color: var(--owl-wait-border);
-  color: var(--owl-wait);
-}
-.router-status kbd,
 .map-view kbd {
   color: var(--color-muted-foreground);
   font-family: inherit;
   font-size: var(--owl-text-2xs);
-}
-.router-mini {
-  flex-shrink: 0;
-  color: var(--color-border-strong);
-}
-.router-mini path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.2;
-}
-.router-mini .root {
-  fill: var(--color-muted-foreground);
-}
-.router-mini .run {
-  fill: var(--owl-run);
-}
-.router-mini .wait {
-  fill: var(--owl-wait);
-}
-.router-mini .bad {
-  fill: var(--owl-bad);
-}
-.router-mini .queue,
-.router-mini .done {
-  fill: var(--owl-queue);
 }
 
 /* A worker's status, and references to it anywhere in the conversation */

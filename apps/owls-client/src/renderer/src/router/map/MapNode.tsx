@@ -9,6 +9,7 @@ import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapNode } from '../../../../shared/worker-map'
 import { AppLogoMark } from '../../app/AppLogo'
+import { OwlAvatar } from '../../app/OwlAvatar'
 import { useAppStore } from '../../app/store'
 import {
   elapsed,
@@ -21,6 +22,7 @@ import {
   workerTitle,
   workerTone
 } from '../activity'
+import { ProjectIcon } from '../ProjectIcon'
 import { useRouterStore } from '../store'
 import { WorkerDot } from '../WorkerLink'
 import type { WorkerProject } from './projects'
@@ -35,6 +37,7 @@ function routerLine(project: WorkerProject | undefined): string | null {
 function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerProject }) {
   const { t } = useTranslation()
   const showChat = useAppStore((s) => s.showChat)
+  const record = useAppStore((s) => s.projects.find((p) => p.id === node.projectId))
   const enter = (
     <button
       type="button"
@@ -46,10 +49,12 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
       <ArrowRightIcon size={12} aria-hidden />
     </button>
   )
+  const icon = record ? <ProjectIcon project={record} /> : null
   if (!project || node.quiet)
     return (
       <>
         <span className="map-project-head">
+          {icon}
           <strong>{project?.name}</strong>
         </span>
         {enter}
@@ -62,6 +67,7 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
   return (
     <>
       <span className="map-project-head">
+        {icon}
         <strong>{project.name}</strong>
         {waiting ? (
           <em className="wait">{t('router.statusWaiting', { count: waiting })}</em>
@@ -69,9 +75,13 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
           <em>{t('router.statusWorking', { count: working })}</em>
         ) : null}
       </span>
+      {/* The project's Router speaks on this line, so it carries the Router's owl. */}
       <span className={busy ? 'map-project-line busy' : 'map-project-line'}>
-        {busy ? <LoaderIcon size={12} className="animate-spin" aria-hidden /> : null}
-        {busy ? t('router.working') : (routerLine(project) ?? t('map.notStarted'))}
+        <OwlAvatar speaker="router" />
+        <span>
+          {busy ? <LoaderIcon size={12} className="animate-spin" aria-hidden /> : null}
+          {busy ? t('router.working') : (routerLine(project) ?? t('map.notStarted'))}
+        </span>
       </span>
       {enter}
     </>
@@ -141,7 +151,11 @@ function WorkerBody({ node, now }: { node: WorkerNode; now: number }) {
   return (
     <>
       <span className="map-worker-head">
-        <WorkerDot worker={worker} />
+        {/* The provider's owl, badged with the worker's state. */}
+        <span className="map-worker-avatar">
+          <OwlAvatar speaker={worker.provider} />
+          <WorkerDot worker={worker} />
+        </span>
         <span className="map-worker-title">{workerTitle(worker)}</span>
         <span className="map-time">{t(`map.age.${age.unit}`, { count: age.value })}</span>
       </span>

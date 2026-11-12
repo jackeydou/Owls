@@ -1,11 +1,15 @@
 :root {
   --owl-map-bg: #ffffff;
   --owl-map-dot: #1a1c1f12;
+  --owl-map-node-border: color-mix(in oklch, var(--color-foreground) 11%, transparent);
+  --owl-map-node-shadow: 0 1px 2px rgb(16 18 22 / 5%), 0 4px 14px -6px rgb(16 18 22 / 10%);
   --owl-map-move: 340ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 [data-theme="dark"] {
   --owl-map-bg: #0d0d0d;
   --owl-map-dot: #ffffff14;
+  --owl-map-node-border: #ffffff1f;
+  --owl-map-node-shadow: 0 1px 2px rgb(0 0 0 / 40%);
 }
 .map-view {
   position: relative;
@@ -167,19 +171,24 @@
 .map-node.dim {
   opacity: 0.32;
 }
+/* Every card on the canvas shares one surface; a project's hue stays on its icon and branches. */
 .map-node.root {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   border-radius: 50%;
-  background: var(--color-foreground);
-  color: var(--color-card);
+  background: var(--color-card);
+  box-shadow:
+    inset 0 0 0 1px var(--owl-map-node-border),
+    var(--owl-map-node-shadow);
+  color: var(--color-foreground);
 }
 .map-node.root img {
-  width: 20px;
-  height: 22px;
+  width: 46px;
+  height: 34px;
+  border-radius: 7px;
   object-fit: contain;
 }
 .map-node.root strong {
@@ -188,35 +197,70 @@
   line-height: 1.3;
 }
 .map-node.root small {
+  color: var(--color-muted-foreground);
   font-size: 10px;
-  opacity: 0.7;
 }
 .map-node.project {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 10px 12px;
-  border-radius: 13px;
-  background: color-mix(in oklch, var(--owl-c) 13%, var(--color-card));
-  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--owl-c) 34%, transparent);
+  gap: 6px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--color-card);
+  box-shadow:
+    inset 0 0 0 1px var(--owl-map-node-border),
+    var(--owl-map-node-shadow);
+}
+.map-node.project:hover {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--owl-c) 55%, transparent),
+    var(--owl-map-node-shadow);
 }
 .map-node.project[aria-selected="true"] {
-  box-shadow: inset 0 0 0 2px var(--owl-c);
+  box-shadow:
+    inset 0 0 0 1.5px var(--owl-c),
+    var(--owl-map-node-shadow);
 }
 .map-node.project.quiet {
   justify-content: center;
-  padding: 0 12px;
-  background: var(--color-card);
+  padding: 0 10px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--owl-map-node-border);
 }
 .map-node.project.quiet strong {
   color: var(--color-muted-foreground);
   font-size: 13px;
   font-weight: 500;
 }
+.map-node.project .owls-project-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  align-self: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--owl-c) 16%, transparent);
+  color: var(--owl-c);
+  font-size: 12px;
+  font-weight: 600;
+}
+.map-node.project .owls-project-icon.emoji {
+  font-size: 13px;
+}
+.map-node.project .owls-project-icon.image {
+  background: transparent;
+}
+.map-node.project.quiet .owls-project-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.8;
+}
 .map-project-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  min-height: 22px;
   min-width: 0;
 }
 .map-project-head strong {
@@ -240,15 +284,28 @@
   font-weight: 550;
 }
 .map-project-line {
-  display: -webkit-box;
-  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
   color: var(--color-muted-foreground);
   font-size: 11.5px;
   line-height: 1.45;
+}
+.map-project-line .owls-owl-avatar {
+  width: 18px;
+  height: 18px;
+  margin-top: -1px;
+  flex: none;
+}
+.map-project-line > span {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
-.map-project-line.busy {
+.map-project-line.busy > span {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -283,8 +340,9 @@
 .map-node.worker.live,
 .map-node.worker.wait,
 .map-node.worker.bad {
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--owl-map-node-border);
   background: var(--color-card);
+  box-shadow: var(--owl-map-node-shadow);
 }
 .map-node.worker.live:hover {
   border-color: var(--owl-c);
@@ -322,6 +380,36 @@
   gap: 7px;
   min-width: 0;
 }
+.map-worker-avatar {
+  position: relative;
+  display: grid;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+.map-worker-avatar .owls-owl-avatar {
+  width: 20px;
+  height: 20px;
+}
+.map-node.worker.ended .owls-owl-avatar {
+  opacity: 0.7;
+  filter: grayscale(0.4);
+}
+/* The state dot sits on the owl's lower right, ringed in the card color. */
+.map-worker-avatar .router-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -1px;
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 0 0 1.5px var(--color-card);
+}
+.map-node.worker.ended .map-worker-avatar .router-dot {
+  box-shadow: 0 0 0 1.5px var(--color-card-muted);
+}
+.map-worker-avatar .router-dot.queue {
+  background: var(--color-card);
+}
 .map-worker-title {
   flex: 1;
   min-width: 0;
@@ -338,7 +426,7 @@
 }
 .map-worker-line {
   display: block;
-  margin: 1px 0 0 14px;
+  margin: 1px 0 0 27px;
   overflow: hidden;
   color: var(--color-muted-foreground);
   font-size: 11px;

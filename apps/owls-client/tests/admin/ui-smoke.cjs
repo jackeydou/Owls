@@ -340,7 +340,6 @@ app
       // First run opens on the guide, without the thread or its editor.
       await waitFor("Boolean(document.querySelector('.router-guide-option'))")
       assert.equal(await evaluate("Boolean(document.querySelector('.router-editor'))"), false)
-      assert.equal(await evaluate("Boolean(document.querySelector('.router-status'))"), false)
       await capture('router-guide')
       assert.equal(
         await evaluate("Boolean(document.querySelector('#router-provider'))"),
@@ -565,12 +564,14 @@ app
       await evaluate(
         `${sidebarHandle}.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))`
       )
-      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 240)
-      assert.equal(await evaluate("document.querySelector('.router-sidebar').offsetWidth"), 240)
+      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 280)
+      assert.equal(await evaluate("document.querySelector('.router-sidebar').offsetWidth"), 280)
       await evaluate(
         `${sidebarHandle}.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`
       )
-      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 224)
+      // Back at the default, the width is saved as null so it follows future defaults.
+      await waitFor(() => host.snapshot().settings.layout.sidebarWidth === null)
+      assert.equal(await evaluate("document.querySelector('.router-sidebar').offsetWidth"), 264)
       await evaluate("document.querySelector('.router-editor .router-draft-input').focus()")
       const editorFocused =
         "document.activeElement === document.querySelector('.router-editor .router-draft-input')"
@@ -678,10 +679,6 @@ app
       // The message that waited for a working engine goes out without being sent again.
       await waitFor(() => routerStore.events(routerState.id, 'pending').length === 0)
       await waitFor(() => host.snapshot().routers[0].status !== 'running')
-      await evaluate('document.querySelector(\'[aria-label="协调者详情"]\').click()')
-      await waitFor("document.querySelector('.router-model')?.textContent.includes('Codex')")
-      await press('Escape')
-      await waitFor("!document.querySelector('.router-panel')")
 
       // From here a scripted engine plays the Router so the worker flows run for real.
       await startScriptedRouter()
@@ -721,9 +718,6 @@ app
       await waitFor("Boolean(document.querySelector('.router-tray .owls-request'))")
       assert.ok(await evaluate("Boolean(document.querySelector('.router-directed'))"))
       assert.equal(await evaluate("Boolean(document.querySelector('.router-target'))"), false)
-      assert.ok(
-        await evaluate("document.querySelector('.router-status').textContent.includes('1 个等你')")
-      )
       assert.equal(batches(), before)
       assert.ok(
         await evaluate(

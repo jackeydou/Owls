@@ -16,8 +16,8 @@ export function usePaneWidth(
   const stored = useAppStore((s) => s.settings.layout[paneWidthKey[pane]])
   const setPaneWidth = useAppStore((s) => s.setPaneWidth)
   const [draft, setDraft] = useState<number | null>(null)
-  const width = draft ?? stored
   const { min, max, initial } = paneWidthBounds[pane]
+  const width = draft ?? stored ?? initial
   return {
     width,
     handle: {
