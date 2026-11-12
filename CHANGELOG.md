@@ -11,6 +11,18 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1100-beta.3
+
+### Highlights
+
+- Pick a thread's project by typing @ in the editor instead of choosing from a dropdown.
+
+### Changes
+
+- Router: new threads no longer preset a project; type @ in the editor to pick one. (#65)
+
+### Fixes
+
 ## 2026.11.1100-beta.2
 
 ### Highlights
