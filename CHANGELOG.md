@@ -11,6 +11,22 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1100-beta.2
+
+### Highlights
+
+- Router replies and worker activity show pixel-art owl avatars for the Router, Claude Code, and Codex.
+- A popup offers to restart into a downloaded update.
+
+### Changes
+
+- Appearance: light theme now uses a pure white main area and a near-white sidebar instead of light gray. (#66)
+- Settings: select dropdowns get an inset chevron and a styled popover with a checkmark. (#68)
+- Updates: a bottom-right popup offers to restart into a downloaded update, and can be hidden. (#67)
+- Chat: Router replies and worker activity show pixel-art owl avatars, one each for the Router, Claude Code, and Codex. (#69)
+
+### Fixes
+
 ## 2026.11.1100-beta.1
 
 ### Highlights
