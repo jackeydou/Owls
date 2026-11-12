@@ -585,16 +585,6 @@ html.pane-resizing * {
   position: relative;
   min-width: 0;
 }
-.router-row-body > .router-row-action {
-  position: absolute;
-  top: 0;
-  right: 0;
-  opacity: 0;
-}
-.router-row:hover .router-row-action,
-.router-row-action:focus-visible {
-  opacity: 1;
-}
 .router-forwarded {
   margin: 6px 0 0;
   padding: 8px 12px;
@@ -726,16 +716,34 @@ html.pane-resizing * {
 .router-row .owls-message-label {
   display: none;
 }
+/* A row's actions (Copy, Forward) float together as one small toolbar at its top right. */
 .router-row .owls-message-actions {
   position: absolute;
-  top: 0;
+  top: -4px;
   right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
   margin: 0;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-card-elevated);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.06);
   opacity: 0;
+  pointer-events: none;
 }
 .router-row:hover .owls-message-actions,
 .router-row .owls-message-actions:focus-within {
-  opacity: 0.55;
+  opacity: 1;
+  pointer-events: auto;
+}
+.router-row .owls-message-actions button {
+  color: var(--color-muted-foreground);
+}
+.router-row .owls-message-actions button:hover {
+  color: var(--color-foreground);
 }
 .router-row .router-dispatch {
   margin: 0;
