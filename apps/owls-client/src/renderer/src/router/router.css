@@ -5,6 +5,9 @@
   --owl-wait-border: #c3964052;
   --owl-bad: #c9302c;
   --owl-queue: #1a1c1f59;
+  --owl-tag-bg: #e5f3ff;
+  --owl-tag-bg-hover: #d2e9ff;
+  --owl-tag-fg: #0b5cad;
   --owl-hue-1: oklch(0.56 0.15 262);
   --owl-hue-2: oklch(0.56 0.15 310);
   --owl-hue-3: oklch(0.58 0.15 215);
@@ -24,6 +27,9 @@ html[data-platform="darwin"] {
   --owl-wait-border: #e8b04a47;
   --owl-bad: #ff6764;
   --owl-queue: #ffffff59;
+  --owl-tag-bg: #0285ff26;
+  --owl-tag-bg-hover: #0285ff3d;
+  --owl-tag-fg: #8cc8ff;
   --owl-hue-1: oklch(0.74 0.12 262);
   --owl-hue-2: oklch(0.74 0.12 310);
   --owl-hue-3: oklch(0.76 0.11 215);
@@ -452,25 +458,36 @@ html.pane-resizing * {
   border: 1.5px solid var(--owl-queue);
   background: transparent;
 }
+/* A light-blue tag that sits on the text baseline: the label carries the baseline, the dot
+   centers on it, and the vertical padding stays inside the line box. */
 .router-worker-link {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-items: baseline;
+  gap: 5px;
   max-width: 100%;
+  padding: 1px 6px;
   border-radius: 5px;
+  background: var(--owl-tag-bg);
+  color: var(--owl-tag-fg);
   font-weight: 500;
+  line-height: var(--owl-leading-tight);
   vertical-align: baseline;
+  transition: background-color 120ms ease;
+}
+.router-worker-link:hover {
+  background: var(--owl-tag-bg-hover);
+}
+.router-worker-link:focus-visible {
+  outline: 2px solid var(--color-owls-blue-300);
+  outline-offset: 1px;
+}
+.router-worker-link > .router-dot {
+  align-self: center;
 }
 .router-worker-link > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-decoration: underline;
-  text-decoration-color: var(--color-border-strong);
-  text-underline-offset: 3px;
-}
-.router-worker-link:hover > span {
-  text-decoration-color: currentColor;
 }
 .router-dispatch {
   margin: 16px 0;
