@@ -252,11 +252,11 @@ function AppearancePane() {
                   type="radio"
                   name="owls-app-logo"
                   className="sr-only"
+                  aria-label={t(`appLogo.${logo}`)}
                   checked={settings.appLogo === logo}
                   onChange={() => void saveSettings({ ...settings, appLogo: logo })}
                 />
                 <img src={appLogoIcons[logo]} alt="" />
-                <span>{t(`appLogo.${logo}`)}</span>
               </label>
             ))}
           </div>

@@ -127,6 +127,16 @@ test('the device id is made once and kept across restarts', (t) => {
   assert.equal(again.store.deviceId, first.store.deviceId)
 })
 
+test('settings saved with a logo that no longer exists load with the default logo', (t) => {
+  const path = join(tempDir(t), 'owls.db')
+  const first = openStore(t, path)
+  first.store.saveSettings({ ...first.store.settings(), appLogo: 'trio-night' })
+  assert.equal(first.store.settings().appLogo, 'trio-night')
+  first.client.prepare("UPDATE settings SET value = json_set(value, '$.appLogo', 'solid')").run()
+  first.client.close()
+  assert.equal(openStore(t, path).store.settings().appLogo, 'duo-white')
+})
+
 test('saves log each record under the next device sequence, apart from the change version', (t) => {
   const { store, client } = openStore(t, join(tempDir(t), 'owls.db'))
   const routers = new RouterStore(store)

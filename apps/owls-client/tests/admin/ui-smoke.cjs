@@ -402,11 +402,11 @@ app
       await waitFor("document.querySelector('.owls-settings-content h2')?.textContent === '外观'")
       assert.equal(host.snapshot().settings.language, 'zh-CN')
       assert.equal(host.snapshot().settings.theme, 'dark')
-      assert.equal(host.snapshot().settings.appLogo, 'solid')
+      assert.equal(host.snapshot().settings.appLogo, 'duo-white')
       await evaluate(
-        "[...document.querySelectorAll('input[name=owls-app-logo]')].length === 3 && document.querySelectorAll('input[name=owls-app-logo]')[0].click()"
+        "[...document.querySelectorAll('input[name=owls-app-logo]')].length === 9 && document.querySelectorAll('input[name=owls-app-logo]')[1].click()"
       )
-      await waitFor(() => host.snapshot().settings.appLogo === 'line')
+      await waitFor(() => host.snapshot().settings.appLogo === 'duo-night')
       await capture('settings')
       await settingsTab('Codex')
       await waitFor("document.body.textContent.includes('导入并使用本地 Codex 登录')")

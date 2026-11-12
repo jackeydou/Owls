@@ -196,17 +196,14 @@
 }
 .owls-logo-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, max-content);
   gap: 8px;
 }
 .owls-logo-option {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  padding: 6px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  font-size: var(--owl-text-xs);
+  border-radius: 10px;
   cursor: pointer;
 }
 .owls-logo-option:has(input:checked) {
@@ -217,9 +214,8 @@
   outline-offset: 2px;
 }
 .owls-logo-option img {
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
+  width: 40px;
+  height: 40px;
 }
 /* The Dock artwork keeps Apple's icon margin, which reads as undersized inside the app. */
 .owls-logo-option img,
