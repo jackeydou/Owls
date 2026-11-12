@@ -1,0 +1,1 @@
+- Chat: Router replies and worker activity show pixel-art owl avatars, one each for the Router, Claude Code, and Codex. (#69)

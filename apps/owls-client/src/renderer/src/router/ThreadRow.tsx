@@ -1,6 +1,6 @@
 import { UserIcon } from '@renderer/components/ui/icons'
 import type { ReactNode } from 'react'
-import { AppLogoMark } from '../app/AppLogo'
+import { OwlAvatar } from '../app/OwlAvatar'
 
 export type ThreadSpeaker = 'router' | 'user'
 
@@ -17,7 +17,11 @@ export function ThreadRow({
   return (
     <div className={`router-row ${speaker}${follows ? ' follows' : ''}`}>
       <div className="router-row-avatar" aria-hidden="true">
-        {follows ? null : speaker === 'router' ? <AppLogoMark /> : <UserIcon size={14} />}
+        {follows ? null : speaker === 'router' ? (
+          <OwlAvatar speaker="router" />
+        ) : (
+          <UserIcon size={14} />
+        )}
       </div>
       <div className="router-row-body">{children}</div>
     </div>

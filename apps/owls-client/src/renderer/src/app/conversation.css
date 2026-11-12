@@ -21,14 +21,10 @@
   font-size: var(--owl-text-xs);
   font-weight: 500;
 }
-.owls-agent-mark {
-  height: 21px;
-  width: 21px;
-  border: 1px solid var(--color-border);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
+.owls-owl-avatar {
+  width: 24px;
+  height: 24px;
+  flex: none;
 }
 .owls-markdown {
   line-height: var(--owl-leading-relaxed);

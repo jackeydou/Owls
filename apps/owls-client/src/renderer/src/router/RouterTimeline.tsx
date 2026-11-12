@@ -179,6 +179,7 @@ export function RouterTimeline({
                   <ConversationItem
                     item={entry.item}
                     agent={t('router.agent')}
+                    speaker="router"
                     markdown={workerMarkdown}
                   />
                 )}

@@ -16,6 +16,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Streamdown, type StreamdownProps } from 'streamdown'
 import type { AgentRequest, SessionItem } from '../../../shared/app'
+import { type AgentSpeaker, OwlAvatar } from './OwlAvatar'
 import { useAppStore } from './store'
 
 const plugins = { code }
@@ -27,10 +28,12 @@ export type MarkdownExtension = Pick<
 export function ConversationItem({
   item,
   agent,
+  speaker,
   markdown
 }: {
   item: SessionItem
   agent: string
+  speaker: AgentSpeaker
   markdown?: MarkdownExtension
 }) {
   const { t } = useTranslation()
@@ -40,9 +43,7 @@ export function ConversationItem({
     return (
       <article className="owls-assistant-message">
         <div className="owls-message-label">
-          <span className="owls-agent-mark">
-            <TerminalIcon size={12} />
-          </span>
+          <OwlAvatar speaker={speaker} />
           {agent}
         </div>
         <div className="owls-markdown">
