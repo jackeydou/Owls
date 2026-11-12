@@ -51,7 +51,7 @@ function ForwardedMessage({ item }: { item: SessionItem }) {
           disabled={!origin}
           onClick={() => origin && showThread(origin.routerId)}
         >
-          <ForwardIcon size={12} aria-hidden />
+          <ForwardIcon size={14} aria-hidden />
           {t('forward.from', { title: origin?.title ?? t('thread.untitled') })}
         </button>
         <p>{item.text}</p>
@@ -68,7 +68,7 @@ function ForwardAction({ item, router }: { item: SessionItem; router: Router }) 
       size="sm"
       label={t('forward.action')}
       tooltip={t('forward.action')}
-      icon={<ForwardIcon size={13} />}
+      icon={<ForwardIcon size={15} />}
       onClick={() =>
         startForward({
           source: { kind: 'item', routerId: router.id, itemId: item.id },
@@ -155,7 +155,7 @@ export function RouterTimeline({
         <div className="owls-conversation" ref={content}>
           {router?.itemCount && !loaded ? (
             <div className="owls-working" role="status">
-              <LoaderIcon size={13} className="animate-spin" />
+              <LoaderIcon size={15} className="animate-spin" />
               {t('thread.loading')}
             </div>
           ) : null}
@@ -197,13 +197,13 @@ export function RouterTimeline({
           {router && running ? (
             <ThreadRow speaker="router" follows={lastEntrySpeaker === 'router'}>
               <div className="owls-working" role="status">
-                <LoaderIcon size={13} className="animate-spin" />
+                <LoaderIcon size={15} className="animate-spin" />
                 {t('router.working')}
                 <IconButton
                   size="sm"
                   label={t('router.stop')}
                   tooltip={t('router.stop')}
-                  icon={<StopIcon size={11} />}
+                  icon={<StopIcon size={12} />}
                   onClick={() => void interrupt(router.id)}
                 />
               </div>
@@ -211,7 +211,7 @@ export function RouterTimeline({
           ) : null}
           {router?.unknownBatches.map((batch) => (
             <div className="owls-inline-error router-unknown-batch" role="alert" key={batch.id}>
-              <AlertCircleIcon size={15} />
+              <AlertCircleIcon size={17} />
               <span>{t('router.unknownBatch', { count: batch.events })}</span>
               <Button
                 size="sm"
@@ -231,7 +231,7 @@ export function RouterTimeline({
           ))}
           {router?.error && !isSetupFailure(router.error) ? (
             <div className="owls-inline-error" role="alert">
-              <AlertCircleIcon size={15} />
+              <AlertCircleIcon size={17} />
               <span>{failureMessage(router.error)}</span>
             </div>
           ) : null}

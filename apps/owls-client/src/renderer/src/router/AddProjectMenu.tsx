@@ -76,7 +76,7 @@ export function AddProjectMenu() {
         <Tooltip>
           <TooltipTrigger asChild>
             <MenuTrigger asChild>
-              <IconButton size="sm" label={t('addProject')} icon={<PlusIcon size={14} />} />
+              <IconButton size="sm" label={t('addProject')} icon={<PlusIcon size={16} />} />
             </MenuTrigger>
           </TooltipTrigger>
           <TooltipContent side="bottom">{t('addProject')}</TooltipContent>
@@ -89,15 +89,15 @@ export function AddProjectMenu() {
           }}
         >
           <MenuItem onSelect={() => void pickProject()}>
-            <FolderOpenIcon size={15} aria-hidden />
+            <FolderOpenIcon size={17} aria-hidden />
             {t('project.add.open')}
           </MenuItem>
           <MenuItem onSelect={() => open('github')}>
-            <GlobeIcon size={15} aria-hidden />
+            <GlobeIcon size={17} aria-hidden />
             {t('project.add.github')}
           </MenuItem>
           <MenuItem onSelect={() => open('quick')}>
-            <FolderPlusIcon size={15} aria-hidden />
+            <FolderPlusIcon size={17} aria-hidden />
             {t('project.add.quick')}
           </MenuItem>
           {recents.length ? (
@@ -107,7 +107,7 @@ export function AddProjectMenu() {
                 <MenuLabel>{t('project.add.recents')}</MenuLabel>
                 {recents.map((project) => (
                   <MenuItem key={project.id} onSelect={() => showChat(project.id)}>
-                    <FolderIcon size={15} aria-hidden />
+                    <FolderIcon size={17} aria-hidden />
                     <span className="truncate">{project.name}</span>
                   </MenuItem>
                 ))}
@@ -219,7 +219,7 @@ function NewProjectDialog({ source, onClose }: { source: Source; onClose: () => 
             {t('forward.cancel')}
           </Button>
           <Button type="submit" size="sm" disabled={!valid || busy}>
-            {busy ? <LoaderIcon size={13} className="animate-spin" aria-hidden /> : null}
+            {busy ? <LoaderIcon size={15} className="animate-spin" aria-hidden /> : null}
             {t(busy ? `project.${source}.busy` : `project.${source}.submit`)}
           </Button>
         </footer>

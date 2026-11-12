@@ -1,10 +1,5 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import {
-  AlertCircleIcon,
-  PanelLeftCloseIcon,
-  PanelLeftOpenIcon,
-  XIcon
-} from '@renderer/components/ui/icons'
+import { AlertCircleIcon, SidebarLeftIcon, XIcon } from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -58,12 +53,12 @@ function ActionError() {
   if (!error) return null
   return (
     <div className="owls-error-toast" role="alert">
-      <AlertCircleIcon size={16} />
+      <AlertCircleIcon size={18} />
       <span>{failureMessage(error)}</span>
       <IconButton
         size="sm"
         label={t('dismissError')}
-        icon={<XIcon size={14} />}
+        icon={<XIcon size={16} />}
         onClick={clearError}
       />
     </div>
@@ -132,7 +127,7 @@ export function RouterShell() {
         label={sidebarLabel}
         tooltip={sidebarLabel}
         tooltipSide="bottom"
-        icon={collapsed ? <PanelLeftOpenIcon size={16} /> : <PanelLeftCloseIcon size={16} />}
+        icon={<SidebarLeftIcon size={18} />}
         onClick={toggleSidebar}
       />
       <ForwardDialog />

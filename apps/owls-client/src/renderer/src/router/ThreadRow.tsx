@@ -20,7 +20,7 @@ export function ThreadRow({
         {follows ? null : speaker === 'router' ? (
           <OwlAvatar speaker="router" />
         ) : (
-          <UserIcon size={14} />
+          <UserIcon size={16} />
         )}
       </div>
       <div className="router-row-body">{children}</div>

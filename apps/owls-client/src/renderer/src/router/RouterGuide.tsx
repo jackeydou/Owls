@@ -50,7 +50,7 @@ function GuideOption({
       </span>
       {ready ? (
         <em>
-          <CheckIcon size={13} />
+          <CheckIcon size={15} />
           {t('router.guideConnected')}
         </em>
       ) : null}
@@ -98,7 +98,7 @@ function AgentConnect({ provider, body }: { provider: AgentProvider; body: strin
       ) : null}
       <div className="router-guide-actions">
         <Button size="sm" disabled={busy} onClick={() => void connect()}>
-          {busy ? <LoaderIcon size={14} className="animate-spin" /> : null}
+          {busy ? <LoaderIcon size={16} className="animate-spin" /> : null}
           {t('router.guideConnect', { agent: t(`agent.${provider}`) })}
         </Button>
         <Button size="sm" variant="outline" onClick={() => showSettings(provider)}>

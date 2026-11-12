@@ -310,7 +310,7 @@ function InstructionRow({
         aria-controls={open ? fieldId : undefined}
         onClick={() => setOpen(!open)}
       >
-        {open ? <ChevronDownIcon size={15} /> : <ChevronRightIcon size={15} />}
+        {open ? <ChevronDownIcon size={17} /> : <ChevronRightIcon size={17} />}
       </Button>
     </SettingRow>
   )

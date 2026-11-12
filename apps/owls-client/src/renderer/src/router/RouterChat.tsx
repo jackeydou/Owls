@@ -53,7 +53,7 @@ export function RouterChat() {
               className="owls-bar-button"
               label={t('router.details')}
               tooltip={t('router.details')}
-              icon={<InfoIcon size={16} />}
+              icon={<InfoIcon size={18} />}
               onClick={() => showPanel({ kind: 'router', routerId: router.id })}
             />
           ) : null}

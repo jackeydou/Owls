@@ -154,7 +154,7 @@ export function MemoryRow({
       <div className="memory-row-text">
         <p>
           {memory.pinned ? (
-            <PinIcon size={12} className="memory-pin" aria-label={t('memory.pinnedLabel')} />
+            <PinIcon size={14} className="memory-pin" aria-label={t('memory.pinnedLabel')} />
           ) : null}
           {memory.text}
         </p>
@@ -183,7 +183,7 @@ export function MemoryRow({
         <div className="memory-row-actions">
           <IconButton
             size="custom"
-            icon={memory.pinned ? <PinOffIcon size={13} /> : <PinIcon size={13} />}
+            icon={memory.pinned ? <PinOffIcon size={15} /> : <PinIcon size={15} />}
             label={memory.pinned ? t('memory.unpin') : t('memory.pin')}
             tooltip={memory.pinned ? t('memory.unpin') : t('memory.pin')}
             onClick={() =>
@@ -197,14 +197,14 @@ export function MemoryRow({
           />
           <IconButton
             size="custom"
-            icon={<PencilIcon size={13} />}
+            icon={<PencilIcon size={15} />}
             label={t('memory.edit')}
             tooltip={t('memory.edit')}
             onClick={() => setEditing(true)}
           />
           <IconButton
             size="custom"
-            icon={<TrashIcon size={13} />}
+            icon={<TrashIcon size={15} />}
             label={t('memory.delete')}
             tooltip={t('memory.delete')}
             onClick={() => setDeleting(true)}

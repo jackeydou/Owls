@@ -49,7 +49,7 @@ export function RouterComposer({
               className="owls-stop"
               label={t('router.stop')}
               tooltip={t('router.stop')}
-              icon={<StopIcon size={13} />}
+              icon={<StopIcon size={15} />}
               onClick={() => void interrupt(router.id)}
             />
           ) : null}
@@ -60,9 +60,9 @@ export function RouterComposer({
             tooltip={t(addressed ? 'router.sendWorker' : 'router.send')}
             icon={
               sending ? (
-                <LoaderIcon size={16} className="animate-spin" />
+                <LoaderIcon size={18} className="animate-spin" />
               ) : (
-                <ArrowUpIcon size={17} />
+                <ArrowUpIcon size={19} />
               )
             }
             disabled={!projectId || empty || sending}

@@ -1,0 +1,1 @@
+- Icons: app icons now use IconMCP's thin stroke and are slightly larger, and the sidebar toggles use plain sidebar icons. (#77)

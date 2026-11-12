@@ -69,7 +69,7 @@ function ExecutableRow({
       }
     >
       <Button size="sm" variant="outline" disabled={disabled} onClick={onBrowse}>
-        <FolderOpenIcon size={14} />
+        <FolderOpenIcon size={16} />
         {t('browse')}
       </Button>
     </SettingRow>
@@ -115,7 +115,7 @@ export function ClaudeSettingsPane() {
           disabled={busy || running}
           onClick={() => void connectClaude()}
         >
-          {busy ? <LoaderIcon size={14} className="animate-spin" /> : <RefreshIcon size={14} />}
+          {busy ? <LoaderIcon size={16} className="animate-spin" /> : <RefreshIcon size={16} />}
           {busy ? t('connectingClaude') : t('useLocalClaude')}
         </Button>
       </SettingRow>
@@ -137,7 +137,7 @@ export function ClaudeSettingsPane() {
       <p className="owls-note">
         {t('claudeInstallHelp')}{' '}
         <a href="https://code.claude.com/docs/en/setup" target="_blank" rel="noreferrer">
-          {t('installLink')} <ExternalLinkIcon size={11} />
+          {t('installLink')} <ExternalLinkIcon size={12} />
         </a>
       </p>
     </AgentPane>
@@ -213,7 +213,7 @@ export function AgentSettingsPane() {
           ) : null}
           {connected && account.kind === 'signed-out' ? (
             <Button size="sm" variant="outline" disabled={signingIn} onClick={() => void signIn()}>
-              {signingIn ? <LoaderIcon size={14} className="animate-spin" /> : null}
+              {signingIn ? <LoaderIcon size={16} className="animate-spin" /> : null}
               {signingIn ? t('signingIn') : t('signIn')}
             </Button>
           ) : null}
@@ -223,7 +223,7 @@ export function AgentSettingsPane() {
             disabled={busy || running}
             onClick={() => void connect()}
           >
-            {busy ? <LoaderIcon size={14} className="animate-spin" /> : <RefreshIcon size={14} />}
+            {busy ? <LoaderIcon size={16} className="animate-spin" /> : <RefreshIcon size={16} />}
             {busy ? t('importing') : t('useLocal')}
           </Button>
         </div>
@@ -245,7 +245,7 @@ export function AgentSettingsPane() {
       <p className="owls-note">
         {t('installHelp')}{' '}
         <a href="https://developers.openai.com/codex/cli" target="_blank" rel="noreferrer">
-          {t('installLink')} <ExternalLinkIcon size={11} />
+          {t('installLink')} <ExternalLinkIcon size={12} />
         </a>
       </p>
     </AgentPane>

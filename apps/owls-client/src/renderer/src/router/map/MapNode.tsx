@@ -43,7 +43,7 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
       onClick={() => showChat(node.projectId)}
     >
       {t('map.enter')}
-      <ArrowRightIcon size={11} aria-hidden />
+      <ArrowRightIcon size={12} aria-hidden />
     </button>
   )
   if (!project || node.quiet)
@@ -70,7 +70,7 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
         ) : null}
       </span>
       <span className={busy ? 'map-project-line busy' : 'map-project-line'}>
-        {busy ? <LoaderIcon size={11} className="animate-spin" aria-hidden /> : null}
+        {busy ? <LoaderIcon size={12} className="animate-spin" aria-hidden /> : null}
         {busy ? t('router.working') : (routerLine(project) ?? t('map.notStarted'))}
       </span>
       {enter}
@@ -230,7 +230,7 @@ export const MapNodeView = memo(function MapNodeView({
         <WorkerBody node={node} now={now} />
       ) : node.kind === 'done' ? (
         <>
-          {node.open ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />}
+          {node.open ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
           <span>{t('map.done', { count: node.count })}</span>
         </>
       ) : (

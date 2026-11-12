@@ -261,7 +261,7 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
               valid.success && void saveRouter({ ...settings.router, owls: valid.data })
             }
           >
-            <CheckIcon size={14} />
+            <CheckIcon size={16} />
             {t('routerSettings.saveModel')}
           </Button>
         </div>
@@ -299,14 +299,14 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
             disabled={!valid.success || keyMissing || savingKey}
             onClick={() => void finish()}
           >
-            {savingKey ? <LoaderIcon size={14} className="animate-spin" /> : null}
+            {savingKey ? <LoaderIcon size={16} className="animate-spin" /> : null}
             {t('router.guideContinue')}
           </Button>
         </div>
       ) : (
         <div className="owls-settings-actions">
           <Button size="sm" disabled={!key.trim() || savingKey} onClick={() => void saveKey()}>
-            {savingKey ? <LoaderIcon size={14} className="animate-spin" /> : <KeyIcon size={14} />}
+            {savingKey ? <LoaderIcon size={16} className="animate-spin" /> : <KeyIcon size={16} />}
             {t('routerSettings.saveKey')}
           </Button>
           {provider?.configured ? (

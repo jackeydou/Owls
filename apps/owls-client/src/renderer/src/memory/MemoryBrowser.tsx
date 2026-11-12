@@ -164,7 +164,7 @@ function CategoryNav() {
           <IconButton
             size="custom"
             className="memory-nav-more"
-            icon={<EllipsisIcon size={13} />}
+            icon={<EllipsisIcon size={15} />}
             label={t('memory.category.manage', { name: category.name })}
             tooltip={t('memory.category.manage', { name: category.name })}
             onClick={() => setManaging(category)}
@@ -180,7 +180,7 @@ function CategoryNav() {
           className="memory-nav-add"
           onClick={() => setAdding(true)}
         >
-          <PlusIcon size={13} aria-hidden />
+          <PlusIcon size={15} aria-hidden />
           {t('memory.category.add')}
         </Button>
       )}
@@ -278,7 +278,7 @@ function MemoryList() {
           disabled={!canAdd}
           onClick={() => setAdding(true)}
         >
-          <PlusIcon size={13} aria-hidden />
+          <PlusIcon size={15} aria-hidden />
           {t('memory.add')}
         </Button>
       )}
