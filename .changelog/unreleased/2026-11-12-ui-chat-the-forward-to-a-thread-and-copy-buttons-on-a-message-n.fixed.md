@@ -1,0 +1,1 @@
+- Chat: the Forward to a thread and Copy buttons on a message no longer stack on top of each other; they sit side by side in one hover toolbar. (#72)

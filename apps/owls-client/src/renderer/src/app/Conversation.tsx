@@ -12,7 +12,7 @@ import {
   WaypointsIcon
 } from '@renderer/components/ui/icons'
 import { code } from '@streamdown/code'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Streamdown, type StreamdownProps } from 'streamdown'
 import type { AgentRequest, SessionItem } from '../../../shared/app'
@@ -29,12 +29,15 @@ export function ConversationItem({
   item,
   agent,
   speaker,
-  markdown
+  markdown,
+  actions
 }: {
   item: SessionItem
   agent: string
   speaker: AgentSpeaker
   markdown?: MarkdownExtension
+  /** More buttons for the finished reply's action row, after Copy. */
+  actions?: ReactNode
 }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
@@ -69,6 +72,7 @@ export function ConversationItem({
                 void navigator.clipboard.writeText(item.text).then(() => setCopied(true))
               }}
             />
+            {actions}
           </div>
         ) : null}
       </article>

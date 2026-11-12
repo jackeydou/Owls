@@ -65,7 +65,6 @@ function ForwardAction({ item, router }: { item: SessionItem; router: Router }) 
   const startForward = useRouterStore((s) => s.startForward)
   return (
     <IconButton
-      className="router-row-action"
       size="sm"
       label={t('forward.action')}
       tooltip={t('forward.action')}
@@ -163,6 +162,10 @@ export function RouterTimeline({
           {entries.map((entry, index) => {
             const speaker = speakerOf(entry)
             const previous = entries[index - 1]
+            const forward =
+              router && 'item' in entry && canForward(entry.item) ? (
+                <ForwardAction item={entry.item} router={router} />
+              ) : null
             return (
               <ThreadRow
                 key={entry.id}
@@ -181,10 +184,12 @@ export function RouterTimeline({
                     agent={t('router.agent')}
                     speaker="router"
                     markdown={workerMarkdown}
+                    actions={forward}
                   />
                 )}
-                {router && 'item' in entry && canForward(entry.item) ? (
-                  <ForwardAction item={entry.item} router={router} />
+                {/* A reply has its own action row (Copy); everything else gets one here. */}
+                {forward && 'item' in entry && entry.item.kind !== 'assistant' ? (
+                  <div className="owls-message-actions">{forward}</div>
                 ) : null}
               </ThreadRow>
             )
