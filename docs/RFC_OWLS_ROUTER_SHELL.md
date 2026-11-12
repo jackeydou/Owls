@@ -46,8 +46,7 @@ Router/Worker 的运行时设计继续有效。
 | 层级 | 入口 | 内容 |
 | --- | --- | --- |
 | 对话（首页） | 打开应用，或双击项目节点 | 用户消息、Router 回复、派发组、审批托盘 |
-| 状态入口 | 标题栏右侧，常驻 | 实时缩略树和「2 个在工作 · 1 个等你」；所有项目都没有 Worker 时不显示 |
-| 全景 | `⌘J`、状态入口或项目栏顶部按钮 | 所有项目和 Worker，见第 3.1 节 |
+| 全景 | `⌘J` 或左侧栏的全景入口 | 所有项目和 Worker，见第 3.1 节 |
 | Worker 详情 | 点 Worker 节点或对话中的引用 | 右侧面板：活动、改动、汇报 |
 
 规则：
@@ -274,7 +273,6 @@ renderer/src/router/
   RouterGuide.tsx        首次进入的设置引导
   ThreadEditor.tsx       thread 末尾的编辑行
   ThreadRow.tsx          thread 的一行：头像和正文
-  StatusEntry.tsx        状态入口和缩略树
   WorkerDetail.tsx       活动、改动、汇报
   RouterDetail.tsx       引擎、模型、用量、保留的 worktree
   DiffView.tsx           从 App.tsx 的 Chat 中抽出

@@ -1,3 +1,4 @@
+export { layoutSettingsSchema } from '../../shared/app.js'
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
 export { parseGitHubRepo, saveProjectSchema } from '../../shared/projects.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'

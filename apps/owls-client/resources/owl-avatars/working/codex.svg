@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><clipPath id="c"><circle cx="256" cy="256" r="256"/></clipPath><style>
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 3.6s infinite}
+.eye.r{animation-delay:.02s}
+@keyframes blink{0%,46%,52%,100%{transform:scaleY(1)}49%{transform:scaleY(.08)}}
+.pupil{transform-box:fill-box;transform-origin:center}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+
+.bob{animation:bob .72s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+.pupil{animation:read 1.32s steps(1) infinite}
+@keyframes read{0%{transform:translate(-18px,30px)}33%{transform:translate(0,30px)}66%{transform:translate(18px,30px)}}
+.glow{animation:glow 1.32s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:.35}50%{opacity:1}}
+.wing{animation:tap .36s ease-in-out infinite}
+.wing.b{animation-delay:-.18s}
+@keyframes tap{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+</style></defs>
+<g clip-path="url(#c)">
+<rect width="512" height="512" fill="#2A2D33"/>
+<g class="bob"><g transform="translate(256 304) rotate(0) scale(1.16) translate(-256 -270)"><path d="M72 620 L72 290 C72 160 156 100 256 100 C356 100 440 160 440 290 L440 620 Z" fill="#fff" stroke="#151515" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M72 404 C112 424 134 476 134 620" fill="none" stroke="#151515" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M440 404 C400 424 378 476 378 620" fill="none" stroke="#151515" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M213 150 q9 9 18 0" fill="none" stroke="#151515" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M247 134 q9 9 18 0" fill="none" stroke="#151515" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M281 150 q9 9 18 0" fill="none" stroke="#151515" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M203 428 q15 16 30 0" fill="none" stroke="#151515" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M279 428 q15 16 30 0" fill="none" stroke="#151515" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M241 468 q15 16 30 0" fill="none" stroke="#151515" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M165 468 q15 16 30 0" fill="none" stroke="#151515" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M317 468 q15 16 30 0" fill="none" stroke="#151515" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<g class="eye l">
+<circle cx="180" cy="270" r="72" fill="#fff" stroke="#151515" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<circle class="pupil" cx="188" cy="276" r="24" fill="#151515"/>
+</g>
+<g class="eye r">
+<circle cx="332" cy="270" r="72" fill="#fff" stroke="#151515" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<circle class="pupil" cx="324" cy="276" r="24" fill="#151515"/>
+</g>
+<path d="M234 320 Q256 308 278 320 Q274 354 256 366 Q238 354 234 320 Z" fill="#151515" stroke="#151515" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+<g class="laptop">
+<ellipse class="wing" cx="190" cy="398" rx="30" ry="20" fill="#fff" stroke="#151515" stroke-width="14"/>
+<ellipse class="wing b" cx="322" cy="398" rx="30" ry="20" fill="#fff" stroke="#151515" stroke-width="14"/>
+<rect x="128" y="404" width="256" height="160" rx="20" fill="#3A3E46" stroke="#151515" stroke-width="16"/>
+<circle class="glow" cx="256" cy="470" r="16" fill="#9FE3A8"/>
+</g></g>
+</svg>

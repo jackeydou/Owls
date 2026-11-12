@@ -18,7 +18,7 @@ import { byAge, isWaitingOnUser, isWorking, projectHue, workerState, workerTitle
 import { ProjectIcon } from './ProjectIcon'
 import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
-import { WorkerDot } from './WorkerLink'
+import { WorkerAvatar } from './WorkerLink'
 
 function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: string }) {
   const { t } = useTranslation()
@@ -49,7 +49,7 @@ function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: str
               showPanel({ kind: 'worker', workerId: worker.id })
             }}
           >
-            <WorkerDot worker={worker} />
+            <WorkerAvatar worker={worker} />
             <span>{title}</span>
           </button>
         </TooltipTrigger>

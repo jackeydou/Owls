@@ -165,23 +165,32 @@ export const appLogoSchema = z.enum([
 export const defaultAppLogo = 'duo-white' satisfies z.infer<typeof appLogoSchema>
 /** Width bounds, in CSS pixels, for each pane the user can drag wider or narrower. */
 export const paneWidthBounds = {
-  sidebar: { min: 180, max: 420, initial: 224 },
-  projects: { min: 200, max: 440, initial: 260 },
+  sidebar: { min: 200, max: 440, initial: 264 },
+  projects: { min: 220, max: 480, initial: 304 },
   panel: { min: 360, max: 960, initial: 480 }
 } as const
 export type ResizablePane = keyof typeof paneWidthBounds
+/**
+ * Defaults that earlier builds wrote into every saved layout. A saved width equal to one of
+ * them was never chosen by dragging, so it reads as "use the current default".
+ */
+const legacyPaneDefaults = { sidebarWidth: 224, projectsWidth: 260 } as const
+/** A width the user dragged to, or null to follow the pane's current default. */
+const paneWidthSchema = z.number().int().positive().nullable()
+const followLegacyDefault = (legacy: number) =>
+  z.preprocess((value) => (value === legacy ? null : value), paneWidthSchema)
 export const layoutSettingsSchema = z.object({
-  sidebarWidth: z.number().int().positive(),
-  projectsWidth: z.number().int().positive(),
-  panelWidth: z.number().int().positive(),
+  sidebarWidth: followLegacyDefault(legacyPaneDefaults.sidebarWidth),
+  projectsWidth: followLegacyDefault(legacyPaneDefaults.projectsWidth),
+  panelWidth: paneWidthSchema,
   /** The right-hand Projects sidebar, opened from the title bar. */
   projectsOpen: z.boolean()
 })
 export type LayoutSettings = z.infer<typeof layoutSettingsSchema>
 export const defaultLayoutSettings: LayoutSettings = {
-  sidebarWidth: paneWidthBounds.sidebar.initial,
-  projectsWidth: paneWidthBounds.projects.initial,
-  panelWidth: paneWidthBounds.panel.initial,
+  sidebarWidth: null,
+  projectsWidth: null,
+  panelWidth: null,
   projectsOpen: false
 }
 export const settingsSchema = z.object({

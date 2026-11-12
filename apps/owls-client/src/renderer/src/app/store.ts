@@ -392,7 +392,9 @@ export const useAppStore = create<State>((set, get) => {
     },
     setPaneWidth: (pane, width) => {
       const { settings, saveSettings } = get()
-      const next = clampPaneWidth(pane, width)
+      const clamped = clampPaneWidth(pane, width)
+      // The default is saved as null, so a pane left at it follows later default changes.
+      const next = clamped === paneWidthBounds[pane].initial ? null : clamped
       const key = paneWidthKey[pane]
       if (settings.layout[key] === next) return
       const layout = { ...settings.layout, [key]: next }

@@ -1,7 +1,8 @@
 import { createContext, type ReactNode, useContext } from 'react'
 import type { RouterWorker } from '../../../shared/router'
 import type { MarkdownExtension } from '../app/Conversation'
-import { workerTitle, workerTone } from './activity'
+import { OwlAvatar } from '../app/OwlAvatar'
+import { isWorking, workerTitle, workerTone } from './activity'
 import { useRouterStore } from './store'
 
 /** The Router whose conversation is being rendered; a reference to any other worker is text. */
@@ -9,6 +10,15 @@ export const RouterIdContext = createContext<string | null>(null)
 
 export function WorkerDot({ worker }: { worker: RouterWorker }) {
   return <i className={`router-dot ${workerTone(worker)}`} aria-hidden />
+}
+/** The provider's owl, typing while the worker runs, badged with the worker's state. */
+export function WorkerAvatar({ worker }: { worker: RouterWorker }) {
+  return (
+    <span className="router-worker-avatar">
+      <OwlAvatar speaker={worker.provider} working={isWorking(worker)} />
+      <WorkerDot worker={worker} />
+    </span>
+  )
 }
 export function WorkerLink({ worker, children }: { worker: RouterWorker; children?: ReactNode }) {
   const showPanel = useRouterStore((s) => s.showPanel)

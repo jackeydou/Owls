@@ -42,7 +42,7 @@ export type WorkerMap = { nodes: MapNode[]; edges: MapEdge[]; sides: Map<string,
 export type WorkerSignal = { kind: 'report' | 'answer'; workerId: string; projectId: string }
 
 const ROOT_SIZE = 92
-const PROJECT = { width: 224, height: 92 }
+const PROJECT = { width: 224, height: 86 }
 const QUIET_PROJECT = { width: 150, height: 42 }
 const WORKER_WIDTH = 216
 const HEIGHT = { approval: 118, twoLines: 52, oneLine: 34 }
