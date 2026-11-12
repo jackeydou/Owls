@@ -1,103 +1,57 @@
-import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import {
   AlertCircleIcon,
+  CircleCheckIcon,
+  CircleDashedIcon,
+  CircleMinusIcon,
+  CircleXIcon,
   ForwardIcon,
   GitBranchIcon,
+  type IconComponent,
   LoaderIcon,
   StopIcon,
   TrashIcon,
   XIcon
 } from '@renderer/components/ui/icons'
-import { useState } from 'react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { AgentProvider, Session, SessionItem } from '../../../shared/app'
 import type { RouterWorker } from '../../../shared/router'
-import { ConversationItem, RequestCard } from '../app/Conversation'
-import { failureMessage } from '../app/failures'
 import { useAppStore } from '../app/store'
-import { canStop, openRequests, workerState, workerTitle } from './activity'
-import { DiffView } from './DiffView'
+import { canStop, type WorkerState, workerState, workerTitle } from './activity'
+import { DiffCounts, DiffView } from './DiffView'
+import { diffStats, parseDiff } from './diff'
 import { useRouterStore } from './store'
+import { WorkerConversation } from './WorkerConversation'
 import { WorkerGitHub } from './WorkerGitHub'
-import { WorkerDot } from './WorkerLink'
+import './worker-detail.css'
 
-const TABS = ['activity', 'changes', 'report'] as const
-type Tab = (typeof TABS)[number]
-
-/** A worker's `user` items came from the Router, so the user sees what it was actually told. */
-function ActivityItem({
-  item,
-  first,
-  agent,
-  provider
-}: {
-  item: SessionItem
-  first: boolean
-  agent: string
-  provider: AgentProvider
-}) {
-  const { t } = useTranslation()
-  if (item.kind !== 'user') return <ConversationItem item={item} agent={agent} speaker={provider} />
-  return (
-    <div className="router-brief">
-      <span>{t(first ? 'worker.dispatched' : 'worker.relayed')}</span>
-      <p>{item.text}</p>
-    </div>
-  )
+const STATE_ICONS: Record<WorkerState, IconComponent> = {
+  queued: CircleDashedIcon,
+  running: LoaderIcon,
+  waiting: AlertCircleIcon,
+  blocked: AlertCircleIcon,
+  needs_input: AlertCircleIcon,
+  done: CircleCheckIcon,
+  progress: CircleCheckIcon,
+  stopped: CircleMinusIcon,
+  failed: CircleXIcon
 }
-function Activity({ session }: { session: Session | undefined }) {
+/** The worker's state as one icon; its name is the tooltip and the accessible label. */
+function WorkerStateIcon({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
-  if (!session) return <p className="router-panel-empty">{t('worker.notStarted')}</p>
-  const agent = t(`agent.${session.provider}`)
-  const firstUser = session.items.find((i) => i.kind === 'user')
+  const state = workerState(worker)
+  const Icon = STATE_ICONS[state]
+  const label = t(`workerState.${state}`)
   return (
-    <>
-      {session.items.map((item) => (
-        <ActivityItem
-          key={item.id}
-          item={item}
-          first={item === firstUser}
-          agent={agent}
-          provider={session.provider}
-        />
-      ))}
-      {openRequests(session).map((request) => (
-        <RequestCard key={request.id} request={request} sessionId={session.id} agent={agent} />
-      ))}
-      {session.error ? (
-        <div className="owls-inline-error" role="alert">
-          <AlertCircleIcon size={15} />
-          <span>{failureMessage(session.error)}</span>
-        </div>
-      ) : null}
-    </>
-  )
-}
-function Report({ worker, projectPath }: { worker: RouterWorker; projectPath: string }) {
-  const { t } = useTranslation()
-  const { report } = worker
-  if (!report) return <p className="router-panel-empty">{t('worker.noReport')}</p>
-  // A path outside the project may be private, so only its name is shown (RFC section 6).
-  const artifact = (kind: string, ref: string) =>
-    kind === 'file' && !ref.startsWith(`${projectPath}/`) ? (ref.split(/[\\/]/).at(-1) ?? ref) : ref
-  return (
-    <div className="router-report">
-      {worker.degraded ? <p className="router-report-note">{t('worker.degraded')}</p> : null}
-      <p>{report.summary}</p>
-      {report.artifacts.length ? (
-        <>
-          <h3>{t('worker.artifacts')}</h3>
-          <ul>
-            {report.artifacts.map((item) => (
-              <li key={`${item.kind}:${item.ref}`}>
-                <code>{artifact(item.kind, item.ref)}</code>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : null}
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="worker-state" data-state={state} role="img" aria-label={label}>
+          <Icon size={16} className={state === 'running' ? 'animate-spin' : undefined} />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
   )
 }
 export function WorkerDetail({ worker }: { worker: RouterWorker }) {
@@ -108,28 +62,53 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
   )
   const { stopWorker, removeWorker, showPanel, startForward } = useRouterStore()
   const { report } = worker
-  const [tab, setTab] = useState<Tab>('activity')
+  const [view, setView] = useState<'conversation' | 'changes'>('conversation')
+  const diff = session?.diff ?? ''
+  const files = useMemo(() => parseDiff(diff), [diff])
+  const stats = diffStats(files)
+  const changed = stats.added + stats.removed > 0
+  const showChanges = view === 'changes' && changed
+  const worktree = worker.workspace.kind === 'worktree' ? worker.workspace.branch : null
   const title = workerTitle(worker)
   return (
-    <aside className="router-panel" aria-label={title}>
+    <aside className="router-panel worker-panel" aria-label={title}>
       <header>
         <div>
           <h2>
-            <WorkerDot worker={worker} />
+            <WorkerStateIcon worker={worker} />
             <span>{title}</span>
           </h2>
-          <small>
-            {t(`workerState.${workerState(worker)}`)}
-            {worker.status === 'running' ? (
-              <LoaderIcon size={11} className="animate-spin" aria-hidden />
-            ) : null}
-            {worker.workspace.kind === 'worktree' ? (
-              <>
-                <GitBranchIcon size={11} aria-hidden />
-                <code>{worker.workspace.branch}</code>
-              </>
-            ) : null}
-          </small>
+          {worktree || changed ? (
+            <small>
+              {changed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="worker-changes-toggle"
+                      aria-pressed={showChanges}
+                      aria-label={t(
+                        showChanges ? 'worker.hideChanges' : 'worker.showChanges',
+                        stats
+                      )}
+                      onClick={() => setView(showChanges ? 'conversation' : 'changes')}
+                    >
+                      <DiffCounts stats={stats} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    {t(showChanges ? 'worker.hideChanges' : 'worker.showChanges', stats)}
+                  </TooltipContent>
+                </Tooltip>
+              ) : null}
+              {worktree ? (
+                <span className="worker-branch">
+                  <GitBranchIcon size={11} aria-hidden />
+                  <code>{worktree}</code>
+                </span>
+              ) : null}
+            </small>
+          ) : null}
         </div>
         {canStop(worker) ? (
           <IconButton
@@ -172,24 +151,12 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
         />
       </header>
       <WorkerGitHub worker={worker} />
-      <div className="router-tabs" role="tablist">
-        {TABS.map((name) => (
-          <Button
-            key={name}
-            size="sm"
-            variant="ghost"
-            role="tab"
-            aria-selected={tab === name}
-            onClick={() => setTab(name)}
-          >
-            {t(`worker.tab.${name}`)}
-          </Button>
-        ))}
-      </div>
       <div className="router-panel-body">
-        {tab === 'activity' ? <Activity session={session} /> : null}
-        {tab === 'changes' ? <DiffView diff={session?.diff ?? ''} /> : null}
-        {tab === 'report' ? <Report worker={worker} projectPath={projectPath} /> : null}
+        {showChanges ? (
+          <DiffView files={files} projectPath={projectPath} />
+        ) : (
+          <WorkerConversation worker={worker} session={session} projectPath={projectPath} />
+        )}
       </div>
     </aside>
   )

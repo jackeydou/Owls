@@ -83,8 +83,12 @@
 .owls-activity summary::-webkit-details-marker {
   display: none;
 }
-.owls-activity summary > svg {
+.owls-activity summary > svg,
+.owls-activity summary > span:first-of-type {
   flex-shrink: 0;
+}
+.owls-activity summary > span:first-of-type {
+  white-space: nowrap;
 }
 .owls-activity summary > svg:last-child {
   margin-left: auto;

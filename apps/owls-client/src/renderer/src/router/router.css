@@ -1307,19 +1307,6 @@ html.pane-resizing * {
 .github-method-error {
   color: var(--owl-bad);
 }
-.router-tabs {
-  display: flex;
-  flex-shrink: 0;
-  gap: 2px;
-  padding: 0 12px 8px;
-  border-bottom: 1px solid var(--color-border);
-}
-.router-tabs button {
-  font-weight: 500;
-}
-.router-tabs button[aria-selected="true"] {
-  background: var(--color-sidebar-active);
-}
 .router-panel-body {
   flex: 1;
   min-height: 0;
@@ -1331,56 +1318,10 @@ html.pane-resizing * {
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
 }
-.router-brief {
-  margin-bottom: 16px;
-  padding: 8px 12px;
-  border-radius: 9px;
-  background: var(--color-user);
-}
-.router-brief > span {
-  color: var(--color-muted-foreground);
-  font-size: var(--owl-text-xs);
-}
-.router-brief > p {
-  margin-top: 2px;
-  line-height: var(--owl-leading-normal);
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-.router-diff {
-  overflow-x: auto;
-  font-family: var(--font-mono);
-  font-size: var(--owl-text-xs);
-  line-height: var(--owl-leading-normal);
-}
-.router-diff > div {
-  min-height: 17px;
-  white-space: pre;
-}
-.router-diff .added {
-  background: color-mix(in srgb, var(--color-success) 10%, transparent);
-}
-.router-diff .removed {
-  background: color-mix(in srgb, var(--color-destructive) 8%, transparent);
-}
-.router-report {
-  line-height: var(--owl-leading-normal);
-}
-.router-report h3,
 .router-kept h3 {
   margin: 16px 0 6px;
   font-size: var(--owl-text-xs);
   font-weight: 600;
-}
-.router-report-note {
-  margin-bottom: 12px;
-  color: var(--color-muted-foreground);
-  font-size: var(--owl-text-xs);
-}
-.router-report code {
-  font-family: var(--font-mono);
-  font-size: var(--owl-text-xs);
-  overflow-wrap: anywhere;
 }
 .router-facts {
   display: grid;

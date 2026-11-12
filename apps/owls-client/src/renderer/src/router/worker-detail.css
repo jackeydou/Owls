@@ -1,0 +1,233 @@
+/* Worker detail panel: a status icon, a change summary, and one conversation. */
+.worker-panel > header {
+  border-bottom: 1px solid var(--color-border);
+}
+.worker-state {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-muted-foreground);
+  border-radius: 50%;
+}
+.worker-state:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  outline-offset: 2px;
+}
+.worker-state[data-state="done"] {
+  color: var(--owl-run);
+}
+.worker-state[data-state="waiting"],
+.worker-state[data-state="blocked"],
+.worker-state[data-state="needs_input"] {
+  color: var(--owl-wait);
+}
+.worker-state[data-state="failed"] {
+  color: var(--owl-bad);
+}
+.worker-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.worker-branch > code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* `+12 −3`: green additions, red deletions. */
+.router-diff-counts {
+  display: inline-flex;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.router-diff-counts > .added {
+  color: var(--owl-run);
+}
+.router-diff-counts > .removed {
+  color: var(--owl-bad);
+}
+.worker-changes-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin-left: -6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.worker-changes-toggle:hover {
+  background: var(--color-card-muted);
+}
+.worker-changes-toggle[aria-pressed="true"] {
+  background: var(--color-card-muted);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+.worker-changes-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+/* Conversation */
+.worker-conversation .owls-assistant-message {
+  margin: 16px 0 20px;
+}
+.worker-conversation .owls-assistant-message:first-child {
+  margin-top: 0;
+}
+.worker-router-message {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 20px;
+}
+.worker-router-message > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+  max-width: 85%;
+}
+.worker-router-message > div > span {
+  padding-top: 4px;
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+}
+.worker-router-message p {
+  padding: 10px 14px;
+  border-radius: 14px 4px 14px 14px;
+  background: var(--color-card-muted);
+  line-height: var(--owl-leading-normal);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.worker-fold {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 16px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.worker-fold::before,
+.worker-fold::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+.worker-fold:hover {
+  color: var(--color-foreground);
+}
+.worker-fold > svg {
+  transition: transform 120ms ease;
+}
+.worker-fold[aria-expanded="true"] > svg {
+  transform: rotate(90deg);
+}
+.worker-fold:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  border-radius: 6px;
+}
+.worker-report-note {
+  margin-bottom: 12px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.worker-report > section {
+  margin: -12px 0 20px 32px;
+}
+.worker-report h3 {
+  margin-bottom: 6px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+}
+.worker-report code {
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+  overflow-wrap: anywhere;
+}
+
+/* File diff */
+.router-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.router-diff-file {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+}
+.router-diff-file > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  list-style: none;
+  background: var(--color-card-muted);
+}
+.router-diff-file > summary::-webkit-details-marker {
+  display: none;
+}
+.router-diff-file > summary > svg {
+  flex: none;
+  color: var(--color-muted-foreground);
+}
+.router-diff-file > summary > svg:first-child {
+  transition: transform 120ms ease;
+}
+.router-diff-file[open] > summary > svg:first-child {
+  transform: rotate(90deg);
+}
+.router-diff-file > summary > code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-diff-file > pre {
+  overflow-x: auto;
+  padding: 4px 0;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+}
+.router-diff-file > pre > div {
+  min-width: fit-content;
+  min-height: 18px;
+  padding-right: 12px;
+  white-space: pre;
+}
+.router-diff-file > pre > div > span {
+  display: inline-block;
+  width: 24px;
+  text-align: center;
+  color: var(--color-muted-foreground);
+  user-select: none;
+}
+.router-diff-file > pre > .added {
+  background: color-mix(in srgb, var(--owl-run) 12%, transparent);
+}
+.router-diff-file > pre > .added > span {
+  color: var(--owl-run);
+}
+.router-diff-file > pre > .removed {
+  background: color-mix(in srgb, var(--owl-bad) 10%, transparent);
+}
+.router-diff-file > pre > .removed > span {
+  color: var(--owl-bad);
+}
+.router-diff-file > pre > .hunk {
+  color: var(--color-muted-foreground);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}

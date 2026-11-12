@@ -1,27 +1,56 @@
-import { useMemo } from 'react'
+import { ChevronRightIcon, FileCodeIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
+import type { DiffFile, DiffStats } from './diff'
 
-export function DiffView({ diff }: { diff: string }) {
-  const { t } = useTranslation()
-  const lines = useMemo(() => {
-    const occurrences = new Map<string, number>()
-    return diff.split('\n').map((line) => {
-      const occurrence = occurrences.get(line) ?? 0
-      occurrences.set(line, occurrence + 1)
-      return { line, key: `${line}\0${occurrence}` }
-    })
-  }, [diff])
-  if (!diff) return <p className="router-panel-empty">{t('noChanges')}</p>
+/** Green additions and red deletions, as `+12 −3`. */
+export function DiffCounts({ stats }: { stats: DiffStats }) {
   return (
-    <pre className="router-diff">
-      {lines.map(({ line, key }) => (
-        <div
-          key={key}
-          className={line.startsWith('+') ? 'added' : line.startsWith('-') ? 'removed' : ''}
-        >
-          {line || '\n'}
-        </div>
+    <span className="router-diff-counts">
+      <span className="added">+{stats.added}</span>
+      <span className="removed">−{stats.removed}</span>
+    </span>
+  )
+}
+
+function DiffFileCard({ file, projectPath }: { file: DiffFile; projectPath: string }) {
+  const path =
+    projectPath && file.path.startsWith(`${projectPath}/`)
+      ? file.path.slice(projectPath.length + 1)
+      : file.path
+  return (
+    <details className="router-diff-file" open>
+      <summary>
+        <ChevronRightIcon size={12} />
+        <FileCodeIcon size={14} />
+        <code>{path}</code>
+        <DiffCounts stats={file} />
+      </summary>
+      {file.lines.length ? (
+        <pre>
+          {file.lines.map((line, index) => (
+            // Lines repeat and never move, so their position is their identity.
+            // biome-ignore lint/suspicious/noArrayIndexKey: static rows of one diff
+            <div key={index} className={line.kind}>
+              <span aria-hidden>
+                {line.kind === 'added' ? '+' : line.kind === 'removed' ? '−' : ' '}
+              </span>
+              {line.text || '\n'}
+            </div>
+          ))}
+        </pre>
+      ) : null}
+    </details>
+  )
+}
+
+export function DiffView({ files, projectPath }: { files: DiffFile[]; projectPath: string }) {
+  const { t } = useTranslation()
+  if (!files.length) return <p className="router-panel-empty">{t('noChanges')}</p>
+  return (
+    <div className="router-diff">
+      {files.map((file) => (
+        <DiffFileCard key={file.path} file={file} projectPath={projectPath} />
       ))}
-    </pre>
+    </div>
   )
 }
