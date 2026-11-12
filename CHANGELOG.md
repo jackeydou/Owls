@@ -11,6 +11,20 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1200-beta.1
+
+### Highlights
+
+- A cleaner title bar, wider sidebars that remember their width, and restyled Overview cards with project icons and owl avatars.
+- Running workers and Routers show an animated owl typing on a laptop.
+
+### Changes
+
+- Icons: app icons now use IconMCP's thin stroke and are slightly larger, and the sidebar toggles use plain sidebar icons. (#77)
+- UI: the title bar drops the Overview status pill and Router details button; both sidebars open wider by default and keep dragged widths; Overview cards use a white surface with project icons and Router/worker owl avatars; Projects sidebar workers show their owl avatar, and running workers and Routers show an animated owl typing on a laptop. (#78)
+
+### Fixes
+
 ## 2026.11.1100-beta.4
 
 ### Highlights
