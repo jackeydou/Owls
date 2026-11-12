@@ -13,7 +13,7 @@ import type {
   Router,
   Session
 } from '../../../shared/app'
-import { defaultLayoutSettings, paneWidthBounds } from '../../../shared/app'
+import { defaultAppLogo, defaultLayoutSettings, paneWidthBounds } from '../../../shared/app'
 import type { GitHubAccount } from '../../../shared/github'
 import { defaultMemorySettings } from '../../../shared/memory'
 import type {
@@ -193,7 +193,7 @@ export const useAppStore = create<State>((set, get) => {
       permission: 'workspace-write',
       theme: 'system',
       language: 'en',
-      appLogo: 'solid',
+      appLogo: defaultAppLogo,
       sidebarCollapsed: false,
       provider: 'codex',
       claudeExecutablePath: null,

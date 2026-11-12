@@ -1,0 +1,1 @@
+- App icon and avatars: the app icon and the Router, Claude Code, and Codex avatars are now hand-drawn doodle owls; Settings offers nine app logos, and a previously chosen logo resets to the new default.

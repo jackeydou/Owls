@@ -5,6 +5,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import type { AppSettings, Project, Session } from '../../shared/app.js'
 import {
+  defaultAppLogo,
   defaultLayoutSettings,
   projectSchema,
   sessionSchema,
@@ -42,7 +43,7 @@ export class OwlsStore {
           permission: 'workspace-write',
           theme: 'system',
           language: 'en',
-          appLogo: 'solid',
+          appLogo: defaultAppLogo,
           sidebarCollapsed: false,
           provider: 'codex',
           claudeExecutablePath: null,

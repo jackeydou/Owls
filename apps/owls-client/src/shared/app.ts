@@ -150,7 +150,19 @@ export const threadItemSchema = z.object({
   position: z.number().int().nonnegative(),
   rev: z.number().int().nonnegative().nullable()
 })
-export const appLogoSchema = z.enum(['line', 'solid', 'brow'])
+export const appLogoSchema = z.enum([
+  'duo-white',
+  'duo-night',
+  'duo-cream',
+  'lean-white',
+  'lean-night',
+  'lean-cream',
+  'trio-white',
+  'trio-night',
+  'trio-cream'
+])
+/** Also the artwork of the shipped bundle icon, which Finder keeps showing. */
+export const defaultAppLogo = 'duo-white' satisfies z.infer<typeof appLogoSchema>
 /** Width bounds, in CSS pixels, for each pane the user can drag wider or narrower. */
 export const paneWidthBounds = {
   sidebar: { min: 180, max: 420, initial: 224 },
@@ -179,7 +191,8 @@ export const settingsSchema = z.object({
   permission: permissionSchema,
   theme: z.enum(['system', 'light', 'dark']),
   language: z.enum(['en', 'zh-CN']),
-  appLogo: appLogoSchema,
+  /** Rows saved before the doodle owls name a logo that no longer exists; they get the default. */
+  appLogo: appLogoSchema.catch(defaultAppLogo),
   sidebarCollapsed: z.boolean(),
   provider: providerSchema,
   claudeExecutablePath: z.string().nullable(),
