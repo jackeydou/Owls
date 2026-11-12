@@ -26,6 +26,25 @@
   height: 24px;
   flex: none;
 }
+/* One row of frames slides past; OwlSprite sets the size, duration, and step count. */
+.owls-owl-sprite {
+  display: inline-block;
+  flex: none;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  animation-name: owls-owl-sprite;
+  animation-iteration-count: infinite;
+}
+@keyframes owls-owl-sprite {
+  to {
+    background-position-x: var(--owl-shift);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .owls-owl-sprite {
+    animation: none;
+  }
+}
 .owls-markdown {
   line-height: var(--owl-leading-relaxed);
   font-size: var(--owl-text-base);
