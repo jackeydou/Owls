@@ -64,56 +64,112 @@
   height: 23px;
   padding: 0;
 }
+/* A tool call: one muted line that opens to the full command, output, and result. */
 .owls-activity {
-  margin: 8px 0;
-  border: 1px solid var(--color-border);
-  border-radius: 9px;
-  overflow: hidden;
+  margin: 2px 0;
+}
+.owls-activity + :not(.owls-activity) {
+  margin-top: 16px;
 }
 .owls-activity summary {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 0;
   cursor: pointer;
-  padding: 12px 12px;
   color: var(--color-muted-foreground);
-  font-size: var(--owl-text-xs);
+  font-size: var(--owl-text-sm);
   list-style: none;
 }
 .owls-activity summary::-webkit-details-marker {
   display: none;
 }
+.owls-activity summary:hover {
+  color: var(--color-foreground);
+}
 .owls-activity summary > svg {
   flex-shrink: 0;
 }
-.owls-activity summary > svg:last-child {
-  margin-left: auto;
+.owls-activity.failed summary > svg:first-child {
+  color: var(--color-destructive);
 }
-.owls-activity summary code,
-.owls-activity-preview {
-  font-size: var(--owl-text-2xs);
+.owls-activity-line {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.owls-activity-line > span:first-child {
+  flex-shrink: 0;
+}
+.owls-activity-line > :last-child {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  opacity: 0.7;
-  margin-left: 4px;
 }
-.owls-activity[open] summary {
-  border-bottom: 1px solid var(--color-border);
+.owls-activity-line > code {
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+  line-height: 1.6;
 }
-.owls-activity pre,
+/* Shows on hover and turns when open, so a closed line stays plain text. */
+.owls-activity-chevron {
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+.owls-activity summary:hover > .owls-activity-chevron,
+.owls-activity summary:focus-visible > .owls-activity-chevron,
+.owls-activity[open] > summary > .owls-activity-chevron {
+  opacity: 1;
+}
+.owls-activity[open] > summary > .owls-activity-chevron {
+  transform: rotate(90deg);
+}
+.owls-activity-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-sidebar);
+  font-size: var(--owl-text-xs);
+}
+.owls-activity-heading {
+  color: var(--color-muted-foreground);
+}
+.owls-activity-body pre,
 .owls-activity-content {
-  padding: 12px;
   max-height: 320px;
   overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: var(--owl-text-xs);
   line-height: var(--owl-leading-relaxed);
 }
-.owls-activity pre {
+.owls-activity-body pre {
   font-family: var(--font-mono);
-  background: var(--color-sidebar);
+}
+.owls-activity-body pre > span {
+  color: var(--color-muted-foreground);
+  user-select: none;
+}
+.owls-activity-output {
+  color: var(--color-muted-foreground);
+}
+.owls-activity-result {
+  display: flex;
+  align-items: center;
+  align-self: flex-end;
+  gap: 4px;
+  color: var(--color-muted-foreground);
+}
+.owls-activity-result.failed {
+  color: var(--color-destructive);
 }
 .owls-working {
   display: flex;

@@ -1,0 +1,1 @@
+- Router: the worker panel is one conversation that leads with the report, tool calls show as one muted line that expands, and a +/− change summary opens a per-file diff. (#75)
