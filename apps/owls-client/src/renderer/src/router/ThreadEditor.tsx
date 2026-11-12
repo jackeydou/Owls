@@ -1,11 +1,9 @@
 import { Button } from '@renderer/components/ui/button'
 import { LoaderIcon } from '@renderer/components/ui/icons'
-import { Select } from '@renderer/components/ui/select'
-import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
 import { useAppStore } from '../app/store'
-import { DraftTarget, MentionMenu, useRouterDraft } from './RouterComposer'
+import { DraftInput, DraftTarget, MentionMenu, useRouterDraft } from './RouterDraft'
 import { ThreadRow } from './ThreadRow'
 
 const isCommandEnter = (event: KeyboardEvent) =>
@@ -13,53 +11,36 @@ const isCommandEnter = (event: KeyboardEvent) =>
 
 /**
  * Where the user writes next: the thread's last line, not a box under it. Enter
- * is a new line, as in any editor; Command-Enter sends. A new thread picks its
- * default project here, and with no projects at all, sending asks for a folder.
+ * is a new line, as in any editor; Command-Enter sends. A new thread has no
+ * project until its message names one with `@`; with no projects at all, sending
+ * asks for a folder.
  */
 export function ThreadEditor({ router }: { router: Router | undefined }) {
   const { t } = useTranslation()
-  const projects = useAppStore((s) => s.projects)
-  const projectId = useAppStore((s) => s.routerProjectId)
-  const focusProject = useAppStore((s) => s.focusProject)
+  const hasProjects = useAppStore((s) => s.projects.length > 0)
   const pickProject = useAppStore((s) => s.pickProject)
   const showThread = useAppStore((s) => s.showThread)
   const draft = useRouterDraft({
-    projectId,
+    projectId: null,
     router,
     isSendKey: isCommandEnter,
-    chooseProject: projects.length ? undefined : pickProject,
+    chooseProject: hasProjects ? undefined : pickProject,
     onThread: showThread
   })
-  const { text, sending, addressed, textareaProps } = draft
+  const { empty, sending, addressed } = draft
   return (
     <ThreadRow speaker="user">
       <div className="router-editor">
         {addressed ? <DraftTarget worker={addressed} onClear={draft.clearMention} /> : null}
-        <textarea
-          {...textareaProps}
-          aria-label={t(addressed ? 'router.promptWorker' : 'router.prompt')}
-          rows={1}
-          // Read-only, not disabled: a disabled field drops focus and the caret with it.
-          readOnly={sending}
+        <DraftInput
+          editor={draft.editor}
+          empty={empty}
+          label={t(addressed ? 'router.promptWorker' : 'router.prompt')}
+          placeholder={hasProjects ? t(router ? 'thread.hint' : 'thread.hintNew') : undefined}
         />
         <MentionMenu options={draft.options} highlight={draft.highlight} onPick={draft.pick} />
         <div className="router-editor-foot">
-          {!router && projects.length ? (
-            <Select
-              className="router-editor-project"
-              aria-label={t('thread.project')}
-              value={projectId ?? ''}
-              onChange={(event) => focusProject(event.target.value || null)}
-            >
-              <option value="">{t('thread.noProject')}</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </Select>
-          ) : null}
-          {text.trim() ? (
+          {!empty ? (
             <Button
               size="sm"
               variant="ghost"

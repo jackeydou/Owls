@@ -145,9 +145,8 @@ app
     }
     const type = (text) =>
       evaluate(`(() => {
-      const input = document.querySelector('.router-editor textarea, .router-composer textarea')
-      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, ${JSON.stringify(text)})
-      input.dispatchEvent(new Event('input', { bubbles: true }))
+      const { editor } = document.querySelector('.router-editor .router-draft-input, .router-composer .router-draft-input')
+      editor.chain().focus().clearContent(true).insertContent({ type: 'text', text: ${JSON.stringify(text)} }).run()
     })()`)
     const send = async (text) => {
       await type(text)
@@ -158,9 +157,12 @@ app
       evaluate(
         `Array.from(document.querySelectorAll('.owls-settings-nav .router-sidebar-item')).find(el => el.textContent === ${JSON.stringify(label)}).click()`
       )
+    // The draft as it is sent: mentions read as `@name`.
+    const draftText = (scope) =>
+      evaluate(`document.querySelector('${scope} .router-draft-input').editor.getText()`)
     const pressInEditor = (key, modifiers = {}) =>
       evaluate(
-        `document.querySelector('.router-editor textarea').dispatchEvent(new KeyboardEvent('keydown', ${JSON.stringify({ key, bubbles: true, cancelable: true, ...modifiers })}))`
+        `document.querySelector('.router-editor .router-draft-input').dispatchEvent(new KeyboardEvent('keydown', ${JSON.stringify({ key, bubbles: true, cancelable: true, ...modifiers })}))`
       )
     const press = (key, modifiers = {}) =>
       evaluate(
@@ -290,7 +292,9 @@ app
           }
         })
         await window.reload()
-        await waitFor("Boolean(document.querySelector('.router-editor textarea:not(:read-only)'))")
+        await waitFor(
+          "Boolean(document.querySelector('.router-editor .router-draft-input[contenteditable=true]'))"
+        )
       }
       router = startRouter()
       host.attachRouter(router)
@@ -354,7 +358,7 @@ app
       await evaluate(
         "Array.from(document.querySelectorAll('.router-guide-option')).find(el => el.querySelector('strong').textContent === 'Codex').click()"
       )
-      await waitFor("Boolean(document.querySelector('.router-editor textarea'))")
+      await waitFor("Boolean(document.querySelector('.router-editor .router-draft-input'))")
       assert.equal(host.snapshot().settings.router.engine, 'codex')
       assert.equal(await evaluate("Boolean(document.querySelector('.router-guide'))"), false)
       await capture('router-home')
@@ -366,7 +370,7 @@ app
       // It comes back while setup is incomplete, and skipping leaves a note in the thread.
       await waitFor("Boolean(document.querySelector('.router-guide-skip'))")
       await evaluate("document.querySelector('.router-guide-skip').click()")
-      await waitFor("Boolean(document.querySelector('.router-editor textarea'))")
+      await waitFor("Boolean(document.querySelector('.router-editor .router-draft-input'))")
       await waitFor(
         "document.querySelector('.router-setup-notice button')?.textContent.includes('Use Codex')"
       )
@@ -425,17 +429,16 @@ app
           : { canceled: false, filePaths: [temp] }
       }
       await pressInEditor('Enter', { metaKey: true })
-      await waitFor("Boolean(document.querySelector('.router-editor textarea:not(:read-only)'))")
-      while (!folderAsks) await new Promise((resolve) => setTimeout(resolve, 30))
-      assert.equal(
-        await evaluate("document.querySelector('.router-editor textarea').value"),
-        '帮我看看项目'
+      await waitFor(
+        "Boolean(document.querySelector('.router-editor .router-draft-input[contenteditable=true]'))"
       )
+      while (!folderAsks) await new Promise((resolve) => setTimeout(resolve, 30))
+      assert.equal(await draftText('.router-editor'), '帮我看看项目')
       await pressInEditor('Enter', { metaKey: true })
       await waitFor(
         "Array.from(document.querySelectorAll('.router-chat .owls-user-message')).some(el => el.textContent.includes('帮我看看项目'))"
       )
-      await waitFor("document.querySelector('.router-chat textarea')?.value === ''")
+      await waitFor(async () => (await draftText('.router-chat')) === '')
       dialog.showOpenDialog = pickFolder
       await waitFor(
         "document.querySelector('.router-thread')?.getAttribute('aria-current') === 'true'"
@@ -568,13 +571,13 @@ app
         `${sidebarHandle}.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`
       )
       await waitFor(() => host.snapshot().settings.layout.sidebarWidth === 224)
-      await evaluate("document.querySelector('.router-editor textarea').focus()")
+      await evaluate("document.querySelector('.router-editor .router-draft-input').focus()")
       const editorFocused =
-        "document.activeElement === document.querySelector('.router-editor textarea')"
+        "document.activeElement === document.querySelector('.router-editor .router-draft-input')"
       assert.ok(await evaluate(editorFocused), 'sending keeps the caret in the editor')
       assert.equal(
         await evaluate(
-          "getComputedStyle(document.querySelector('.router-editor textarea')).outlineStyle"
+          "getComputedStyle(document.querySelector('.router-editor .router-draft-input')).outlineStyle"
         ),
         'none',
         'the focused editor has no ring'
@@ -713,7 +716,7 @@ app
         "document.querySelector('.router-mentions button').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))"
       )
       await waitFor("document.querySelector('.router-target')?.textContent.includes('烟雾 Worker')")
-      assert.equal(await evaluate("document.querySelector('.router-chat textarea').value"), '看看 ')
+      assert.equal(await draftText('.router-chat'), '看看 ')
       await send('approval')
       await waitFor("Boolean(document.querySelector('.router-tray .owls-request'))")
       assert.ok(await evaluate("Boolean(document.querySelector('.router-directed'))"))
@@ -724,7 +727,7 @@ app
       assert.equal(batches(), before)
       assert.ok(
         await evaluate(
-          "document.querySelector('.router-chat textarea').getBoundingClientRect().bottom <= innerHeight"
+          "document.querySelector('.router-chat .router-draft-input').getBoundingClientRect().bottom <= innerHeight"
         ),
         'the editor stays on screen under the tray'
       )
@@ -766,7 +769,7 @@ app
       await waitFor(`Boolean(${nodeOf}?.querySelector('pre'))`)
       assert.equal(await evaluate(`${nodeOf}.querySelector('pre').textContent`), 'echo fixture')
       // The input frees up while the request waits, so the worker can still be addressed.
-      await waitFor("document.querySelector('.map-bar textarea').value === ''")
+      await waitFor(async () => (await draftText('.map-bar')) === '')
       await capture('map-approval')
       await evaluate(`${nodeOf}.querySelector('.map-actions button').click()`)
       await waitFor(`!${nodeOf}?.querySelector('pre')`)
@@ -833,7 +836,9 @@ app
       mkdirSync(secondProject)
       host.addProject(secondProject)
       await window.reload()
-      await waitFor("Boolean(document.querySelector('.router-editor textarea:not(:read-only)'))")
+      await waitFor(
+        "Boolean(document.querySelector('.router-editor .router-draft-input[contenteditable=true]'))"
+      )
       await send('派发：拆分\n派发：实现 < 拆分\n派发：评审 < 拆分\n派发：收尾 < 实现')
       await waitFor(() => host.snapshot().workers.filter((w) => w.parentId).length === 3)
       await waitFor(() =>
@@ -957,7 +962,9 @@ app
       assert.equal((await host.connectClaude()).status, 'ready')
       host.saveSettings({ ...host.snapshot().settings, provider: 'claude-code' })
       await window.reload()
-      await waitFor("Boolean(document.querySelector('.router-editor textarea:not(:read-only)'))")
+      await waitFor(
+        "Boolean(document.querySelector('.router-editor .router-draft-input[contenteditable=true]'))"
+      )
       await send('派发：Claude Worker')
       await waitFor(
         "Array.from(document.querySelectorAll('.router-dispatch')).at(-1)?.textContent.includes('Claude Worker')"

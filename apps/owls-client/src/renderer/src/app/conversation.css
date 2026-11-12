@@ -133,21 +133,14 @@
 .owls-composer:focus-within {
   border-color: var(--color-muted-foreground);
 }
-.owls-composer textarea {
-  background: transparent;
-  width: 100%;
+.owls-composer .router-draft-input {
   min-height: 60px;
   max-height: 220px;
-  resize: none;
-  outline: none;
   font-size: var(--owl-text-base);
   line-height: var(--owl-leading-relaxed);
   padding: 0 2px 8px;
 }
-.owls-composer textarea::placeholder {
-  color: var(--color-muted-foreground);
-}
-.owls-composer textarea:disabled {
+.owls-composer .router-draft-input[contenteditable="false"] {
   opacity: 0.55;
 }
 .owls-composer-toolbar {
