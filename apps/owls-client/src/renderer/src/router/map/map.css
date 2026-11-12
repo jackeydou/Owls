@@ -380,35 +380,15 @@
   gap: 7px;
   min-width: 0;
 }
-.map-worker-avatar {
-  position: relative;
-  display: grid;
-  flex: none;
-  width: 20px;
-  height: 20px;
-}
-.map-worker-avatar .owls-owl-avatar {
-  width: 20px;
-  height: 20px;
+.map-node.worker .router-worker-avatar {
+  --owl-avatar-size: 20px;
 }
 .map-node.worker.ended .owls-owl-avatar {
   opacity: 0.7;
   filter: grayscale(0.4);
 }
-/* The state dot sits on the owl's lower right, ringed in the card color. */
-.map-worker-avatar .router-dot {
-  position: absolute;
-  right: -2px;
-  bottom: -1px;
-  width: 8px;
-  height: 8px;
-  box-shadow: 0 0 0 1.5px var(--color-card);
-}
-.map-node.worker.ended .map-worker-avatar .router-dot {
-  box-shadow: 0 0 0 1.5px var(--color-card-muted);
-}
-.map-worker-avatar .router-dot.queue {
-  background: var(--color-card);
+.map-node.worker.ended .router-worker-avatar {
+  --owl-avatar-ring: var(--color-card-muted);
 }
 .map-worker-title {
   flex: 1;

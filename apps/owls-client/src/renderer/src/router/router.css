@@ -274,7 +274,7 @@ html[data-platform="darwin"] {
   background: var(--color-sidebar-active);
   color: var(--color-foreground);
 }
-.router-sidebar-worker > span {
+.router-sidebar-worker > span:last-child {
   overflow: hidden;
   flex: 1;
   min-width: 0;
@@ -425,6 +425,40 @@ html.pane-resizing * {
 .router-dot.hollow {
   border: 1.5px solid var(--owl-queue);
   background: transparent;
+}
+/* A worker's owl with its state dot on the lower right, ringed in the surface color. */
+.router-worker-avatar {
+  --owl-avatar-size: 18px;
+  --owl-avatar-ring: var(--color-card);
+  position: relative;
+  display: grid;
+  flex: none;
+  width: var(--owl-avatar-size);
+  height: var(--owl-avatar-size);
+}
+.router-worker-avatar .owls-owl-avatar {
+  width: 100%;
+  height: 100%;
+}
+.router-worker-avatar .router-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -1px;
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 0 0 1.5px var(--owl-avatar-ring);
+}
+.router-worker-avatar .router-dot.queue {
+  background: var(--owl-avatar-ring);
+}
+.router-sidebar-worker .router-worker-avatar {
+  --owl-avatar-ring: var(--color-sidebar);
+}
+.router-sidebar-worker:hover .router-worker-avatar {
+  --owl-avatar-ring: var(--color-sidebar-hover);
+}
+.router-sidebar-worker[aria-current="true"] .router-worker-avatar {
+  --owl-avatar-ring: var(--color-sidebar-active);
 }
 /* A tag on the text baseline, tinted by the worker's status instead of a dot. As a flex
    item the label still gives the tag its baseline; the tight line height keeps the padding

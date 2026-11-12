@@ -24,7 +24,7 @@ import {
 } from '../activity'
 import { ProjectIcon } from '../ProjectIcon'
 import { useRouterStore } from '../store'
-import { WorkerDot } from '../WorkerLink'
+import { WorkerAvatar } from '../WorkerLink'
 import type { WorkerProject } from './projects'
 
 type WorkerNode = Extract<MapNode, { kind: 'worker' }>
@@ -77,7 +77,7 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
       </span>
       {/* The project's Router speaks on this line, so it carries the Router's owl. */}
       <span className={busy ? 'map-project-line busy' : 'map-project-line'}>
-        <OwlAvatar speaker="router" />
+        <OwlAvatar speaker="router" working={busy} />
         <span>
           {busy ? <LoaderIcon size={12} className="animate-spin" aria-hidden /> : null}
           {busy ? t('router.working') : (routerLine(project) ?? t('map.notStarted'))}
@@ -151,11 +151,7 @@ function WorkerBody({ node, now }: { node: WorkerNode; now: number }) {
   return (
     <>
       <span className="map-worker-head">
-        {/* The provider's owl, badged with the worker's state. */}
-        <span className="map-worker-avatar">
-          <OwlAvatar speaker={worker.provider} />
-          <WorkerDot worker={worker} />
-        </span>
+        <WorkerAvatar worker={worker} />
         <span className="map-worker-title">{workerTitle(worker)}</span>
         <span className="map-time">{t(`map.age.${age.unit}`, { count: age.value })}</span>
       </span>
