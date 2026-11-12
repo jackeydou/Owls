@@ -5,11 +5,15 @@ import {
   ChevronRightIcon,
   CopyIcon,
   FileCodeIcon,
-  GitBranchIcon,
+  type IconComponent,
+  InfoIcon,
   LoaderIcon,
+  ScrollTextIcon,
   ShieldCheckIcon,
+  SparklesIcon,
   TerminalIcon,
-  WaypointsIcon
+  WaypointsIcon,
+  XIcon
 } from '@renderer/components/ui/icons'
 import { code } from '@streamdown/code'
 import { type ReactNode, useState } from 'react'
@@ -78,32 +82,64 @@ export function ConversationItem({
       </article>
     )
   if (item.kind === 'worker' || (!item.text && !item.detail)) return null
-  const Icon =
-    item.kind === 'command'
-      ? TerminalIcon
-      : item.kind === 'files'
-        ? FileCodeIcon
-        : item.kind === 'reasoning'
-          ? WaypointsIcon
-          : GitBranchIcon
+  return <ActivityItem item={item} />
+}
+const ACTIVITY_ICONS: Partial<Record<SessionItem['kind'], IconComponent>> = {
+  command: TerminalIcon,
+  files: FileCodeIcon,
+  reasoning: WaypointsIcon,
+  plan: ScrollTextIcon,
+  tool: SparklesIcon
+}
+/**
+ * A tool call is one quiet line, such as "Ran git status", that opens to show the full
+ * command, its output, and whether it succeeded.
+ */
+function ActivityItem({ item }: { item: SessionItem }) {
+  const { t } = useTranslation()
+  const Icon = ACTIVITY_ICONS[item.kind] ?? InfoIcon
+  const running = item.status === 'running'
+  const firstLine = item.text.split('\n')[0]
+  const verb = t(`activity.${item.kind}.${running ? 'running' : 'done'}`)
+  // Files list every path; the line names the first and counts the rest.
+  const paths = item.kind === 'files' ? item.text.split('\n').filter(Boolean) : []
+  const preview =
+    paths.length > 1
+      ? t('activity.morePaths', { path: paths[0], count: paths.length - 1 })
+      : firstLine
   return (
     <details className={`owls-activity ${item.status}`}>
       <summary>
         <Icon size={14} />
-        <span>{t(`item.${item.kind}`)}</span>
-        {item.kind === 'command' ? (
-          <code>{item.text}</code>
-        ) : (
-          <span className="owls-activity-preview">{item.text.split('\n')[0]}</span>
-        )}
-        {item.status === 'running' ? (
-          <LoaderIcon size={12} className="animate-spin" />
-        ) : (
-          <ChevronRightIcon size={12} />
-        )}
+        <span
+          className={running ? 'owls-activity-line owls-activity-shimmer' : 'owls-activity-line'}
+        >
+          <span>{verb}</span>
+          {item.kind === 'command' ? <code>{preview}</code> : <span>{preview}</span>}
+        </span>
+        <ChevronRightIcon size={12} className="owls-activity-chevron" />
       </summary>
-      {item.kind !== 'command' ? <div className="owls-activity-content">{item.text}</div> : null}
-      {item.detail ? <pre>{item.detail}</pre> : null}
+      {item.kind === 'command' ? (
+        <div className="owls-activity-body">
+          <span className="owls-activity-heading">{t('activity.shell')}</span>
+          <pre>
+            <span aria-hidden>$ </span>
+            {item.text}
+          </pre>
+          {item.detail ? <pre className="owls-activity-output">{item.detail}</pre> : null}
+          {running ? null : (
+            <span className={`owls-activity-result ${item.status}`}>
+              {item.status === 'failed' ? <XIcon size={12} /> : <CheckIcon size={12} />}
+              {t(item.status === 'failed' ? 'activity.failed' : 'activity.succeeded')}
+            </span>
+          )}
+        </div>
+      ) : (
+        <div className="owls-activity-body">
+          {item.text ? <div className="owls-activity-content">{item.text}</div> : null}
+          {item.detail ? <pre className="owls-activity-output">{item.detail}</pre> : null}
+        </div>
+      )}
     </details>
   )
 }
