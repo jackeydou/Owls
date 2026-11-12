@@ -15,10 +15,9 @@ export function WorkerLink({ worker, children }: { worker: RouterWorker; childre
   return (
     <button
       type="button"
-      className="router-worker-link"
+      className={`router-worker-link ${workerTone(worker)}`}
       onClick={() => showPanel({ kind: 'worker', workerId: worker.id })}
     >
-      <WorkerDot worker={worker} />
       <span>{children ?? workerTitle(worker)}</span>
     </button>
   )
