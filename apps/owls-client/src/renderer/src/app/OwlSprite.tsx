@@ -18,7 +18,7 @@ import type { AgentSpeaker } from './OwlAvatar'
 
 export type OwlAction = 'idle' | 'typing' | 'wave' | 'thinking' | 'flying'
 
-/** Each sheet is one row of 32x32 frames; every frame lasts FRAME_MS. */
+/** Each sheet is one row of 24x24 frames; every frame lasts FRAME_MS. */
 const FRAME_MS = 120
 const FRAMES: Record<OwlAction, number> = { idle: 24, typing: 24, wave: 4, thinking: 12, flying: 6 }
 const SHEETS: Record<AgentSpeaker, Record<OwlAction, string>> = {
@@ -49,11 +49,11 @@ const SHEETS: Record<AgentSpeaker, Record<OwlAction, string>> = {
 export function OwlSprite({
   speaker,
   action,
-  size = 32
+  size = 48
 }: {
   speaker: AgentSpeaker
   action: OwlAction
-  /** Rendered edge in CSS pixels. Multiples of 32 keep the pixels square. */
+  /** Rendered edge in CSS pixels. Multiples of 24 keep the pixels square. */
   size?: number
 }) {
   const frames = FRAMES[action]
