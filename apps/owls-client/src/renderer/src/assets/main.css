@@ -53,7 +53,7 @@
   --color-owls-blue-900: #00284d;
 
   --color-owls-light-surface: var(--color-owls-gray-0);
-  --color-owls-light-surface-under: var(--color-owls-gray-50);
+  --color-owls-light-surface-under: var(--color-owls-gray-0);
   --color-owls-light-editor-opaque: #ededed66;
   --color-owls-light-elevated-primary: #ffffffb3;
   --color-owls-light-elevated-primary-opaque: var(--color-owls-gray-0);
@@ -104,7 +104,7 @@
   --color-success: var(--color-owls-green-500);
   --color-warning: var(--color-owls-orange-500);
 
-  --color-sidebar: rgb(247 247 247);
+  --color-sidebar: rgb(253 252 252);
   --color-sidebar-hover: var(--color-owls-light-button-secondary-hover);
   --color-sidebar-active: var(--color-owls-light-button-secondary);
 

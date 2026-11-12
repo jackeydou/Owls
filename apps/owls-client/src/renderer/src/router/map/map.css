@@ -1,5 +1,5 @@
 :root {
-  --owl-map-bg: #f6f6f5;
+  --owl-map-bg: #ffffff;
   --owl-map-dot: #1a1c1f12;
   --owl-map-move: 340ms cubic-bezier(0.22, 1, 0.36, 1);
 }

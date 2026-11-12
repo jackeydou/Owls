@@ -1,0 +1,1 @@
+- Appearance: light theme now uses a pure white main area and a near-white sidebar instead of light gray.
