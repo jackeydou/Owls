@@ -21,14 +21,29 @@
   font-size: var(--owl-text-xs);
   font-weight: 500;
 }
-.owls-agent-mark {
-  height: 21px;
-  width: 21px;
-  border: 1px solid var(--color-border);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
+.owls-owl-avatar {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+/* One row of frames slides past; OwlSprite sets the size, duration, and step count. */
+.owls-owl-sprite {
+  display: inline-block;
+  flex: none;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  animation-name: owls-owl-sprite;
+  animation-iteration-count: infinite;
+}
+@keyframes owls-owl-sprite {
+  to {
+    background-position-x: var(--owl-shift);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .owls-owl-sprite {
+    animation: none;
+  }
 }
 .owls-markdown {
   line-height: var(--owl-leading-relaxed);

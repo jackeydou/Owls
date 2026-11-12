@@ -708,11 +708,6 @@ html.pane-resizing * {
   height: 24px;
   color: var(--color-muted-foreground);
 }
-.router-row-avatar img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
 .router-row.user .router-row-avatar:not(:empty) {
   border-radius: 50%;
   background: var(--color-card-muted);

@@ -11,7 +11,7 @@ import {
 } from '@renderer/components/ui/icons'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Session, SessionItem } from '../../../shared/app'
+import type { AgentProvider, Session, SessionItem } from '../../../shared/app'
 import type { RouterWorker } from '../../../shared/router'
 import { ConversationItem, RequestCard } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
@@ -29,14 +29,16 @@ type Tab = (typeof TABS)[number]
 function ActivityItem({
   item,
   first,
-  agent
+  agent,
+  provider
 }: {
   item: SessionItem
   first: boolean
   agent: string
+  provider: AgentProvider
 }) {
   const { t } = useTranslation()
-  if (item.kind !== 'user') return <ConversationItem item={item} agent={agent} />
+  if (item.kind !== 'user') return <ConversationItem item={item} agent={agent} speaker={provider} />
   return (
     <div className="router-brief">
       <span>{t(first ? 'worker.dispatched' : 'worker.relayed')}</span>
@@ -52,7 +54,13 @@ function Activity({ session }: { session: Session | undefined }) {
   return (
     <>
       {session.items.map((item) => (
-        <ActivityItem key={item.id} item={item} first={item === firstUser} agent={agent} />
+        <ActivityItem
+          key={item.id}
+          item={item}
+          first={item === firstUser}
+          agent={agent}
+          provider={session.provider}
+        />
       ))}
       {openRequests(session).map((request) => (
         <RequestCard key={request.id} request={request} sessionId={session.id} agent={agent} />
