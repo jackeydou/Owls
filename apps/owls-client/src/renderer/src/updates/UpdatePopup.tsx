@@ -29,14 +29,14 @@ export function UpdatePopup() {
   return (
     <section className="owls-update-popup" aria-labelledby="owls-update-popup-title">
       <div className="owls-update-popup-icon" aria-hidden>
-        <DownloadIcon size={16} />
+        <DownloadIcon size={18} />
       </div>
       <div className="owls-update-popup-body">
         <h2 id="owls-update-popup-title">{t('updates.popup.title')}</h2>
         <p>{t('updates.popup.body', { version: state.version })}</p>
         <div className="owls-update-popup-actions">
           <Button size="sm" disabled={installing} onClick={() => void install()}>
-            <RotateCcwIcon size={13} aria-hidden />
+            <RotateCcwIcon size={15} aria-hidden />
             {t('updates.popup.update')}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setDismissed(state.version)}>
@@ -48,7 +48,7 @@ export function UpdatePopup() {
         size="sm"
         className="owls-update-popup-close"
         label={t('updates.popup.dismiss')}
-        icon={<XIcon size={14} />}
+        icon={<XIcon size={16} />}
         onClick={() => setDismissed(state.version)}
       />
     </section>

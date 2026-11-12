@@ -1,13 +1,12 @@
-// Generated from the IconMCP library (16-unit grid, 1.25px outline). Each glyph keeps the
-// library's paths verbatim; createIcon applies size, color, and a stroke that stays the same
-// screen width at any size.
+// Generated from the IconMCP library (16-unit grid). Each glyph keeps the library's paths
+// verbatim; createIcon applies size, color, and the library's stroke weight.
 import { cn } from '@renderer/lib/utils'
 import type { ComponentType, ReactNode, SVGProps } from 'react'
 
 export type IconProps = Omit<SVGProps<SVGSVGElement>, 'ref'> & {
   /** Rendered width and height in px. */
   size?: number
-  /** Stroke width in screen px, independent of size. */
+  /** Stroke width in screen px. Defaults to the IconMCP weight for the rendered size. */
   strokeWidth?: number
 }
 
@@ -15,8 +14,14 @@ export type IconComponent = ComponentType<IconProps>
 
 const GRID = 16
 
+// IconMCP draws its 24px previews with a 1.25px stroke, so the line keeps that thin ratio at
+// every size. Below ~19px it holds at 1px so small icons stay crisp on 1x displays.
+function defaultStrokeWidth(size: number): number {
+  return Math.max(1, (size * 1.25) / 24)
+}
+
 function createIcon(name: string, style: 'outline' | 'solid', glyph: ReactNode): IconComponent {
-  function Icon({ size = GRID, strokeWidth = 1.25, className, ...props }: IconProps) {
+  function Icon({ size = GRID, strokeWidth, className, ...props }: IconProps) {
     const labelled = props['aria-label'] !== undefined || props['aria-labelledby'] !== undefined
     return (
       // biome-ignore lint/a11y/noSvgWithoutTitle: decorative by default (aria-hidden); callers name meaningful icons with aria-label.
@@ -27,7 +32,7 @@ function createIcon(name: string, style: 'outline' | 'solid', glyph: ReactNode):
         viewBox="0 0 16 16"
         fill={style === 'solid' ? 'currentColor' : 'none'}
         stroke={style === 'solid' ? 'none' : 'currentColor'}
-        strokeWidth={(strokeWidth * GRID) / size}
+        strokeWidth={((strokeWidth ?? defaultStrokeWidth(size)) * GRID) / size}
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden={labelled ? undefined : true}
@@ -196,16 +201,6 @@ export const FolderIcon = createIcon(
     <path d="M4.25 3.25 L5.33 3.25 C5.914 3.25 6.469 3.505 6.849 3.948 L7.151 4.302 C7.531 4.745 8.086 5 8.67 5 L11.75 5 C12.855 5 13.75 5.895 13.75 7 L13.75 10.75 C13.75 11.855 12.855 12.75 11.75 12.75 L4.25 12.75 C3.145 12.75 2.25 11.855 2.25 10.75 L2.25 5.25 C2.25 4.145 3.145 3.25 4.25 3.25 Z" />
   </g>
 )
-export const FolderKanbanIcon = createIcon(
-  'FolderKanban',
-  'outline',
-  <g>
-    <rect x="2.25" y="2.75" width="11.5" height="10.5" rx="2" />
-    <line x1="5.25" y1="5.5" x2="5.25" y2="10.25" />
-    <line x1="8" y1="5.5" x2="8" y2="8.25" />
-    <line x1="10.75" y1="5.5" x2="10.75" y2="10.75" />
-  </g>
-)
 export const FolderOpenIcon = createIcon(
   'FolderOpen',
   'outline',
@@ -313,25 +308,6 @@ export const PaletteIcon = createIcon(
     <circle cx="10.5" cy="5.5" r="0.825" fill="currentColor" stroke="none" />
   </g>
 )
-export const PanelLeftCloseIcon = createIcon(
-  'PanelLeftClose',
-  'outline',
-  <g>
-    <rect x="2.25" y="2.75" width="11.5" height="10.5" rx="2" />
-    <line x1="6" y1="2.75" x2="6" y2="13.25" />
-    <path d="M10.75 5.75 L8.5 8 L10.75 10.25" />
-  </g>
-)
-export const PanelLeftOpenIcon = createIcon(
-  'PanelLeftOpen',
-  'outline',
-  <g>
-    <rect x="2.25" y="2.75" width="11.5" height="10.5" rx="2" />
-    <line x1="5" y1="2.75" x2="5" y2="13.25" />
-    <line x1="7.25" y1="8" x2="11.25" y2="8" />
-    <path d="M9.25 6 L11.25 8 L9.25 10" />
-  </g>
-)
 export const PencilIcon = createIcon(
   'Pencil',
   'outline',
@@ -413,6 +389,22 @@ export const ShieldCheckIcon = createIcon(
   <g>
     <path d="M5 2.5 L11 2.5 C12.105 2.5 13 3.395 13 4.5 L13 7.129 C13 7.374 12.955 7.617 12.867 7.847 L11.929 10.284 C11.812 10.59 11.62 10.862 11.372 11.077 L8 14 L4.628 11.077 C4.38 10.862 4.188 10.59 4.071 10.284 L3.133 7.847 C3.045 7.617 3 7.374 3 7.129 L3 4.5 C3 3.395 3.895 2.5 5 2.5 Z" />
     <path d="M5.5 7.75 L7.25 9.5 L10.5 6.25" />
+  </g>
+)
+export const SidebarLeftIcon = createIcon(
+  'SidebarLeft',
+  'outline',
+  <g>
+    <rect x="2.25" y="2.75" width="11.5" height="10.5" rx="2" />
+    <line x1="6" y1="2.75" x2="6" y2="13.25" />
+  </g>
+)
+export const SidebarRightIcon = createIcon(
+  'SidebarRight',
+  'outline',
+  <g>
+    <rect x="2.25" y="2.75" width="11.5" height="10.5" rx="2" />
+    <line x1="10" y1="2.75" x2="10" y2="13.25" />
   </g>
 )
 export const SlidersIcon = createIcon(

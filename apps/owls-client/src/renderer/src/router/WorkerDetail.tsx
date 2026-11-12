@@ -47,7 +47,7 @@ function WorkerStateIcon({ worker }: { worker: RouterWorker }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="worker-state" data-state={state} role="img" aria-label={label}>
-          <Icon size={16} className={state === 'running' ? 'animate-spin' : undefined} />
+          <Icon size={18} className={state === 'running' ? 'animate-spin' : undefined} />
         </span>
       </TooltipTrigger>
       <TooltipContent side="bottom">{label}</TooltipContent>
@@ -103,7 +103,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
               ) : null}
               {worktree ? (
                 <span className="worker-branch">
-                  <GitBranchIcon size={11} aria-hidden />
+                  <GitBranchIcon size={12} aria-hidden />
                   <code>{worktree}</code>
                 </span>
               ) : null}
@@ -115,7 +115,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             size="sm"
             label={t('worker.stop')}
             tooltip={t('worker.stop')}
-            icon={<StopIcon size={12} />}
+            icon={<StopIcon size={14} />}
             onClick={() => void stopWorker(worker.routerId, worker.id)}
           />
         ) : (
@@ -123,7 +123,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             size="sm"
             label={t('worker.remove')}
             tooltip={t('worker.remove')}
-            icon={<TrashIcon size={13} />}
+            icon={<TrashIcon size={15} />}
             onClick={() => void removeWorker(worker.routerId, worker.id)}
           />
         )}
@@ -132,7 +132,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             size="sm"
             label={t('forward.action')}
             tooltip={t('forward.action')}
-            icon={<ForwardIcon size={13} />}
+            icon={<ForwardIcon size={15} />}
             onClick={() =>
               startForward({
                 source: { kind: 'worker', routerId: worker.routerId, workerId: worker.id },
@@ -146,7 +146,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
           size="sm"
           label={t('worker.close')}
           tooltip={t('worker.close')}
-          icon={<XIcon size={15} />}
+          icon={<XIcon size={17} />}
           onClick={() => showPanel(null)}
         />
       </header>

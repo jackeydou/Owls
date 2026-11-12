@@ -141,7 +141,7 @@ export function WorkerConversation({
           aria-expanded={expanded}
           onClick={() => setExpanded((open) => !open)}
         >
-          <ChevronRightIcon size={12} />
+          <ChevronRightIcon size={14} />
           <span>
             {t(expanded ? 'worker.hideEarlier' : 'worker.showEarlier', { count: folded })}
           </span>
@@ -164,7 +164,7 @@ export function WorkerConversation({
       ))}
       {session.error ? (
         <div className="owls-inline-error" role="alert">
-          <AlertCircleIcon size={15} />
+          <AlertCircleIcon size={17} />
           <span>{failureMessage(session.error)}</span>
         </div>
       ) : null}

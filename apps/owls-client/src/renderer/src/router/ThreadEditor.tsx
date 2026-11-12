@@ -49,7 +49,7 @@ export function ThreadEditor({ router }: { router: Router | undefined }) {
               onPointerDown={(event) => event.preventDefault()}
               onClick={() => void draft.submit()}
             >
-              {sending ? <LoaderIcon size={13} className="animate-spin" /> : null}
+              {sending ? <LoaderIcon size={15} className="animate-spin" /> : null}
               {t(addressed ? 'router.sendWorker' : 'router.send')}
               <kbd>⌘ ↵</kbd>
             </Button>

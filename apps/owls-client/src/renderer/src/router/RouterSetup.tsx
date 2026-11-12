@@ -82,7 +82,7 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
             variant={alternate ? 'outline' : 'default'}
             onClick={() => showSettings(settingsTabFor(need))}
           >
-            <SettingsIcon size={14} />
+            <SettingsIcon size={16} />
             {t('router.openSettings')}
           </Button>
         </div>

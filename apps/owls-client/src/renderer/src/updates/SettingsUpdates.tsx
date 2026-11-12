@@ -38,7 +38,7 @@ function UpdateAction({ state }: { state: UpdateState }) {
   if (state.status === 'ready') {
     return (
       <Button size="sm" onClick={() => void window.owls.updates.install()}>
-        <RotateCcwIcon size={13} aria-hidden />
+        <RotateCcwIcon size={15} aria-hidden />
         {t('updates.install')}
       </Button>
     )
@@ -52,9 +52,9 @@ function UpdateAction({ state }: { state: UpdateState }) {
       onClick={() => void window.owls.updates.check()}
     >
       {busy ? (
-        <LoaderIcon size={13} className="animate-spin" aria-hidden />
+        <LoaderIcon size={15} className="animate-spin" aria-hidden />
       ) : (
-        <RefreshIcon size={13} aria-hidden />
+        <RefreshIcon size={15} aria-hidden />
       )}
       {t('updates.check')}
     </Button>

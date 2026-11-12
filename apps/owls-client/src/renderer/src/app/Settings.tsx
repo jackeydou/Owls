@@ -60,7 +60,7 @@ const TAB_GROUPS: TabEntry[][] = [
 
 function TabIcon({ tab }: { tab: TabEntry }) {
   if (tab.id === 'claude-code' || tab.id === 'codex') return <AgentIcon provider={tab.id} />
-  return tab.icon ? <tab.icon size={15} /> : null
+  return tab.icon ? <tab.icon size={17} /> : null
 }
 
 const PROJECT_PAGE_ICONS: Record<ProjectSettingsPage, IconComponent> = {
@@ -108,7 +108,7 @@ function ProjectsNav() {
             >
               <ProjectIcon project={project} />
               <span>{project.name}</span>
-              <Chevron size={14} className="owls-settings-chevron" aria-hidden="true" />
+              <Chevron size={16} className="owls-settings-chevron" aria-hidden="true" />
             </button>
             {open ? (
               <ul
@@ -125,7 +125,7 @@ function ProjectsNav() {
                         aria-current={current?.page === page || undefined}
                         onClick={() => showProjectSettings(project.id, page)}
                       >
-                        <Icon size={15} />
+                        <Icon size={17} />
                         <span>{t(`projectSettings.page.${page}`)}</span>
                       </button>
                     </li>
@@ -160,7 +160,7 @@ function SettingsNav() {
           className="owls-settings-back"
           onClick={leaveSettings}
         >
-          <ArrowLeftIcon size={15} />
+          <ArrowLeftIcon size={17} />
           {t('back')}
         </Button>
       </div>

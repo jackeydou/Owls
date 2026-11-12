@@ -71,7 +71,7 @@ export function ConversationItem({
               size="sm"
               label={t(copied ? 'copied' : 'copy')}
               tooltip={t(copied ? 'copied' : 'copy')}
-              icon={copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+              icon={copied ? <CheckIcon size={15} /> : <CopyIcon size={15} />}
               onClick={() => {
                 void navigator.clipboard.writeText(item.text).then(() => setCopied(true))
               }}
@@ -110,14 +110,14 @@ function ActivityItem({ item }: { item: SessionItem }) {
   return (
     <details className={`owls-activity ${item.status}`}>
       <summary>
-        <Icon size={14} />
+        <Icon size={16} />
         <span
           className={running ? 'owls-activity-line owls-activity-shimmer' : 'owls-activity-line'}
         >
           <span>{verb}</span>
           {item.kind === 'command' ? <code>{preview}</code> : <span>{preview}</span>}
         </span>
-        <ChevronRightIcon size={12} className="owls-activity-chevron" />
+        <ChevronRightIcon size={14} className="owls-activity-chevron" />
       </summary>
       {item.kind === 'command' ? (
         <div className="owls-activity-body">
@@ -129,7 +129,7 @@ function ActivityItem({ item }: { item: SessionItem }) {
           {item.detail ? <pre className="owls-activity-output">{item.detail}</pre> : null}
           {running ? null : (
             <span className={`owls-activity-result ${item.status}`}>
-              {item.status === 'failed' ? <XIcon size={12} /> : <CheckIcon size={12} />}
+              {item.status === 'failed' ? <XIcon size={14} /> : <CheckIcon size={14} />}
               {t(item.status === 'failed' ? 'activity.failed' : 'activity.succeeded')}
             </span>
           )}
@@ -184,7 +184,7 @@ export function RequestCard({
       }}
     >
       <div className="owls-request-title">
-        <ShieldCheckIcon size={17} />
+        <ShieldCheckIcon size={19} />
         <strong>
           {t(request.kind === 'question' ? 'questionTitle' : 'approvalTitle', { agent })}
         </strong>
@@ -235,7 +235,7 @@ export function RequestCard({
           }
         >
           {pending || request.status === 'answering' ? (
-            <LoaderIcon size={13} className="animate-spin" />
+            <LoaderIcon size={15} className="animate-spin" />
           ) : null}
           {t(
             request.status === 'answering'

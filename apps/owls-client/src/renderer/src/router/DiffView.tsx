@@ -20,8 +20,8 @@ function DiffFileCard({ file, projectPath }: { file: DiffFile; projectPath: stri
   return (
     <details className="router-diff-file" open>
       <summary>
-        <ChevronRightIcon size={12} />
-        <FileCodeIcon size={14} />
+        <ChevronRightIcon size={14} />
+        <FileCodeIcon size={16} />
         <code>{path}</code>
         <DiffCounts stats={file} />
       </summary>

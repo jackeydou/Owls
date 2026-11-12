@@ -40,7 +40,7 @@ export function RouterDetail({ router }: { router: Router | undefined }) {
           size="sm"
           label={t('worker.close')}
           tooltip={t('worker.close')}
-          icon={<XIcon size={15} />}
+          icon={<XIcon size={17} />}
           onClick={() => showPanel(null)}
         />
       </header>
@@ -58,7 +58,7 @@ export function RouterDetail({ router }: { router: Router | undefined }) {
           ) : null}
         </dl>
         <Button size="sm" variant="outline" onClick={() => showSettings('router')}>
-          <SettingsIcon size={14} />
+          <SettingsIcon size={16} />
           {t('router.openSettings')}
         </Button>
         {router && kept.length ? (

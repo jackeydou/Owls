@@ -2,8 +2,8 @@ import { IconButton } from '@renderer/components/ui/icon-button'
 import {
   ChevronDownIcon,
   ChevronRightIcon,
-  FolderKanbanIcon,
-  SettingsIcon
+  SettingsIcon,
+  SidebarRightIcon
 } from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
@@ -104,7 +104,7 @@ function ProjectRow({ project }: { project: Project }) {
         label={settingsLabel}
         tooltip={settingsLabel}
         tooltipSide="left"
-        icon={<SettingsIcon size={13} />}
+        icon={<SettingsIcon size={15} />}
         onClick={() => showProjectSettings(project.id)}
       />
       {workers.length ? (
@@ -115,7 +115,7 @@ function ProjectRow({ project }: { project: Project }) {
           tooltip={foldLabel}
           tooltipSide="left"
           aria-expanded={!folded}
-          icon={folded ? <ChevronRightIcon size={13} /> : <ChevronDownIcon size={13} />}
+          icon={folded ? <ChevronRightIcon size={15} /> : <ChevronDownIcon size={15} />}
           onClick={() => toggleProjectFold(project.id)}
         />
       ) : null}
@@ -145,7 +145,7 @@ export function ProjectsToggle() {
       tooltip={label}
       tooltipSide="bottom"
       aria-pressed={open}
-      icon={<FolderKanbanIcon size={16} />}
+      icon={<SidebarRightIcon size={18} />}
       onClick={toggleProjects}
     />
   )

@@ -28,7 +28,7 @@ const CHECK_ICONS: Record<WorkerCheckState, IconComponent> = {
 
 function CheckIcon({ state }: { state: WorkerCheckState }) {
   const Icon = CHECK_ICONS[state]
-  return <Icon size={13} className={`router-github-check ${state}`} aria-hidden />
+  return <Icon size={15} className={`router-github-check ${state}`} aria-hidden />
 }
 
 function Checks({ pullRequest }: { pullRequest: WorkerPullRequest }) {
@@ -48,7 +48,7 @@ function Checks({ pullRequest }: { pullRequest: WorkerPullRequest }) {
       >
         <CheckIcon state={checksState} />
         <span>{t(`github.checks.${checksState}`, { count: failing })}</span>
-        <ChevronRightIcon size={12} className={open ? 'open' : undefined} aria-hidden />
+        <ChevronRightIcon size={14} className={open ? 'open' : undefined} aria-hidden />
       </Button>
       {open ? (
         <ul className="router-github-checks">
@@ -75,7 +75,7 @@ function PullRequestStatus({ pullRequest }: { pullRequest: WorkerPullRequest }) 
   return (
     <>
       <div className="router-github-title">
-        <GitPullRequestIcon size={13} aria-hidden />
+        <GitPullRequestIcon size={15} aria-hidden />
         <a href={pullRequest.url} target="_blank" rel="noreferrer">
           #{pullRequest.number} {pullRequest.title}
         </a>

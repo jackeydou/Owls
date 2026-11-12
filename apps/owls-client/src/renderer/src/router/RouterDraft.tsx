@@ -345,7 +345,7 @@ export function DraftTarget({ worker, onClear }: { worker: RouterWorker; onClear
       <IconButton
         size="sm"
         label={t('router.clearTarget', { title: workerTitle(worker) })}
-        icon={<XIcon size={12} />}
+        icon={<XIcon size={14} />}
         onClick={onClear}
       />
     </div>

@@ -38,19 +38,19 @@ export default function App() {
         <RouterShell />
       ) : (
         <main className="owls-loading" role="status">
-          <LoaderIcon size={20} className="animate-spin" />
+          <LoaderIcon size={22} className="animate-spin" />
           {t('loading')}
         </main>
       )}
       {loaded ? <UpdatePopup /> : null}
       {error ? (
         <div className="owls-error-toast" role="alert">
-          <AlertCircleIcon size={16} />
+          <AlertCircleIcon size={18} />
           <span>{failureMessage(error)}</span>
           <IconButton
             size="sm"
             label={t('dismissError')}
-            icon={<XIcon size={14} />}
+            icon={<XIcon size={16} />}
             onClick={clearError}
           />
         </div>

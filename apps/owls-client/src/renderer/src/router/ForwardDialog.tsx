@@ -58,7 +58,7 @@ function ForwardForm({ forwarding }: { forwarding: Forwarding }) {
             checked={target === NEW_THREAD}
             onChange={() => setTarget(NEW_THREAD)}
           />
-          <PlusIcon size={13} aria-hidden />
+          <PlusIcon size={15} aria-hidden />
           <span>{t('thread.new')}</span>
         </label>
         {target === NEW_THREAD && projects.length ? (
@@ -100,7 +100,7 @@ function ForwardForm({ forwarding }: { forwarding: Forwarding }) {
           {t('forward.cancel')}
         </Button>
         <Button size="sm" disabled={sending} onClick={() => void submit()}>
-          {sending ? <LoaderIcon size={13} className="animate-spin" /> : null}
+          {sending ? <LoaderIcon size={15} className="animate-spin" /> : null}
           {t('forward.send')}
         </Button>
       </footer>

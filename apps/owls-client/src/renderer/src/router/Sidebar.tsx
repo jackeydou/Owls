@@ -52,7 +52,7 @@ export function Sidebar() {
         aria-current={drafting || undefined}
         onClick={() => newThread()}
       >
-        <PlusIcon size={15} />
+        <PlusIcon size={17} />
         <span>{t('thread.new')}</span>
         <kbd>⌘ N</kbd>
       </button>
@@ -62,7 +62,7 @@ export function Sidebar() {
         aria-current={onMap || undefined}
         onClick={showMap}
       >
-        <NetworkIcon size={15} />
+        <NetworkIcon size={17} />
         <span>{t('map.title')}</span>
         <kbd>⌘ J</kbd>
       </button>
@@ -85,7 +85,7 @@ export function Sidebar() {
         className={`router-sidebar-item router-sidebar-action router-sidebar-settings ${connection.status}`}
         onClick={() => showSettings()}
       >
-        <SettingsIcon size={15} />
+        <SettingsIcon size={17} />
         <span>{t('settings')}</span>
       </button>
       <ResizeHandle {...handle} />
