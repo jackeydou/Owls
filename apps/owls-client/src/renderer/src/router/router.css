@@ -5,9 +5,16 @@
   --owl-wait-border: #c3964052;
   --owl-bad: #c9302c;
   --owl-queue: #1a1c1f59;
-  --owl-tag-bg: #e5f3ff;
-  --owl-tag-bg-hover: #d2e9ff;
-  --owl-tag-fg: #0b5cad;
+  --owl-tag-done-bg: #e5f3ff;
+  --owl-tag-done-fg: #0b5cad;
+  --owl-tag-run-bg: #e3f4ea;
+  --owl-tag-run-fg: #1f6a47;
+  --owl-tag-wait-bg: #fcf0d9;
+  --owl-tag-wait-fg: #8a5c08;
+  --owl-tag-bad-bg: #fde6e5;
+  --owl-tag-bad-fg: #a8231f;
+  --owl-tag-queue-bg: #eeeff1;
+  --owl-tag-queue-fg: #4b5058;
   --owl-hue-1: oklch(0.56 0.15 262);
   --owl-hue-2: oklch(0.56 0.15 310);
   --owl-hue-3: oklch(0.58 0.15 215);
@@ -27,9 +34,16 @@ html[data-platform="darwin"] {
   --owl-wait-border: #e8b04a47;
   --owl-bad: #ff6764;
   --owl-queue: #ffffff59;
-  --owl-tag-bg: #0285ff26;
-  --owl-tag-bg-hover: #0285ff3d;
-  --owl-tag-fg: #8cc8ff;
+  --owl-tag-done-bg: #0285ff29;
+  --owl-tag-done-fg: #8cc8ff;
+  --owl-tag-run-bg: #40c97724;
+  --owl-tag-run-fg: #7ee0a5;
+  --owl-tag-wait-bg: #e8b04a26;
+  --owl-tag-wait-fg: #f0c878;
+  --owl-tag-bad-bg: #ff676426;
+  --owl-tag-bad-fg: #ff9a97;
+  --owl-tag-queue-bg: #ffffff1a;
+  --owl-tag-queue-fg: #c4c7cc;
   --owl-hue-1: oklch(0.74 0.12 262);
   --owl-hue-2: oklch(0.74 0.12 310);
   --owl-hue-3: oklch(0.76 0.11 215);
@@ -458,12 +472,13 @@ html.pane-resizing * {
   border: 1.5px solid var(--owl-queue);
   background: transparent;
 }
-/* A light-blue tag that sits on the text baseline: the label carries the baseline, the dot
-   centers on it, and the vertical padding stays inside the line box. */
+/* A tag on the text baseline, tinted by the worker's status instead of a dot. As a flex
+   item the label still gives the tag its baseline; the tight line height keeps the padding
+   inside the line box. */
 .router-worker-link {
+  --owl-tag-bg: var(--owl-tag-done-bg);
+  --owl-tag-fg: var(--owl-tag-done-fg);
   display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
   max-width: 100%;
   padding: 1px 6px;
   border-radius: 5px;
@@ -472,17 +487,29 @@ html.pane-resizing * {
   font-weight: 500;
   line-height: var(--owl-leading-tight);
   vertical-align: baseline;
-  transition: background-color 120ms ease;
+}
+.router-worker-link.run {
+  --owl-tag-bg: var(--owl-tag-run-bg);
+  --owl-tag-fg: var(--owl-tag-run-fg);
+}
+.router-worker-link.wait {
+  --owl-tag-bg: var(--owl-tag-wait-bg);
+  --owl-tag-fg: var(--owl-tag-wait-fg);
+}
+.router-worker-link.bad {
+  --owl-tag-bg: var(--owl-tag-bad-bg);
+  --owl-tag-fg: var(--owl-tag-bad-fg);
+}
+.router-worker-link.queue {
+  --owl-tag-bg: var(--owl-tag-queue-bg);
+  --owl-tag-fg: var(--owl-tag-queue-fg);
 }
 .router-worker-link:hover {
-  background: var(--owl-tag-bg-hover);
+  background: color-mix(in srgb, var(--owl-tag-bg), var(--owl-tag-fg) 10%);
 }
 .router-worker-link:focus-visible {
   outline: 2px solid var(--color-owls-blue-300);
   outline-offset: 1px;
-}
-.router-worker-link > .router-dot {
-  align-self: center;
 }
 .router-worker-link > span {
   overflow: hidden;

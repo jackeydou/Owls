@@ -1,1 +1,1 @@
-- Router: worker links in replies are now light-blue tags that line up with the surrounding text, instead of underlined links. (#73)
+- Router: worker links in replies are now tags tinted by the worker's status (blue done, green running, amber waiting, red failed, gray queued) that line up with the surrounding text, replacing the underlined link and status dot. (#73)
