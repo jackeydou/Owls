@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1100-beta.4
+
+### Highlights
+
+- The worker panel reads as one conversation that leads with the report, with a change summary that opens a per-file diff.
+- New hand-drawn doodle owls for the app icon and the Router, Claude Code, and Codex avatars.
+
+### Changes
+
+- Router: the worker panel is one conversation that leads with the report, tool calls show as one muted line that expands, and a +/− change summary opens a per-file diff. (#75)
+- App icon and avatars: the app icon and the Router, Claude Code, and Codex avatars are now hand-drawn doodle owls; Settings offers nine app logos, and a previously chosen logo resets to the new default. (#74)
+- Router: worker links in replies are now tags tinted by the worker's status (blue done, green running, amber waiting, red failed, gray queued) that line up with the surrounding text, replacing the underlined link and status dot. (#73)
+
+### Fixes
+
+- Chat: the Forward to a thread and Copy buttons on a message no longer stack on top of each other; they sit side by side in one hover toolbar. (#72)
+
 ## 2026.11.1100-beta.3
 
 ### Highlights
