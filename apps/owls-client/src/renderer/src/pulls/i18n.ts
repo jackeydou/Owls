@@ -45,8 +45,7 @@ export const pullsEn = {
   'pulls.issue.unavailable': '{{project}}: Owls could not reach GitHub.',
   'pulls.install': 'Install on GitHub',
   'pulls.setting': 'Pull requests page',
-  'pulls.settingHelp':
-    'Shows the pull requests your agents open, with their merge and CI status, in the sidebar.',
+  'pulls.settingHelp': 'Lists the pull requests your agents open in the sidebar.',
   'pulls.setting.show': 'Show',
   'pulls.setting.hide': 'Hide'
 }
@@ -98,7 +97,7 @@ export const pullsZh: Record<keyof typeof pullsEn, string> = {
   'pulls.issue.unavailable': '{{project}}：Owls 无法连接 GitHub。',
   'pulls.install': '在 GitHub 上安装',
   'pulls.setting': 'Pull requests 页面',
-  'pulls.settingHelp': '在侧栏显示 agent 开启的 PR 及其合入和 CI 状态。',
+  'pulls.settingHelp': '在侧栏列出 agent 开的 PR。',
   'pulls.setting.show': '显示',
   'pulls.setting.hide': '隐藏'
 }

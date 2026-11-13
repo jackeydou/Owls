@@ -1,37 +1,93 @@
 import { Button } from '@renderer/components/ui/button'
 import { ExternalLinkIcon, FolderOpenIcon, RefreshIcon } from '@renderer/components/ui/icons'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CodexConnection, Failure } from '../../../shared/app'
+import type { AgentProvider, CodexConnection, Failure } from '../../../shared/app'
+import { AgentIcon } from '../router/AgentIcon'
 import { failureMessage, uiFailure } from './failures'
 import { SettingRow } from './SettingRow'
 import { useAppStore } from './store'
 
+/** One agent's tab: its connection state first, then its rows. */
 function AgentPane({
-  title,
-  body,
   status,
   children
 }: {
-  title: string
-  body: string
   status: CodexConnection['status']
   children: ReactNode
 }) {
   const { t } = useTranslation()
   return (
-    <section className="owls-settings-section">
-      <div className="owls-section-heading">
-        <div>
-          <h2>{title}</h2>
-          <p>{body}</p>
-        </div>
+    <>
+      <div className="owls-agent-status">
         <span className={`owls-connection ${status}`}>
           <i />
           {t(`connection.${status}`)}
         </span>
       </div>
       {children}
+    </>
+  )
+}
+
+const AGENT_TABS: AgentProvider[] = ['claude-code', 'codex', 'cursor']
+const AGENT_PANES: Record<AgentProvider, () => React.JSX.Element> = {
+  'claude-code': ClaudeSettingsPane,
+  codex: CodexSettingsPane,
+  cursor: CursorSettingsPane
+}
+
+/** Every coding agent on one page, one horizontal tab each. */
+export function AgentsSettingsPane() {
+  const { t } = useTranslation()
+  const current = useAppStore((s) => s.settingsAgent)
+  const showAgentSettings = useAppStore((s) => s.showAgentSettings)
+  const id = useId()
+  const Pane = AGENT_PANES[current]
+  // Arrow keys move between tabs, as in any tab list.
+  function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
+    if (!step) return
+    event.preventDefault()
+    const next =
+      AGENT_TABS[(AGENT_TABS.indexOf(current) + step + AGENT_TABS.length) % AGENT_TABS.length]
+    showAgentSettings(next)
+    document.getElementById(`${id}-${next}`)?.focus()
+  }
+  return (
+    <section className="owls-settings-section">
+      <h2>{t('agents.title')}</h2>
+      <div
+        className="owls-agent-tabs"
+        role="tablist"
+        aria-label={t('agents.title')}
+        onKeyDown={onKeyDown}
+      >
+        {AGENT_TABS.map((provider) => (
+          <button
+            type="button"
+            role="tab"
+            key={provider}
+            id={`${id}-${provider}`}
+            aria-selected={provider === current}
+            aria-controls={`${id}-panel`}
+            tabIndex={provider === current ? 0 : -1}
+            onClick={() => showAgentSettings(provider)}
+          >
+            <AgentIcon provider={provider} />
+            {t(`agent.${provider}`)}
+          </button>
+        ))}
+      </div>
+      <div
+        className="owls-agent-panel"
+        role="tabpanel"
+        id={`${id}-panel`}
+        aria-labelledby={`${id}-${current}`}
+        key={current}
+      >
+        <Pane />
+      </div>
     </section>
   )
 }
@@ -71,7 +127,7 @@ function ExecutableRow({
   )
 }
 
-export function ClaudeSettingsPane() {
+function ClaudeSettingsPane() {
   const { t } = useTranslation()
   const claude = useAppStore((s) => s.claude)
   const settings = useAppStore((s) => s.settings)
@@ -87,7 +143,7 @@ export function ClaudeSettingsPane() {
   const account = claude.account
   const busy = claude.status === 'connecting'
   return (
-    <AgentPane title={t('localClaude')} body={t('localClaudeBody')} status={claude.status}>
+    <AgentPane status={claude.status}>
       <SettingRow
         label={
           account.kind === 'claude'
@@ -101,7 +157,7 @@ export function ClaudeSettingsPane() {
         description={
           account.kind === 'claude' && account.plan
             ? `${t('subscription')} · ${account.plan}`
-            : t('nativeRuntime')
+            : null
         }
       >
         <Button
@@ -140,7 +196,7 @@ export function ClaudeSettingsPane() {
   )
 }
 
-export function CursorSettingsPane() {
+function CursorSettingsPane() {
   const { t } = useTranslation()
   const cursor = useAppStore((s) => s.cursor)
   const settings = useAppStore((s) => s.settings)
@@ -155,7 +211,7 @@ export function CursorSettingsPane() {
   const account = cursor.account
   const busy = cursor.status === 'connecting'
   return (
-    <AgentPane title={t('localCursor')} body={t('localCursorBody')} status={cursor.status}>
+    <AgentPane status={cursor.status}>
       <SettingRow
         label={
           account.kind === 'cursor'
@@ -164,7 +220,6 @@ export function CursorSettingsPane() {
               ? t('signedOut')
               : t('cursorAccountUnknown')
         }
-        description={t('cursorRuntime')}
       >
         <Button
           size="sm"
@@ -202,7 +257,7 @@ export function CursorSettingsPane() {
   )
 }
 
-export function AgentSettingsPane() {
+function CodexSettingsPane() {
   const { t } = useTranslation()
   const connection = useAppStore((s) => s.connection)
   const settings = useAppStore((s) => s.settings)
@@ -237,7 +292,7 @@ export function AgentSettingsPane() {
     }
   }
   return (
-    <AgentPane title={t('localCodex')} body={t('localCodexBody')} status={connection.status}>
+    <AgentPane status={connection.status}>
       <SettingRow
         label={
           account.kind === 'chatgpt'
@@ -251,7 +306,7 @@ export function AgentSettingsPane() {
         description={
           account.kind === 'chatgpt' && account.plan
             ? `${t('subscription')} · ${account.plan}`
-            : t('nativeRuntime')
+            : null
         }
       >
         <div className="owls-settings-actions">

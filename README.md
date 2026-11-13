@@ -11,7 +11,7 @@ each worker's activity, file changes, and report one click away.
 ## Get started
 
 Install and sign in to [Codex CLI](https://developers.openai.com/codex/cli)
-on your computer. Then open **Settings → Local Codex → Use local Codex sign-in**.
+on your computer. Then open **Settings → Agents → Codex → Connect local Codex**.
 Owls detects the executable, connects to app-server, and loads your account and
 available models. You can also choose an executable or start Codex's official
 ChatGPT sign-in flow from Settings.
@@ -38,10 +38,11 @@ worker can continue through its native Codex thread. Live approval callbacks
 expire when the owning process disconnects.
 
 Owls can also run workers with your installed Claude Code CLI: connect it in
-**Settings → Local Claude Code**, then choose the agent under **Worker defaults**.
+**Settings → Agents → Claude Code**, then choose the agent under
+**Settings → Router & Workers**.
 See [Claude Code runtime](docs/CLAUDE_CODE_RUNTIME.md). Workers can run with
 your installed Cursor CLI too, through its Agent Client Protocol mode: connect it
-in **Settings → Local Cursor**. See [Cursor runtime](docs/CURSOR_RUNTIME.md).
+in **Settings → Agents → Cursor**. See [Cursor runtime](docs/CURSOR_RUNTIME.md).
 
 See [Codex runtime](docs/CODEX_APP_SERVER.md) for ownership, configuration,
 storage, tests, and failure handling. The broader

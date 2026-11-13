@@ -8,6 +8,7 @@ import { agentConnection, agentSelection, useAppStore, withAgentSelection } from
 
 /** How each provider enforces the chosen permission. */
 function permissionHelp(provider: AgentProvider, permission: AppSettings['permission']): string {
+  if (permission === 'read-only') return 'readOnlyHelp'
   const full = permission === 'full-access'
   if (provider === 'claude-code') return full ? 'claudeFullAccessHelp' : 'claudePermissionHelp'
   if (provider === 'cursor') return full ? 'cursorFullAccessHelp' : 'cursorPermissionHelp'

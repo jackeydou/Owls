@@ -417,3 +417,75 @@
   outline: 2px solid var(--owl-focus-ring);
   outline-offset: 3px;
 }
+/* Agents page: one underlined tab per coding agent, the open one's rows below. */
+.owls-agent-tabs {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.owls-agent-tabs > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--owl-radius-xs) var(--owl-radius-xs) 0 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  font-weight: 500;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    transform 80ms ease;
+}
+.owls-agent-tabs > button:hover {
+  color: var(--color-foreground);
+}
+.owls-agent-tabs > button:active {
+  transform: translateY(1px);
+}
+.owls-agent-tabs > button[aria-selected="true"] {
+  border-bottom-color: var(--color-foreground);
+  color: var(--color-foreground);
+}
+.owls-agent-tabs .router-agent-icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+.owls-agent-tabs > button:not([aria-selected="true"]) .router-agent-icon {
+  opacity: 0.7;
+}
+.owls-agent-status {
+  display: flex;
+  align-items: center;
+  padding: 20px 0 4px;
+}
+.owls-agent-status .owls-connection {
+  font-size: var(--owl-text-sm);
+}
+.owls-agent-status + .owls-setting-row {
+  border-top: 0;
+}
+/* A named group inside one page, such as Router and Workers. */
+.owls-settings-section .owls-settings-subhead {
+  margin-top: 36px;
+  font-size: var(--owl-text-lg);
+  font-weight: 500;
+}
+.owls-settings-section h2 + p + .owls-settings-subhead {
+  margin-top: 28px;
+}
+.owls-settings-subhead-body {
+  margin-top: 4px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owls-settings-section .owls-settings-subhead + .owls-setting-row,
+.owls-settings-section .owls-settings-subhead-body + .owls-setting-row {
+  margin-top: 8px;
+  border-top: 0;
+}

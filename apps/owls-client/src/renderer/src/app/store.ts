@@ -63,12 +63,11 @@ function unwrap<T>(reply: Reply<T>): T {
   return reply.value
 }
 export type SettingsTab =
+  /** Every coding agent on one page; `settingsAgent` says which agent's tab is open. */
+  | 'agents'
+  /** The Router and the defaults it gives new workers. */
   | 'router'
-  | 'workers'
   | 'memory'
-  | 'claude-code'
-  | 'codex'
-  | 'cursor'
   | 'github'
   | 'appearance'
   | 'updates'
@@ -90,6 +89,8 @@ type State = {
   lastView: 'chat' | 'map' | 'cards' | 'pulls'
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
+  /** The agent tab open on the Agents page; survives leaving Settings like `settingsTab`. */
+  settingsAgent: AgentProvider
   /** The project and page shown while `settingsTab` is `project`. */
   settingsProject: { projectId: string; page: ProjectSettingsPage } | null
   github: GitHubAccount
@@ -106,6 +107,8 @@ type State = {
   initialize(): Promise<void>
   event(event: AppEvent): void
   showSettings(tab?: SettingsTab): void
+  /** Opens Settings on one agent's tab of the Agents page. */
+  showAgentSettings(provider: AgentProvider): void
   /** Opens Settings on one project's page, its general page by default. */
   showProjectSettings(projectId: string, page?: ProjectSettingsPage): void
   gitHubSignIn(): Promise<void>
@@ -211,7 +214,8 @@ export const useAppStore = create<State>((set, get) => {
     error: null,
     view: 'chat',
     lastView: 'chat',
-    settingsTab: 'router',
+    settingsTab: 'agents',
+    settingsAgent: 'claude-code',
     settingsProject: null,
     threadId: null,
     github: { status: 'signed-out', failure: null },
@@ -362,6 +366,14 @@ export const useAppStore = create<State>((set, get) => {
         view: 'settings',
         lastView: state.view === 'settings' ? state.lastView : state.view,
         settingsTab: tab ?? state.settingsTab,
+        error: null
+      })),
+    showAgentSettings: (provider) =>
+      set((state) => ({
+        view: 'settings',
+        lastView: state.view === 'settings' ? state.lastView : state.view,
+        settingsTab: 'agents',
+        settingsAgent: provider,
         error: null
       })),
     showProjectSettings: (projectId, page = 'general') =>

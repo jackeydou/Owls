@@ -90,7 +90,7 @@ function AgentConnect({ provider, body }: { provider: AgentProvider; body: strin
   const connect = useAppStore((s) =>
     provider === 'codex' ? s.connect : provider === 'cursor' ? s.connectCursor : s.connectClaude
   )
-  const showSettings = useAppStore((s) => s.showSettings)
+  const showAgentSettings = useAppStore((s) => s.showAgentSettings)
   const busy = connection.status === 'connecting'
   return (
     <div className="router-guide-detail">
@@ -104,7 +104,7 @@ function AgentConnect({ provider, body }: { provider: AgentProvider; body: strin
         <Button size="sm" pending={busy} onClick={() => void connect()}>
           {t('router.guideConnect', { agent: t(`agent.${provider}`) })}
         </Button>
-        <Button size="sm" variant="outline" onClick={() => showSettings(provider)}>
+        <Button size="sm" variant="outline" onClick={() => showAgentSettings(provider)}>
           {t('router.openSettings')}
         </Button>
       </div>

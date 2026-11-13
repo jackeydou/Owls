@@ -20,19 +20,23 @@ function draftFrom(model: OwlsModelSettings | null): OwlsModelSettings {
   return model ?? { provider: 'anthropic', model: '', thinking: 'low', baseUrl: null }
 }
 
-export function RouterSettingsSection() {
-  const { t } = useTranslation()
+function useRouterSaver() {
   const settings = useAppStore((s) => s.settings)
   const saveSettings = useAppStore((s) => s.saveSettings)
-  const claude = useAppStore((s) => s.claude)
-  const codex = useAppStore((s) => s.connection)
-  async function saveRouter(router: typeof settings.router) {
+  return async (router: typeof settings.router) => {
     await saveSettings({ ...settings, router })
   }
+}
+
+/** Which engine runs the Router, and its model. */
+export function RouterEngineRows() {
+  const { t } = useTranslation()
+  const settings = useAppStore((s) => s.settings)
+  const claude = useAppStore((s) => s.claude)
+  const codex = useAppStore((s) => s.connection)
+  const saveRouter = useRouterSaver()
   return (
-    <section className="owls-settings-section">
-      <h2>{t('routerSettings.title')}</h2>
-      <p>{t('routerSettings.body')}</p>
+    <>
       <SettingRow
         label={t('routerSettings.engine')}
         htmlFor="router-engine"
@@ -102,7 +106,22 @@ export function RouterSettingsSection() {
         </SettingRow>
       ) : null}
       {settings.router.engine === 'owls' ? <OwlsModelFields /> : null}
-      <SettingRow label={t('routerSettings.maxPermission')} htmlFor="router-permission">
+    </>
+  )
+}
+
+/** How far the Router may let workers go, and whether workers that edit code run side by side. */
+export function WorkerLimitRows() {
+  const { t } = useTranslation()
+  const settings = useAppStore((s) => s.settings)
+  const saveRouter = useRouterSaver()
+  return (
+    <>
+      <SettingRow
+        label={t('routerSettings.maxPermission')}
+        htmlFor="router-permission"
+        description={t('routerSettings.maxPermissionHelp')}
+      >
         <Select
           id="router-permission"
           value={settings.router.maxPermission}
@@ -136,7 +155,7 @@ export function RouterSettingsSection() {
           <option value="off">{t('routerSettings.worktrees.off')}</option>
         </Select>
       </SettingRow>
-    </section>
+    </>
   )
 }
 

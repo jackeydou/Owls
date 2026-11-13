@@ -3,7 +3,7 @@ import { SettingsIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { type AgentProvider, type Failure, providerSchema, type Router } from '../../../shared/app'
 import type { RouterEngineId } from '../../../shared/router'
-import { agentConnection, isAgentReady, type SettingsTab, useAppStore } from '../app/store'
+import { agentConnection, isAgentReady, useAppStore } from '../app/store'
 import { ThreadRow } from './ThreadRow'
 
 const SETUP_FAILURES = [
@@ -23,10 +23,10 @@ export type RouterSetupNeed =
 
 /** Agents that can run the Router; any provider can run workers. */
 const ENGINE_AGENTS: EngineAgent[] = ['claude-code', 'codex']
-/** The Settings tab that resolves a need. */
-function settingsTabFor(need: RouterSetupNeed): SettingsTab {
+/** The agent whose Settings tab resolves a need, or null for the Router page. */
+function settingsAgentFor(need: RouterSetupNeed): AgentProvider | null {
   if (need.kind === 'worker') return need.provider
-  if (need.kind === 'owls') return 'router'
+  if (need.kind === 'owls') return null
   return need.kind === 'claude' ? 'claude-code' : 'codex'
 }
 /** What stands between the user and a working Router, or null when nothing does. */
@@ -66,6 +66,7 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
   const settings = useAppStore((s) => s.settings)
   const save = useAppStore((s) => s.saveSettings)
   const showSettings = useAppStore((s) => s.showSettings)
+  const showAgentSettings = useAppStore((s) => s.showAgentSettings)
   const { alternate } = need
   const agent = t(`agent.${need.kind === 'worker' ? need.provider : 'codex'}`)
   function switchToAlternate() {
@@ -88,7 +89,11 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
           <Button
             size="sm"
             variant={alternate ? 'outline' : 'default'}
-            onClick={() => showSettings(settingsTabFor(need))}
+            onClick={() => {
+              const agent = settingsAgentFor(need)
+              if (agent) showAgentSettings(agent)
+              else showSettings('router')
+            }}
           >
             <SettingsIcon size={16} />
             {t('router.openSettings')}
