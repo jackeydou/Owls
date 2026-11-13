@@ -112,6 +112,11 @@ type State = {
   projectsFolder(): Promise<string | null>
   /** Opens the folder picker for where a new project goes; null when canceled. */
   chooseProjectsFolder(): Promise<string | null>
+  /** Where workers run tasks that belong to no project; null when it could not be read. */
+  workspaceFolder(): Promise<string | null>
+  /** Picks and saves another workspace folder; resolves to whether one was saved. */
+  selectWorkspaceFolder(): Promise<boolean>
+  resetWorkspaceFolder(): Promise<void>
   /**
    * Clones or creates a project and opens a new thread in it. Resolves to the
    * failure, for the form to show, or null once the project is open.
@@ -209,7 +214,8 @@ export const useAppStore = create<State>((set, get) => {
       memory: defaultMemorySettings,
       layout: defaultLayoutSettings,
       updateChannel: null,
-      pullRequestsVisible: true
+      pullRequestsVisible: true,
+      workspacePath: null
     },
     connection: {
       status: 'disconnected',
@@ -374,6 +380,16 @@ export const useAppStore = create<State>((set, get) => {
     projectsFolder: async () => (await action(() => window.owls.projectsFolder())) ?? null,
     chooseProjectsFolder: async () =>
       (await action(() => window.owls.chooseProjectsFolder())) ?? null,
+    workspaceFolder: async () => (await action(() => window.owls.workspaceFolder())) ?? null,
+    selectWorkspaceFolder: async () => {
+      const settings = await action(() => window.owls.selectWorkspaceFolder())
+      if (settings) set({ settings })
+      return Boolean(settings)
+    },
+    resetWorkspaceFolder: async () => {
+      const settings = await action(() => window.owls.resetWorkspaceFolder())
+      if (settings) set({ settings })
+    },
     cloneProject: (input) => addProject(() => window.owls.cloneProject(input)),
     createProject: (input) => addProject(() => window.owls.createProject(input)),
     saveProject: async (input) => {

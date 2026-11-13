@@ -105,8 +105,12 @@ export const workerPullRequestLinkSchema = z.object({
 export const workerSchema = z.object({
   id: z.string(),
   routerId: z.string(),
-  /** The project this worker runs in. Threads are global, so it is set per dispatch. */
-  projectId: z.string(),
+  /**
+   * The project this worker runs in. Threads are global, so it is set per
+   * dispatch. Null runs the worker in the user's workspace folder, for tasks
+   * that belong to no project.
+   */
+  projectId: z.string().nullable(),
   sessionId: z.string(),
   provider: z.enum(providerValues),
   goal: z.string(),

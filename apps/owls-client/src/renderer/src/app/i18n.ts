@@ -76,6 +76,11 @@ const en = {
   defaults: 'Worker defaults',
   defaultsBody:
     'The Router uses these for new workers. Existing workers keep their own configuration.',
+  workspaceFolder: 'Workspace folder',
+  workspaceFolderBody:
+    'Workers run tasks that do not belong to a project here. It is created when first needed.',
+  workspaceFolderChoose: 'Choose folder',
+  workspaceFolderReset: 'Use default',
   appearance: 'Appearance',
   theme: 'Theme',
   language: 'Language',
@@ -227,6 +232,10 @@ const zh: Record<keyof typeof en, string> = {
     '完全访问会在模型支持时使用 Claude Code 自动模式；无法自动判断的操作仍会请求审批。',
   defaults: 'Worker 默认值',
   defaultsBody: '协调者派出新 Worker 时使用，已有 Worker 保留自己的配置。',
+  workspaceFolder: '工作目录',
+  workspaceFolderBody: '不属于任何项目的任务会在这里运行，首次使用时自动创建。',
+  workspaceFolderChoose: '选择文件夹',
+  workspaceFolderReset: '恢复默认',
   appearance: '外观',
   theme: '主题',
   language: '语言',

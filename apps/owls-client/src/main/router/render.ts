@@ -118,10 +118,11 @@ export function renderBatch(
 
 /**
  * The projects a Router can dispatch to, sorted so the text only changes when
- * they do. Null with a single project, which every dispatch uses without naming it.
+ * they do. A single project is listed too, so the Router can tell whether a
+ * task is about it; null when there are none and every task uses the workspace.
  */
 export function renderProjects(projects: Project[], defaultId: string | null): string | null {
-  if (projects.length < 2) return null
+  if (!projects.length) return null
   const lines = [...projects]
     .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
     .map((p) => {
@@ -136,7 +137,7 @@ export function renderProjects(projects: Project[], defaultId: string | null): s
 
 /**
  * Deterministic summary of a Router's workers, for new or trimmed contexts.
- * `projectName` adds each worker's project when there is more than one.
+ * `projectName` adds each worker's project, or the workspace, when the user has projects.
  */
 export function renderState(
   workers: RouterWorker[],

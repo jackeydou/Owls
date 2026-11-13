@@ -413,7 +413,7 @@ export class DreamingRunner {
     if (defaultProjectId) projectIds.add(defaultProjectId)
     for (const report of slice.reports) {
       const worker = this.deps.worker(report.workerId)
-      if (worker) projectIds.add(worker.projectId)
+      if (worker?.projectId) projectIds.add(worker.projectId)
     }
     const projects = this.deps.projects()
     for (const projectId of [...projectIds].sort()) {

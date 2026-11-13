@@ -88,7 +88,9 @@ export class OwlsHost {
     private readonly codex: CodexService,
     private readonly claude: ClaudeService,
     private readonly threadHome: string,
-    private readonly projectsHome: string
+    private readonly projectsHome: string,
+    /** The workspace folder used while the user has not picked one. */
+    private readonly workspaceHome: string
   ) {}
   /** Connects the Routers, which start every session of this host. */
   attachRouter(router: RouterService): void {
@@ -116,6 +118,11 @@ export class OwlsHost {
       threadHome: () => {
         mkdirSync(this.threadHome, { recursive: true })
         return this.threadHome
+      },
+      workspace: () => {
+        const folder = this.workspaceFolder()
+        mkdirSync(folder, { recursive: true })
+        return folder
       },
       settings: () => this.codex.snapshot().settings,
       providerReady: (provider: AgentProvider) => {
@@ -314,6 +321,14 @@ export class OwlsHost {
   }
   projectsFolder(): string {
     return this.projectsHome
+  }
+  /** Where workers run tasks that belong to no project: the user's pick, else the default. */
+  workspaceFolder(): string {
+    return this.codex.snapshot().settings.workspacePath ?? this.workspaceHome
+  }
+  /** Saves the workspace folder; null goes back to the default. */
+  setWorkspaceFolder(path: string | null): AppSettings {
+    return this.saveSettings({ ...this.codex.snapshot().settings, workspacePath: path })
   }
   async cloneProject(input: CloneProject): Promise<Project> {
     return this.addProject(await cloneGitHubProject(input, this.projectsHome))

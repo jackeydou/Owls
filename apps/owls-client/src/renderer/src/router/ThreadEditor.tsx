@@ -12,19 +12,17 @@ const isCommandEnter = (event: KeyboardEvent) =>
 /**
  * Where the user writes next: the thread's last line, not a box under it. Enter
  * is a new line, as in any editor; Command-Enter sends. A new thread has no
- * project until its message names one with `@`; with no projects at all, sending
- * asks for a folder.
+ * project until its message names one with `@`; until then its tasks run in the
+ * workspace folder unless the Router names a project.
  */
 export function ThreadEditor({ router }: { router: Router | undefined }) {
   const { t } = useTranslation()
   const hasProjects = useAppStore((s) => s.projects.length > 0)
-  const pickProject = useAppStore((s) => s.pickProject)
   const showThread = useAppStore((s) => s.showThread)
   const draft = useRouterDraft({
     projectId: null,
     router,
     isSendKey: isCommandEnter,
-    chooseProject: hasProjects ? undefined : pickProject,
     onThread: showThread
   })
   const { empty, sending, addressed } = draft
@@ -37,7 +35,9 @@ export function ThreadEditor({ router }: { router: Router | undefined }) {
           editor={draft.editor}
           empty={empty}
           label={t(addressed ? 'router.promptWorker' : 'router.prompt')}
-          placeholder={hasProjects ? t(router ? 'thread.hint' : 'thread.hintNew') : undefined}
+          placeholder={
+            hasProjects ? t(router ? 'thread.hint' : 'thread.hintNew') : t('router.prompt')
+          }
         />
         <MentionMenu options={draft.options} highlight={draft.highlight} onPick={draft.pick} />
         <div className="router-editor-foot">
