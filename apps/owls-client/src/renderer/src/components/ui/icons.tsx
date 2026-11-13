@@ -406,6 +406,14 @@ export const ScrollTextIcon = createIcon(
     <line x1="6.75" y1="9.5" x2="9.25" y2="9.5" />
   </g>
 )
+export const TagIcon = createIcon(
+  'Tag',
+  'outline',
+  <g>
+    <path d="M2.5 3.75 V7.4 C2.5 7.73 2.63 8.05 2.87 8.28 L7.97 13.38 C8.46 13.87 9.25 13.87 9.74 13.38 L13.38 9.74 C13.87 9.25 13.87 8.46 13.38 7.97 L8.28 2.87 C8.05 2.63 7.73 2.5 7.4 2.5 H3.75 C3.06 2.5 2.5 3.06 2.5 3.75 Z" />
+    <circle cx="5.5" cy="5.5" r="1" />
+  </g>
+)
 export const SearchIcon = createIcon(
   'Search',
   'outline',

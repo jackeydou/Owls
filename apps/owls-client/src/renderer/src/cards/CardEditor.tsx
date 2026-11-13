@@ -184,10 +184,7 @@ export function CardEditor({ cardId }: { cardId: string }) {
   const [tags, setTags] = useState(
     card?.tags.join(' ') ?? (creating && filter.tag ? filter.tag : '')
   )
-  const [projectId, setProjectId] = useState<string | null>(
-    card?.projectId ??
-      (creating && filter.project && filter.project !== 'none' ? filter.project : null)
-  )
+  const [projectId, setProjectId] = useState<string | null>(card?.projectId ?? null)
   const [editing, setEditing] = useState(creating || !card?.body)
   const bodyField = useRef<HTMLTextAreaElement>(null)
   useAutosave(cardId, { title, body, tags: parseTags(tags), projectId }, (created) => {

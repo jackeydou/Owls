@@ -1,0 +1,1 @@
+- Cards: organize cards by tag instead of project, and replace the Cards sidebar with top-bar menus for tags, boards, and search.

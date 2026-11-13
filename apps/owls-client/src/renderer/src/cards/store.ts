@@ -16,8 +16,8 @@ function unwrap<T>(reply: Reply<T>): T {
   return reply.value
 }
 
-/** Which cards the library shows. `project` null is every card; `none` is cards without a project. */
-export type CardFilter = { project: string | 'none' | null; tag: string | null; query: string }
+/** Which cards the library shows: cards are organized by their tags, not their project. */
+export type CardFilter = { tag: string | null; query: string }
 /** What the capture dialog is saving, and how it fills in the form. */
 export type Capturing = {
   source: CardCapture['source']
@@ -86,7 +86,7 @@ export const useCardsStore = create<State>((set, get) => {
     status: 'idle',
     cards: [],
     boards: [],
-    filter: { project: null, tag: null, query: '' },
+    filter: { tag: null, query: '' },
     boardId: null,
     openCardId: null,
     editorSession: 0,

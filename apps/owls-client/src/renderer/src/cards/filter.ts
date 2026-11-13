@@ -3,12 +3,6 @@ import type { Card } from '../../../shared/cards'
 import { type CardFilter, useCardsStore } from './store'
 
 export function matches(card: Card, filter: CardFilter): boolean {
-  if (
-    filter.project === 'none'
-      ? card.projectId !== null
-      : filter.project && card.projectId !== filter.project
-  )
-    return false
   if (filter.tag && !card.tags.includes(filter.tag)) return false
   const needle = filter.query.trim().toLocaleLowerCase()
   return (
