@@ -1,21 +1,34 @@
-import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { ExternalLinkIcon, TrashIcon, XIcon } from '@renderer/components/ui/icons'
+import {
+  BoardIcon,
+  EllipsisIcon,
+  ExternalLinkIcon,
+  TrashIcon,
+  XIcon
+} from '@renderer/components/ui/icons'
+import {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  MenuTrigger
+} from '@renderer/components/ui/menu'
 import { Select } from '@renderer/components/ui/select'
-import { code } from '@streamdown/code'
-import { useId, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Streamdown } from 'streamdown'
-import { CARD_BODY_LIMIT, CARD_TITLE_LIMIT, type Card } from '../../../shared/cards'
+import { CARD_BODY_LIMIT, CARD_TITLE_LIMIT, type Card, type CardSave } from '../../../shared/cards'
 import { useAppStore } from '../app/store'
 import { useRouterStore } from '../router/store'
 import { nextSlot } from './board'
+import { CardBody } from './CardBody'
 import { useSourceLabel } from './CardTile'
 import { useCardsStore } from './store'
 
 /** The editor's id for a card that is not saved yet. */
 export const NEW_CARD = 'new'
-const plugins = { code }
+/** Typing pauses this long before the card saves itself. */
+const AUTOSAVE_DELAY = 700
 
 /** Tags typed as one line, split on commas or spaces. */
 export const parseTags = (text: string) =>
@@ -24,139 +37,175 @@ export const parseTags = (text: string) =>
     .map((tag) => tag.replace(/^#/, '').trim())
     .filter(Boolean)
 
-function SourceLink({ card }: { card: Card }) {
+type Fields = { title: string; body: string; tags: string[]; projectId: string | null }
+
+const sameFields = (a: Fields, b: Fields) =>
+  a.title === b.title &&
+  a.body === b.body &&
+  a.projectId === b.projectId &&
+  a.tags.join(',') === b.tags.join(',')
+
+/**
+ * Saves the card a moment after each change, and once more on close. Saves run
+ * one at a time, so a new card is added once and later edits update it.
+ */
+function useAutosave(cardId: string, fields: Fields, onCreated: (card: Card) => void) {
+  const save = useCardsStore((s) => s.save)
+  const id = useRef(cardId === NEW_CARD ? null : cardId)
+  const saved = useRef<Fields | null>(null)
+  const latest = useRef(fields)
+  latest.current = fields
+  const running = useRef<Promise<void> | null>(null)
+  const flush = useRef(async () => {})
+  flush.current = async () => {
+    while (running.current) await running.current
+    const next = latest.current
+    if (!next.title.trim() || (saved.current && sameFields(saved.current, next))) return
+    const input: CardSave = id.current
+      ? { action: 'update', id: id.current, ...next }
+      : { action: 'add', ...next }
+    running.current = save(input).then((card) => {
+      if (!card) return
+      saved.current = next
+      if (!id.current) {
+        id.current = card.id
+        onCreated(card)
+      }
+    })
+    await running.current
+    running.current = null
+  }
+  // The card as it opened counts as saved, so opening one writes nothing.
+  const opened = useRef(false)
+  if (!opened.current) {
+    opened.current = true
+    if (cardId !== NEW_CARD) saved.current = fields
+  }
+  const changed = JSON.stringify(fields)
+  useEffect(() => {
+    if (!changed) return
+    const timer = setTimeout(() => void flush.current(), AUTOSAVE_DELAY)
+    return () => clearTimeout(timer)
+  }, [changed])
+  useEffect(() => () => void flush.current(), [])
+}
+
+/** Source, boards, and delete: everything the editor needs now and then. */
+function CardMenu({ card }: { card: Card }) {
   const { t } = useTranslation()
-  const label = useSourceLabel(card)
+  const source = card.source
+  const sourceLabel = useSourceLabel(card)
   const showThread = useAppStore((s) => s.showThread)
   const showPanel = useRouterStore((s) => s.showPanel)
-  const source = card.source
-  const exists = useRouterStore((s) =>
+  const sourceLive = useRouterStore((s) =>
     Boolean(source && s.routers.some((r) => r.id === source.threadId))
   )
-  if (!source) return <p className="card-editor-source">{label}</p>
-  return (
-    <p className="card-editor-source">
-      <span>{label}</span>
-      {exists ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => {
-            showThread(source.threadId)
-            if (source.workerId) showPanel({ kind: 'worker', workerId: source.workerId })
-          }}
-        >
-          <ExternalLinkIcon size={13} />
-          {t('cards.openSource')}
-        </Button>
-      ) : null}
-    </p>
-  )
-}
-
-/** Puts the card on a board that does not hold it yet. */
-function AddToBoard({ card }: { card: Card }) {
-  const { t } = useTranslation()
   const boards = useCardsStore((s) => s.boards)
-  const place = useCardsStore((s) => s.place)
+  const { place, remove } = useCardsStore()
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const free = boards.filter((board) => !board.placements.some((p) => p.cardId === card.id))
-  const on = boards.length - free.length
-  if (!boards.length) return null
   return (
-    <div className="card-editor-boards">
-      <span>{on ? t('cards.onBoards', { count: on }) : t('cards.onNoBoard')}</span>
-      {free.length ? (
-        <Select
-          aria-label={t('cards.addToBoard')}
-          value=""
-          onChange={(event) => {
-            const board = free.find((b) => b.id === event.target.value)
-            if (!board) return
-            void place(board.id, [
-              ...board.placements,
-              { cardId: card.id, ...nextSlot(board.placements) }
-            ])
+    <Menu onOpenChange={(open) => open || setConfirmDelete(false)}>
+      <MenuTrigger asChild>
+        <IconButton
+          size="sm"
+          label={t('cards.more')}
+          tooltip={t('cards.more')}
+          icon={<EllipsisIcon size={16} />}
+        />
+      </MenuTrigger>
+      <MenuContent align="end">
+        <MenuLabel className="card-menu-source">{sourceLabel}</MenuLabel>
+        {source && sourceLive ? (
+          <MenuItem
+            onSelect={() => {
+              showThread(source.threadId)
+              if (source.workerId) showPanel({ kind: 'worker', workerId: source.workerId })
+            }}
+          >
+            <ExternalLinkIcon size={14} />
+            {t('cards.openSource')}
+          </MenuItem>
+        ) : null}
+        {free.length ? (
+          <>
+            <MenuSeparator />
+            <MenuLabel>{t('cards.addToBoard')}</MenuLabel>
+            {free.map((board) => (
+              <MenuItem
+                key={board.id}
+                onSelect={() =>
+                  void place(board.id, [
+                    ...board.placements,
+                    {
+                      cardId: card.id,
+                      ...nextSlot(board.placements, useCardsStore.getState().cards)
+                    }
+                  ])
+                }
+              >
+                <BoardIcon size={14} />
+                <span className="truncate">{board.name}</span>
+              </MenuItem>
+            ))}
+          </>
+        ) : null}
+        <MenuSeparator />
+        <MenuItem
+          className="text-destructive"
+          onSelect={(event) => {
+            if (confirmDelete) return void remove(card.id)
+            event.preventDefault()
+            setConfirmDelete(true)
           }}
         >
-          <option value="">{t('cards.addToBoard')}</option>
-          {free.map((board) => (
-            <option key={board.id} value={board.id}>
-              {board.name}
-            </option>
-          ))}
-        </Select>
-      ) : null}
-    </div>
+          <TrashIcon size={14} />
+          {t(confirmDelete ? 'cards.confirmDelete' : 'cards.delete')}
+        </MenuItem>
+      </MenuContent>
+    </Menu>
   )
 }
 
-/** The open card, in the right-hand panel. A new card is saved on the first save. */
+/**
+ * The open card, in the right-hand panel: a title and a body, edited in place
+ * and saved as you type. Project and tags sit on one quiet line under the title.
+ */
 export function CardEditor({ cardId }: { cardId: string }) {
   const { t } = useTranslation()
   const card = useCardsStore((s) => s.cards.find((c) => c.id === cardId))
   const filter = useCardsStore((s) => s.filter)
-  const { save, remove, openCard } = useCardsStore()
+  const boardId = useCardsStore((s) => s.boardId)
+  const { openCard, adoptCard, place } = useCardsStore()
   const projects = useAppStore((s) => s.projects)
   const creating = cardId === NEW_CARD
-  const initialProject =
-    card?.projectId ??
-    (creating && filter.project && filter.project !== 'none' ? filter.project : null)
   const [title, setTitle] = useState(card?.title ?? '')
   const [body, setBody] = useState(card?.body ?? '')
   const [tags, setTags] = useState(
-    card?.tags.join(', ') ?? (creating && filter.tag ? filter.tag : '')
+    card?.tags.join(' ') ?? (creating && filter.tag ? filter.tag : '')
   )
-  const [projectId, setProjectId] = useState<string | null>(initialProject)
-  const projectField = useId()
+  const [projectId, setProjectId] = useState<string | null>(
+    card?.projectId ??
+      (creating && filter.project && filter.project !== 'none' ? filter.project : null)
+  )
   const [editing, setEditing] = useState(creating || !card?.body)
-  const [saving, setSaving] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const bodyField = useRef<HTMLTextAreaElement>(null)
+  useAutosave(cardId, { title, body, tags: parseTags(tags), projectId }, (created) => {
+    adoptCard(created.id)
+    // A card written on a board lands on that board.
+    const board = useCardsStore.getState().boards.find((b) => b.id === boardId)
+    if (board)
+      void place(board.id, [
+        ...board.placements,
+        { cardId: created.id, ...nextSlot(board.placements, useCardsStore.getState().cards) }
+      ])
+  })
   if (!creating && !card) return null
-  const parsed = parseTags(tags)
-  const dirty =
-    creating ||
-    title !== card?.title ||
-    body !== card?.body ||
-    parsed.join(',') !== card?.tags.join(',') ||
-    projectId !== card?.projectId
-  async function submit() {
-    if (!title.trim() || saving) return
-    setSaving(true)
-    const fields = { title, body, tags: parsed, projectId }
-    const saved = await save(
-      creating || !card
-        ? { action: 'add', ...fields }
-        : { action: 'update', id: card.id, ...fields }
-    )
-    setSaving(false)
-    if (saved && creating) openCard(saved.id)
-    if (saved) setEditing(false)
-  }
   return (
     <aside className="card-editor" aria-label={t('cards.editor')}>
       <header>
-        <input
-          className="card-editor-title"
-          value={title}
-          maxLength={CARD_TITLE_LIMIT}
-          aria-label={t('cards.titleLabel')}
-          placeholder={t('cards.titlePlaceholder')}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-        {card ? (
-          <IconButton
-            size="sm"
-            label={t(confirmDelete ? 'cards.confirmDelete' : 'cards.delete')}
-            tooltip={t(confirmDelete ? 'cards.confirmDelete' : 'cards.delete')}
-            className={confirmDelete ? 'text-destructive' : undefined}
-            icon={<TrashIcon size={15} />}
-            onClick={() => {
-              if (!confirmDelete) return setConfirmDelete(true)
-              void remove(card.id)
-            }}
-            onBlur={() => setConfirmDelete(false)}
-          />
-        ) : null}
+        <span className="card-editor-space" />
+        {card ? <CardMenu card={card} /> : null}
         <IconButton
           size="sm"
           label={t('cards.close')}
@@ -165,11 +214,28 @@ export function CardEditor({ cardId }: { cardId: string }) {
           onClick={() => openCard(null)}
         />
       </header>
-      <div className="card-editor-fields">
-        <label htmlFor={projectField}>
-          <span>{t('cards.project')}</span>
+      <div className="card-editor-scroll">
+        <textarea
+          className="card-editor-title"
+          rows={1}
+          value={title}
+          maxLength={CARD_TITLE_LIMIT}
+          aria-label={t('cards.titleLabel')}
+          placeholder={t('cards.titlePlaceholder')}
+          // biome-ignore lint/a11y/noAutofocus: a new card starts with its title.
+          autoFocus={creating}
+          onChange={(event) => setTitle(event.target.value.replace(/\n/g, ' '))}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return
+            event.preventDefault()
+            setEditing(true)
+            requestAnimationFrame(() => bodyField.current?.focus())
+          }}
+        />
+        <div className="card-editor-props">
           <Select
-            id={projectField}
+            aria-label={t('cards.project')}
+            className="card-editor-project"
             value={projectId ?? ''}
             onChange={(event) => setProjectId(event.target.value || null)}
           >
@@ -180,63 +246,39 @@ export function CardEditor({ cardId }: { cardId: string }) {
               </option>
             ))}
           </Select>
-        </label>
-        <label>
-          <span>{t('cards.tagsLabel')}</span>
           <input
+            className="card-editor-tags"
             value={tags}
-            placeholder={t('cards.tagsPlaceholder')}
+            aria-label={t('cards.tagsLabel')}
+            placeholder={t('cards.addTags')}
             onChange={(event) => setTags(event.target.value)}
           />
-        </label>
-      </div>
-      <div className="card-editor-mode" role="tablist" aria-label={t('cards.bodyMode')}>
-        <button type="button" role="tab" aria-selected={!editing} onClick={() => setEditing(false)}>
-          {t('cards.preview')}
-        </button>
-        <button type="button" role="tab" aria-selected={editing} onClick={() => setEditing(true)}>
-          {t('cards.edit')}
-        </button>
-      </div>
-      <div className="card-editor-body">
+        </div>
         {editing ? (
           <textarea
+            ref={bodyField}
+            className="card-editor-body"
             value={body}
             maxLength={CARD_BODY_LIMIT}
             aria-label={t('cards.bodyLabel')}
             placeholder={t('cards.bodyPlaceholder')}
             onChange={(event) => setBody(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 's' && (event.metaKey || event.ctrlKey)) {
-                event.preventDefault()
-                void submit()
-              }
-            }}
+            onBlur={() => body.trim() && setEditing(false)}
           />
-        ) : body ? (
-          // biome-ignore lint/a11y/noStaticElementInteractions: a double-click shortcut; the Edit tab is the accessible way in.
-          <div className="owls-markdown" onDoubleClick={() => setEditing(true)}>
-            <Streamdown plugins={plugins} controls={false}>
-              {body}
-            </Streamdown>
-          </div>
         ) : (
-          <p className="card-editor-empty">{t('cards.emptyBody')}</p>
+          <div className="card-editor-read">
+            <CardBody body={body} />
+            <button
+              type="button"
+              aria-label={t('cards.editBody')}
+              onClick={() => {
+                setEditing(true)
+                requestAnimationFrame(() => bodyField.current?.focus())
+              }}
+            />
+          </div>
         )}
       </div>
-      <footer>
-        {card ? <SourceLink card={card} /> : null}
-        {card ? <AddToBoard card={card} /> : null}
-        <div className="card-editor-actions">
-          <Button
-            size="sm"
-            disabled={!dirty || !title.trim() || saving}
-            onClick={() => void submit()}
-          >
-            {t('cards.save')}
-          </Button>
-        </div>
-      </footer>
     </aside>
   )
 }

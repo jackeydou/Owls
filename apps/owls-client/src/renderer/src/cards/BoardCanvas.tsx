@@ -1,7 +1,22 @@
-import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { PencilIcon, PlusIcon, TrashIcon, XIcon } from '@renderer/components/ui/icons'
-import { Select } from '@renderer/components/ui/select'
+import {
+  CardPlusIcon,
+  CheckIcon,
+  EllipsisIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+  XIcon
+} from '@renderer/components/ui/icons'
+import {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  MenuTrigger
+} from '@renderer/components/ui/menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
@@ -15,7 +30,8 @@ import type { Board, BoardPlacement, Card } from '../../../shared/cards'
 import { useAppStore } from '../app/store'
 import { RouterComposer } from '../router/RouterComposer'
 import { BOARD_CARD_WIDTH, nextSlot } from './board'
-import { excerpt } from './CardTile'
+import { CardBody } from './CardBody'
+import { NEW_CARD } from './CardEditor'
 import { useFilteredCards } from './filter'
 import { useCardsStore } from './store'
 
@@ -25,9 +41,9 @@ const CARD_DRAG = 'application/x-owls-card'
 /** Pointer travel, in screen pixels, before a press on a card counts as a drag. */
 const DRAG_SLOP = 4
 const FIT_MARGIN = 64
-/** Room for the board's composer under the cards. */
-const BOTTOM_INSET = 96
-const CARD_HEIGHT_GUESS = 160
+const CARD_HEIGHT_GUESS = 240
+/** Room for the floating tool rail on the left. */
+const RAIL_INSET = 56
 
 type View = { k: number; x: number; y: number }
 
@@ -66,20 +82,24 @@ function useBoardCamera(
       const x0 = Math.min(...placements.map((p) => p.x))
       const y0 = Math.min(...placements.map((p) => p.y))
       const x1 = Math.max(...placements.map((p) => p.x + BOARD_CARD_WIDTH))
-      const y1 = Math.max(...placements.map((p) => p.y + CARD_HEIGHT_GUESS))
-      const height = box.height - BOTTOM_INSET
+      // Cards are as tall as their text, so measure the ones on screen.
+      const height = (id: string) =>
+        world.current?.querySelector<HTMLElement>(`[data-card="${id}"]`)?.offsetHeight ??
+        CARD_HEIGHT_GUESS
+      const y1 = Math.max(...placements.map((p) => p.y + height(p.cardId)))
+      const width = box.width - RAIL_INSET
       const k = Math.max(
         MIN_ZOOM,
-        Math.min(1, (box.width - FIT_MARGIN * 2) / (x1 - x0), (height - FIT_MARGIN * 2) / (y1 - y0))
+        Math.min(1, (width - FIT_MARGIN * 2) / (x1 - x0), (box.height - FIT_MARGIN * 2) / (y1 - y0))
       )
       view.current = {
         k,
-        x: box.width / 2 - ((x0 + x1) / 2) * k,
-        y: height / 2 - ((y0 + y1) / 2) * k
+        x: RAIL_INSET + width / 2 - ((x0 + x1) / 2) * k,
+        y: box.height / 2 - ((y0 + y1) / 2) * k
       }
       apply()
     },
-    [apply, stage]
+    [apply, stage, world]
   )
   useEffect(() => {
     const el = stage.current
@@ -132,7 +152,7 @@ function useBoardCamera(
       fit,
       zoomBy(factor: number) {
         const box = stage.current?.getBoundingClientRect()
-        if (box) zoomAt(box.width / 2, (box.height - BOTTOM_INSET) / 2, factor)
+        if (box) zoomAt(box.width / 2, box.height / 2, factor)
       },
       /** A screen point as board coordinates. */
       toBoard(clientX: number, clientY: number) {
@@ -177,14 +197,7 @@ function BoardCard({
       onDoubleClick={onOpen}
     >
       <h4>{card.title}</h4>
-      {card.body ? <p>{excerpt(card.body, 220)}</p> : null}
-      {card.tags.length ? (
-        <div className="card-tags">
-          {card.tags.map((tag) => (
-            <span key={tag}>#{tag}</span>
-          ))}
-        </div>
-      ) : null}
+      {card.body ? <CardBody body={card.body} /> : null}
       <div className="board-card-actions">
         <IconButton
           size="sm"
@@ -204,13 +217,29 @@ function BoardCard({
 }
 
 /** Cards the board does not hold yet, to drag on or add with a click. */
-function BoardTray({ board, onAdd }: { board: Board; onAdd: (cardId: string) => void }) {
+function BoardTray({
+  board,
+  onAdd,
+  onClose
+}: {
+  board: Board
+  onAdd: (cardId: string) => void
+  onClose: () => void
+}) {
   const { t } = useTranslation()
   const cards = useFilteredCards()
   const free = cards.filter((card) => !board.placements.some((p) => p.cardId === card.id))
   return (
     <aside className="board-tray" aria-label={t('cards.tray')}>
-      <h3>{t('cards.tray')}</h3>
+      <header>
+        <h3>{t('cards.addCards')}</h3>
+        <IconButton
+          size="sm"
+          label={t('cards.close')}
+          icon={<XIcon size={14} />}
+          onClick={onClose}
+        />
+      </header>
       {free.length ? (
         <ul>
           {free.map((card) => (
@@ -239,12 +268,12 @@ function BoardTray({ board, onAdd }: { board: Board; onAdd: (cardId: string) => 
   )
 }
 
-function BoardName({ board }: { board: Board }) {
+/** The board's name in the header, renamed in place. */
+export function BoardTitle({ board }: { board: Board }) {
   const { t } = useTranslation()
-  const { saveBoard, removeBoard } = useCardsStore()
-  const projects = useAppStore((s) => s.projects)
+  const saveBoard = useCardsStore((s) => s.saveBoard)
   const [name, setName] = useState(board.name)
-  const [confirm, setConfirm] = useState(false)
+  useEffect(() => setName(board.name), [board.name])
   const rename = () => {
     const next = name.trim()
     if (!next) return setName(board.name)
@@ -252,45 +281,62 @@ function BoardName({ board }: { board: Board }) {
       void saveBoard({ action: 'rename', id: board.id, name: next, projectId: board.projectId })
   }
   return (
-    <div className="board-meta">
-      <input
-        value={name}
-        aria-label={t('cards.boardName')}
-        onChange={(event) => setName(event.target.value)}
-        onBlur={rename}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') event.currentTarget.blur()
-        }}
-      />
-      <Select
-        aria-label={t('cards.boardProject')}
-        value={board.projectId ?? ''}
-        onChange={(event) =>
-          void saveBoard({
-            action: 'rename',
-            id: board.id,
-            name: board.name,
-            projectId: event.target.value || null
-          })
-        }
-      >
-        <option value="">{t('cards.noProject')}</option>
-        {projects.map((project) => (
-          <option key={project.id} value={project.id}>
-            {project.name}
-          </option>
+    <input
+      className="board-title"
+      value={name}
+      aria-label={t('cards.boardName')}
+      onChange={(event) => setName(event.target.value)}
+      onBlur={rename}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === 'Escape') event.currentTarget.blur()
+      }}
+    />
+  )
+}
+
+/** The board's project and delete, kept out of sight until asked for. */
+export function BoardMenu({ board }: { board: Board }) {
+  const { t } = useTranslation()
+  const { saveBoard, removeBoard } = useCardsStore()
+  const projects = useAppStore((s) => s.projects)
+  const [confirm, setConfirm] = useState(false)
+  const setProject = (projectId: string | null) =>
+    void saveBoard({ action: 'rename', id: board.id, name: board.name, projectId })
+  return (
+    <Menu onOpenChange={(open) => open || setConfirm(false)}>
+      <MenuTrigger asChild>
+        <IconButton
+          size="sm"
+          label={t('cards.boardMenu')}
+          tooltip={t('cards.boardMenu')}
+          icon={<EllipsisIcon size={16} />}
+        />
+      </MenuTrigger>
+      <MenuContent align="start">
+        <MenuLabel>{t('cards.boardProject')}</MenuLabel>
+        {[{ id: null, name: t('cards.noProject') }, ...projects].map((project) => (
+          <MenuItem key={project.id ?? 'none'} onSelect={() => setProject(project.id)}>
+            <CheckIcon
+              size={14}
+              className={board.projectId === project.id ? undefined : 'invisible'}
+            />
+            <span className="truncate">{project.name}</span>
+          </MenuItem>
         ))}
-      </Select>
-      <IconButton
-        size="sm"
-        label={t(confirm ? 'cards.confirmDeleteBoard' : 'cards.deleteBoard')}
-        tooltip={t(confirm ? 'cards.confirmDeleteBoard' : 'cards.deleteBoard')}
-        className={confirm ? 'text-destructive' : undefined}
-        icon={<TrashIcon size={14} />}
-        onClick={() => (confirm ? void removeBoard(board.id) : setConfirm(true))}
-        onBlur={() => setConfirm(false)}
-      />
-    </div>
+        <MenuSeparator />
+        <MenuItem
+          className="text-destructive"
+          onSelect={(event) => {
+            if (confirm) return void removeBoard(board.id)
+            event.preventDefault()
+            setConfirm(true)
+          }}
+        >
+          <TrashIcon size={14} />
+          {t(confirm ? 'cards.confirmDeleteBoard' : 'cards.deleteBoard')}
+        </MenuItem>
+      </MenuContent>
+    </Menu>
   )
 }
 
@@ -326,7 +372,7 @@ export function BoardCanvas({ boardId }: { boardId: string }) {
   const save = (next: BoardPlacement[]) => void place(board.id, next)
   const add = (cardId: string, at?: { x: number; y: number }) => {
     if (placements.some((p) => p.cardId === cardId)) return
-    save([...placements, { cardId, ...(at ?? nextSlot(placements)) }])
+    save([...placements, { cardId, ...(at ?? nextSlot(placements, cards)) }])
   }
   const press = (placement: BoardPlacement) => (event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0 || (event.target as Element).closest('button')) return
@@ -366,81 +412,96 @@ export function BoardCanvas({ boardId }: { boardId: string }) {
   })
   return (
     <div className="board-view">
-      <div className="board-toolbar">
-        <BoardName key={board.id + board.name + (board.projectId ?? '')} board={board} />
-        <span className="cards-hud-space" />
-        <Button
-          size="sm"
-          variant={trayOpen ? 'secondary' : 'outline'}
-          onClick={() => setTrayOpen(!trayOpen)}
-        >
-          <PlusIcon size={14} />
-          {t('cards.addCards')}
-        </Button>
-      </div>
-      <div className="board-body">
-        {trayOpen ? <BoardTray board={board} onAdd={(id) => add(id)} /> : null}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: a drop target for cards dragged from the tray; the tray's add buttons are the keyboard path. */}
-        <div
-          className="board-stage"
-          ref={stage}
-          onDragOver={(event) => {
-            if (event.dataTransfer.types.includes(CARD_DRAG)) {
-              event.preventDefault()
-              event.dataTransfer.dropEffect = 'copy'
-            }
-          }}
-          onDrop={(event) => {
-            const cardId = event.dataTransfer.getData(CARD_DRAG)
-            if (!cardId) return
+      {trayOpen ? (
+        <BoardTray board={board} onAdd={(id) => add(id)} onClose={() => setTrayOpen(false)} />
+      ) : null}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: a drop target for cards dragged from the tray; the tray's add buttons are the keyboard path. */}
+      <div
+        className="board-stage"
+        ref={stage}
+        onDragOver={(event) => {
+          if (event.dataTransfer.types.includes(CARD_DRAG)) {
             event.preventDefault()
-            const at = camera.toBoard(event.clientX, event.clientY)
-            add(cardId, { x: Math.round(at.x - BOARD_CARD_WIDTH / 2), y: Math.round(at.y - 24) })
-          }}
-        >
-          <div className="board-world" ref={world}>
-            {placements.map((placement) => {
-              const card = byId.get(placement.cardId)
-              if (!card) return null
-              const shown = moving?.cardId === card.id ? moving : placement
-              return (
-                <BoardCard
-                  key={card.id}
-                  card={card}
-                  placement={shown}
-                  selected={selected.includes(card.id)}
-                  onPress={press(placement)}
-                  onOpen={() => openCard(card.id)}
-                  onRemove={() => save(placements.filter((p) => p.cardId !== card.id))}
-                />
-              )
-            })}
-          </div>
-          {placements.length ? null : <p className="board-empty">{t('cards.boardEmpty')}</p>}
+            event.dataTransfer.dropEffect = 'copy'
+          }
+        }}
+        onDrop={(event) => {
+          const cardId = event.dataTransfer.getData(CARD_DRAG)
+          if (!cardId) return
+          event.preventDefault()
+          const at = camera.toBoard(event.clientX, event.clientY)
+          add(cardId, { x: Math.round(at.x - BOARD_CARD_WIDTH / 2), y: Math.round(at.y - 24) })
+        }}
+      >
+        <div className="board-world" ref={world}>
+          {placements.map((placement) => {
+            const card = byId.get(placement.cardId)
+            if (!card) return null
+            const shown = moving?.cardId === card.id ? moving : placement
+            return (
+              <BoardCard
+                key={card.id}
+                card={card}
+                placement={shown}
+                selected={selected.includes(card.id)}
+                onPress={press(placement)}
+                onOpen={() => openCard(card.id)}
+                onRemove={() => save(placements.filter((p) => p.cardId !== card.id))}
+              />
+            )
+          })}
         </div>
-        <div className="board-zoom">
-          <button type="button" aria-label={t('map.zoomOut')} onClick={() => camera.zoomBy(0.8)}>
-            −
-          </button>
-          <span ref={zoomLabel}>100%</span>
-          <button type="button" aria-label={t('map.zoomIn')} onClick={() => camera.zoomBy(1.25)}>
-            +
-          </button>
-          <button type="button" className="fit" onClick={() => camera.fit(placements)}>
-            {t('map.fit')}
-          </button>
-        </div>
-        <div className="board-bar">
-          {picked.length ? null : <p className="board-hint">{t('cards.boardHint')}</p>}
-          <RouterComposer
-            projectId={board.projectId ?? routerProjectId ?? firstProject}
-            router={undefined}
-            linkedCards={picked}
-            prompt={t(picked.length ? 'cards.boardPromptPicked' : 'cards.boardPrompt')}
-            onSent={() => setSelected([])}
-            onThread={showThread}
+        {placements.length ? null : <p className="board-empty">{t('cards.boardEmpty')}</p>}
+        <div className="board-rail">
+          <IconButton
+            label={t('cards.addCards')}
+            tooltip={t('cards.addCards')}
+            tooltipSide="right"
+            aria-pressed={trayOpen}
+            icon={<CardPlusIcon size={18} />}
+            onClick={() => setTrayOpen(!trayOpen)}
+          />
+          <IconButton
+            label={t('cards.new')}
+            tooltip={t('cards.new')}
+            tooltipSide="right"
+            icon={<PlusIcon size={18} />}
+            onClick={() => openCard(NEW_CARD)}
           />
         </div>
+        <div className="board-zoom">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="board-zoom-level"
+                aria-label={t('map.fit')}
+                onClick={() => camera.fit(placements)}
+              >
+                <span ref={zoomLabel}>100%</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{t('map.fit')}</TooltipContent>
+          </Tooltip>
+          <button type="button" aria-label={t('map.zoomIn')} onClick={() => camera.zoomBy(1.25)}>
+            <PlusIcon size={16} />
+          </button>
+          <button type="button" aria-label={t('map.zoomOut')} onClick={() => camera.zoomBy(0.8)}>
+            <span className="board-zoom-minus" />
+          </button>
+        </div>
+        {picked.length ? (
+          <div className="board-bar">
+            <RouterComposer
+              projectId={board.projectId ?? routerProjectId ?? firstProject}
+              router={undefined}
+              linkedCards={picked}
+              prompt={t('cards.boardPromptPicked')}
+              onSent={() => setSelected([])}
+              onThread={showThread}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   )

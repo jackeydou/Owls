@@ -14,7 +14,7 @@ import { failureMessage } from '../app/failures'
 import { useAppStore } from '../app/store'
 import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
-import { BoardCanvas } from './BoardCanvas'
+import { BoardCanvas, BoardMenu, BoardTitle } from './BoardCanvas'
 import { CardEditor, NEW_CARD } from './CardEditor'
 import { CardTile } from './CardTile'
 import { useFilteredCards } from './filter'
@@ -172,55 +172,104 @@ function CardList() {
   if (!total) return <p className="cards-empty">{t('cards.emptyLibrary')}</p>
   if (!cards.length) return <p className="cards-empty">{t('cards.noMatch')}</p>
   return (
-    <ul className="cards-grid" aria-label={t('cards.list')}>
-      {cards.map((card) => (
-        <li key={card.id}>
-          <CardTile
-            card={card}
-            selected={selected.includes(card.id)}
-            open={openCardId === card.id}
-            onToggle={() => toggleSelected(card.id)}
-            onOpen={() => openCard(card.id)}
-          />
-        </li>
-      ))}
-    </ul>
+    <div className="cards-scroll">
+      <ul className="cards-grid" aria-label={t('cards.list')}>
+        {cards.map((card) => (
+          <li key={card.id}>
+            <CardTile
+              card={card}
+              selected={selected.includes(card.id)}
+              open={openCardId === card.id}
+              onToggle={() => toggleSelected(card.id)}
+              onOpen={() => openCard(card.id)}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
+/** What the list shows, in words: a project, a tag, or nothing past "Cards". */
+function useFilterLabel(): string | null {
+  const { t } = useTranslation()
+  const filter = useCardsStore((s) => s.filter)
+  const project = useAppStore((s) => s.projects.find((p) => p.id === filter.project))
+  if (filter.tag) return `#${filter.tag}`
+  if (filter.project === 'none') return t('cards.noProject')
+  return project?.name ?? null
+}
+
+/** A breadcrumb, and only the actions the current view can take. */
 function CardsHud() {
   const { t } = useTranslation()
   const filter = useCardsStore((s) => s.filter)
   const selected = useCardsStore((s) => s.selected)
-  const { setFilter, openCard, setSelected, chooseTarget } = useCardsStore()
+  const board = useCardsStore((s) => s.boards.find((b) => b.id === s.boardId))
+  const { setFilter, openCard, setSelected, chooseTarget, showBoard } = useCardsStore()
+  const filterLabel = useFilterLabel()
   return (
     <header className="cards-hud">
-      <strong>{t('cards.title')}</strong>
-      <label className="cards-search">
-        <SearchIcon size={14} />
-        <input
-          type="search"
-          value={filter.query}
-          aria-label={t('cards.search')}
-          placeholder={t('cards.search')}
-          onChange={(event) => setFilter({ query: event.target.value })}
-        />
-      </label>
+      <nav className="cards-crumbs" aria-label={t('cards.title')}>
+        {board || filterLabel ? (
+          <button
+            type="button"
+            onClick={() => {
+              showBoard(null)
+              setFilter({ project: null, tag: null })
+            }}
+          >
+            {t('cards.title')}
+          </button>
+        ) : (
+          <strong>{t('cards.title')}</strong>
+        )}
+        {board ? (
+          <>
+            <span aria-hidden>/</span>
+            <BoardTitle key={board.id} board={board} />
+            <BoardMenu board={board} />
+          </>
+        ) : filterLabel ? (
+          <>
+            <span aria-hidden>/</span>
+            <strong>{filterLabel}</strong>
+          </>
+        ) : null}
+      </nav>
       <span className="cards-hud-space" />
-      {selected.length ? (
+      {board ? null : (
         <>
-          <Button size="sm" variant="ghost" onClick={() => setSelected([])}>
-            {t('cards.clearSelection')}
-          </Button>
-          <Button size="sm" onClick={() => chooseTarget(true)}>
-            {t('cards.sendSelected', { count: selected.length })}
-          </Button>
+          <label className="cards-search">
+            <SearchIcon size={15} />
+            <input
+              type="search"
+              value={filter.query}
+              aria-label={t('cards.search')}
+              placeholder={t('cards.search')}
+              onChange={(event) => setFilter({ query: event.target.value })}
+            />
+          </label>
+          {selected.length ? (
+            <>
+              <Button size="sm" variant="ghost" onClick={() => setSelected([])}>
+                {t('cards.clearSelection')}
+              </Button>
+              <Button size="sm" onClick={() => chooseTarget(true)}>
+                {t('cards.sendSelected', { count: selected.length })}
+              </Button>
+            </>
+          ) : null}
+          <IconButton
+            size="sm"
+            label={t('cards.new')}
+            tooltip={t('cards.new')}
+            tooltipSide="bottom"
+            icon={<PlusIcon size={16} />}
+            onClick={() => openCard(NEW_CARD)}
+          />
         </>
-      ) : null}
-      <Button size="sm" variant="outline" onClick={() => openCard(NEW_CARD)}>
-        <PlusIcon size={14} />
-        {t('cards.new')}
-      </Button>
+      )}
     </header>
   )
 }
@@ -247,6 +296,7 @@ function CardsError() {
 export function CardsView() {
   const boardId = useCardsStore((s) => s.boardId)
   const openCardId = useCardsStore((s) => s.openCardId)
+  const editorSession = useCardsStore((s) => s.editorSession)
   return (
     <main className="cards-view">
       <CardsNav />
@@ -255,7 +305,7 @@ export function CardsView() {
         <CardsError />
         {boardId ? <BoardCanvas key={boardId} boardId={boardId} /> : <CardList />}
       </section>
-      {openCardId ? <CardEditor key={openCardId} cardId={openCardId} /> : null}
+      {openCardId ? <CardEditor key={editorSession} cardId={openCardId} /> : null}
     </main>
   )
 }

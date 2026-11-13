@@ -35,6 +35,8 @@ type State = {
   boardId: string | null
   /** The card open in the editor panel. */
   openCardId: string | null
+  /** Bumps each time a card is opened, so the editor starts fresh; adopting a new card's id keeps it. */
+  editorSession: number
   /** Cards picked to send, in the order they were picked. */
   selected: string[]
   capturing: Capturing | null
@@ -47,6 +49,8 @@ type State = {
   setFilter(filter: Partial<CardFilter>): void
   showBoard(boardId: string | null): void
   openCard(cardId: string | null): void
+  /** Points the open editor at the card it just created, without reopening it. */
+  adoptCard(cardId: string): void
   toggleSelected(cardId: string): void
   setSelected(cardIds: string[]): void
   save(input: CardSave): Promise<Card | null>
@@ -85,6 +89,7 @@ export const useCardsStore = create<State>((set, get) => {
     filter: { project: null, tag: null, query: '' },
     boardId: null,
     openCardId: null,
+    editorSession: 0,
     selected: [],
     capturing: null,
     choosingTarget: false,
@@ -113,7 +118,9 @@ export const useCardsStore = create<State>((set, get) => {
     },
     setFilter: (filter) => set((state) => ({ filter: { ...state.filter, ...filter } })),
     showBoard: (boardId) => set({ boardId }),
-    openCard: (openCardId) => set({ openCardId }),
+    openCard: (openCardId) =>
+      set((state) => ({ openCardId, editorSession: state.editorSession + 1 })),
+    adoptCard: (openCardId) => set({ openCardId }),
     toggleSelected: (cardId) =>
       set((state) => ({
         selected: state.selected.includes(cardId)
