@@ -58,6 +58,19 @@ const api: OwlsAPI = {
       return () => ipcRenderer.removeListener('owls:memory-changed', handler)
     }
   },
+  cards: {
+    library: () => ipcRenderer.invoke('owls:cards-library'),
+    save: (input) => ipcRenderer.invoke('owls:cards-save', input),
+    capture: (input) => ipcRenderer.invoke('owls:cards-capture', input),
+    remove: (cardId) => ipcRenderer.invoke('owls:cards-remove', cardId),
+    saveBoard: (input) => ipcRenderer.invoke('owls:cards-save-board', input),
+    removeBoard: (boardId) => ipcRenderer.invoke('owls:cards-remove-board', boardId),
+    onChanged: (listener) => {
+      const handler = () => listener()
+      ipcRenderer.on('owls:cards-changed', handler)
+      return () => ipcRenderer.removeListener('owls:cards-changed', handler)
+    }
+  },
   updates: {
     snapshot: () => ipcRenderer.invoke('owls:updates-snapshot'),
     check: () => ipcRenderer.invoke('owls:updates-check'),

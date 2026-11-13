@@ -6,6 +6,7 @@ import type {
   SessionItem,
   ThreadItem
 } from '../../shared/app.js'
+import type { AttachedCard } from '../../shared/cards.js'
 import type { ProjectGitRefs } from '../../shared/projects.js'
 import type {
   CreateThread,
@@ -21,6 +22,7 @@ import type {
   WorkerReport
 } from '../../shared/router.js'
 import { OwlsError } from '../app/errors.js'
+import type { CapturedContent } from '../cards/service.js'
 import type { RouterMemory } from '../memory/service.js'
 import type { RouterCredentials } from './credentials.js'
 import type { RouterBatchOutcome, RouterEngine, RouterSink } from './engine.js'
@@ -28,7 +30,7 @@ import type { EngineFactory } from './engines/factory.js'
 import { builtinRouterModels, catalog, OWLS_PROVIDERS } from './engines/owls-models.js'
 import { type InboxEvent, type InboxEventBody, isQuietEvent } from './events.js'
 import { ROUTER_PROMPT_VERSION } from './prompt.js'
-import { renderBatch, renderProjects, renderState } from './render.js'
+import { cardsText, renderBatch, renderProjects, renderState } from './render.js'
 import type { RouterStore } from './store.js'
 import { ThreadLog } from './thread-log.js'
 import { RouterToolError, routerTools } from './tools.js'
@@ -63,6 +65,10 @@ const noMemory: RouterMemory = {
   categoryLine: () => null,
   search: () => ({ memories: [] })
 }
+
+/** How a user item names the cards its message carried. */
+const cardRefs = (cards: AttachedCard[]) =>
+  cards.length ? { cards: cards.map(({ id, title }) => ({ id, title })) } : {}
 
 /** A short thread title: the first line with text, on one line. */
 function titleOf(text: string): string {
@@ -199,10 +205,19 @@ export class RouterService implements TurnProfiles {
     return this.log(this.getRouter(routerId)).after(after)
   }
 
-  async send(input: SendRouterMessage): Promise<void> {
+  /**
+   * `cards` are the frozen copies of `input.cardIds`, which the caller reads from
+   * the card library, so a thread never depends on a card after it was sent.
+   */
+  async send(input: SendRouterMessage, cards: AttachedCard[] = []): Promise<void> {
     const router = this.ownRouter(input.routerId)
-    if (!this.commands.acceptCommand(input.commandId, router.id, input.text)) return
-    if (input.workerId) return this.sendToWorker(router, input, input.workerId)
+    const accepted = this.commands.acceptCommand(
+      input.commandId,
+      router.id,
+      cards.length ? JSON.stringify([input.text, cards.map((c) => c.id)]) : input.text
+    )
+    if (!accepted) return
+    if (input.workerId) return this.sendToWorker(router, input, input.workerId, cards)
     router.title ??= titleOf(input.text)
     this.put(router, {
       id: input.commandId,
@@ -210,18 +225,21 @@ export class RouterService implements TurnProfiles {
       status: 'completed',
       text: input.text,
       detail: '',
-      turnId: null
+      turnId: null,
+      ...cardRefs(cards)
     })
     const body: InboxEventBody = {
       kind: 'user_message',
       at: new Date().toISOString(),
-      text: input.text
+      text: input.text,
+      ...(cards.length ? { cards } : {})
     }
     // A running batch takes the user's message immediately; other events wait.
+    // Cards always wait, so they reach the Router marked as reference material.
     const batch = this.active.get(router.id)
     const engine = this.engines.get(router.id)?.engine
     // Checked again after the await: the batch may have ended meanwhile.
-    if (batch && engine && (await engine.steer(input.text)) === 'steered') {
+    if (!cards.length && batch && engine && (await engine.steer(input.text)) === 'steered') {
       this.store.appendEvent(router.id, input.commandId, body, batch.id)
       return
     }
@@ -231,14 +249,16 @@ export class RouterService implements TurnProfiles {
   /**
    * The user named the worker, so Owls delivers the message without a model
    * call (RFC_OWLS_ROUTER_SHELL 4.4). The Router reads it in its next batch, and
-   * the worker's report starts that batch as usual.
+   * the worker's report starts that batch as usual. Cards go ahead of the text.
    */
   private async sendToWorker(
     router: Router,
     input: SendRouterMessage,
-    workerId: string
+    workerId: string,
+    cards: AttachedCard[]
   ): Promise<void> {
-    await this.forUser(() => this.workers.message(router.id, { workerId, text: input.text }))
+    const text = cards.length ? `${cardsText(cards)}\n\n${input.text}` : input.text
+    await this.forUser(() => this.workers.message(router.id, { workerId, text }))
     this.put(router, {
       id: input.commandId,
       kind: 'user',
@@ -246,13 +266,15 @@ export class RouterService implements TurnProfiles {
       text: input.text,
       detail: '',
       turnId: null,
-      workerId
+      workerId,
+      ...cardRefs(cards)
     })
     const body: InboxEventBody = {
       kind: 'user_message',
       at: new Date().toISOString(),
       text: input.text,
-      workerId
+      workerId,
+      ...(cards.length ? { cards } : {})
     }
     this.add(router.id, input.commandId, body, false)
   }
@@ -269,7 +291,7 @@ export class RouterService implements TurnProfiles {
     if (targetId === source.id)
       throw new OwlsError('invalid_request', 'This content is already in that thread.')
     if (input.target.kind === 'thread') this.ownRouter(targetId)
-    const content = this.forwardContent(input, source)
+    const content = this.forwardContent(input.source, source)
     const note = input.note || null
     const accepted = this.commands.acceptCommand(
       input.commandId,
@@ -310,9 +332,26 @@ export class RouterService implements TurnProfiles {
     return target
   }
 
+  /** A message or worker result to save as a card: its frozen text and where it came from. */
+  contentOf(input: ForwardMessage['source']): CapturedContent {
+    const router = this.getRouter(input.routerId)
+    const content = this.forwardContent(input, router)
+    const { workerId, branch } = content.origin
+    return {
+      text: branch ? `${content.text}\n\nBranch: \`${branch}\`` : content.text,
+      source: {
+        kind: input.kind === 'item' ? 'message' : 'worker',
+        threadId: router.id,
+        threadTitle: router.title,
+        itemId: input.kind === 'item' ? input.itemId : null,
+        workerId
+      }
+    }
+  }
+
   /** The text to freeze and where it came from. Refuses anything with nothing to forward. */
   private forwardContent(
-    input: ForwardMessage,
+    input: ForwardMessage['source'],
     source: Router
   ): {
     text: string
@@ -321,12 +360,12 @@ export class RouterService implements TurnProfiles {
     const base = { routerId: source.id, title: source.title, artifacts: [] }
     const unavailable = () =>
       new OwlsError('request_unavailable', 'This content can no longer be forwarded.')
-    if (input.source.kind === 'item') {
-      const item = this.log(source).get(input.source.itemId)?.item
+    if (input.kind === 'item') {
+      const item = this.log(source).get(input.itemId)?.item
       if (!item?.text || !['user', 'assistant', 'forward'].includes(item.kind)) throw unavailable()
       return { text: item.text, origin: { ...base, workerId: null, branch: null } }
     }
-    const worker = this.pool.get(input.source.workerId)
+    const worker = this.pool.get(input.workerId)
     if (worker?.routerId !== source.id || !worker.report) throw unavailable()
     return {
       text: worker.report.summary,
@@ -717,13 +756,17 @@ export class RouterService implements TurnProfiles {
       if (!found || found.routerId !== routerId) throw missing()
       const { event, status, batchId } = found
       const text =
-        event.kind === 'user_message' || event.kind === 'forwarded'
-          ? event.text
-          : event.kind === 'worker_report'
-            ? event.report.summary
-            : event.kind === 'worker_waiting'
-              ? event.detail
-              : null
+        event.kind === 'user_message'
+          ? event.cards?.length
+            ? `${event.text}\n\n${cardsText(event.cards)}`
+            : event.text
+          : event.kind === 'forwarded'
+            ? event.text
+            : event.kind === 'worker_report'
+              ? event.report.summary
+              : event.kind === 'worker_waiting'
+                ? event.detail
+                : null
       return {
         id: base,
         kind: event.kind,

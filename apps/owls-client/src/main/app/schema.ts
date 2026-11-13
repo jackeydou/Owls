@@ -1,5 +1,6 @@
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import type { AppSettings, Project, Router, Session, SessionItem } from '../../shared/app.js'
+import type { Board, Card } from '../../shared/cards.js'
 import type { Memory, MemoryCategory, MemoryRun } from '../../shared/memory.js'
 import type { RouterWorker } from '../../shared/router.js'
 
@@ -190,4 +191,29 @@ export const memoryRunsTable = sqliteTable(
     value: text('value', { mode: 'json' }).$type<MemoryRun>().notNull()
   },
   (table) => [index('memory_runs_created').on(table.createdAt)]
+)
+/** Knowledge cards. A deleted card is a tombstone with its text cleared. */
+export const cardsTable = sqliteTable(
+  'cards',
+  {
+    id: text('id').primaryKey(),
+    rev: integer('rev').notNull(),
+    projectId: text('project_id'),
+    status: text('status').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    value: text('value', { mode: 'json' }).$type<Card>().notNull()
+  },
+  (table) => [index('cards_rev').on(table.rev), index('cards_status').on(table.status)]
+)
+/** Card whiteboards, each holding where its cards sit. */
+export const boardsTable = sqliteTable(
+  'boards',
+  {
+    id: text('id').primaryKey(),
+    rev: integer('rev').notNull(),
+    status: text('status').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    value: text('value', { mode: 'json' }).$type<Board>().notNull()
+  },
+  (table) => [index('boards_rev').on(table.rev)]
 )

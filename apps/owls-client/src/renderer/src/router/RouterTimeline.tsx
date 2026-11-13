@@ -7,6 +7,7 @@ import type { Router, SessionItem } from '../../../shared/app'
 import { ConversationItem } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { useAppStore } from '../app/store'
+import { MessageCards, SaveCardAction } from '../cards/CardActions'
 import { DispatchGroup } from './DispatchGroup'
 import { isSetupFailure } from './RouterSetup'
 import { useRouterStore } from './store'
@@ -164,7 +165,14 @@ export function RouterTimeline({
             const previous = entries[index - 1]
             const forward =
               router && 'item' in entry && canForward(entry.item) ? (
-                <ForwardAction item={entry.item} router={router} />
+                <>
+                  <ForwardAction item={entry.item} router={router} />
+                  <SaveCardAction
+                    source={{ kind: 'item', routerId: router.id, itemId: entry.item.id }}
+                    text={entry.item.text}
+                    projectId={router.projectId}
+                  />
+                </>
               ) : null
             return (
               <ThreadRow
@@ -187,6 +195,9 @@ export function RouterTimeline({
                     actions={forward}
                   />
                 )}
+                {'item' in entry && entry.item.cards?.length ? (
+                  <MessageCards cards={entry.item.cards} />
+                ) : null}
                 {/* A reply has its own action row (Copy); everything else gets one here. */}
                 {forward && 'item' in entry && entry.item.kind !== 'assistant' ? (
                   <div className="owls-message-actions">{forward}</div>

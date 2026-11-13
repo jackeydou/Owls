@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ATTACHED_CARD_LIMIT, cardIdSchema } from './cards.js'
 
 const permissionValues = ['read-only', 'workspace-write', 'full-access'] as const
 const providerValues = ['codex', 'claude-code'] as const
@@ -160,7 +161,9 @@ export const sendRouterSchema = z.object({
   commandId: z.string().uuid(),
   text: z.string().trim().min(1).max(8000),
   /** Delivers the message straight to this worker instead of the Router's model. */
-  workerId: z.string().min(1).max(64).optional()
+  workerId: z.string().min(1).max(64).optional(),
+  /** Cards the message carries as reference material; main freezes their text when it sends. */
+  cardIds: z.array(cardIdSchema).max(ATTACHED_CARD_LIMIT).default([])
 })
 export const forwardSchema = z.object({
   commandId: z.string().uuid(),

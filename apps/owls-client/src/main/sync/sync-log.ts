@@ -12,7 +12,9 @@ export const syncRecordKindSchema = z.enum([
   'worker',
   'session',
   'memory-category',
-  'memory'
+  'memory',
+  'card',
+  'board'
 ])
 export type SyncRecordKind = z.infer<typeof syncRecordKindSchema>
 export type SyncLogEntry = { kind: SyncRecordKind; recordId: string; deviceSeq: number }

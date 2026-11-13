@@ -2,6 +2,8 @@ export { layoutSettingsSchema } from '../../shared/app.js'
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
 export { parseGitHubRepo, saveProjectSchema } from '../../shared/projects.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'
+export { CardService } from '../cards/service.js'
+export { CardStore } from '../cards/store.js'
 export { discoverClaudeExecutable } from '../claude/discovery.js'
 export * as claudeNormalize from '../claude/normalize.js'
 export { ClaudeService } from '../claude/service.js'
@@ -34,7 +36,13 @@ export {
   ROUTER_INSTRUCTIONS,
   ROUTER_PROMPT_VERSION
 } from '../router/prompt.js'
-export { renderBatch, renderProjects, renderState, trimContext } from '../router/render.js'
+export {
+  cardsText,
+  renderBatch,
+  renderProjects,
+  renderState,
+  trimContext
+} from '../router/render.js'
 export { parseReport, WORKER_REPORT_JSON_SCHEMA } from '../router/report.js'
 export { RouterService } from '../router/service.js'
 export { RouterStore } from '../router/store.js'

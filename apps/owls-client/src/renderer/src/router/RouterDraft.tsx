@@ -1,20 +1,24 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { XIcon } from '@renderer/components/ui/icons'
+import { CardsIcon, XIcon } from '@renderer/components/ui/icons'
 import { type Editor, Node } from '@tiptap/core'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Project, Router } from '../../../shared/app'
+import { ATTACHED_CARD_LIMIT, type Card, type CardRef } from '../../../shared/cards'
 import type { RouterWorker } from '../../../shared/router'
 import { useAppStore } from '../app/store'
+import { useCardsStore } from '../cards/store'
 import { byRelevance, projectHue, workerTitle } from './activity'
 import { ProjectIcon } from './ProjectIcon'
 import { useRouterStore } from './store'
 import { WorkerDot } from './WorkerLink'
 
 const MENTION = /(?:^|\s)@([^\s@]*)$/
-const MENU_SIZE = 6
+const MENU_SIZE = 8
+/** Cards offered before anything is typed after `@`; typing searches them all. */
+const RECENT_CARDS = 3
 /** Stands in for inline nodes when the text before the caret is searched for `@`. */
 const LEAF = '￼'
 
@@ -73,9 +77,14 @@ const PlainText = StarterKit.configure({
 export type MentionOption =
   | { kind: 'project'; project: Project }
   | { kind: 'worker'; worker: RouterWorker }
+  | { kind: 'card'; card: Card }
 
 const optionKey = (option: MentionOption) =>
-  option.kind === 'project' ? `project:${option.project.id}` : `worker:${option.worker.id}`
+  option.kind === 'project'
+    ? `project:${option.project.id}`
+    : option.kind === 'worker'
+      ? `worker:${option.worker.id}`
+      : `card:${option.card.id}`
 
 /** The `@query` the caret is in, as a range of the document. */
 type Trigger = { query: string; from: number; to: number }
@@ -101,9 +110,14 @@ function firstProject(editor: Editor): string | null {
   return found
 }
 
-function useMentions(router: Router | undefined, query: string | null): MentionOption[] {
+function useMentions(
+  router: Router | undefined,
+  query: string | null,
+  attached: CardRef[]
+): MentionOption[] {
   const workers = useRouterStore((s) => s.workers)
   const projects = useAppStore((s) => s.projects)
+  const cards = useCardsStore((s) => s.cards)
   return useMemo(() => {
     if (query === null) return []
     const needle = query.toLocaleLowerCase()
@@ -121,9 +135,18 @@ function useMentions(router: Router | undefined, query: string | null): MentionO
           .sort(byRelevance)
           .map((worker) => ({ kind: 'worker', worker }))
       : []
+    const matching = cards.filter(
+      (card) =>
+        !attached.some((a) => a.id === card.id) &&
+        (card.title.toLocaleLowerCase().includes(needle) ||
+          card.tags.some((tag) => tag.toLocaleLowerCase().includes(needle)))
+    )
+    const cardOptions: MentionOption[] = (needle ? matching : matching.slice(0, RECENT_CARDS)).map(
+      (card) => ({ kind: 'card', card })
+    )
     // In a thread, its workers come first: they are what `@` usually addresses there.
-    return [...workerOptions, ...projectOptions].slice(0, MENU_SIZE)
-  }, [workers, projects, router, query])
+    return [...workerOptions, ...cardOptions, ...projectOptions].slice(0, MENU_SIZE)
+  }, [workers, projects, cards, attached, router, query])
 }
 
 /**
@@ -139,7 +162,9 @@ export function useRouterDraft({
   isSendKey,
   disabled = false,
   chooseProject,
-  onThread
+  onThread,
+  linkedCards,
+  onSent
 }: {
   projectId: string | null
   router: Router | undefined
@@ -150,19 +175,34 @@ export function useRouterDraft({
   chooseProject?: () => Promise<string | null>
   /** Told which thread took the first message of a new one. */
   onThread?: (threadId: string) => void
+  /** Cards that follow a selection elsewhere, such as a board's; they replace the attached ones. */
+  linkedCards?: CardRef[]
+  /** Told when a message went out. */
+  onSent?: () => void
 }) {
   const { createThread, send, sending } = useRouterStore()
   /** A thread made by a send that failed, so trying again does not leave another. */
   const created = useRef<Router | null>(null)
   const [empty, setEmpty] = useState(true)
   const [mention, setMention] = useState<RouterWorker | null>(null)
+  // Cards sent here from the library start the draft; the store hands them over once.
+  const [cards, setCards] = useState<CardRef[]>(() => {
+    const pending = useCardsStore.getState().pendingCards
+    if (pending.length) useCardsStore.getState().setPending([])
+    return pending
+  })
+  const linkedKey = linkedCards?.map((c) => c.id).join(' ')
+  // biome-ignore lint/correctness/useExhaustiveDependencies: follows the linked ids, not the array's identity.
+  useEffect(() => {
+    if (linkedCards) setCards(linkedCards)
+  }, [linkedKey])
   const [trigger, setTrigger] = useState<Trigger | null>(null)
   const [highlight, setHighlight] = useState(0)
   const [dismissed, setDismissed] = useState(false)
   const choosing = useRef(false)
   const addressed = target ?? mention
   const query = dismissed || !trigger ? null : trigger.query
-  const options = useMentions(router, query).filter(
+  const options = useMentions(router, query, cards).filter(
     (option) => !(addressed && option.kind === 'worker')
   )
   // ProseMirror keeps the props it was made with; the key handler reads the latest render.
@@ -190,6 +230,14 @@ export function useRouterDraft({
     if (option.kind === 'worker') {
       editor.chain().focus().deleteRange(range).run()
       setMention(option.worker)
+    } else if (option.kind === 'card') {
+      editor.chain().focus().deleteRange(range).run()
+      const { id, title } = option.card
+      setCards((list) =>
+        list.length >= ATTACHED_CARD_LIMIT || list.some((c) => c.id === id)
+          ? list
+          : [...list, { id, title }]
+      )
     } else {
       const { id, name } = option.project
       editor
@@ -215,9 +263,12 @@ export function useRouterDraft({
     const current = router ?? created.current ?? (await createThread(chosen))
     if (!current) return
     created.current = router ? null : current
-    if (await send(current.id, message, addressed?.id)) {
+    const cardIds = cards.map((card) => card.id)
+    if (await send(current.id, message, addressed?.id, cardIds)) {
       editor.commands.clearContent(true)
       setMention(null)
+      setCards([])
+      onSent?.()
       created.current = null
       if (!router) onThread?.(current.id)
     }
@@ -245,6 +296,10 @@ export function useRouterDraft({
       setMention(null)
       return true
     }
+    if (event.key === 'Backspace' && editor.isEmpty && cards.length) {
+      setCards((list) => list.slice(0, -1))
+      return true
+    }
     if (isSendKey(event) && !event.isComposing) {
       event.preventDefault()
       void submit()
@@ -261,7 +316,9 @@ export function useRouterDraft({
     highlight,
     pick,
     submit,
-    clearMention: () => setMention(null)
+    clearMention: () => setMention(null),
+    cards,
+    removeCard: (cardId: string) => setCards((list) => list.filter((c) => c.id !== cardId))
   }
 }
 
@@ -323,6 +380,12 @@ export function MentionMenu({
               <WorkerDot worker={option.worker} />
               <span>{workerTitle(option.worker)}</span>
             </>
+          ) : option.kind === 'card' ? (
+            <>
+              <CardsIcon size={15} className="router-mention-card" />
+              <span>{option.card.title}</span>
+              <small>{t('router.mentionCard')}</small>
+            </>
           ) : (
             <>
               <ProjectIcon project={option.project} />
@@ -349,5 +412,33 @@ export function DraftTarget({ worker, onClear }: { worker: RouterWorker; onClear
         onClick={onClear}
       />
     </div>
+  )
+}
+
+/** The cards a draft carries, each removable. They go with the message as reference material. */
+export function DraftCards({
+  cards,
+  onRemove
+}: {
+  cards: CardRef[]
+  onRemove: (cardId: string) => void
+}) {
+  const { t } = useTranslation()
+  if (!cards.length) return null
+  return (
+    <ul className="router-draft-cards" aria-label={t('cards.attached')}>
+      {cards.map((card) => (
+        <li key={card.id}>
+          <CardsIcon size={13} />
+          <span>{card.title}</span>
+          <IconButton
+            size="sm"
+            label={t('cards.detach', { title: card.title })}
+            icon={<XIcon size={12} />}
+            onClick={() => onRemove(card.id)}
+          />
+        </li>
+      ))}
+    </ul>
   )
 }

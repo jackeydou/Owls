@@ -2,23 +2,33 @@ import { IconButton } from '@renderer/components/ui/icon-button'
 import { ArrowUpIcon, LoaderIcon, StopIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
+import type { CardRef } from '../../../shared/cards'
 import type { RouterWorker } from '../../../shared/router'
-import { DraftInput, DraftTarget, MentionMenu, useRouterDraft } from './RouterDraft'
+import { DraftCards, DraftInput, DraftTarget, MentionMenu, useRouterDraft } from './RouterDraft'
 import { useRouterStore } from './store'
 
 const isEnter = (event: KeyboardEvent) => event.key === 'Enter' && !event.shiftKey
 
-/** The map's one-line input. It follows the map's selection. */
+/** The map's and the board's one-line input. It follows their selection. */
 export function RouterComposer({
   projectId,
   router,
   target,
-  onClearTarget
+  onClearTarget,
+  linkedCards,
+  onSent,
+  onThread,
+  prompt
 }: {
   projectId: string | null
   router: Router | undefined
   target?: RouterWorker | null
   onClearTarget?: () => void
+  linkedCards?: CardRef[]
+  onSent?: () => void
+  onThread?: (threadId: string) => void
+  /** Placeholder and label in place of the Router prompt. */
+  prompt?: string
 }) {
   const { t } = useTranslation()
   const interrupt = useRouterStore((s) => s.interrupt)
@@ -27,11 +37,14 @@ export function RouterComposer({
     router,
     target,
     isSendKey: isEnter,
-    disabled: !projectId
+    disabled: !projectId,
+    linkedCards,
+    onSent,
+    onThread
   })
   const { empty, sending, addressed } = draft
   const running = router?.status === 'running'
-  const label = t(addressed ? 'router.promptWorker' : 'router.prompt')
+  const label = addressed ? t('router.promptWorker') : (prompt ?? t('router.prompt'))
   return (
     <div className="router-composer">
       <MentionMenu options={draft.options} highlight={draft.highlight} onPick={draft.pick} />
@@ -42,6 +55,7 @@ export function RouterComposer({
             onClear={() => (target ? onClearTarget?.() : draft.clearMention())}
           />
         ) : null}
+        <DraftCards cards={draft.cards} onRemove={draft.removeCard} />
         <DraftInput editor={draft.editor} empty={empty} label={label} placeholder={label} />
         <div className="owls-composer-toolbar">
           {running && !addressed && router ? (

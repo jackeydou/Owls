@@ -1,4 +1,13 @@
 import { z } from 'zod'
+import {
+  type Board,
+  type BoardSave,
+  type Card,
+  type CardCapture,
+  type CardLibrary,
+  type CardSave,
+  cardRefSchema
+} from './cards.js'
 import type { GitHubAccount, WorkerGitHubStatus } from './github.js'
 import {
   defaultMemorySettings,
@@ -107,7 +116,9 @@ export const itemSchema = z.object({
   /** On a `worker` item, the worker dispatched; on a `user` item, the worker addressed. */
   workerId: z.string().optional(),
   /** On a `forward` item: where its frozen `text` came from. `detail` holds the user's note. */
-  forward: forwardOriginSchema.optional()
+  forward: forwardOriginSchema.optional(),
+  /** On a `user` item: the cards the message carried, as they were named when sent. */
+  cards: z.array(cardRefSchema).optional()
 })
 export const questionSchema = z.object({
   id: z.string(),
@@ -381,7 +392,19 @@ export interface OwlsAPI {
   unwatchWorkerGitHub(input: WorkerAction): Promise<Reply<void>>
   onEvent(listener: (event: AppEvent) => void): () => void
   memory: MemoryAPI
+  cards: CardsAPI
   updates: UpdatesAPI
+}
+/** `window.owls.cards`: the user's knowledge cards and boards. */
+export interface CardsAPI {
+  library(): Promise<Reply<CardLibrary>>
+  save(input: CardSave): Promise<Reply<Card>>
+  /** Saves a thread message or worker result as a new card. */
+  capture(input: CardCapture): Promise<Reply<Card>>
+  remove(cardId: string): Promise<Reply<void>>
+  saveBoard(input: BoardSave): Promise<Reply<Board>>
+  removeBoard(boardId: string): Promise<Reply<void>>
+  onChanged(listener: () => void): () => void
 }
 /** `window.owls.updates`. The channel is a setting, saved through `saveSettings`. */
 export interface UpdatesAPI {

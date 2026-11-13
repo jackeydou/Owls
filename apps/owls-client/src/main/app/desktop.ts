@@ -5,6 +5,8 @@ import { is } from '@electron-toolkit/utils'
 import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
+import { CardService } from '../cards/service.js'
+import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
 import { safeText } from '../codex/protocol.js'
 import { CodexService } from '../codex/service.js'
@@ -35,6 +37,7 @@ import { WorkerGitHub } from '../router/worker-github.js'
 import { GitWorkspaces } from '../router/worktrees.js'
 import { AppUpdater } from '../updates/updater.js'
 import { applyAppLogo } from './app-logo.js'
+import { OwlsError } from './errors.js'
 import { OwlsHost } from './host.js'
 import { registerIpc } from './ipc.js'
 import { OwlsStore } from './store.js'
@@ -68,6 +71,9 @@ function emit(event: AppEvent): void {
 }
 function memoryChanged(): void {
   if (window && !window.isDestroyed()) window.webContents.send('owls:memory-changed')
+}
+function cardsChanged(): void {
+  if (window && !window.isDestroyed()) window.webContents.send('owls:cards-changed')
 }
 function updatesChanged(snapshot: UpdateSnapshot): void {
   if (window && !window.isDestroyed()) window.webContents.send('owls:updates-changed', snapshot)
@@ -223,6 +229,17 @@ void app
     })
     const sweeper = new MemorySweeper({ sweep: () => memory.sweep() })
     service.attachMemory({ service: memory, dreaming, triggers, sweeper })
+    service.attachCards(
+      new CardService({
+        store: new CardStore(store),
+        projects,
+        content: (source) => {
+          if (!router) throw new OwlsError('router_unavailable', 'Threads are not available.')
+          return router.contentOf(source)
+        },
+        changed: cardsChanged
+      })
+    )
     const github: GitHubAuth = new GitHubAuth(routerStore, safeStorageCipher, (account) => {
       emit({ type: 'github-account', account })
       if (account.status !== 'pending') workerGitHub.refresh()

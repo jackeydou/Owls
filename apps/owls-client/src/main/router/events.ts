@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { attachedCardSchema } from '../../shared/cards.js'
 import { routerEngineSchema, workerReportSchema } from '../../shared/router.js'
 
 const workerEvent = {
@@ -13,7 +14,9 @@ export const inboxEventBodySchema = z.discriminatedUnion('kind', [
     at: z.string(),
     text: z.string(),
     /** Set when Owls already delivered this message to a worker; the Router only reads it. */
-    workerId: z.string().optional()
+    workerId: z.string().optional(),
+    /** Cards the user attached, frozen when sent. Reference material, never instructions. */
+    cards: z.array(attachedCardSchema).optional()
   }),
   z.object({ kind: z.literal('worker_report'), ...workerEvent, report: workerReportSchema }),
   z.object({ kind: z.literal('worker_waiting'), ...workerEvent, detail: z.string() }),

@@ -1,4 +1,4 @@
-import { NetworkIcon, PlusIcon, SettingsIcon } from '@renderer/components/ui/icons'
+import { CardsIcon, NetworkIcon, PlusIcon, SettingsIcon } from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -36,8 +36,9 @@ export function Sidebar() {
   const { t } = useTranslation()
   const { width, handle } = usePaneWidth('sidebar', 'right')
   const onMap = useAppStore((s) => s.view === 'map')
+  const onCards = useAppStore((s) => s.view === 'cards')
   const drafting = useAppStore((s) => s.view === 'chat' && s.threadId === null)
-  const { showMap, showSettings, newThread } = useAppStore()
+  const { showMap, showCards, showSettings, newThread } = useAppStore()
   const routers = useRouterStore((s) => s.routers)
   // A thread exists once it has its first message; this hides one whose send failed.
   const threads = useMemo(() => routers.filter((r) => r.itemCount).sort(byRecent), [routers])
@@ -65,6 +66,16 @@ export function Sidebar() {
         <NetworkIcon size={17} />
         <span>{t('map.title')}</span>
         <kbd>⌘ J</kbd>
+      </button>
+      <button
+        type="button"
+        className="router-sidebar-item router-sidebar-action"
+        aria-current={onCards || undefined}
+        onClick={showCards}
+      >
+        <CardsIcon size={17} />
+        <span>{t('cards.title')}</span>
+        <kbd>⌘ K</kbd>
       </button>
       <section className="router-sidebar-threads" aria-label={t('thread.title')}>
         <header>

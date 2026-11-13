@@ -63,10 +63,13 @@ export type ProjectSettingsPage = (typeof projectSettingsPages)[number]
 type State = {
   loaded: boolean
   error: Failure | null
-  /** `chat` and `map` are the same space at two distances; `settings` replaces the whole window. */
-  view: 'chat' | 'map' | 'settings'
+  /**
+   * `chat` and `map` are the same space at two distances; `cards` is the user's
+   * knowledge library and boards; `settings` replaces the whole window.
+   */
+  view: 'chat' | 'map' | 'cards' | 'settings'
   /** Where Settings returns to. */
-  lastView: 'chat' | 'map'
+  lastView: 'chat' | 'map' | 'cards'
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
   /** The project and page shown while `settingsTab` is `project`. */
@@ -98,6 +101,7 @@ type State = {
   /** Opens a thread that exists once its first message is sent. */
   newThread(projectId?: string): void
   showMap(): void
+  showCards(): void
   focusProject(projectId: string | null): void
   clearError(): void
   /** Opens the folder picker. Resolves to the project's id, or null when canceled. */
@@ -354,6 +358,7 @@ export const useAppStore = create<State>((set, get) => {
       if (view === 'chat') zoomBetweenViews('map', routerProjectId, show)
       else show()
     },
+    showCards: () => set({ view: 'cards', error: null }),
     focusProject: (projectId) => set({ routerProjectId: projectId }),
     clearError: () => set({ error: null }),
     pickProject: async () => {

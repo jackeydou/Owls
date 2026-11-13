@@ -80,6 +80,16 @@ export const ArrowUpIcon = createIcon(
     <path d="M8.5 3.25 L13.25 8 L8.5 12.75" />
   </g>
 )
+export const BoardIcon = createIcon(
+  'Board',
+  'outline',
+  <g>
+    <rect x="2" y="2.5" width="12" height="11" rx="1.75" />
+    <rect x="4.5" y="5" width="3" height="3" rx="0.5" />
+    <rect x="9" y="7.5" width="2.5" height="3.5" rx="0.5" />
+    <path d="M7.5 6.5 H9 V7.5" />
+  </g>
+)
 export const BrainIcon = createIcon(
   'Brain',
   'outline',
@@ -87,6 +97,27 @@ export const BrainIcon = createIcon(
     <path d="M8 3.5 A2.25 2.25 0 0 0 4 4.25 A2.5 2.5 0 0 0 2.75 8.5 A2.5 2.5 0 0 0 5 12.75 A2 2 0 0 0 8 13" />
     <path d="M8 3.5 A2.25 2.25 0 0 1 12 4.25 A2.5 2.5 0 0 1 13.25 8.5 A2.5 2.5 0 0 1 11 12.75 A2 2 0 0 1 8 13" />
     <line x1="8" y1="3.5" x2="8" y2="13" />
+  </g>
+)
+export const CardPlusIcon = createIcon(
+  'CardPlus',
+  'outline',
+  <g>
+    <path d="M13.5 8.5 V4.25 C13.5 3.284 12.716 2.5 11.75 2.5 H4.25 C3.284 2.5 2.5 3.284 2.5 4.25 V11.75 C2.5 12.716 3.284 13.5 4.25 13.5 H8.5" />
+    <line x1="5.25" y1="5.75" x2="10.75" y2="5.75" />
+    <line x1="5.25" y1="8.5" x2="8.25" y2="8.5" />
+    <line x1="12" y1="10.5" x2="12" y2="14" />
+    <line x1="10.25" y1="12.25" x2="13.75" y2="12.25" />
+  </g>
+)
+export const CardsIcon = createIcon(
+  'Cards',
+  'outline',
+  <g>
+    <rect x="2.5" y="4.5" width="9" height="9" rx="1.5" />
+    <path d="M5 2.5 H12 C12.828 2.5 13.5 3.172 13.5 4 V11" />
+    <line x1="4.75" y1="7.5" x2="9.25" y2="7.5" />
+    <line x1="4.75" y1="10.25" x2="7.75" y2="10.25" />
   </g>
 )
 export const CheckIcon = createIcon(
@@ -373,6 +404,14 @@ export const ScrollTextIcon = createIcon(
     <path d="M4.5 10.5 V4 A2 2 0 0 1 6.5 2 H12 A1.75 1.75 0 0 1 12 5.5 H11.5 V12 A2 2 0 0 1 9.5 14 H4 A1.75 1.75 0 0 1 4 10.5 Z" />
     <line x1="6.75" y1="6.75" x2="9.25" y2="6.75" />
     <line x1="6.75" y1="9.5" x2="9.25" y2="9.5" />
+  </g>
+)
+export const SearchIcon = createIcon(
+  'Search',
+  'outline',
+  <g>
+    <circle cx="7" cy="7" r="4.5" />
+    <line x1="10.25" y1="10.25" x2="13.5" y2="13.5" />
   </g>
 )
 export const SettingsIcon = createIcon(
