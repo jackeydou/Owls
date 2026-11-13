@@ -23,6 +23,13 @@
   --owl-radius-md: 8px;
   --owl-radius-lg: 10px;
   --owl-radius-xl: 12px;
+  /* Links in agent Markdown. Worker links are status tags (router.css), not these. */
+  --owl-link: #0b6bcb;
+  --owl-link-hover: #0853a0;
+}
+[data-theme="dark"] {
+  --owl-link: #5eaeff;
+  --owl-link-hover: #8cc8ff;
 }
 
 .owls-app {

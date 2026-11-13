@@ -44,9 +44,9 @@ function InlineWorker(props: Record<string, unknown>) {
 const WORKER_LINK = /\[([^\]\n]+)\]\(#worker-(w_[\w-]+)\)/g
 const escapeHtml = (text: string) => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;')
 /**
- * Worker references become a custom tag instead of a `components.a` override,
- * because Streamdown's own link keeps its confirmation for external URLs that
- * an override would lose. `worker` is not `id` since sanitizing prefixes ids.
+ * Worker references become a custom tag instead of going through `components.a`,
+ * which renders every web link as MarkdownLink. `worker` is not `id` since
+ * sanitizing prefixes ids.
  */
 export const workerMarkdown: MarkdownExtension = {
   allowedTags: { 'owls-worker': ['worker'] },
