@@ -342,6 +342,34 @@ test('Claude service reports a missing executable without falling back', async (
   }
 })
 
+test('Claude service starts sessions only in a project, its worktree, or the workspace', () => {
+  const project = realpathSync(mkdtempSync(join(tmpdir(), 'owls-claude-test-')))
+  const workspace = realpathSync(mkdtempSync(join(tmpdir(), 'owls-claude-workspace-')))
+  const service = new ClaudeService(memoryStore(project), () => {}, fakeSdk())
+  const create = (cwd, place) =>
+    service.createSession(
+      { provider: 'claude-code', cwd, model: null, effort: null, permission: 'read-only' },
+      place
+    )
+  try {
+    assert.equal(create(project).cwd, project)
+    assert.equal(
+      create(join(project, 'not-yet'), { kind: 'worktree', projectPath: project }).cwd,
+      join(project, 'not-yet'),
+      'a worktree may not exist yet'
+    )
+    assert.equal(create(workspace, { kind: 'workspace' }).cwd, workspace)
+    assert.throws(() => create(workspace), { code: 'project_required' })
+    assert.throws(() => create(workspace, { kind: 'worktree', projectPath: workspace }), {
+      code: 'project_required'
+    })
+  } finally {
+    service.close()
+    rmSync(project, { recursive: true, force: true })
+    rmSync(workspace, { recursive: true, force: true })
+  }
+})
+
 test('Claude service steers a message into the running turn', async () => {
   const project = realpathSync(mkdtempSync(join(tmpdir(), 'owls-claude-steer-')))
   const service = new ClaudeService(memoryStore(project), () => {}, fakeSdk())

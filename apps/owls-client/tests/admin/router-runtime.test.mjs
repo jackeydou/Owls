@@ -2200,7 +2200,7 @@ test('workers that write start together, each in its own worktree', async () => 
     ['Write A', 'Write B', 'Write C', 'Write E']
   )
   const a = created.find((c) => c.cwd === `/worktrees/${results[0].workerId}`)
-  assert.deepEqual(a.worker, { projectPath: PROJECT.path })
+  assert.deepEqual(a.worker, { kind: 'worktree', projectPath: PROJECT.path })
   assert.equal(created.find((c) => c.cwd === PROJECT.path).worker, null)
   const workerA = service.snapshot().workers.find((w) => w.goal === 'Write A')
   assert.equal(workerA.workspace.baseCommit, 'c0ffee', 'prepared before the turn')
@@ -2673,6 +2673,11 @@ test('a single project is listed but not used unless the task names it', async (
   assert.deepEqual(
     created.map((s) => s.cwd),
     [WORKSPACE, WORKSPACE, `/worktrees/${results[2].workerId}`, WORKSPACE]
+  )
+  assert.deepEqual(
+    created.map((s) => s.worker?.kind ?? null),
+    ['workspace', 'workspace', 'worktree', 'workspace'],
+    'workspace sessions say so, so the task service lets them run outside a project'
   )
   assert.deepEqual(
     workspaces.calls.filter(([call]) => call === 'inspect'),
