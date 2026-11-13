@@ -2401,23 +2401,46 @@ test('restart prunes worktrees and finishes a cleanup that did not complete', as
   two.service.close()
 })
 
-test('the host lists the sessions of both runtimes, newest first', () => {
+test('the host lists the sessions of every runtime, newest first, and routes by owner', async () => {
   const session = (id, updatedAt) => ({ id, updatedAt })
-  const runtime = {
+  const calls = []
+  const runtime = (name, ids) => ({
     setTurnProfiles() {},
-    connectionState: () => ({ status: 'ready' })
-  }
+    connectionState: () => ({ status: 'ready', account: { kind: 'unknown' } }),
+    owns: (id) => ids.includes(id),
+    interrupt: async (id) => calls.push([name, id]),
+    createSession: (input) => {
+      calls.push([name, 'create', input.provider])
+      return session(`${name}-new`, '9')
+    }
+  })
   const host = new OwlsHost(
-    { ...runtime, snapshot: () => ({ sessions: [session('codex-worker', '1')] }) },
-    { ...runtime, sessionList: () => [session('claude-worker', '2')] },
+    {
+      ...runtime('codex', ['codex-worker']),
+      snapshot: () => ({ sessions: [session('codex-worker', '1')] })
+    },
+    { ...runtime('claude', ['claude-worker']), sessionList: () => [session('claude-worker', '2')] },
+    { ...runtime('cursor', ['cursor-worker']), sessionList: () => [session('cursor-worker', '3')] },
     '/tmp/owls-thread-home',
     '/tmp/owls-projects',
     '/tmp/owls-workspace'
   )
   assert.deepEqual(
     host.snapshot().sessions.map((s) => s.id),
-    ['claude-worker', 'codex-worker']
+    ['cursor-worker', 'claude-worker', 'codex-worker']
   )
+  const workers = host.workerHost()
+  await workers.interrupt('cursor-worker')
+  await workers.interrupt('claude-worker')
+  await workers.interrupt('codex-worker')
+  workers.createSession({ provider: 'cursor' })
+  assert.deepEqual(calls, [
+    ['cursor', 'cursor-worker'],
+    ['claude', 'claude-worker'],
+    ['codex', 'codex-worker'],
+    ['cursor', 'create', 'cursor']
+  ])
+  assert.equal(workers.providerReady('cursor'), true)
 })
 
 const OTHER = { id: 'p2', name: 'Other', path: '/tmp/owls-router-other' }

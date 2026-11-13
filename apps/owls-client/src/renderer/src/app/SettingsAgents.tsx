@@ -140,6 +140,68 @@ export function ClaudeSettingsPane() {
   )
 }
 
+export function CursorSettingsPane() {
+  const { t } = useTranslation()
+  const cursor = useAppStore((s) => s.cursor)
+  const settings = useAppStore((s) => s.settings)
+  const running = useAppStore((s) =>
+    s.sessions.some(
+      (session) =>
+        session.provider === 'cursor' && ['running', 'starting', 'waiting'].includes(session.status)
+    )
+  )
+  const connectCursor = useAppStore((s) => s.connectCursor)
+  const selectCursorExecutable = useAppStore((s) => s.selectCursorExecutable)
+  const account = cursor.account
+  const busy = cursor.status === 'connecting'
+  return (
+    <AgentPane title={t('localCursor')} body={t('localCursorBody')} status={cursor.status}>
+      <SettingRow
+        label={
+          account.kind === 'cursor'
+            ? (account.email ?? t('cursorAccount'))
+            : account.kind === 'signed-out'
+              ? t('signedOut')
+              : t('cursorAccountUnknown')
+        }
+        description={t('cursorRuntime')}
+      >
+        <Button
+          size="sm"
+          variant={cursor.status === 'ready' ? 'outline' : 'default'}
+          disabled={running}
+          pending={busy}
+          onClick={() => void connectCursor()}
+        >
+          <RefreshIcon size={16} />
+          {busy ? t('connectingCursor') : t('useLocalCursor')}
+        </Button>
+      </SettingRow>
+      {cursor.error ? (
+        <div role="alert" className="owls-inline-error">
+          {failureMessage(cursor.error)}
+        </div>
+      ) : null}
+      <ExecutableRow
+        label={t('cursorExecutable')}
+        body={t('cursorExecutableBody')}
+        path={cursor.executablePath ?? settings.cursorExecutablePath ?? t('autoDetect')}
+        version={cursor.version}
+        disabled={busy || running}
+        onBrowse={() => void selectCursorExecutable()}
+      />
+      <p className="owls-note">{t('cursorSignInHelp')}</p>
+      <p className="owls-note">{t('cursorWorkerOnly')}</p>
+      <p className="owls-note">
+        {t('cursorInstallHelp')}{' '}
+        <a href="https://cursor.com/cli" target="_blank" rel="noreferrer">
+          {t('installLink')} <ExternalLinkIcon size={12} />
+        </a>
+      </p>
+    </AgentPane>
+  )
+}
+
 export function AgentSettingsPane() {
   const { t } = useTranslation()
   const connection = useAppStore((s) => s.connection)

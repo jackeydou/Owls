@@ -7,7 +7,7 @@ import type {
   ThreadItem
 } from '../../shared/app.js'
 import type { MemoryProvider, MemoryRun } from '../../shared/memory.js'
-import { projectMemoryKindSchema } from '../../shared/memory.js'
+import { dreamingProvider, projectMemoryKindSchema } from '../../shared/memory.js'
 import type { RouterWorker } from '../../shared/router.js'
 import { OwlsError } from '../app/errors.js'
 import type { RouterEngine } from '../router/engine.js'
@@ -178,7 +178,7 @@ export class DreamingRunner {
     const slice = this.slice(threadId, cursor.itemRev, cursor.eventSeq)
     if (!slice.items.length && !slice.reports.length) return false
     const settings = this.deps.settings()
-    const provider: MemoryProvider = settings.memory.provider ?? settings.provider
+    const provider: MemoryProvider = dreamingProvider(settings.memory.provider, settings.provider)
     const model =
       provider === 'claude-code' ? settings.memory.claudeModel : settings.memory.codexModel
     const runId = `mr_${crypto.randomUUID().replaceAll('-', '').slice(0, 8)}`

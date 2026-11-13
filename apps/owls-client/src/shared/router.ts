@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { ATTACHED_CARD_LIMIT, cardIdSchema } from './cards.js'
 
 const permissionValues = ['read-only', 'workspace-write', 'full-access'] as const
-const providerValues = ['codex', 'claude-code'] as const
+const providerValues = ['codex', 'claude-code', 'cursor'] as const
 
 export const routerEngineSchema = z.enum(['owls', 'claude-code', 'codex'])
 /** Model providers the Owls engine accepts. `custom` is any OpenAI-compatible endpoint. */

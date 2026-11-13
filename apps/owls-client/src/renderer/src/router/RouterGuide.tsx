@@ -2,7 +2,7 @@ import { Button } from '@renderer/components/ui/button'
 import { CheckIcon } from '@renderer/components/ui/icons'
 import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { AgentProvider } from '../../../shared/app'
+import { type AgentProvider, providerSchema } from '../../../shared/app'
 import type { RouterEngineId } from '../../../shared/router'
 import { AppLogoMark } from '../app/AppLogo'
 import { failureMessage } from '../app/failures'
@@ -12,10 +12,12 @@ import { OwlsModelFields } from './RouterSettings'
 import type { RouterSetupNeed } from './RouterSetup'
 import { useRouterStore } from './store'
 
-const AGENTS: AgentProvider[] = ['claude-code', 'codex']
+type EngineAgent = Exclude<RouterEngineId, 'owls'>
+/** Agents that can also run the Router. Cursor runs workers only: ACP cannot take Owls tools. */
+const ENGINE_AGENTS: EngineAgent[] = ['claude-code', 'codex']
 /** Agents first: most people already have one, and the built-in engine needs a key. */
-const ENGINES: RouterEngineId[] = [...AGENTS, 'owls']
-const isAgent = (engine: RouterEngineId): engine is AgentProvider => engine !== 'owls'
+const ENGINES: RouterEngineId[] = [...ENGINE_AGENTS, 'owls']
+const isAgent = (engine: RouterEngineId): engine is EngineAgent => engine !== 'owls'
 
 function useAgentReady(provider: AgentProvider) {
   return useAppStore((s) => isAgentReady(agentConnection(s, provider)))
@@ -85,7 +87,9 @@ function AgentOption({
 function AgentConnect({ provider, body }: { provider: AgentProvider; body: string }) {
   const { t } = useTranslation()
   const connection = useAppStore((s) => agentConnection(s, provider))
-  const connect = useAppStore((s) => (provider === 'codex' ? s.connect : s.connectClaude))
+  const connect = useAppStore((s) =>
+    provider === 'codex' ? s.connect : provider === 'cursor' ? s.connectCursor : s.connectClaude
+  )
   const showSettings = useAppStore((s) => s.showSettings)
   const busy = connection.status === 'connecting'
   return (
@@ -166,7 +170,7 @@ function WorkerStep() {
     <>
       <h2>{t('router.guideWorker')}</h2>
       <div className="router-guide-options">
-        {AGENTS.map((agent) => (
+        {providerSchema.options.map((agent) => (
           <AgentOption
             key={agent}
             provider={agent}

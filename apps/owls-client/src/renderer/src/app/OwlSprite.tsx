@@ -21,6 +21,13 @@ export type OwlAction = 'idle' | 'typing' | 'wave' | 'thinking' | 'flying'
 /** Each sheet is one row of 24x24 frames; every frame lasts FRAME_MS. */
 const FRAME_MS = 120
 const FRAMES: Record<OwlAction, number> = { idle: 24, typing: 24, wave: 4, thinking: 12, flying: 6 }
+const codexSheets: Record<OwlAction, string> = {
+  idle: codexIdle,
+  typing: codexTyping,
+  wave: codexWave,
+  thinking: codexThinking,
+  flying: codexFlying
+}
 const SHEETS: Record<AgentSpeaker, Record<OwlAction, string>> = {
   'claude-code': {
     idle: claudeCodeIdle,
@@ -29,13 +36,9 @@ const SHEETS: Record<AgentSpeaker, Record<OwlAction, string>> = {
     thinking: claudeCodeThinking,
     flying: claudeCodeFlying
   },
-  codex: {
-    idle: codexIdle,
-    typing: codexTyping,
-    wave: codexWave,
-    thinking: codexThinking,
-    flying: codexFlying
-  },
+  codex: codexSheets,
+  // No pixel sheets were drawn for Cursor; it borrows the Codex owl's.
+  cursor: codexSheets,
   router: {
     idle: routerIdle,
     typing: routerTyping,

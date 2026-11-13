@@ -226,7 +226,9 @@ export class WorkerPool implements TurnProfiles {
       request.selection ??
       (provider === 'claude-code'
         ? { model: settings.claudeModel, effort: settings.claudeEffort }
-        : { model: settings.model, effort: settings.effort })
+        : provider === 'cursor'
+          ? { model: settings.cursorModel, effort: null }
+          : { model: settings.model, effort: settings.effort })
     let session: Session
     try {
       session =
@@ -507,7 +509,11 @@ export class WorkerPool implements TurnProfiles {
   /** Follows task and connection events: approvals, removed tasks, and agents coming online. */
   observe(event: AppEvent): void {
     if (this.closed) return
-    if (event.type === 'connection' || event.type === 'claude-connection') {
+    if (
+      event.type === 'connection' ||
+      event.type === 'claude-connection' ||
+      event.type === 'cursor-connection'
+    ) {
       if (event.connection.status === 'ready') this.schedule()
       return
     }

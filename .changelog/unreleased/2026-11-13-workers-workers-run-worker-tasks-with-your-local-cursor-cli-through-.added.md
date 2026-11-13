@@ -1,0 +1,1 @@
+- Workers: run worker tasks with your local Cursor CLI through its Agent Client Protocol mode, with a new Settings → Cursor page. (#90)

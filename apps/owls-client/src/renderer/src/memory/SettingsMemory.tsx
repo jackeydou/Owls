@@ -5,7 +5,7 @@ import { Select } from '@renderer/components/ui/select'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MemoryRun, MemorySettings } from '../../../shared/memory'
-import { memoryProviderSchema } from '../../../shared/memory'
+import { dreamingProvider, memoryProviderSchema } from '../../../shared/memory'
 import { SettingRow } from '../app/SettingRow'
 import { useAppStore } from '../app/store'
 import { useRouterStore } from '../router/store'
@@ -60,7 +60,7 @@ function MemorySettingsRows() {
   const memory = settings.memory
   const save = (next: Partial<MemorySettings>) =>
     void saveSettings({ ...settings, memory: { ...memory, ...next } })
-  const provider = memory.provider ?? settings.provider
+  const provider = dreamingProvider(memory.provider, settings.provider)
   const connection = provider === 'claude-code' ? claude : codex
   return (
     <>
@@ -89,7 +89,9 @@ function MemorySettingsRows() {
           }
         >
           <option value="">
-            {t('memory.provider.default', { agent: t(`agent.${settings.provider}`) })}
+            {t('memory.provider.default', {
+              agent: t(`agent.${dreamingProvider(null, settings.provider)}`)
+            })}
           </option>
           {memoryProviderSchema.options.map((option) => (
             <option value={option} key={option}>

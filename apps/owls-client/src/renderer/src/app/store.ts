@@ -1,10 +1,12 @@
 import { create } from 'zustand'
 import type {
+  AgentConnection,
   AgentProvider,
   AppEvent,
   AppSettings,
   ClaudeConnection,
   CodexConnection,
+  CursorConnection,
   Failure,
   Project,
   Reply,
@@ -29,17 +31,31 @@ import { useRouterStore } from '../router/store'
 import { UIError, uiFailure } from './failures'
 
 export function agentConnection(
-  state: { connection: CodexConnection; claude: ClaudeConnection },
+  state: { connection: CodexConnection; claude: ClaudeConnection; cursor: CursorConnection },
   provider: AgentProvider
-): CodexConnection | ClaudeConnection {
-  return provider === 'claude-code' ? state.claude : state.connection
+): AgentConnection {
+  if (provider === 'claude-code') return state.claude
+  return provider === 'cursor' ? state.cursor : state.connection
 }
+/** A provider's default model and effort for new workers. Cursor has no effort setting. */
 export function agentSelection(settings: AppSettings, provider: AgentProvider) {
-  return provider === 'claude-code'
-    ? { model: settings.claudeModel, effort: settings.claudeEffort }
-    : { model: settings.model, effort: settings.effort }
+  if (provider === 'claude-code')
+    return { model: settings.claudeModel, effort: settings.claudeEffort }
+  if (provider === 'cursor') return { model: settings.cursorModel, effort: null }
+  return { model: settings.model, effort: settings.effort }
 }
-export function isAgentReady(connection: CodexConnection | ClaudeConnection): boolean {
+/** Saves a provider's default model and effort for new workers. */
+export function withAgentSelection(
+  settings: AppSettings,
+  provider: AgentProvider,
+  next: { model: string | null; effort: string | null }
+): AppSettings {
+  if (provider === 'claude-code')
+    return { ...settings, claudeModel: next.model, claudeEffort: next.effort }
+  if (provider === 'cursor') return { ...settings, cursorModel: next.model }
+  return { ...settings, model: next.model, effort: next.effort }
+}
+export function isAgentReady(connection: AgentConnection): boolean {
   return connection.status === 'ready' && connection.account.kind !== 'signed-out'
 }
 function unwrap<T>(reply: Reply<T>): T {
@@ -52,6 +68,7 @@ export type SettingsTab =
   | 'memory'
   | 'claude-code'
   | 'codex'
+  | 'cursor'
   | 'github'
   | 'appearance'
   | 'updates'
@@ -85,6 +102,7 @@ type State = {
   settings: AppSettings
   connection: CodexConnection
   claude: ClaudeConnection
+  cursor: CursorConnection
   initialize(): Promise<void>
   event(event: AppEvent): void
   showSettings(tab?: SettingsTab): void
@@ -135,6 +153,8 @@ type State = {
   selectExecutable(): Promise<void>
   connectClaude(): Promise<void>
   selectClaudeExecutable(): Promise<void>
+  connectCursor(): Promise<void>
+  selectCursorExecutable(): Promise<void>
   saveSettings(settings: AppSettings): Promise<void>
   respond(input: RespondRequest): Promise<void>
 }
@@ -154,6 +174,7 @@ function latestThread(routers: Router[], projectId?: string): Router | null {
 }
 let connectionEvents = 0
 let claudeEvents = 0
+let cursorEvents = 0
 let gitHubEvents = 0
 export const useAppStore = create<State>((set, get) => {
   async function action<T>(fn: () => Promise<Reply<T>>): Promise<T | undefined> {
@@ -210,6 +231,8 @@ export const useAppStore = create<State>((set, get) => {
       claudeExecutablePath: null,
       claudeModel: null,
       claudeEffort: null,
+      cursorExecutablePath: null,
+      cursorModel: null,
       router: defaultRouterSettings,
       memory: defaultMemorySettings,
       layout: defaultLayoutSettings,
@@ -234,9 +257,18 @@ export const useAppStore = create<State>((set, get) => {
       models: [],
       error: null
     },
+    cursor: {
+      status: 'disconnected',
+      executablePath: null,
+      version: null,
+      account: { kind: 'unknown' },
+      models: [],
+      error: null
+    },
     initialize: async () => {
       const version = connectionEvents
       const claudeVersion = claudeEvents
+      const cursorVersion = cursorEvents
       const gitHubVersion = gitHubEvents
       const snapshot = await action(() => window.owls.snapshot())
       if (!snapshot) {
@@ -259,6 +291,7 @@ export const useAppStore = create<State>((set, get) => {
         }),
         connection: version === connectionEvents ? snapshot.connection : state.connection,
         claude: claudeVersion === claudeEvents ? snapshot.claude : state.claude,
+        cursor: cursorVersion === cursorEvents ? snapshot.cursor : state.cursor,
         github: gitHubVersion === gitHubEvents ? snapshot.github : state.github
       }))
     },
@@ -271,6 +304,11 @@ export const useAppStore = create<State>((set, get) => {
       if (event.type === 'claude-connection') {
         claudeEvents++
         set({ claude: event.connection })
+        return
+      }
+      if (event.type === 'cursor-connection') {
+        cursorEvents++
+        set({ cursor: event.connection })
         return
       }
       if (event.type === 'github-account') {
@@ -450,6 +488,17 @@ export const useAppStore = create<State>((set, get) => {
         await get().initialize()
       }
     },
+    connectCursor: async () => {
+      const cursor = await action(() => window.owls.connectCursor())
+      if (cursor) set({ cursor })
+    },
+    selectCursorExecutable: async () => {
+      const cursor = await action(() => window.owls.selectCursorExecutable())
+      if (cursor) {
+        set({ cursor })
+        await get().initialize()
+      }
+    },
     saveSettings: async (settings) => {
       const saved = await action(() =>
         window.owls.saveSettings({
@@ -463,6 +512,7 @@ export const useAppStore = create<State>((set, get) => {
           provider: settings.provider,
           claudeModel: settings.claudeModel,
           claudeEffort: settings.claudeEffort,
+          cursorModel: settings.cursorModel,
           router: settings.router,
           memory: settings.memory,
           layout: settings.layout,
