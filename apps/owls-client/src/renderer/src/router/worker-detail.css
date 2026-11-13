@@ -55,7 +55,7 @@
   align-items: center;
   margin-left: -6px;
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
 }
 .worker-changes-toggle:hover {
   background: var(--color-card-muted);
@@ -97,7 +97,7 @@
 }
 .worker-router-message p {
   padding: 10px 14px;
-  border-radius: 14px 4px 14px 14px;
+  border-radius: var(--owl-radius-lg) 4px var(--owl-radius-lg) var(--owl-radius-lg);
   background: var(--color-card-muted);
   line-height: var(--owl-leading-normal);
   overflow-wrap: anywhere;
@@ -130,7 +130,7 @@
 }
 .worker-fold:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
 }
 .worker-report-note {
   margin-bottom: 12px;
@@ -161,7 +161,7 @@
 .router-diff-file {
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 9px;
+  border-radius: var(--owl-radius-sm);
 }
 .router-diff-file > summary {
   display: flex;
