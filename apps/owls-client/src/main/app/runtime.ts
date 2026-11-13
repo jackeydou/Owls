@@ -1,6 +1,11 @@
 export { layoutSettingsSchema } from '../../shared/app.js'
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
 export { parseGitHubRepo, saveProjectSchema } from '../../shared/projects.js'
+export {
+  countPullRequests,
+  listPullRequests,
+  sortPullRequests
+} from '../../shared/pull-request-list.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'
 export { discoverClaudeExecutable } from '../claude/discovery.js'
 export * as claudeNormalize from '../claude/normalize.js'
@@ -9,7 +14,11 @@ export { CodexClient, discoverExecutable } from '../codex/client.js'
 export { normalizeItem, parseModels, safeText } from '../codex/protocol.js'
 export { CodexService } from '../codex/service.js'
 export { GitHubAuth } from '../github/auth.js'
-export { lookupPullRequest, parseGitHubRemote } from '../github/pull-requests.js'
+export {
+  lookupPullRequest,
+  lookupPullRequests,
+  parseGitHubRemote
+} from '../github/pull-requests.js'
 export { DreamingRunner } from '../memory/dreaming.js'
 export { DREAMING_INSTRUCTIONS } from '../memory/prompt.js'
 export { liveCategory } from '../memory/records.js'
@@ -29,6 +38,7 @@ export { ClaudeEngine } from '../router/engines/claude.js'
 export { CodexEngine, CodexRouterServer, codexRouterArgs } from '../router/engines/codex.js'
 export { defaultEngineFactory, dreamingEngineFactory } from '../router/engines/factory.js'
 export { OwlsEngine } from '../router/engines/owls.js'
+export { ProjectPullRequests, reportedPullRequests } from '../router/project-pull-requests.js'
 export {
   projectInstructions,
   ROUTER_INSTRUCTIONS,

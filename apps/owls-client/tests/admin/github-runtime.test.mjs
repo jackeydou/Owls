@@ -8,8 +8,18 @@ import test from 'node:test'
 import { cipher, memoryRouterStore, staleSecret } from '../fixtures/router-store.mjs'
 
 const require = createRequire(import.meta.url)
-const { GitHubAuth, GitWorkspaces, lookupPullRequest, parseGitHubRemote, WorkerGitHub } =
-  require('../../out/main/app/runtime.js')
+const {
+  countPullRequests,
+  GitHubAuth,
+  GitWorkspaces,
+  listPullRequests,
+  lookupPullRequest,
+  lookupPullRequests,
+  parseGitHubRemote,
+  ProjectPullRequests,
+  reportedPullRequests,
+  WorkerGitHub
+} = require('../../out/main/app/runtime.js')
 
 const json = (body, init) =>
   new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' }, ...init })
@@ -258,6 +268,9 @@ const pullRequestNode = (overrides = {}) => ({
   isCrossRepository: false,
   mergeable: 'MERGEABLE',
   reviewDecision: 'APPROVED',
+  headRefName: 'codex/topic',
+  createdAt: '2026-11-01T00:00:00Z',
+  updatedAt: '2026-11-02T00:00:00Z',
   commits: {
     nodes: [
       {
@@ -521,4 +534,250 @@ test('a watch for another router is ignored, and unwatching stops updates', asyn
   github.unwatch(action)
   await new Promise((resolve) => setTimeout(resolve, 5))
   assert.equal(statuses.length, 0)
+})
+
+test('lookupPullRequests asks for many branches and numbers at once and skips missing ones', async () => {
+  const { calls, http } = fakeHttp({
+    graphql: [
+      [
+        {
+          data: {
+            repository: {
+              b0: { nodes: [pullRequestNode({ number: 3, isCrossRepository: true })] },
+              b1: {
+                nodes: [
+                  pullRequestNode({ number: 4, state: 'CLOSED', headRefName: 'owls/w_2' }),
+                  pullRequestNode({ number: 5, headRefName: 'owls/w_2' })
+                ]
+              },
+              n0: pullRequestNode({ number: 9, state: 'MERGED' }),
+              n1: null
+            }
+          },
+          errors: [{ type: 'NOT_FOUND', path: ['repository', 'n1'] }]
+        }
+      ]
+    ]
+  })
+  const found = await lookupPullRequests(http, 't', repository, {
+    branches: ['owls/w_2', 'owls/w_1', 'owls/w_1'],
+    numbers: [12, 9]
+  })
+  assert.equal(calls.length, 1)
+  const body = JSON.parse(calls[0].body)
+  assert.deepEqual([body.variables.b0, body.variables.b1], ['owls/w_1', 'owls/w_2'])
+  assert.match(body.query, /n0: pullRequest\(number: 9\)/)
+  assert.equal(found.kind, 'found')
+  // A fork's branch of the same name is not the worker's; an open pull request wins.
+  assert.equal(found.byBranch.has('owls/w_1'), false)
+  assert.equal(found.byBranch.get('owls/w_2').number, 5)
+  assert.equal(found.byBranch.get('owls/w_2').branch, 'owls/w_2')
+  assert.equal(found.byNumber.get(9).state, 'merged')
+  assert.equal(found.byNumber.has(12), false)
+
+  const none = await lookupPullRequests(() => assert.fail('no request expected'), 't', repository, {
+    branches: [],
+    numbers: []
+  })
+  assert.equal(none.kind, 'found')
+  const hidden = fakeHttp({
+    graphql: [[{ data: { repository: null }, errors: [{ type: 'NOT_FOUND' }] }]]
+  }).http
+  assert.deepEqual(
+    await lookupPullRequests(hidden, 't', repository, { branches: ['x'], numbers: [] }),
+    { kind: 'no-access' }
+  )
+})
+
+test('reportedPullRequests reads pull request links for this repository only', () => {
+  const report = {
+    status: 'done',
+    summary: 'Opened https://github.com/O/R/pull/12 and https://github.com/other/r/pull/3.',
+    artifacts: [
+      { kind: 'url', ref: 'https://github.com/o/r/pull/8' },
+      { kind: 'url', ref: 'https://github.com/o/r/pull/12/files' }
+    ]
+  }
+  assert.deepEqual(reportedPullRequests(worker({ report }), repository), [8, 12])
+  assert.deepEqual(reportedPullRequests(worker({ report: null }), repository), [])
+})
+
+const project = (id, path, remote = null) => ({
+  id,
+  name: id,
+  path,
+  settings: { git: { baseBranch: null, remote, deletePushedBranches: false } }
+})
+function overviewFor({ workers, remotes, branches = {}, http, token = 't', method = 'app' }) {
+  const links = []
+  let invalidated = 0
+  const reader = new ProjectPullRequests(
+    {
+      projects: () => Object.keys(remotes).map((id) => project(id, `/p/${id}`)),
+      workers: () => workers,
+      projectRemoteUrl: async (p) => remotes[p.id],
+      remoteBranch: async (id) => branches[id] ?? null,
+      linkPullRequest: (id, link) => links.push({ id, ...link })
+    },
+    { token: async () => token, invalidate: () => invalidated++, method: () => method },
+    http
+  )
+  return { reader, links, invalidations: () => invalidated }
+}
+const projectWorker = (id, overrides = {}) =>
+  worker({
+    id,
+    projectId: 'p_1',
+    workspace: { kind: 'worktree', branch: `owls/${id}` },
+    report: null,
+    ...overrides
+  })
+
+test('the project list finds pull requests by branch, saved link, and report link', async () => {
+  const { calls, http } = fakeHttp({
+    graphql: [
+      [
+        {
+          data: {
+            repository: {
+              b0: { nodes: [pullRequestNode({ number: 5, headRefName: 'owls/w_1' })] },
+              b1: { nodes: [] },
+              n0: pullRequestNode({ number: 2, updatedAt: '2026-11-05T00:00:00Z' }),
+              n1: pullRequestNode({ number: 6, state: 'MERGED', headRefName: 'fix/x' })
+            }
+          }
+        }
+      ]
+    ]
+  })
+  const workers = [
+    projectWorker('w_1'),
+    projectWorker('w_2', {
+      workspace: { kind: 'checkout' },
+      pullRequest: { ...repository, branch: 'old', number: 2 }
+    }),
+    projectWorker('w_3', {
+      report: { status: 'done', summary: 'https://github.com/o/r/pull/6', artifacts: [] }
+    }),
+    projectWorker('w_4', { projectId: 'p_2' })
+  ]
+  const { reader, links } = overviewFor({
+    workers,
+    remotes: { p_1: 'git@github.com:o/r.git', p_2: '/srv/repo.git' },
+    // w_3's worktree has a branch that was never pushed, so it is not asked about.
+    branches: { w_3: { remoteUrl: 'git@github.com:o/r.git', branch: 'owls/w_3', pushed: false } },
+    http
+  })
+  const overview = await reader.read()
+  assert.equal(calls.length, 1)
+  const body = JSON.parse(calls[0].body)
+  assert.deepEqual([body.variables.b0, body.variables.b1], ['owls/w_1', undefined])
+  assert.equal(overview.kind, 'ready')
+  const [first, second] = overview.projects
+  assert.deepEqual(second, { projectId: 'p_2', status: { kind: 'unsupported' } })
+  assert.equal(first.status.kind, 'ready')
+  // Newest activity first, then the higher number.
+  assert.deepEqual(
+    first.status.pullRequests.map((pr) => [pr.number, pr.workerId]),
+    [
+      [2, 'w_2'],
+      [6, 'w_3'],
+      [5, 'w_1']
+    ]
+  )
+  assert.deepEqual(links, [{ id: 'w_1', owner: 'o', name: 'r', branch: 'owls/w_1', number: 5 }])
+})
+
+test('the project list signs out on a revoked token and names missing access per project', async () => {
+  const signedOut = overviewFor({
+    workers: [],
+    remotes: { p_1: 'git@github.com:o/r.git' },
+    token: null,
+    http: () => assert.fail('no request expected')
+  })
+  assert.deepEqual(await signedOut.reader.read(), { kind: 'signed-out' })
+
+  const revoked = overviewFor({
+    workers: [projectWorker('w_1')],
+    remotes: { p_1: 'git@github.com:o/r.git' },
+    http: fakeHttp({ graphql: [[{}, { status: 401 }]] }).http
+  })
+  assert.deepEqual(await revoked.reader.read(), { kind: 'signed-out' })
+  assert.equal(revoked.invalidations(), 1)
+
+  const hidden = overviewFor({
+    workers: [projectWorker('w_1')],
+    remotes: { p_1: 'git@github.com:o/r.git' },
+    method: 'token',
+    http: fakeHttp({ graphql: [[{ data: { repository: null }, errors: [{ type: 'NOT_FOUND' }] }]] })
+      .http
+  })
+  const overview = await hidden.reader.read()
+  assert.deepEqual(overview.projects[0].status, { kind: 'no-access', owner: 'o', name: 'r' })
+
+  const limited = overviewFor({
+    workers: [projectWorker('w_1')],
+    remotes: { p_1: 'git@github.com:o/r.git' },
+    http: fakeHttp({ graphql: [[{}, { status: 429 }]] }).http
+  })
+  assert.deepEqual((await limited.reader.read()).projects[0].status, {
+    kind: 'failed',
+    reason: 'rate-limited'
+  })
+})
+
+test('the list filters by merge state, checks, and project, and sorts by what needs attention', () => {
+  const row = (number, overrides) => ({
+    number,
+    projectId: 'p_1',
+    state: 'open',
+    review: null,
+    conflicted: false,
+    checksState: 'success',
+    createdAt: `2026-11-0${number}T00:00:00Z`,
+    updatedAt: `2026-11-0${number}T00:00:00Z`,
+    ...overrides
+  })
+  const rows = [
+    row(1, { state: 'merged' }),
+    row(2, { checksState: 'pending' }),
+    row(3, { checksState: 'failure' }),
+    row(4, { review: 'required' }),
+    row(5, { state: 'draft', checksState: null }),
+    row(6, { projectId: 'p_2', review: 'changes-requested' })
+  ]
+  const all = { state: 'all', checks: 'all', projectId: null }
+  assert.deepEqual(
+    listPullRequests(rows, all, 'attention').map((r) => r.number),
+    [3, 6, 2, 4, 5, 1]
+  )
+  assert.deepEqual(
+    listPullRequests(rows, all, 'oldest').map((r) => r.number),
+    [1, 2, 3, 4, 5, 6]
+  )
+  assert.deepEqual(
+    listPullRequests(rows, { ...all, state: 'open', projectId: 'p_1' }, 'updated').map(
+      (r) => r.number
+    ),
+    [4, 3, 2]
+  )
+  assert.deepEqual(
+    listPullRequests(rows, { ...all, checks: 'none' }, 'updated').map((r) => r.number),
+    [5]
+  )
+  // Counts for one filter keep the others applied.
+  assert.deepEqual(countPullRequests(rows, { ...all, checks: 'success' }, 'state'), {
+    all: 3,
+    open: 2,
+    draft: 0,
+    merged: 1,
+    closed: 0
+  })
+  assert.deepEqual(countPullRequests(rows, { ...all, state: 'open' }, 'checks'), {
+    all: 4,
+    failure: 1,
+    pending: 1,
+    success: 2,
+    none: 0
+  })
 })

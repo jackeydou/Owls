@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../app/failures'
 import { SettingsPage } from '../app/Settings'
 import { useAppStore } from '../app/store'
+import { PullRequestsView } from '../pulls/PullRequestsView'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
 import { ProjectsSidebar } from './ProjectsSidebar'
@@ -39,7 +40,13 @@ function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
       className={sidebarHidden ? 'router-stage sidebar-hidden' : 'router-stage'}
       style={{ '--owl-panel-width': `${width}px` } as React.CSSProperties}
     >
-      {view === 'map' ? <MapView /> : <RouterChat key={threadId ?? 'new'} />}
+      {view === 'map' ? (
+        <MapView />
+      ) : view === 'pulls' ? (
+        <PullRequestsView />
+      ) : (
+        <RouterChat key={threadId ?? 'new'} />
+      )}
       <Panel />
       {/* A sibling over the panel's left edge, so neither detail view has to carry it. */}
       {panelOpen ? <ResizeHandle {...handle} className="router-panel-resize" /> : null}

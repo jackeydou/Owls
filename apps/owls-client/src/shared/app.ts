@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { GitHubAccount, WorkerGitHubStatus } from './github.js'
+import type { GitHubAccount, PullRequestOverview, WorkerGitHubStatus } from './github.js'
 import {
   defaultMemorySettings,
   type MemoryCategoryAction,
@@ -379,6 +379,8 @@ export interface OwlsAPI {
   gitHubSignOut(): Promise<Reply<void>>
   watchWorkerGitHub(input: WorkerAction): Promise<Reply<void>>
   unwatchWorkerGitHub(input: WorkerAction): Promise<Reply<void>>
+  /** Every pull request agents opened, per project, read from GitHub now. */
+  pullRequests(): Promise<Reply<PullRequestOverview>>
   onEvent(listener: (event: AppEvent) => void): () => void
   memory: MemoryAPI
   updates: UpdatesAPI
