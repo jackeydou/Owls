@@ -57,8 +57,19 @@
     transform: translateY(8px);
   }
 }
+/* A fresh status sentence fades in, so a repeated check visibly lands. */
+.owls-status-refresh {
+  display: inline-block;
+  animation: owls-status-refresh 360ms ease-out;
+}
+@keyframes owls-status-refresh {
+  from {
+    opacity: 0.25;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .owls-update-popup {
+  .owls-update-popup,
+  .owls-status-refresh {
     animation: none;
   }
 }

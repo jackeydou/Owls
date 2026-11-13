@@ -10,14 +10,6 @@
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
 }
-.pulls-spin {
-  animation: pulls-spin 900ms linear infinite;
-}
-@keyframes pulls-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 .pulls-body {
   flex: 1;
   min-height: 0;

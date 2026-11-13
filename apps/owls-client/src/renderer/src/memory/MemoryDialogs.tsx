@@ -1,3 +1,4 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { Dialog } from '@renderer/components/ui/dialog'
 import { Select } from '@renderer/components/ui/select'
@@ -25,16 +26,16 @@ export function DeleteMemoryDialog({
         <Button size="sm" variant="ghost" onClick={onClose}>
           {t('memory.cancel')}
         </Button>
-        <Button
+        <ActionButton
           size="sm"
           variant="destructive"
-          onClick={async () => {
+          onAction={async () => {
             await remove(memory)
             onClose()
           }}
         >
           {t('memory.delete')}
-        </Button>
+        </ActionButton>
       </footer>
     </Dialog>
   )
@@ -161,14 +162,14 @@ export function CategoryDialog({
         <Button size="sm" variant="ghost" onClick={onClose}>
           {t('memory.cancel')}
         </Button>
-        <Button
+        <ActionButton
           size="sm"
           variant={mode === 'delete' && !moveTo ? 'destructive' : 'default'}
           disabled={!valid}
-          onClick={() => void submit()}
+          onAction={submit}
         >
           {mode === 'delete' ? t('memory.delete') : t('memory.save')}
-        </Button>
+        </ActionButton>
       </footer>
     </Dialog>
   )

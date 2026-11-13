@@ -1,3 +1,4 @@
+import { ActionIconButton } from '@renderer/components/ui/action-button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { ArrowUpIcon, LoaderIcon, StopIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
@@ -59,12 +60,12 @@ export function RouterComposer({
         <DraftInput editor={draft.editor} empty={empty} label={label} placeholder={label} />
         <div className="owls-composer-toolbar">
           {running && !addressed && router ? (
-            <IconButton
+            <ActionIconButton
               className="owls-stop"
               label={t('router.stop')}
               tooltip={t('router.stop')}
               icon={<StopIcon size={15} />}
-              onClick={() => void interrupt(router.id)}
+              onAction={() => interrupt(router.id)}
             />
           ) : null}
           <IconButton

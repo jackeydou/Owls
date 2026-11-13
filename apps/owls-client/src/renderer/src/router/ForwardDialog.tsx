@@ -1,6 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
 import { Dialog } from '@renderer/components/ui/dialog'
-import { LoaderIcon, PlusIcon } from '@renderer/components/ui/icons'
+import { PlusIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -99,8 +99,7 @@ function ForwardForm({ forwarding }: { forwarding: Forwarding }) {
         <Button size="sm" variant="ghost" onClick={cancelForward}>
           {t('forward.cancel')}
         </Button>
-        <Button size="sm" disabled={sending} onClick={() => void submit()}>
-          {sending ? <LoaderIcon size={15} className="animate-spin" /> : null}
+        <Button size="sm" pending={sending} onClick={() => void submit()}>
           {t('forward.send')}
         </Button>
       </footer>

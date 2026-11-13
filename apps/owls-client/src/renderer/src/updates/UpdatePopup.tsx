@@ -1,8 +1,10 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { DownloadIcon, RotateCcwIcon, XIcon } from '@renderer/components/ui/icons'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { installUpdate } from './update-actions'
 import { useUpdateSnapshot } from './use-update-snapshot'
 import './updates.css'
 
@@ -14,18 +16,8 @@ export function UpdatePopup() {
   const { t } = useTranslation()
   const snapshot = useUpdateSnapshot()
   const [dismissed, setDismissed] = useState<string | null>(null)
-  const [installing, setInstalling] = useState(false)
   const state = snapshot?.state
   if (state?.status !== 'ready' || dismissed === state.version) return null
-  const install = async () => {
-    setInstalling(true)
-    try {
-      // Resolves without quitting when the user keeps running tasks open.
-      await window.owls.updates.install()
-    } finally {
-      setInstalling(false)
-    }
-  }
   return (
     <section className="owls-update-popup" aria-labelledby="owls-update-popup-title">
       <div className="owls-update-popup-icon" aria-hidden>
@@ -35,10 +27,13 @@ export function UpdatePopup() {
         <h2 id="owls-update-popup-title">{t('updates.popup.title')}</h2>
         <p>{t('updates.popup.body', { version: state.version })}</p>
         <div className="owls-update-popup-actions">
-          <Button size="sm" disabled={installing} onClick={() => void install()}>
-            <RotateCcwIcon size={15} aria-hidden />
+          <ActionButton
+            size="sm"
+            icon={<RotateCcwIcon size={15} aria-hidden />}
+            onAction={installUpdate}
+          >
             {t('updates.popup.update')}
-          </Button>
+          </ActionButton>
           <Button size="sm" variant="ghost" onClick={() => setDismissed(state.version)}>
             {t('updates.popup.later')}
           </Button>

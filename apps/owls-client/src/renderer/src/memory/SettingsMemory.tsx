@@ -1,3 +1,4 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { DownloadIcon, LoaderIcon, SparklesIcon, XIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
@@ -155,22 +156,33 @@ function RunStatus() {
         {status}
       </span>
       <div className="owls-settings-actions">
-        <Button
+        <ActionButton
           size="sm"
           variant="outline"
-          disabled={!learn || running}
-          onClick={() => void runNow()}
+          disabled={!learn}
+          pending={running}
+          icon={<SparklesIcon size={15} aria-hidden />}
+          onAction={runNow}
         >
-          <SparklesIcon size={15} aria-hidden />
           {t('memory.runNow')}
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => void exportAs('markdown')}>
-          <DownloadIcon size={15} aria-hidden />
+        </ActionButton>
+        <ActionButton
+          size="sm"
+          variant="outline"
+          icon={<DownloadIcon size={15} aria-hidden />}
+          doneLabel={t('memory.export.done')}
+          onAction={async () => ((await exportAs('markdown')) ? 'done' : 'quiet')}
+        >
           {t('memory.export.markdown')}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => void exportAs('json')}>
+        </ActionButton>
+        <ActionButton
+          size="sm"
+          variant="ghost"
+          doneLabel={t('memory.export.done')}
+          onAction={async () => ((await exportAs('json')) ? 'done' : 'quiet')}
+        >
           {t('memory.export.json')}
-        </Button>
+        </ActionButton>
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
-import { CheckIcon, KeyIcon, LoaderIcon } from '@renderer/components/ui/icons'
+import { CheckIcon, KeyIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -296,23 +297,28 @@ export function OwlsModelFields({ guided = false }: { guided?: boolean }) {
           <Button
             size="sm"
             className="router-guide-continue"
-            disabled={!valid.success || keyMissing || savingKey}
+            disabled={!valid.success || keyMissing}
+            pending={savingKey}
             onClick={() => void finish()}
           >
-            {savingKey ? <LoaderIcon size={16} className="animate-spin" /> : null}
             {t('router.guideContinue')}
           </Button>
         </div>
       ) : (
         <div className="owls-settings-actions">
-          <Button size="sm" disabled={!key.trim() || savingKey} onClick={() => void saveKey()}>
-            {savingKey ? <LoaderIcon size={16} className="animate-spin" /> : <KeyIcon size={16} />}
+          <Button
+            size="sm"
+            disabled={!key.trim()}
+            pending={savingKey}
+            onClick={() => void saveKey()}
+          >
+            <KeyIcon size={16} />
             {t('routerSettings.saveKey')}
           </Button>
           {provider?.configured ? (
-            <Button size="sm" variant="outline" onClick={() => void removeKey(draft.provider)}>
+            <ActionButton size="sm" variant="outline" onAction={() => removeKey(draft.provider)}>
               {t('routerSettings.removeKey')}
-            </Button>
+            </ActionButton>
           ) : null}
         </div>
       )}
