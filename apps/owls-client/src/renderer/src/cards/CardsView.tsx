@@ -1,3 +1,4 @@
+import { ActionIconButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import {
@@ -117,12 +118,12 @@ function CardsNav() {
       <section aria-label={t('cards.boards')}>
         <header>
           <h3>{t('cards.boards')}</h3>
-          <IconButton
+          <ActionIconButton
             size="sm"
             label={t('cards.newBoard')}
             tooltip={t('cards.newBoard')}
             icon={<PlusIcon size={14} />}
-            onClick={async () => {
+            onAction={async () => {
               const board = await saveBoard({
                 action: 'add',
                 name: t('cards.untitledBoard', { count: boards.length + 1 }),

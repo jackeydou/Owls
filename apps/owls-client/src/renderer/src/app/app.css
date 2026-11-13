@@ -29,6 +29,13 @@
   --owl-focus-ring: color-mix(in srgb, var(--color-foreground) 22%, transparent);
   --owl-field-focus-border: color-mix(in srgb, var(--color-foreground) 30%, transparent);
   --owl-field-focus-shadow: 0 0 0 3px color-mix(in srgb, var(--color-foreground) 8%, transparent);
+  /* Links in agent Markdown. Worker links are status tags (router.css), not these. */
+  --owl-link: #0b6bcb;
+  --owl-link-hover: #0853a0;
+}
+[data-theme="dark"] {
+  --owl-link: #5eaeff;
+  --owl-link-hover: #8cc8ff;
 }
 
 .owls-app {

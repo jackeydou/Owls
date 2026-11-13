@@ -1,3 +1,4 @@
+import { ActionIconButton } from '@renderer/components/ui/action-button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import {
   AlertCircleIcon,
@@ -113,20 +114,20 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
           ) : null}
         </div>
         {canStop(worker) ? (
-          <IconButton
+          <ActionIconButton
             size="sm"
             label={t('worker.stop')}
             tooltip={t('worker.stop')}
             icon={<StopIcon size={14} />}
-            onClick={() => void stopWorker(worker.routerId, worker.id)}
+            onAction={() => stopWorker(worker.routerId, worker.id)}
           />
         ) : (
-          <IconButton
+          <ActionIconButton
             size="sm"
             label={t('worker.remove')}
             tooltip={t('worker.remove')}
             icon={<TrashIcon size={15} />}
-            onClick={() => void removeWorker(worker.routerId, worker.id)}
+            onAction={() => removeWorker(worker.routerId, worker.id)}
           />
         )}
         {report ? (

@@ -1,0 +1,1 @@
+- Buttons: every button now shows it was pressed, async buttons show a spinner while working, and actions like Check for updates or Export confirm the result. (#86)

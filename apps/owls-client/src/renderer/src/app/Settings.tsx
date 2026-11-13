@@ -1,3 +1,4 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import {
   ArrowLeftIcon,
@@ -209,7 +210,6 @@ function WorkspaceFolderRow() {
   const selectWorkspaceFolder = useAppStore((s) => s.selectWorkspaceFolder)
   const resetWorkspaceFolder = useAppStore((s) => s.resetWorkspaceFolder)
   const [folder, setFolder] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
   // Reads the folder again whenever the saved choice changes.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `custom` is the trigger, not an input.
   useEffect(() => {
@@ -221,11 +221,6 @@ function WorkspaceFolderRow() {
       live = false
     }
   }, [custom, workspaceFolder])
-  const run = async (change: () => Promise<unknown>) => {
-    setBusy(true)
-    await change()
-    setBusy(false)
-  }
   return (
     <SettingRow
       label={t('workspaceFolder')}
@@ -234,24 +229,19 @@ function WorkspaceFolderRow() {
     >
       <div className="owls-settings-actions">
         {custom ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void run(resetWorkspaceFolder)}
-          >
+          <ActionButton size="sm" variant="ghost" onAction={resetWorkspaceFolder}>
             {t('workspaceFolderReset')}
-          </Button>
+          </ActionButton>
         ) : null}
-        <Button
+        <ActionButton
           size="sm"
           variant="outline"
-          disabled={busy}
-          onClick={() => void run(selectWorkspaceFolder)}
+          icon={<FolderOpenIcon size={16} />}
+          // The chosen path appears in the row, so the button only needs to show it is working.
+          onAction={async () => void (await selectWorkspaceFolder())}
         >
-          <FolderOpenIcon size={16} />
           {t('workspaceFolderChoose')}
-        </Button>
+        </ActionButton>
       </div>
     </SettingRow>
   )

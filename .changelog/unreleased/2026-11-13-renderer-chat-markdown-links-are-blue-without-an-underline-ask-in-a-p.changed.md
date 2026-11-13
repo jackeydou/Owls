@@ -1,0 +1,1 @@
+- Chat: Markdown links are blue without an underline, ask in a popover anchored to the link with Copy link and Open, and Cmd-click opens them directly.

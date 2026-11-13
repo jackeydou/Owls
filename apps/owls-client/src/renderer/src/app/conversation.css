@@ -50,6 +50,65 @@
   font-size: var(--owl-text-base);
   overflow-wrap: anywhere;
 }
+/* Links read as blue text without an underline; the popover asks before leaving the app. */
+.owls-markdown .owls-markdown-link {
+  color: var(--owl-link);
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+.owls-markdown .owls-markdown-link:hover,
+.owls-markdown .owls-markdown-link[data-open] {
+  color: var(--owl-link-hover);
+}
+.owls-markdown .owls-markdown-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--owl-link) 45%, transparent);
+  outline-offset: 1px;
+}
+.owls-link-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 10px 10px 8px 12px;
+}
+.owls-link-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.owls-link-popover-head svg {
+  color: var(--color-muted-foreground);
+}
+.owls-link-popover-url {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.owls-link-popover-foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.owls-link-popover-hint {
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  white-space: nowrap;
+}
 .owls-markdown pre {
   font-size: var(--owl-text-sm);
   max-width: 100%;

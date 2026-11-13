@@ -1,3 +1,4 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { SettingsIcon, XIcon } from '@renderer/components/ui/icons'
@@ -75,14 +76,14 @@ export function RouterDetail({ router }: { router: Router | undefined }) {
                         {worker.workspace.branch} · {worker.workspace.path}
                       </small>
                     </span>
-                    <Button
+                    <ActionButton
                       size="sm"
                       variant="outline"
                       aria-label={t('router.discardWorktreeLabel', { goal: workerTitle(worker) })}
-                      onClick={() => void discardWorktree(router.id, worker.id)}
+                      onAction={() => discardWorktree(router.id, worker.id)}
                     >
                       {t('router.discardWorktree')}
-                    </Button>
+                    </ActionButton>
                   </li>
                 ) : null
               )}

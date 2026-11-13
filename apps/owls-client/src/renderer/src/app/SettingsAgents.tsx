@@ -1,10 +1,5 @@
 import { Button } from '@renderer/components/ui/button'
-import {
-  ExternalLinkIcon,
-  FolderOpenIcon,
-  LoaderIcon,
-  RefreshIcon
-} from '@renderer/components/ui/icons'
+import { ExternalLinkIcon, FolderOpenIcon, RefreshIcon } from '@renderer/components/ui/icons'
 import { type ReactNode, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CodexConnection, Failure } from '../../../shared/app'
@@ -112,10 +107,11 @@ export function ClaudeSettingsPane() {
         <Button
           size="sm"
           variant={claude.status === 'ready' ? 'outline' : 'default'}
-          disabled={busy || running}
+          disabled={running}
+          pending={busy}
           onClick={() => void connectClaude()}
         >
-          {busy ? <LoaderIcon size={16} className="animate-spin" /> : <RefreshIcon size={16} />}
+          <RefreshIcon size={16} />
           {busy ? t('connectingClaude') : t('useLocalClaude')}
         </Button>
       </SettingRow>
@@ -212,18 +208,18 @@ export function AgentSettingsPane() {
             </Button>
           ) : null}
           {connected && account.kind === 'signed-out' ? (
-            <Button size="sm" variant="outline" disabled={signingIn} onClick={() => void signIn()}>
-              {signingIn ? <LoaderIcon size={16} className="animate-spin" /> : null}
+            <Button size="sm" variant="outline" pending={signingIn} onClick={() => void signIn()}>
               {signingIn ? t('signingIn') : t('signIn')}
             </Button>
           ) : null}
           <Button
             size="sm"
             variant={connected ? 'outline' : 'default'}
-            disabled={busy || running}
+            disabled={running}
+            pending={busy}
             onClick={() => void connect()}
           >
-            {busy ? <LoaderIcon size={16} className="animate-spin" /> : <RefreshIcon size={16} />}
+            <RefreshIcon size={16} />
             {busy ? t('importing') : t('useLocal')}
           </Button>
         </div>

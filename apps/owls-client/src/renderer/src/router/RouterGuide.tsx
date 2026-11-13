@@ -1,5 +1,5 @@
 import { Button } from '@renderer/components/ui/button'
-import { CheckIcon, LoaderIcon } from '@renderer/components/ui/icons'
+import { CheckIcon } from '@renderer/components/ui/icons'
 import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider } from '../../../shared/app'
@@ -97,8 +97,7 @@ function AgentConnect({ provider, body }: { provider: AgentProvider; body: strin
         </div>
       ) : null}
       <div className="router-guide-actions">
-        <Button size="sm" disabled={busy} onClick={() => void connect()}>
-          {busy ? <LoaderIcon size={16} className="animate-spin" /> : null}
+        <Button size="sm" pending={busy} onClick={() => void connect()}>
           {t('router.guideConnect', { agent: t(`agent.${provider}`) })}
         </Button>
         <Button size="sm" variant="outline" onClick={() => showSettings(provider)}>

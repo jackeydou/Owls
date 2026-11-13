@@ -347,6 +347,26 @@ Release MR flow:
   English-only `aria-label`, `title`, placeholder, toast, or error text.
 - When adding keyboard or pointer interactions, check focus behavior and cleanup
   event handlers on unmount.
+- Click feedback (UX rule): every clickable button must show the user that the
+  click registered and how it ended. Never ship a button whose click can look
+  like nothing happened.
+  - Pressed: the shared `Button` (and `IconButton`) already scales down on
+    press; do not override it away. Raw `<button>` elements need an equivalent
+    pressed or hover state.
+  - Pending: async work shows a spinner and disables the button until it
+    settles. Use `ActionButton` / `ActionIconButton`
+    (`components/ui/action-button.tsx`) for click-driven async work, or
+    `Button`'s `pending` prop when the busy state lives in a store. Do not
+    hand-roll `{busy ? <LoaderIcon /> : icon}` plus `disabled`.
+  - Result: when the action settles, the user must see the outcome: a brief
+    success mark on the button (resolve `onAction` to `'done'`, with a
+    `doneLabel` when the label alone would be ambiguous), a status line that
+    visibly refreshes, a view or row that changes, or an error toast / inline
+    alert. Only claim `'done'` for verified success; store actions that turn
+    errors into a toast should stay `'quiet'`.
+  - A fast reply still needs perceptible feedback; `useAction` keeps the
+    pending state up for a minimum time so a quick success does not just
+    flicker.
 
 ### IPC
 
