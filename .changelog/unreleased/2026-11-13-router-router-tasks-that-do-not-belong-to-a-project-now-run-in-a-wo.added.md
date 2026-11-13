@@ -1,0 +1,1 @@
+- Router: tasks that do not belong to a project now run in a workspace folder (~/Owls/Workspace by default, changeable in Settings) instead of the only project. (#85)
