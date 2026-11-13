@@ -47,9 +47,15 @@ export const defaultRouterSettings: RouterSettings = {
   worktrees: true
 }
 
+/**
+ * Longest report summary kept. It is a safety bound, not a style limit: the
+ * Router's batch shows the start of a long summary and recall pages the rest,
+ * so a summary cut here would be lost for good.
+ */
+export const WORKER_SUMMARY_LIMIT = 20_000
 export const workerReportSchema = z.object({
   status: z.enum(['done', 'blocked', 'needs_input', 'progress']),
-  summary: z.string().max(1000),
+  summary: z.string().max(WORKER_SUMMARY_LIMIT),
   artifacts: z
     .array(z.object({ kind: z.enum(['file', 'url', 'note']), ref: z.string().max(2000) }))
     .max(20)

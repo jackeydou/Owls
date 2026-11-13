@@ -6,7 +6,8 @@ import type { InboxEvent } from './events.js'
 /** Upper bound for the Owls engine's request context, estimated in UTF-8 bytes. */
 export const ROUTER_CONTEXT_BUDGET = 48_000
 const USER_TEXT_LIMIT = 8000
-const REPORT_TEXT_LIMIT = 600
+/** Report summary per report in a batch; recall returns all of it. */
+const REPORT_TEXT_LIMIT = 2000
 /** Card text per card in a batch; recall returns all of it. */
 const CARD_TEXT_LIMIT = 6000
 

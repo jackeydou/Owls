@@ -1,0 +1,1 @@
+- Router: worker reports are no longer silently cut at 1,000 characters; the batch shows up to 2,000 and recall returns the rest.
