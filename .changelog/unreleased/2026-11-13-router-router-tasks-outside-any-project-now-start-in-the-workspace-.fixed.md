@@ -1,0 +1,1 @@
+- Router: tasks outside any project now start in the workspace folder instead of failing with "Choose a project before starting a task". (#97)
