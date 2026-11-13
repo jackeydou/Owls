@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { access, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { extname, join } from 'node:path'
 import { promisify } from 'node:util'
 import type { OpenInApp, OpenInAppId, OpenInAppKind } from '../../shared/open-in.js'
 import { OwlsError } from './errors.js'
@@ -260,6 +260,17 @@ export function nodeOpenInPlatform(icon: OpenInPlatform['icon']): OpenInPlatform
       await execFileAsync('open', ['-a', appPath, folder], { timeout: 10000 })
     }
   }
+}
+
+/**
+ * The `.icns` file an app bundle names in its Info.plist, relative to
+ * `Contents/Resources`. Older plists leave out the extension.
+ */
+export function bundleIconFile(info: unknown): string | null {
+  if (!info || typeof info !== 'object') return null
+  const name = (info as Record<string, unknown>).CFBundleIconFile
+  if (typeof name !== 'string' || !name.trim() || name.includes('/')) return null
+  return extname(name) ? name : `${name}.icns`
 }
 
 /** Installed apps are scanned again at most this often, so a new install shows up. */
