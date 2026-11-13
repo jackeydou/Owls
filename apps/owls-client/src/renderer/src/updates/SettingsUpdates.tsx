@@ -1,12 +1,14 @@
-import { Button } from '@renderer/components/ui/button'
-import { LoaderIcon, RefreshIcon, RotateCcwIcon } from '@renderer/components/ui/icons'
+import { ActionButton } from '@renderer/components/ui/action-button'
+import { RefreshIcon, RotateCcwIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { type UpdateState, updateChannelSchema } from '../../../shared/updates'
 import { SettingRow } from '../app/SettingRow'
 import { useAppStore } from '../app/store'
+import { checkForUpdates, installUpdate } from './update-actions'
 import { useUpdateSnapshot } from './use-update-snapshot'
+import './updates.css'
 
 const clock = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
@@ -37,27 +39,28 @@ function UpdateAction({ state }: { state: UpdateState }) {
   const { t } = useTranslation()
   if (state.status === 'ready') {
     return (
-      <Button size="sm" onClick={() => void window.owls.updates.install()}>
-        <RotateCcwIcon size={15} aria-hidden />
+      <ActionButton
+        size="sm"
+        icon={<RotateCcwIcon size={15} aria-hidden />}
+        onAction={installUpdate}
+      >
         {t('updates.install')}
-      </Button>
+      </ActionButton>
     )
   }
-  const busy = state.status === 'checking' || state.status === 'downloading'
   return (
-    <Button
+    <ActionButton
       size="sm"
       variant="outline"
-      disabled={busy}
-      onClick={() => void window.owls.updates.check()}
+      // A background check or download keeps the button busy too.
+      pending={state.status === 'checking' || state.status === 'downloading'}
+      icon={<RefreshIcon size={15} aria-hidden />}
+      doneLabel={t('updates.upToDate')}
+      failedLabel={t('updates.checkFailed')}
+      onAction={checkForUpdates}
     >
-      {busy ? (
-        <LoaderIcon size={15} className="animate-spin" aria-hidden />
-      ) : (
-        <RefreshIcon size={15} aria-hidden />
-      )}
       {t('updates.check')}
-    </Button>
+    </ActionButton>
   )
 }
 
@@ -105,7 +108,16 @@ export function SettingsUpdatesPane() {
               </SettingRow>
               <SettingRow
                 label={t('updates.status')}
-                description={<span role="status">{statusText(snapshot.state, t)}</span>}
+                description={
+                  // Re-keyed per result, so even an unchanged sentence visibly refreshes.
+                  <span
+                    role="status"
+                    className="owls-status-refresh"
+                    key={`${snapshot.state.status}-${'checkedAt' in snapshot.state ? snapshot.state.checkedAt : ''}`}
+                  >
+                    {statusText(snapshot.state, t)}
+                  </span>
+                }
               >
                 <UpdateAction state={snapshot.state} />
               </SettingRow>

@@ -39,7 +39,8 @@ type State = Filter & {
   remove(memory: MemoryView): Promise<boolean>
   category(input: MemoryCategoryAction): Promise<boolean>
   runNow(): Promise<void>
-  exportAs(format: MemoryExportFormat): Promise<void>
+  /** True once the file is saved; false when cancelled or refused. */
+  exportAs(format: MemoryExportFormat): Promise<boolean>
   clearError(): void
 }
 
@@ -127,6 +128,7 @@ export const useMemoryStore = create<State>((set, get) => {
       set({ error: null })
       const reply = await window.owls.memory.export(format)
       if (!reply.ok) set({ error: errorOf(reply) })
+      return reply.ok && reply.value
     },
     clearError: () => set({ error: null })
   }

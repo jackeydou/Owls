@@ -1,4 +1,4 @@
-import { Button } from '@renderer/components/ui/button'
+import { ActionButton, ActionIconButton } from '@renderer/components/ui/action-button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { AlertCircleIcon, ForwardIcon, LoaderIcon, StopIcon } from '@renderer/components/ui/icons'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
@@ -210,12 +210,12 @@ export function RouterTimeline({
               <div className="owls-working" role="status">
                 <LoaderIcon size={15} className="animate-spin" />
                 {t('router.working')}
-                <IconButton
+                <ActionIconButton
                   size="sm"
                   label={t('router.stop')}
                   tooltip={t('router.stop')}
                   icon={<StopIcon size={12} />}
-                  onClick={() => void interrupt(router.id)}
+                  onAction={() => interrupt(router.id)}
                 />
               </div>
             </ThreadRow>
@@ -224,20 +224,20 @@ export function RouterTimeline({
             <div className="owls-inline-error router-unknown-batch" role="alert" key={batch.id}>
               <AlertCircleIcon size={17} />
               <span>{t('router.unknownBatch', { count: batch.events })}</span>
-              <Button
+              <ActionButton
                 size="sm"
                 variant="outline"
-                onClick={() => void resolveBatch(router.id, batch.id, 'retry')}
+                onAction={() => resolveBatch(router.id, batch.id, 'retry')}
               >
                 {t('router.retryBatch')}
-              </Button>
-              <Button
+              </ActionButton>
+              <ActionButton
                 size="sm"
                 variant="ghost"
-                onClick={() => void resolveBatch(router.id, batch.id, 'ignore')}
+                onAction={() => resolveBatch(router.id, batch.id, 'ignore')}
               >
                 {t('router.ignoreBatch')}
-              </Button>
+              </ActionButton>
             </div>
           ))}
           {router?.error && !isSetupFailure(router.error) ? (

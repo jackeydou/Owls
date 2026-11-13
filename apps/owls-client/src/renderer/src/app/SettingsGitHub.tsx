@@ -1,3 +1,4 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { ExternalLinkIcon, LoaderIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
@@ -25,9 +26,9 @@ function Connected({ login }: { login: string }) {
     <div className="github-connected">
       <i className="router-dot" aria-hidden />
       <span>{t('github.signedInAs', { login })}</span>
-      <Button size="sm" variant="outline" onClick={() => void signOut()}>
+      <ActionButton size="sm" variant="outline" onAction={signOut}>
         {t('github.signOut')}
-      </Button>
+      </ActionButton>
     </div>
   )
 }
@@ -79,9 +80,9 @@ function DeviceCode({ account }: { account: Extract<GitHubAccount, { status: 'pe
         <Button size="sm" onClick={openGitHub}>
           {t('github.copyAndOpen')}
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => void cancelSignIn()}>
+        <ActionButton size="sm" variant="ghost" onAction={cancelSignIn}>
           {t('github.cancel')}
-        </Button>
+        </ActionButton>
       </div>
     </>
   )
@@ -96,9 +97,9 @@ function AppMethod({ account }: { account: GitHubAccount }) {
       <p>{t('github.method.app.help')}</p>
       <div className="github-method-actions">
         {connectedBy(account, 'app') ? null : (
-          <Button size="sm" onClick={() => void signIn()}>
+          <ActionButton size="sm" onAction={signIn}>
             {t('github.connect')}
-          </Button>
+          </ActionButton>
         )}
         <InstallLink />
       </div>
@@ -120,8 +121,7 @@ function CliMethod({ account }: { account: GitHubAccount }) {
       <p>{t('github.method.gh-cli.help')}</p>
       {connectedBy(account, 'gh-cli') ? null : (
         <div className="github-method-actions">
-          <Button size="sm" disabled={connecting} onClick={() => void connectCli()}>
-            {connecting ? <LoaderIcon size={16} className="animate-spin" /> : null}
+          <Button size="sm" pending={connecting} onClick={() => void connectCli()}>
             {t('github.useCli')}
           </Button>
         </div>
@@ -157,8 +157,7 @@ function TokenMethod({ account }: { account: GitHubAccount }) {
             value={token}
             onChange={(event) => setToken(event.target.value)}
           />
-          <Button size="sm" disabled={!valid.success || saving} onClick={() => void save()}>
-            {saving ? <LoaderIcon size={16} className="animate-spin" /> : null}
+          <Button size="sm" disabled={!valid.success} pending={saving} onClick={() => void save()}>
             {t('github.saveToken')}
           </Button>
           <a

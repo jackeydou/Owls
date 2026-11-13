@@ -1,5 +1,5 @@
+import { ActionIconButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
-import { IconButton } from '@renderer/components/ui/icon-button'
 import {
   CircleCheckIcon,
   CircleDashedIcon,
@@ -293,14 +293,14 @@ export function PullRequestsView() {
               {t('pulls.updatedAt', { time: relative(overview.fetchedAt, now) })}
             </span>
           ) : null}
-          <IconButton
+          <ActionIconButton
             size="sm"
             label={t('pulls.refresh')}
             tooltip={t('pulls.refresh')}
             tooltipSide="bottom"
-            icon={<RefreshIcon size={16} className={loading ? 'pulls-spin' : undefined} />}
-            disabled={loading}
-            onClick={() => void refresh()}
+            icon={<RefreshIcon size={16} />}
+            pending={loading}
+            onAction={refresh}
           />
           <ProjectsToggle />
         </div>
