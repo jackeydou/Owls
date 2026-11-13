@@ -130,10 +130,28 @@ jobs:
           set -euo pipefail
           app_path="$(find dist -maxdepth 3 -type d -name 'Owls.app' -print -quit)"
           : "${app_path:?Could not find packaged Owls.app}"
+          # spctl and stapler ask Apple's servers (api.apple-cloudkit.com) about the ticket.
+          # A dropped connection there fails the job after a ~20 minute build, so retry
+          # these online checks with backoff instead of failing on the first network error.
+          retry_online_check() {
+            local attempt=1
+            local max_attempts=5
+            local delay=15
+            until "$@"; do
+              if (( attempt >= max_attempts )); then
+                echo "::error::'$*' failed after $max_attempts attempts."
+                return 1
+              fi
+              echo "::warning::'$*' failed (attempt $attempt of $max_attempts). Retrying in ${delay}s."
+              sleep "$delay"
+              attempt=$(( attempt + 1 ))
+              delay=$(( delay * 2 ))
+            done
+          }
           pnpm run verify:packaged "$app_path"
           codesign --verify --deep --strict --verbose=2 "$app_path"
-          spctl --assess --verbose --type exec "$app_path"
-          xcrun stapler validate "$app_path"
+          retry_online_check spctl --assess --verbose --type exec "$app_path"
+          retry_online_check xcrun stapler validate "$app_path"
 
       - name: Verify the app inside each DMG
         shell: bash
