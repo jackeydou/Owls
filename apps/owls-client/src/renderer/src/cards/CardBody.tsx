@@ -1,6 +1,7 @@
 import { code } from '@streamdown/code'
 import { memo } from 'react'
 import { Streamdown } from 'streamdown'
+import { markdownLinkComponents } from '../app/MarkdownLink'
 
 const plugins = { code }
 
@@ -8,7 +9,7 @@ const plugins = { code }
 export const CardBody = memo(function CardBody({ body }: { body: string }) {
   return (
     <div className="owls-markdown card-body">
-      <Streamdown plugins={plugins} controls={false}>
+      <Streamdown plugins={plugins} controls={false} components={markdownLinkComponents}>
         {body}
       </Streamdown>
     </div>

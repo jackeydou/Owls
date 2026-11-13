@@ -16,10 +16,11 @@ import {
   XIcon
 } from '@renderer/components/ui/icons'
 import { code } from '@streamdown/code'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Streamdown, type StreamdownProps } from 'streamdown'
 import type { AgentRequest, SessionItem } from '../../../shared/app'
+import { markdownLinkComponents } from './MarkdownLink'
 import { type AgentSpeaker, OwlAvatar } from './OwlAvatar'
 import { useAppStore } from './store'
 
@@ -45,6 +46,12 @@ export function ConversationItem({
 }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
+  const extraComponents = markdown?.components
+  const components = useMemo(
+    () =>
+      extraComponents ? { ...markdownLinkComponents, ...extraComponents } : markdownLinkComponents,
+    [extraComponents]
+  )
   if (item.kind === 'user') return <div className="owls-user-message">{item.text}</div>
   if (item.kind === 'assistant')
     return (
@@ -59,7 +66,7 @@ export function ConversationItem({
             controls={false}
             isAnimating={item.status === 'running'}
             allowedTags={markdown?.allowedTags}
-            components={markdown?.components}
+            components={components}
             literalTagContent={markdown?.literalTagContent}
           >
             {markdown ? markdown.prepare(item.text) : item.text}
