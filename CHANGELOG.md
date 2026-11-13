@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1300-beta.3
+
+### Highlights
+
+- Settings are easier to scan: one tabbed Agents page, one Router & Workers page, and shorter descriptions.
+- Workers report back to the Router through a dedicated report tool and can send progress notes while they work.
+
+### Changes
+
+- Router: workers now report back through an Owls report tool (an MCP server for Claude Code and Cursor, a dynamic tool for Codex) and can send progress notes mid-task; parsing the final message remains the fallback. (#99)
+- Settings: coding agents share one Agents page with a tab per agent, Router and worker defaults share one page, and setting descriptions are shorter. (#101)
+- Updates: Owls now checks for new versions every 2 hours instead of every 4. (#102)
+
+### Fixes
+
+- Sidebar: tab text stays one color, and the selected tab is marked by its background. (#100)
+
 ## 2026.11.1300-beta.2
 
 ### Highlights
