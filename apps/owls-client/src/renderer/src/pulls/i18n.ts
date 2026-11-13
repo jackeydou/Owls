@@ -43,7 +43,12 @@ export const pullsEn = {
   'pulls.issue.no-access': '{{project}}: this GitHub connection cannot read {{repository}}.',
   'pulls.issue.rate-limited': '{{project}}: GitHub is limiting requests. Owls will try again soon.',
   'pulls.issue.unavailable': '{{project}}: Owls could not reach GitHub.',
-  'pulls.install': 'Install on GitHub'
+  'pulls.install': 'Install on GitHub',
+  'pulls.setting': 'Pull requests page',
+  'pulls.settingHelp':
+    'Shows the pull requests your agents open, with their merge and CI status, in the sidebar.',
+  'pulls.setting.show': 'Show',
+  'pulls.setting.hide': 'Hide'
 }
 
 export const pullsZh: Record<keyof typeof pullsEn, string> = {
@@ -91,5 +96,9 @@ export const pullsZh: Record<keyof typeof pullsEn, string> = {
   'pulls.issue.no-access': '{{project}}：当前 GitHub 连接无法读取 {{repository}}。',
   'pulls.issue.rate-limited': '{{project}}：GitHub 正在限流，Owls 稍后会重试。',
   'pulls.issue.unavailable': '{{project}}：Owls 无法连接 GitHub。',
-  'pulls.install': '在 GitHub 上安装'
+  'pulls.install': '在 GitHub 上安装',
+  'pulls.setting': 'Pull requests 页面',
+  'pulls.settingHelp': '在侧栏显示 agent 开启的 PR 及其合入和 CI 状态。',
+  'pulls.setting.show': '显示',
+  'pulls.setting.hide': '隐藏'
 }

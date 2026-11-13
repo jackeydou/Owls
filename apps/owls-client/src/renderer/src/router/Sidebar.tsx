@@ -42,6 +42,7 @@ export function Sidebar() {
   const { width, handle } = usePaneWidth('sidebar', 'right')
   const onMap = useAppStore((s) => s.view === 'map')
   const onPulls = useAppStore((s) => s.view === 'pulls')
+  const pullsVisible = useAppStore((s) => s.settings.pullRequestsVisible)
   const drafting = useAppStore((s) => s.view === 'chat' && s.threadId === null)
   const { showMap, showPullRequests, showSettings, newThread } = useAppStore()
   const routers = useRouterStore((s) => s.routers)
@@ -72,15 +73,17 @@ export function Sidebar() {
         <span>{t('map.title')}</span>
         <kbd>⌘ J</kbd>
       </button>
-      <button
-        type="button"
-        className="router-sidebar-item router-sidebar-action"
-        aria-current={onPulls || undefined}
-        onClick={showPullRequests}
-      >
-        <GitPullRequestIcon size={17} />
-        <span>{t('pulls.title')}</span>
-      </button>
+      {pullsVisible ? (
+        <button
+          type="button"
+          className="router-sidebar-item router-sidebar-action"
+          aria-current={onPulls || undefined}
+          onClick={showPullRequests}
+        >
+          <GitPullRequestIcon size={17} />
+          <span>{t('pulls.title')}</span>
+        </button>
+      ) : null}
       <section className="router-sidebar-threads" aria-label={t('thread.title')}>
         <header>
           <h2>{t('thread.title')}</h2>

@@ -52,7 +52,8 @@ export class OwlsStore {
           router: defaultRouterSettings,
           memory: defaultMemorySettings,
           layout: defaultLayoutSettings,
-          updateChannel: null
+          updateChannel: null,
+          pullRequestsVisible: true
         }
   }
   saveSettings(value: AppSettings): AppSettings {

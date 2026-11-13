@@ -213,7 +213,9 @@ export const settingsSchema = z.object({
   /** Pane widths and the Projects sidebar; also added after the first release. */
   layout: layoutSettingsSchema.default(defaultLayoutSettings),
   /** Null follows the installed build: a beta build gets beta updates, a stable one stable. */
-  updateChannel: updateChannelSchema.nullable().default(null)
+  updateChannel: updateChannelSchema.nullable().default(null),
+  /** Shows the Pull requests page in the sidebar; added later, so older rows show it. */
+  pullRequestsVisible: z.boolean().default(true)
 })
 export const projectSchema = z.object({
   id: z.string(),

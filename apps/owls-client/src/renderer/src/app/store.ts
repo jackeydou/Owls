@@ -206,7 +206,8 @@ export const useAppStore = create<State>((set, get) => {
       router: defaultRouterSettings,
       memory: defaultMemorySettings,
       layout: defaultLayoutSettings,
-      updateChannel: null
+      updateChannel: null,
+      pullRequestsVisible: true
     },
     connection: {
       status: 'disconnected',
@@ -445,7 +446,8 @@ export const useAppStore = create<State>((set, get) => {
           router: settings.router,
           memory: settings.memory,
           layout: settings.layout,
-          updateChannel: settings.updateChannel
+          updateChannel: settings.updateChannel,
+          pullRequestsVisible: settings.pullRequestsVisible
         })
       )
       if (saved) set({ settings: saved })
