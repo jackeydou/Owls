@@ -1,0 +1,1 @@
+- Settings: the Router's instructions can be edited under Router & Workers, with a button to restore the default.

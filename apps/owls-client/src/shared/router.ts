@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ATTACHED_CARD_LIMIT, cardIdSchema } from './cards.js'
+import { ROUTER_INSTRUCTIONS_LIMIT } from './router-instructions.js'
 
 const permissionValues = ['read-only', 'workspace-write', 'full-access'] as const
 const providerValues = ['codex', 'claude-code', 'cursor'] as const
@@ -36,7 +37,17 @@ export const routerSettingsSchema = z.object({
   codexModel: z.string().trim().min(1).max(200).nullable(),
   maxPermission: z.enum(permissionValues),
   /** Workers that can write run in their own git worktree when the project is a repository. */
-  worktrees: z.boolean()
+  worktrees: z.boolean(),
+  /**
+   * The user's own Router instructions; null uses the defaults. Added later, so
+   * older rows get the defaults.
+   */
+  instructions: z
+    .string()
+    .max(ROUTER_INSTRUCTIONS_LIMIT)
+    .refine((text) => text.trim() !== '', 'Router instructions cannot be empty.')
+    .nullable()
+    .default(null)
 })
 export const defaultRouterSettings: RouterSettings = {
   engine: 'owls',
@@ -44,7 +55,8 @@ export const defaultRouterSettings: RouterSettings = {
   claudeModel: null,
   codexModel: null,
   maxPermission: 'workspace-write',
-  worktrees: true
+  worktrees: true,
+  instructions: null
 }
 
 /**
@@ -147,7 +159,9 @@ export const routerNativeSchema = z.discriminatedUnion('engine', [
   z.object({
     engine: z.literal('codex'),
     threadId: z.string().nullable(),
-    promptVersion: z.number().int()
+    promptVersion: z.number().int(),
+    /** Set when the thread started with the user's own instructions from Settings. */
+    custom: z.string().optional()
   })
 ])
 /** A batch whose delivery is unknown after a crash; the user decides whether to resend it. */

@@ -6,6 +6,7 @@ export {
   listPullRequests,
   sortPullRequests
 } from '../../shared/pull-request-list.js'
+export { ROUTER_INSTRUCTIONS } from '../../shared/router-instructions.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'
 export { CardService } from '../cards/service.js'
 export { CardStore } from '../cards/store.js'
@@ -41,14 +42,14 @@ export { DreamingTriggers } from '../memory/triggers.js'
 export { RouterCredentials } from '../router/credentials.js'
 export { ClaudeEngine } from '../router/engines/claude.js'
 export { CodexEngine, CodexRouterServer, codexRouterArgs } from '../router/engines/codex.js'
-export { defaultEngineFactory, dreamingEngineFactory } from '../router/engines/factory.js'
+export {
+  defaultEngineFactory,
+  dreamingEngineFactory,
+  routerInstructions
+} from '../router/engines/factory.js'
 export { OwlsEngine } from '../router/engines/owls.js'
 export { ProjectPullRequests, reportedPullRequests } from '../router/project-pull-requests.js'
-export {
-  projectInstructions,
-  ROUTER_INSTRUCTIONS,
-  ROUTER_PROMPT_VERSION
-} from '../router/prompt.js'
+export { projectInstructions, ROUTER_PROMPT_VERSION } from '../router/prompt.js'
 export {
   cardsText,
   renderBatch,

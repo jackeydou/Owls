@@ -198,6 +198,8 @@ export type CodexEngineOptions = {
   model: string | null
   instructions: string
   promptVersion: number
+  /** Identifies the user's own instructions; null or absent for the defaults. */
+  customInstructions?: string | null
   tools: RouterTool[]
   /** Current worker summary, for a thread that had to be started over. */
   state: () => string
@@ -230,12 +232,20 @@ export class CodexEngine implements RouterEngine {
   async run(input: RouterBatchInput, sink: RouterSink): Promise<RouterBatchOutcome> {
     if (this.turn) throw new Error('A Router batch is already running.')
     const { options } = this
+    const custom = options.customInstructions ?? null
     const previous =
-      input.native?.engine === 'codex' && input.native.promptVersion === options.promptVersion
+      input.native?.engine === 'codex' &&
+      input.native.promptVersion === options.promptVersion &&
+      (input.native.custom ?? null) === custom
         ? input.native.threadId
         : null
     const native = (threadId: string | null) =>
-      ({ engine: 'codex', threadId, promptVersion: options.promptVersion }) as const
+      ({
+        engine: 'codex',
+        threadId,
+        promptVersion: options.promptVersion,
+        ...(custom ? { custom } : {})
+      }) as const
     let release = () => {}
     try {
       const host = await options.server.host(options.executable, options.cwd, previous)

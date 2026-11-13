@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import routerOwl from '../../../../resources/owl-avatars/router.svg'
 import workerOwls from '../../../../resources/owl-avatars/workers.svg'
+import { RouterInstructionsRow } from '../router/RouterInstructions'
 import { RouterEngineRows, WorkerLimitRows } from '../router/RouterSettings'
 import { TaskOptions } from './Controls'
 import { SettingRow } from './SettingRow'
@@ -37,7 +38,10 @@ export function RouterWorkersSettingsPane() {
         onSelect={showRouterSettings}
       >
         {current === 'router' ? (
-          <RouterEngineRows />
+          <>
+            <RouterEngineRows />
+            <RouterInstructionsRow />
+          </>
         ) : (
           <>
             <p className="owls-settings-tab-body">{t('defaultsBody')}</p>
