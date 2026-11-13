@@ -1,0 +1,1 @@
+- Projects sidebar: its open/close button now sits on the sidebar and stays available in every view, including Cards. (#106)
