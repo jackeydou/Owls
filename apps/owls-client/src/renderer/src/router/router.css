@@ -79,7 +79,7 @@ html[data-platform="darwin"] {
   left: var(--owl-toggle-left);
   width: var(--owl-toggle-size);
   height: var(--owl-toggle-size);
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
   color: var(--color-muted-foreground);
   -webkit-app-region: no-drag;
 }
@@ -93,7 +93,7 @@ html[data-platform="darwin"] {
   width: 100%;
   height: 32px;
   padding: 0 8px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-sm);
   text-align: left;
@@ -179,7 +179,7 @@ html[data-platform="darwin"] {
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   background: var(--color-sidebar-active);
   font-size: var(--owl-text-xs);
   font-weight: 600;
@@ -219,7 +219,7 @@ html[data-platform="darwin"] {
   right: 5px;
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   color: var(--color-muted-foreground);
 }
 /* A project's settings stay out of sight until the row is pointed at or focused. */
@@ -229,7 +229,7 @@ html[data-platform="darwin"] {
   right: 5px;
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   color: var(--color-muted-foreground);
   opacity: 0;
 }
@@ -262,7 +262,7 @@ html[data-platform="darwin"] {
   width: 100%;
   height: 28px;
   padding: 0 8px;
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
   text-align: left;
@@ -469,7 +469,7 @@ html.pane-resizing * {
   display: inline-flex;
   max-width: 100%;
   padding: 1px 6px;
-  border-radius: 5px;
+  border-radius: var(--owl-radius-xs);
   background: var(--owl-tag-bg);
   color: var(--owl-tag-fg);
   font-weight: 500;
@@ -508,7 +508,7 @@ html.pane-resizing * {
   margin: 16px 0;
   padding: 12px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--owl-radius-md);
   background: var(--color-card);
 }
 .router-dispatch h3 {
@@ -621,7 +621,7 @@ html.pane-resizing * {
   margin: 6px 0 0;
   padding: 8px 12px;
   border-left: 2px solid var(--color-border);
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--owl-radius-sm) var(--owl-radius-sm) 0;
   background: var(--color-card-muted);
   font-size: var(--owl-text-sm);
   line-height: var(--owl-leading-normal);
@@ -657,7 +657,7 @@ html.pane-resizing * {
   overflow: hidden;
   margin-bottom: 16px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card-muted);
   font-size: var(--owl-text-sm);
   line-height: var(--owl-leading-normal);
@@ -685,7 +685,7 @@ html.pane-resizing * {
   gap: 8px;
   min-height: 30px;
   padding: 0 6px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   font-size: var(--owl-text-sm);
 }
 .router-forward label:hover {
@@ -704,7 +704,7 @@ html.pane-resizing * {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--owl-radius-sm);
   background: transparent;
   font-size: var(--owl-text-sm);
   line-height: var(--owl-leading-normal);
@@ -838,7 +838,7 @@ html.pane-resizing * {
   gap: 12px;
   width: 100%;
   padding: 8px 12px;
-  border-radius: 9px;
+  border-radius: var(--owl-radius-sm);
   text-align: left;
 }
 .router-guide-option:hover {
@@ -854,7 +854,7 @@ html.pane-resizing * {
   width: 32px;
   height: 32px;
   border: 1px solid var(--color-border);
-  border-radius: 9px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card);
 }
 .router-guide-option > i img {
@@ -979,7 +979,7 @@ html.pane-resizing * {
   height: 26px;
   margin: 6px 0 0 12px;
   padding: 0 2px 0 8px;
-  border-radius: 13px;
+  border-radius: var(--owl-radius-md);
   background: var(--color-sidebar-hover);
   font-size: var(--owl-text-xs);
 }
@@ -1025,7 +1025,7 @@ html.pane-resizing * {
   width: min(360px, 100%);
   padding: 6px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 11px;
+  border-radius: var(--owl-radius-md);
   background: var(--color-card-elevated);
   box-shadow: 0 4px 8px rgb(0 0 0 / 0.08);
 }
@@ -1035,7 +1035,7 @@ html.pane-resizing * {
   gap: 8px;
   height: 30px;
   padding: 0 8px;
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
   font-size: var(--owl-text-xs);
   text-align: left;
 }
@@ -1058,7 +1058,7 @@ html.pane-resizing * {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  border-radius: 5px;
+  border-radius: var(--owl-radius-xs);
   background: var(--color-sidebar-active);
   font-size: var(--owl-text-2xs);
   font-weight: 600;
@@ -1089,7 +1089,7 @@ html.pane-resizing * {
 }
 .router-mention {
   padding: 1px 5px;
-  border-radius: 5px;
+  border-radius: var(--owl-radius-xs);
   background: var(--color-sidebar-hover);
   font-weight: 500;
 }
@@ -1212,7 +1212,7 @@ html.pane-resizing * {
   gap: 6px;
   margin-left: -5px;
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   font-size: inherit;
   font-weight: 500;
 }
@@ -1281,7 +1281,7 @@ html.pane-resizing * {
   overflow: hidden;
   margin-top: 16px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--owl-radius-md);
 }
 .github-method + .github-method {
   border-top: 1px solid var(--color-border);
@@ -1406,7 +1406,7 @@ html.pane-resizing * {
   min-width: 240px;
   padding: 0 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card);
   color: var(--color-foreground);
   font-size: var(--owl-text-sm);

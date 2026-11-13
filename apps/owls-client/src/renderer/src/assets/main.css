@@ -112,7 +112,7 @@
   --owls-composer-max-width: var(--owls-chat-content-max-width);
   --owls-composer-button-size: 28px;
   --owls-composer-button-gap: 4px;
-  --owls-composer-radius: 1.375rem;
+  --owls-composer-radius: var(--owl-radius-xl);
   --owls-composer-font-size: var(--owl-text-base);
   --owls-composer-line-height: var(--owl-leading-normal);
   --owls-composer-token-height: calc(
@@ -126,7 +126,7 @@
   --owls-composer-menu-font-size: var(--owl-text-xs);
   --owls-composer-menu-icon-size: 14px;
   --owls-composer-menu-row-height: 30px;
-  --owls-composer-menu-radius: 16px;
+  --owls-composer-menu-radius: var(--owl-radius-lg);
 
   --titlebar-height: 0px;
 }
@@ -231,7 +231,7 @@
     height: 36px;
     padding: 0 10px 0 12px;
     border: 1px solid var(--color-border-strong);
-    border-radius: 8px;
+    border-radius: var(--owl-radius-sm);
     background: var(--owls-select-fill);
     color: var(--color-foreground);
     font: inherit;
@@ -275,7 +275,7 @@
     margin-block: 6px;
     padding: 4px;
     border: 1px solid color-mix(in srgb, var(--color-border-strong) 70%, transparent);
-    border-radius: 12px;
+    border-radius: var(--owl-radius-md);
     background: var(--color-card);
     color: var(--color-foreground);
     box-shadow: 0 8px 28px rgb(0 0 0 / 0.12);
@@ -291,7 +291,7 @@
     gap: 12px;
     min-height: 34px;
     padding: 0 10px;
-    border-radius: 8px;
+    border-radius: var(--owl-radius-sm);
     outline: none;
     font-weight: 400;
     white-space: nowrap;
@@ -373,7 +373,7 @@
   }
 
   .artifact-source-highlight {
-    border-radius: 14px;
+    border-radius: var(--owl-radius-lg);
     outline: 2px solid color-mix(in srgb, var(--color-accent) 18%, transparent);
     outline-offset: 6px;
     transition:
@@ -587,7 +587,7 @@
     display: inline-block;
     position: relative;
     max-width: 100%;
-    border-radius: 0.25rem;
+    border-radius: var(--owl-radius-xs);
     color: #0b57a3;
     cursor: pointer;
     font: inherit;
@@ -610,7 +610,7 @@
     display: inline;
     max-width: 100%;
     border: 0;
-    border-radius: 0.25rem;
+    border-radius: var(--owl-radius-xs);
     background: transparent;
     color: #0b57a3;
     cursor: pointer;
@@ -977,7 +977,7 @@
 
   .markdown-body code:not(pre code),
   .markdown-body code[data-streamdown="inline-code"] {
-    border-radius: 0.5rem;
+    border-radius: var(--owl-radius-sm);
     padding: 0.08em 0.42em;
     font-family: inherit;
     font-weight: 400;
@@ -1003,7 +1003,7 @@
     margin-top: 0.65em;
     margin-bottom: 0.8em;
     border: 0;
-    border-radius: 0.75rem;
+    border-radius: var(--owl-radius-md);
     background-color: rgb(247 247 247);
     padding: 0.6rem 0.75rem 0.75rem;
   }
@@ -1060,7 +1060,7 @@
     justify-content: center;
     width: 1.375rem;
     height: 1.375rem;
-    border-radius: 0.3125rem;
+    border-radius: var(--owl-radius-xs);
     padding: 0;
     color: color-mix(in srgb, var(--color-foreground) 45%, transparent);
   }
@@ -1088,7 +1088,7 @@
     width: 1.5rem;
     height: 1.5rem;
     border: 0;
-    border-radius: 0.5rem;
+    border-radius: var(--owl-radius-sm);
     background: color-mix(in srgb, var(--color-card) 94%, transparent);
     color: color-mix(in srgb, var(--color-foreground) 58%, transparent);
     cursor: default;
@@ -1119,7 +1119,7 @@
   .markdown-body [data-streamdown="code-block-body"] {
     margin-top: 0.25rem;
     border: 0;
-    border-radius: 0.625rem;
+    border-radius: var(--owl-radius-md);
     background-color: transparent;
     padding: 0.3rem 0.15rem 0.1rem;
     color: #0d0d0d;

@@ -8,7 +8,7 @@
   gap: 6px;
   height: var(--owl-toggle-size);
   padding: 0 8px 0 6px;
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-sm);
   font-weight: 400;
@@ -121,7 +121,7 @@
 }
 .owls-setting-row .router-input {
   padding: 0 12px;
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
 }
 /* Rows in a pane run edge to edge, split by a hairline; the guide reuses them without it. */
 .owls-settings-section .owls-setting-row {
@@ -203,7 +203,7 @@
   display: flex;
   padding: 6px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--owl-radius-md);
   cursor: pointer;
 }
 .owls-logo-option:has(input:checked) {
@@ -226,7 +226,7 @@
   display: block;
   padding: 6px 8px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   font-size: var(--owl-text-xs);
   word-break: break-all;
 }
@@ -255,7 +255,7 @@
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  border-radius: 5px;
+  border-radius: var(--owl-radius-xs);
   background: var(--color-sidebar-active);
   font-size: var(--owl-text-2xs);
   font-weight: 600;
@@ -281,7 +281,7 @@
   min-height: 96px;
   padding: 12px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card);
   color: var(--color-foreground);
   font-size: var(--owl-text-sm);
@@ -301,7 +301,7 @@
   flex-shrink: 0;
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
   color: var(--color-muted-foreground);
 }
 .owls-inline-link {
@@ -336,7 +336,7 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-sidebar-active);
   font-size: var(--owl-text-lg);
   font-weight: 600;
@@ -354,13 +354,13 @@
   display: inline-flex;
   padding: 2px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card);
 }
 .owls-segmented > button {
   height: 26px;
   padding: 0 12px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-sm);
 }

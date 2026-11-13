@@ -9,7 +9,7 @@
   max-width: calc(100vw - 40px);
   padding: 16px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--owl-radius-md);
   background: var(--color-card);
   color: var(--color-foreground);
   box-shadow: 0 8px 28px #0000001a;
@@ -22,7 +22,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card-muted);
 }
 .owls-update-popup-body {

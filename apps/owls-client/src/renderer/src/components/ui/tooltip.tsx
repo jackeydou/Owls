@@ -48,7 +48,7 @@ type TooltipContextValue = {
 const TooltipContext = createContext<TooltipContextValue | null>(null)
 
 const tooltipSurfaceClassName =
-  'z-[100] rounded-xl border border-border/70 bg-card/95 px-3 py-1.5 text-(length:--owl-text-xs) leading-snug text-foreground shadow-[0_2px_10px_rgb(0_0_0_/_0.08)] backdrop-blur-xl dark:border-white/12'
+  'z-[100] rounded-(--owl-radius-sm) border border-border/70 bg-card/95 px-3 py-1.5 text-(length:--owl-text-xs) leading-snug text-foreground shadow-[0_2px_10px_rgb(0_0_0_/_0.08)] backdrop-blur-xl dark:border-white/12'
 
 function sideToPlacement(side: TooltipSide): Placement {
   switch (side) {

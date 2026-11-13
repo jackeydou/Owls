@@ -188,7 +188,7 @@
 .map-node.root img {
   width: 46px;
   height: 34px;
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
   object-fit: contain;
 }
 .map-node.root strong {
@@ -205,7 +205,7 @@
   flex-direction: column;
   gap: 6px;
   padding: 11px 12px;
-  border-radius: 12px;
+  border-radius: var(--owl-radius-md);
   background: var(--color-card);
   box-shadow:
     inset 0 0 0 1px var(--owl-map-node-border),
@@ -224,7 +224,7 @@
 .map-node.project.quiet {
   justify-content: center;
   padding: 0 10px;
-  border-radius: 10px;
+  border-radius: var(--owl-radius-md);
   box-shadow: inset 0 0 0 1px var(--owl-map-node-border);
 }
 .map-node.project.quiet strong {
@@ -239,7 +239,7 @@
   align-self: center;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   background: color-mix(in oklch, var(--owl-c) 16%, transparent);
   color: var(--owl-c);
   font-size: 12px;
@@ -319,7 +319,7 @@
   gap: 3px;
   height: 22px;
   padding: 0 8px;
-  border-radius: 11px;
+  border-radius: 999px;
   background: var(--owl-c);
   color: var(--color-card);
   font-size: 11px;
@@ -335,7 +335,7 @@
   flex-direction: column;
   justify-content: center;
   padding: 6px 10px;
-  border-radius: 10px;
+  border-radius: var(--owl-radius-md);
 }
 .map-node.worker.live,
 .map-node.worker.wait,
@@ -427,7 +427,7 @@
   margin: 7px 0;
   padding: 5px 7px;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   background: var(--color-sidebar-hover);
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -470,7 +470,7 @@
   align-items: center;
   gap: 6px;
   padding: 0 10px;
-  border-radius: 15px;
+  border-radius: var(--owl-radius-lg);
   color: var(--color-muted-foreground);
   font-size: 11.5px;
   box-shadow: inset 0 0 0 1px var(--color-border);
@@ -551,13 +551,13 @@
   gap: 2px;
   padding: 2px;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-sidebar-active);
 }
 .map-filter button {
   height: 26px;
   padding: 0 10px;
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
   color: var(--color-muted-foreground);
   font-size: 11.5px;
 }
@@ -576,7 +576,7 @@
   height: 32px;
   padding: 0 4px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 9px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card);
   color: var(--color-muted-foreground);
   font-size: 11px;
@@ -584,7 +584,7 @@
 .map-zoom button {
   min-width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   font-size: 13px;
 }
 .map-zoom button:hover {

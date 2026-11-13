@@ -3,7 +3,7 @@
   max-width: 88%;
   margin: 6px 0 32px auto;
   padding: 12px 16px;
-  border-radius: 17px 17px 4px 17px;
+  border-radius: var(--owl-radius-xl) var(--owl-radius-xl) 4px var(--owl-radius-xl);
   background: var(--color-card-muted);
   white-space: pre-wrap;
   line-height: var(--owl-leading-relaxed);
@@ -136,7 +136,7 @@
   margin: 6px 0 12px;
   padding: 12px 14px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--owl-radius-md);
   background: var(--color-sidebar);
   font-size: var(--owl-text-xs);
 }
@@ -182,7 +182,7 @@
 .owls-composer {
   border: 1px solid var(--color-border);
   background: var(--color-card);
-  border-radius: 17px;
+  border-radius: var(--owls-composer-radius);
   padding: 16px 16px 12px;
   box-shadow: 0 3px 16px #00000005;
 }
@@ -236,7 +236,7 @@
 }
 .owls-send,
 .owls-stop {
-  border-radius: 10px;
+  border-radius: var(--owl-radius-md);
   width: 31px;
   height: 31px;
   flex-shrink: 0;
@@ -255,7 +255,7 @@
 .owls-request {
   padding: 20px;
   border: 1px solid color-mix(in srgb, #b8954a 45%, var(--color-border));
-  border-radius: 13px;
+  border-radius: var(--owl-radius-md);
   margin: 24px 0;
 }
 .owls-request-title {
@@ -277,7 +277,7 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   padding: 12px;
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-sidebar);
 }
 .owls-request fieldset {
@@ -309,7 +309,7 @@
 }
 .owls-answer-input {
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--owl-radius-sm);
   width: 100%;
   padding: 12px;
   background: transparent;
