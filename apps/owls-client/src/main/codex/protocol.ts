@@ -117,6 +117,13 @@ export function normalizeItem(
           30_000
         )
       }
+    case 'dynamicToolCall':
+      return {
+        ...base,
+        kind: 'tool',
+        text: string(item.tool),
+        detail: safeText(JSON.stringify(item.arguments ?? null)).slice(0, 30_000)
+      }
     case 'collabAgentToolCall':
       return { ...base, kind: 'tool', text: string(item.tool), detail: safeText(item.prompt) }
     case 'webSearch':

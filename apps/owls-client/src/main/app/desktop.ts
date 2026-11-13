@@ -169,7 +169,7 @@ void app
     const store = new OwlsStore(join(root, 'owls.db'), migrationsFolder())
     service = new OwlsHost(
       new CodexService(store, emit),
-      new ClaudeService(store, emit, { query }),
+      new ClaudeService(store, emit, { query, createSdkMcpServer }),
       new CursorService(store, emit),
       routerThreadHome(root),
       projectsHome(root),

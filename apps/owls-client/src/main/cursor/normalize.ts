@@ -69,10 +69,15 @@ export function parseCursorModels(output: string): CodexModel[] {
 }
 
 /**
- * The worker profile as plain text for the first prompt of a turn. ACP has no
- * output schema, so the report format is spelled out for the model instead.
+ * The worker profile as plain text for the first prompt of a turn. With the
+ * report tool attached the instructions suffice; otherwise, since ACP has no
+ * output schema, the report format is spelled out for the model instead.
  */
-export function workerPrompt(profile: TurnProfile): string {
+export function workerPrompt(
+  profile: Pick<TurnProfile, 'instructions' | 'reportSchema'>,
+  reportTool = false
+): string {
+  if (reportTool) return profile.instructions
   return [
     profile.instructions,
     'Owls reads your final message as JSON. When you finish, your final message must be only a JSON object that matches this JSON Schema, with no Markdown fence and no other text:',

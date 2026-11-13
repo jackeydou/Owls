@@ -1,9 +1,4 @@
-import type {
-  McpSdkServerConfigWithInstance,
-  Options,
-  SDKMessage,
-  SdkMcpToolDefinition
-} from '@anthropic-ai/claude-agent-sdk/core'
+import type { Options, SDKMessage, SdkMcpToolDefinition } from '@anthropic-ai/claude-agent-sdk/core'
 import { z } from 'zod'
 import type { Failure, SessionItem } from '../../../shared/app.js'
 import { inputStream } from '../../claude/input.js'
@@ -14,14 +9,7 @@ import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } f
 import { type RouterTool, toolErrorText } from '../tools.js'
 
 /** The Agent SDK calls the Claude Code engine uses; injected so tests can replace them. */
-export type ClaudeRouterSdk = ClaudeSdk & {
-  createSdkMcpServer(options: {
-    name: string
-    version: string
-    tools: SdkMcpToolDefinition[]
-    alwaysLoad: boolean
-  }): McpSdkServerConfigWithInstance
-}
+export type ClaudeRouterSdk = ClaudeSdk
 
 export type ClaudeEngineOptions = {
   sdk: ClaudeRouterSdk

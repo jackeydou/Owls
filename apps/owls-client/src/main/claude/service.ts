@@ -3,11 +3,13 @@ import { tmpdir } from 'node:os'
 import { promisify } from 'node:util'
 import type {
   CanUseTool,
+  McpSdkServerConfigWithInstance,
   Options,
   PermissionResult,
   Query,
   SDKMessage,
-  SDKUserMessage
+  SDKUserMessage,
+  SdkMcpToolDefinition
 } from '@anthropic-ai/claude-agent-sdk/core'
 import { z } from 'zod'
 import type {
@@ -23,7 +25,13 @@ import { type SessionPlace, sessionCwd } from '../app/agent-runtime.js'
 import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
 import { record, recordSchema, safeText, string } from '../codex/protocol.js'
-import type { TurnProfiles } from '../router/service.js'
+import {
+  REPORT_SERVER_NAME,
+  REPORT_TOOL_DESCRIPTION,
+  REPORT_TOOL_NAME,
+  REPORT_TOOL_SCHEMA
+} from '../router/report.js'
+import type { TurnProfile, TurnProfiles } from '../router/service.js'
 import { discoverClaudeExecutable } from './discovery.js'
 import { type InputStream, inputStream } from './input.js'
 import {
@@ -40,11 +48,18 @@ import {
 } from './normalize.js'
 
 const execFileAsync = promisify(execFile)
+const REPORT_TOOL = `mcp__${REPORT_SERVER_NAME}__${REPORT_TOOL_NAME}`
 const active = (s: Session): boolean => ['starting', 'running', 'waiting'].includes(s.status)
 
 /** The subset of the Agent SDK this service uses; injected so tests can replace it. */
 export type ClaudeSdk = {
   query(params: { prompt: AsyncIterable<SDKUserMessage>; options: Options }): Query
+  createSdkMcpServer(options: {
+    name: string
+    version: string
+    tools: SdkMcpToolDefinition[]
+    alwaysLoad: boolean
+  }): McpSdkServerConfigWithInstance
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
@@ -279,12 +294,16 @@ export class ClaudeService {
     }
     this.runtimes.set(session.id, runtime)
     this.changed(session, true)
-    const canUseTool: CanUseTool = (toolName, toolInput, context) =>
-      this.requestPermission(session.id, runtime, toolName, toolInput, context)
     const model = this.connection.models.find((m) =>
       session.model ? m.id === session.model : m.isDefault
     )
     const profile = this.profiles?.profile(session.id) ?? null
+    // The report tool is approved here rather than through `allowedTools`, which the SDK
+    // warns about on every query because it shadows this callback.
+    const canUseTool: CanUseTool = (toolName, toolInput, context) =>
+      profile && toolName === REPORT_TOOL
+        ? Promise.resolve({ behavior: 'allow', updatedInput: toolInput })
+        : this.requestPermission(session.id, runtime, toolName, toolInput, context)
     try {
       runtime.query = this.sdk.query({
         prompt: runtime.input.stream,
@@ -297,7 +316,7 @@ export class ClaudeService {
                   preset: 'claude_code' as const,
                   append: profile.instructions
                 },
-                outputFormat: { type: 'json_schema' as const, schema: profile.reportSchema }
+                mcpServers: { [REPORT_SERVER_NAME]: this.reportServer(profile) }
               }
             : {}),
           ...permissionOptions(session.permission, model?.autoMode === true),
@@ -683,6 +702,34 @@ export class ClaudeService {
   private settle(session: Session, status: 'completed' | 'failed' | 'interrupted'): void {
     for (const item of session.items) if (item.status === 'running') item.status = status
     this.expirePermissions(session)
+  }
+  /**
+   * The worker's report tool as an in-process MCP server. `canUseTool` approves
+   * it, so calling it never asks the user.
+   */
+  private reportServer(profile: TurnProfile): McpSdkServerConfigWithInstance {
+    return this.sdk.createSdkMcpServer({
+      name: REPORT_SERVER_NAME,
+      version: '1',
+      // A deferred tool would hide the report behind a search step.
+      alwaysLoad: true,
+      tools: [
+        {
+          name: REPORT_TOOL_NAME,
+          description: REPORT_TOOL_DESCRIPTION,
+          // The SDK's type asks for a raw shape, but its bundled zod makes every optional key
+          // of a shape built by our zod required. It takes a whole schema just as well.
+          inputSchema: REPORT_TOOL_SCHEMA as unknown as SdkMcpToolDefinition['inputSchema'],
+          handler: async (args: unknown) => {
+            const result = profile.report.call(args)
+            return {
+              content: [{ type: 'text' as const, text: result.text }],
+              ...(result.ok ? {} : { isError: true })
+            }
+          }
+        }
+      ]
+    })
   }
   private baseOptions(executable: string, cwd: string, runtime?: Runtime): Options {
     return {

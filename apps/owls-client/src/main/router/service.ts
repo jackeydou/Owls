@@ -32,6 +32,7 @@ import { builtinRouterModels, catalog, OWLS_PROVIDERS } from './engines/owls-mod
 import { type InboxEvent, type InboxEventBody, isQuietEvent } from './events.js'
 import { ROUTER_PROMPT_VERSION } from './prompt.js'
 import { cardsText, renderBatch, renderProjects, renderState } from './render.js'
+import { WorkerReportServer } from './report-server.js'
 import type { RouterStore } from './store.js'
 import { ThreadLog } from './thread-log.js'
 import { RouterToolError, routerTools } from './tools.js'
@@ -95,6 +96,8 @@ export class RouterService implements TurnProfiles {
   /** Changed items by thread since the last flush, streaming ones included. */
   private readonly dirtyItems = new Map<string, Set<string>>()
   private readonly pool: WorkerPool
+  /** Serves the report tool to workers whose agent takes MCP servers only by URL. */
+  private readonly reports: WorkerReportServer
   /** Where worker actions go; every worker runs on this device for now. */
   private readonly workers: WorkerTarget
   private flushTimer: ReturnType<typeof setTimeout> | null = null
@@ -150,7 +153,11 @@ export class RouterService implements TurnProfiles {
       (worker) => {
         if (!this.closed) this.emit({ type: 'worker', worker })
       },
-      workspaces
+      workspaces,
+      (sessionId) => this.reports.endpoint(sessionId)
+    )
+    this.reports = new WorkerReportServer((sessionId, input) =>
+      this.pool.toolReport(sessionId, input)
     )
     this.workers = new LocalWorkers(this.pool)
   }
@@ -539,6 +546,7 @@ export class RouterService implements TurnProfiles {
     this.flush()
     this.closed = true
     this.pool.close()
+    this.reports.close()
     for (const { engine } of this.engines.values()) engine.abort()
     this.engines.clear()
   }
@@ -777,9 +785,11 @@ export class RouterService implements TurnProfiles {
             ? event.text
             : event.kind === 'worker_report'
               ? event.report.summary
-              : event.kind === 'worker_waiting'
-                ? event.detail
-                : null
+              : event.kind === 'worker_progress'
+                ? event.summary
+                : event.kind === 'worker_waiting'
+                  ? event.detail
+                  : null
       return {
         id: base,
         kind: event.kind,

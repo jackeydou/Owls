@@ -59,6 +59,11 @@ Native model and reasoning choices come from the live catalog. Reasoning effort
 is an opaque native value validated against the selected model, not the old
 Pi thinking-level enum.
 
+Router worker threads start with one dynamic tool, `owls_report`, through which
+the worker reports to the Router. Dynamic tools need the experimental API, so the
+handshake declares `experimentalApi: true`; Codex stores the tool with the thread,
+and `item/tool/call` requests for it are answered by the Router's worker pool.
+
 The initial flow allows one active turn per task. Other tasks can run
 independently. Stop records cancellation even if the native turn ID has not
 arrived yet.

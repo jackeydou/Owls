@@ -19,6 +19,12 @@ export const inboxEventBodySchema = z.discriminatedUnion('kind', [
     cards: z.array(attachedCardSchema).optional()
   }),
   z.object({ kind: z.literal('worker_report'), ...workerEvent, report: workerReportSchema }),
+  /** An interim note a running worker sent through its report tool; never starts a batch. */
+  z.object({
+    kind: z.literal('worker_progress'),
+    ...workerEvent,
+    summary: workerReportSchema.shape.summary
+  }),
   z.object({ kind: z.literal('worker_waiting'), ...workerEvent, detail: z.string() }),
   z.object({ kind: z.literal('worker_failed'), ...workerEvent }),
   z.object({ kind: z.literal('worker_stopped'), ...workerEvent }),
@@ -48,7 +54,9 @@ export type InboxEventBody = z.infer<typeof inboxEventBodySchema>
 export type InboxEvent = InboxEventBody & { seq: number }
 /** An event the Router only needs to know about, so it never starts a batch by itself. */
 export const isQuietEvent = (event: InboxEventBody) =>
-  event.kind === 'worker_waiting' || (event.kind === 'user_message' && Boolean(event.workerId))
+  event.kind === 'worker_waiting' ||
+  event.kind === 'worker_progress' ||
+  (event.kind === 'user_message' && Boolean(event.workerId))
 /** `pending` events wait for a batch; the others are settled. */
 export type InboxStatus = 'pending' | 'batched' | 'superseded' | 'dropped'
 

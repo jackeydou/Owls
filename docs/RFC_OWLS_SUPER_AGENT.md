@@ -224,8 +224,19 @@ Owls 引擎转成 JSON Schema 的 `AgentTool`，Claude Code 把完整的 zod 对
 }
 ```
 
-- Codex Worker 通过 `outputSchema`，Claude Code Worker 通过 `outputFormat` 约束。
-  Worker 的**每一轮**都带这个约束，包括用户用 `@` 发给它的消息。
+- Worker 通过 Owls 的 `report` 工具汇报，参数按上面的 schema 校验（引擎侧校验不可靠，
+  所以 Owls 自己再用 zod 校验一遍，失败时把错误作为工具结果返回给 worker）。三种 worker
+  挂工具的方式不同：Claude Code 用进程内 MCP server（`createSdkMcpServer`，server 名 `owls`，
+  由 `canUseTool` 直接批准）；Codex 用 `thread/start.dynamicTools`（工具名 `owls_report`，
+  随 thread 持久化，需要 `experimentalApi`）；Cursor 在 `session/new` / `session/load` 的
+  `mcpServers` 里拿到一个本机 Streamable HTTP MCP server（只监听 127.0.0.1，每个会话一个
+  不可猜的路径，校验 Host 头），前提是 agent 声明了 `mcpCapabilities.http`。
+  Worker 的**每一轮**都挂着这个工具，包括用户用 `@` 发给它的消息。
+- `status: 'progress'` 的调用是中途进度：写入一条 `worker_progress` 事件，不会单独唤起
+  Router 批次，turn 结束时未读的进度被 superseded。其他状态是最终汇报，等 turn 结束时才
+  作为 `worker_report` 交给 Router，同一轮多次调用以最后一次为准。
+- worker 没调用工具时，仍按旧方式解析最终回复（`parseReport`：整段 JSON 或末尾的 JSON
+  代码块），都不匹配就降级。没有 HTTP MCP 能力的 Cursor 仍在提示词里附上 JSON Schema。
 - Worker 的角色说明追加在原生系统提示之后（Claude Code 用 preset 的 `append`，
   Codex 用 `developerInstructions`），只说明三件事：只汇报本任务、`summary` 写给协调者看、
   需要用户决定时用 `needs_input`。用户自己的 CLAUDE.md、AGENTS.md、hooks 和 MCP 照常生效。
@@ -417,7 +428,14 @@ Worker 是现有 service 管理的任务会话，区别只在每一轮的原生�
 由 `RouterService` 提供，两个 service 在发起一轮前查询：
 
 ```ts
-type TurnProfile = { instructions: string; reportSchema: JsonSchema }
+type TurnProfile = {
+  instructions: string
+  reportSchema: JsonSchema // 只给挂不上 report 工具的 turn 用
+  report: {
+    call(input: unknown): { ok: boolean; text: string } // 工具调用，返回给 agent 的文字
+    endpoint(): Promise<string> // 同一工具的本机 HTTP MCP 地址（Cursor）
+  }
+}
 
 interface TurnProfiles {
   /** 会话不再属于 Worker 时返回 null。 */
@@ -428,15 +446,17 @@ interface TurnProfiles {
 
 type TurnOutcome = {
   status: 'completed' | 'failed' | 'interrupted'
-  structured: unknown | null // Claude: result.structured_output；Codex: 最终 agentMessage 解析结果
+  structured: unknown | null // 没有输出 schema 时为 null；汇报通常已经经 report 工具到达
   text: string // 最终回复原文，供降级使用
   error: Failure | null
 }
 ```
 
-- `ClaudeService`：有 profile 时在 preset 后 `append` 角色说明，并加 `outputFormat`。
-- `CodexService`：有 profile 时在 `thread/start` 加 `developerInstructions`，
-  在 `turn/start` 加 `outputSchema`。
+- `ClaudeService`：有 profile 时在 preset 后 `append` 角色说明，并挂进程内 `owls` MCP server。
+- `CodexService`：有 profile 时在 `thread/start` 加 `developerInstructions` 和 `dynamicTools`，
+  并回答 `item/tool/call`。
+- `CursorService`：agent 声明 `mcpCapabilities.http` 时，在 `mcpServers` 中传入 report 工具的
+  HTTP MCP 地址；否则把 JSON Schema 写进提示词。
 - 两个 service 新增 `steer(sessionId, text)`：Claude 追加到当前 runtime 的输入流，
   Codex 调用 `turn/steer` 并带 `expectedTurnId`。没有运行中的 turn 时返回 `not_running`。
 

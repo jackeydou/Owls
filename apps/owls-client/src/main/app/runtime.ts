@@ -56,7 +56,14 @@ export {
   renderState,
   trimContext
 } from '../router/render.js'
-export { parseReport, WORKER_REPORT_JSON_SCHEMA } from '../router/report.js'
+export {
+  CODEX_REPORT_TOOL_NAME,
+  parseReport,
+  parseToolReport,
+  REPORT_TOOL_INPUT_SCHEMA,
+  WORKER_REPORT_JSON_SCHEMA
+} from '../router/report.js'
+export { WorkerReportServer } from '../router/report-server.js'
 export { RouterService } from '../router/service.js'
 export { RouterStore } from '../router/store.js'
 export { routerTools } from '../router/tools.js'

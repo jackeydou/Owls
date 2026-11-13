@@ -65,7 +65,9 @@ function probeRuntime(archive) {
     '@modelcontextprotocol/sdk/client/index.js',
     '@modelcontextprotocol/sdk/client/stdio.js',
     '@modelcontextprotocol/sdk/client/streamableHttp.js',
-    '@modelcontextprotocol/sdk/server/mcp.js'
+    '@modelcontextprotocol/sdk/server/mcp.js',
+    '@modelcontextprotocol/sdk/server/index.js',
+    '@modelcontextprotocol/sdk/server/streamableHttp.js'
   ]) {
     appRequire(entry)
   }

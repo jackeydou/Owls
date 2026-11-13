@@ -7,6 +7,11 @@ if (process.argv.includes('--version')) {
 const lines = readline.createInterface({ input: process.stdin })
 const send = (frame) => process.stdout.write(`${JSON.stringify(frame)}\n`)
 const pending = new Map()
+/** Dynamic tool calls waiting for the client's answer, by request id. */
+const toolCalls = new Map()
+/** Dynamic tools each thread was started with, as Codex stores them with the thread. */
+const threadTools = new Map()
+let experimentalApi = false
 let turn = 0
 const finish = (threadId, turnId, status = 'completed') =>
   send({
@@ -16,6 +21,17 @@ const finish = (threadId, turnId, status = 'completed') =>
 lines.on('line', (line) => {
   const frame = JSON.parse(line)
   const { id, method, params = {} } = frame
+  if (!method && toolCalls.has(id)) {
+    const { threadId, turnId } = toolCalls.get(id)
+    toolCalls.delete(id)
+    const text = `tool result: ${JSON.stringify(frame.result)}`
+    send({
+      method: 'item/completed',
+      params: { threadId, turnId, item: { id: `answer-${turnId}`, type: 'agentMessage', text } }
+    })
+    finish(threadId, turnId)
+    return
+  }
   if (!method) {
     const request = pending.get(id)
     if (request) {
@@ -28,7 +44,10 @@ lines.on('line', (line) => {
     }
     return
   }
-  if (method === 'initialize') return send({ id, result: { userAgent: 'codex-fixture' } })
+  if (method === 'initialize') {
+    experimentalApi = params.capabilities?.experimentalApi === true
+    return send({ id, result: { userAgent: 'codex-fixture' } })
+  }
   if (method === 'initialized') return
   if (method === 'account/read')
     return send({
@@ -56,7 +75,18 @@ lines.on('line', (line) => {
         nextCursor: null
       }
     })
-  if (method === 'thread/start') return send({ id, result: { thread: { id: `thread-${id}` } } })
+  if (method === 'thread/start') {
+    if (params.dynamicTools && !experimentalApi)
+      return send({
+        id,
+        error: {
+          code: -1,
+          message: 'thread/start.dynamicTools requires experimentalApi capability'
+        }
+      })
+    threadTools.set(`thread-${id}`, params.dynamicTools ?? [])
+    return send({ id, result: { thread: { id: `thread-${id}` } } })
+  }
   if (method === 'thread/resume') return send({ id, result: { thread: { id: params.threadId } } })
   if (method === 'turn/start') {
     const threadId = params.threadId
@@ -94,6 +124,24 @@ lines.on('line', (line) => {
       return
     }
     if (text === 'long') return
+    if (text.startsWith('report ')) {
+      // Calls the first dynamic tool the thread has with the JSON after "report ".
+      const tool = (threadTools.get(threadId) ?? [])[0]
+      const requestId = `tool-${turnId}`
+      toolCalls.set(requestId, { threadId, turnId })
+      send({
+        id: requestId,
+        method: 'item/tool/call',
+        params: {
+          threadId,
+          turnId,
+          callId: `call-${turnId}`,
+          tool: tool?.name ?? 'missing',
+          arguments: JSON.parse(text.slice('report '.length))
+        }
+      })
+      return
+    }
     if (text === 'question') {
       const requestId = `question-${turnId}`
       pending.set(requestId, { threadId, turnId })
