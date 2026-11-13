@@ -84,6 +84,7 @@ export function registerIpc(
   handle('snapshot', () => host.snapshot())
   handle('connect', () => host.connect())
   handle('connect-claude', () => host.connectClaude())
+  handle('connect-cursor', () => host.connectCursor())
   handle('settings', (input) => {
     const previous = host.snapshot().settings
     const saved = host.saveSettings({ ...previous, ...settingsUpdateSchema.parse(input) })
@@ -232,5 +233,14 @@ export function registerIpc(
     if (result.canceled || !result.filePaths[0]) return null
     host.saveSettings({ ...host.snapshot().settings, claudeExecutablePath: result.filePaths[0] })
     return host.connectClaude()
+  })
+  handle('select-cursor-executable', async () => {
+    const result = await dialog.showOpenDialog({
+      defaultPath: executableFolder(host.snapshot().settings.cursorExecutablePath),
+      properties: ['openFile', 'showHiddenFiles']
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    host.saveSettings({ ...host.snapshot().settings, cursorExecutablePath: result.filePaths[0] })
+    return host.connectCursor()
   })
 }

@@ -6,6 +6,7 @@ import type {
   AppSnapshot,
   ClaudeConnection,
   CodexConnection,
+  CursorConnection,
   Project,
   RespondRequest,
   Router,
@@ -51,6 +52,7 @@ import type {
 import type { CardService } from '../cards/service.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { CodexService } from '../codex/service.js'
+import type { CursorService } from '../cursor/service.js'
 import type { GitHubAuth } from '../github/auth.js'
 import type { DreamingRunner } from '../memory/dreaming.js'
 import type { MemoryService } from '../memory/service.js'
@@ -59,6 +61,7 @@ import type { DreamingTriggers } from '../memory/triggers.js'
 import type { ProjectPullRequests } from '../router/project-pull-requests.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
+import type { AgentRuntime } from './agent-runtime.js'
 import { OwlsError } from './errors.js'
 import { cloneGitHubProject, createQuickProject } from './project-sources.js'
 
@@ -84,19 +87,22 @@ export class OwlsHost {
     sweeper: MemorySweeper
   } | null = null
   private cards: CardService | null = null
+  private readonly runtimes: Record<AgentProvider, AgentRuntime>
   constructor(
     private readonly codex: CodexService,
     private readonly claude: ClaudeService,
+    private readonly cursor: CursorService,
     private readonly threadHome: string,
     private readonly projectsHome: string,
     /** The workspace folder used while the user has not picked one. */
     private readonly workspaceHome: string
-  ) {}
+  ) {
+    this.runtimes = { codex, 'claude-code': claude, cursor }
+  }
   /** Connects the Routers, which start every session of this host. */
   attachRouter(router: RouterService): void {
     this.router = router
-    this.codex.setTurnProfiles(router)
-    this.claude.setTurnProfiles(router)
+    for (const runtime of Object.values(this.runtimes)) runtime.setTurnProfiles(router)
   }
   attachGitHub(github: NonNullable<OwlsHost['github']>): void {
     this.github = github
@@ -126,16 +132,10 @@ export class OwlsHost {
       },
       settings: () => this.codex.snapshot().settings,
       providerReady: (provider: AgentProvider) => {
-        const connection =
-          provider === 'claude-code'
-            ? this.claude.connectionState()
-            : this.codex.snapshot().connection
+        const connection = this.runtimes[provider].connectionState()
         return connection.status === 'ready' && connection.account.kind !== 'signed-out'
       },
-      createSession: (input, worker) =>
-        input.provider === 'claude-code'
-          ? this.claude.createSession(input, worker)
-          : this.codex.createSession(input, worker),
+      createSession: (input, worker) => this.runtimes[input.provider].createSession(input, worker),
       remove: (sessionId) => this.archive(sessionId),
       send: (input) => this.send(input),
       steer: (sessionId, text) => this.steer(sessionId, text),
@@ -148,10 +148,13 @@ export class OwlsHost {
     const router = this.router?.snapshot() ?? { routers: [], workers: [] }
     return {
       ...codex,
-      sessions: [...codex.sessions, ...this.claude.sessionList()].sort((a, b) =>
-        b.updatedAt.localeCompare(a.updatedAt)
-      ),
+      sessions: [
+        ...codex.sessions,
+        ...this.claude.sessionList(),
+        ...this.cursor.sessionList()
+      ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
       claude: this.claude.connectionState(),
+      cursor: this.cursor.connectionState(),
       github: this.github?.auth.account() ?? { status: 'signed-out', failure: null },
       ...router
     }
@@ -162,21 +165,33 @@ export class OwlsHost {
   claudeConnection(): ClaudeConnection {
     return this.claude.connectionState()
   }
+  cursorConnection(): CursorConnection {
+    return this.cursor.connectionState()
+  }
   connect(): Promise<CodexConnection> {
     return this.codex.connect()
   }
   connectClaude(): Promise<ClaudeConnection> {
     return this.claude.connect()
   }
+  connectCursor(): Promise<CursorConnection> {
+    return this.cursor.connect()
+  }
   saveSettings(settings: AppSettings): AppSettings {
+    const previous = this.codex.snapshot().settings
     if (
-      settings.claudeExecutablePath !== this.codex.snapshot().settings.claudeExecutablePath &&
+      settings.claudeExecutablePath !== previous.claudeExecutablePath &&
       this.claude.hasActiveTasks()
     ) {
       throw new OwlsError('busy', 'Stop active tasks before changing the Claude Code executable.')
     }
-    const routerChanged =
-      JSON.stringify(settings.router) !== JSON.stringify(this.codex.snapshot().settings.router)
+    if (
+      settings.cursorExecutablePath !== previous.cursorExecutablePath &&
+      this.cursor.hasActiveTasks()
+    ) {
+      throw new OwlsError('busy', 'Stop active tasks before changing the Cursor executable.')
+    }
+    const routerChanged = JSON.stringify(settings.router) !== JSON.stringify(previous.router)
     if (routerChanged && this.router?.isRunning())
       throw new OwlsError('busy', 'Wait for the Router to finish before changing it.')
     const saved = this.codex.saveSettings(settings)
@@ -336,26 +351,24 @@ export class OwlsHost {
   async createProject(input: CreateProject): Promise<Project> {
     return this.addProject(await createQuickProject(input, this.projectsHome))
   }
+  /** The runtime that owns a session; Codex answers for unknown ones with its own error. */
+  private runtimeOf(sessionId: string): AgentRuntime {
+    return Object.values(this.runtimes).find((r) => r.owns(sessionId)) ?? this.codex
+  }
   private send(input: SendMessage): Promise<void> {
-    return this.claude.owns(input.sessionId) ? this.claude.send(input) : this.codex.send(input)
+    return this.runtimeOf(input.sessionId).send(input)
   }
   private async steer(sessionId: string, text: string): Promise<'steered' | 'not_running'> {
-    return this.claude.owns(sessionId)
-      ? this.claude.steer(sessionId, text)
-      : this.codex.steer(sessionId, text)
+    return this.runtimeOf(sessionId).steer(sessionId, text)
   }
   private interrupt(sessionId: string): Promise<void> {
-    return this.claude.owns(sessionId)
-      ? this.claude.interrupt(sessionId)
-      : this.codex.interrupt(sessionId)
+    return this.runtimeOf(sessionId).interrupt(sessionId)
   }
   respond(input: RespondRequest): void {
-    if (this.claude.owns(input.sessionId)) this.claude.respond(input)
-    else this.codex.respond(input)
+    this.runtimeOf(input.sessionId).respond(input)
   }
   private archive(sessionId: string): void {
-    if (this.claude.owns(sessionId)) this.claude.archive(sessionId)
-    else this.codex.archive(sessionId)
+    this.runtimeOf(sessionId).archive(sessionId)
   }
   signIn(): Promise<string> {
     return this.codex.signIn()
@@ -365,8 +378,7 @@ export class OwlsHost {
   }
   hasActiveTasks(): boolean {
     return (
-      this.codex.hasActiveTasks() ||
-      this.claude.hasActiveTasks() ||
+      Object.values(this.runtimes).some((r) => r.hasActiveTasks()) ||
       Boolean(this.router?.isRunning())
     )
   }
@@ -378,6 +390,7 @@ export class OwlsHost {
     this.github?.auth.close()
     this.router?.close()
     this.claude.close()
+    this.cursor.close()
     // The Codex service closes the shared store last.
     this.codex.close()
   }

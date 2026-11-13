@@ -1,10 +1,18 @@
 import { Select } from '@renderer/components/ui/select'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { AppSettings } from '../../../shared/app'
+import type { AgentProvider, AppSettings } from '../../../shared/app'
 import { effortSchema, permissionSchema, providerSchema } from '../../../shared/app'
 import { SettingRow } from './SettingRow'
-import { agentConnection, agentSelection, useAppStore } from './store'
+import { agentConnection, agentSelection, useAppStore, withAgentSelection } from './store'
+
+/** How each provider enforces the chosen permission. */
+function permissionHelp(provider: AgentProvider, permission: AppSettings['permission']): string {
+  const full = permission === 'full-access'
+  if (provider === 'claude-code') return full ? 'claudeFullAccessHelp' : 'claudePermissionHelp'
+  if (provider === 'cursor') return full ? 'cursorFullAccessHelp' : 'cursorPermissionHelp'
+  return full ? 'fullAccessHelp' : 'permissionHelp'
+}
 
 /** The defaults a new worker starts with. */
 export function TaskOptions() {
@@ -20,10 +28,7 @@ export function TaskOptions() {
   const selected = models.find((m) => m.id === model)
   const efforts = selected?.efforts ?? []
   function saveSelection(next: { model: string | null; effort: string | null }) {
-    const update: AppSettings = claudeAgent
-      ? { ...settings, claudeModel: next.model, claudeEffort: next.effort }
-      : { ...settings, model: next.model, effort: next.effort }
-    void save(update)
+    void save(withAgentSelection(settings, provider, next))
   }
   return (
     <>
@@ -46,7 +51,15 @@ export function TaskOptions() {
         label={t('model')}
         htmlFor={`${id}-model`}
         description={
-          models.length ? null : t(claudeAgent ? 'claudeAccountUnavailable' : 'accountUnavailable')
+          models.length
+            ? null
+            : t(
+                claudeAgent
+                  ? 'claudeAccountUnavailable'
+                  : provider === 'cursor'
+                    ? 'cursorAccountUnavailable'
+                    : 'accountUnavailable'
+              )
         }
       >
         <Select
@@ -69,39 +82,36 @@ export function TaskOptions() {
           ))}
         </Select>
       </SettingRow>
-      <SettingRow label={t('effort')} htmlFor={`${id}-effort`}>
-        <Select
-          id={`${id}-effort`}
-          value={effort ?? '__default__'}
-          disabled={!efforts.length}
-          onChange={(event) =>
-            saveSelection({
-              model,
-              effort:
-                event.target.value === '__default__' ? null : effortSchema.parse(event.target.value)
-            })
-          }
-        >
-          <option value="__default__">{t('nativeDefault', { agent })}</option>
-          {efforts.map((option) => (
-            <option key={option} value={option}>
-              {t(`effort.${option}`, { defaultValue: option })}
-            </option>
-          ))}
-        </Select>
-      </SettingRow>
+      {/* Cursor has no reasoning effort setting. */}
+      {provider === 'cursor' ? null : (
+        <SettingRow label={t('effort')} htmlFor={`${id}-effort`}>
+          <Select
+            id={`${id}-effort`}
+            value={effort ?? '__default__'}
+            disabled={!efforts.length}
+            onChange={(event) =>
+              saveSelection({
+                model,
+                effort:
+                  event.target.value === '__default__'
+                    ? null
+                    : effortSchema.parse(event.target.value)
+              })
+            }
+          >
+            <option value="__default__">{t('nativeDefault', { agent })}</option>
+            {efforts.map((option) => (
+              <option key={option} value={option}>
+                {t(`effort.${option}`, { defaultValue: option })}
+              </option>
+            ))}
+          </Select>
+        </SettingRow>
+      )}
       <SettingRow
         label={t('permission')}
         htmlFor={`${id}-permission`}
-        description={t(
-          settings.permission === 'full-access'
-            ? claudeAgent
-              ? 'claudeFullAccessHelp'
-              : 'fullAccessHelp'
-            : claudeAgent
-              ? 'claudePermissionHelp'
-              : 'permissionHelp'
-        )}
+        description={t(permissionHelp(provider, settings.permission))}
       >
         <Select
           id={`${id}-permission`}

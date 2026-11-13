@@ -31,7 +31,7 @@ import { SettingsUpdatesPane } from '../updates/SettingsUpdates'
 import { appLogoIcons } from './AppLogo'
 import { TaskOptions } from './Controls'
 import { SettingRow } from './SettingRow'
-import { AgentSettingsPane, ClaudeSettingsPane } from './SettingsAgents'
+import { AgentSettingsPane, ClaudeSettingsPane, CursorSettingsPane } from './SettingsAgents'
 import { GitHubSettingsPane } from './SettingsGitHub'
 import { ProjectSettingsPane } from './SettingsProject'
 import {
@@ -51,7 +51,8 @@ const TAB_GROUPS: TabEntry[][] = [
   ],
   [
     { id: 'claude-code', label: 'agent.claude-code', icon: null },
-    { id: 'codex', label: 'agent.codex', icon: null }
+    { id: 'codex', label: 'agent.codex', icon: null },
+    { id: 'cursor', label: 'agent.cursor', icon: null }
   ],
   [
     { id: 'github', label: 'github.title', icon: GitPullRequestIcon },
@@ -61,7 +62,8 @@ const TAB_GROUPS: TabEntry[][] = [
 ]
 
 function TabIcon({ tab }: { tab: TabEntry }) {
-  if (tab.id === 'claude-code' || tab.id === 'codex') return <AgentIcon provider={tab.id} />
+  if (tab.id === 'claude-code' || tab.id === 'codex' || tab.id === 'cursor')
+    return <AgentIcon provider={tab.id} />
   return tab.icon ? <tab.icon size={17} /> : null
 }
 
@@ -320,6 +322,7 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   memory: SettingsMemoryPane,
   'claude-code': ClaudeSettingsPane,
   codex: AgentSettingsPane,
+  cursor: CursorSettingsPane,
   github: GitHubSettingsPane,
   appearance: AppearancePane,
   updates: SettingsUpdatesPane,

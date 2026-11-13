@@ -48,7 +48,7 @@ import {
 import { type UpdateSnapshot, updateChannelSchema } from './updates.js'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
-export const providerSchema = z.enum(['codex', 'claude-code'])
+export const providerSchema = z.enum(['codex', 'claude-code', 'cursor'])
 /** A device id: `dv_` and eight hex digits, made on the device's first start. */
 export const deviceIdSchema = z.string().regex(/^dv_[0-9a-f]{8}$/)
 export const effortSchema = z.string().min(1).max(64)
@@ -74,6 +74,9 @@ export const failureSchema = z.object({
     'claude_not_installed',
     'claude_not_connected',
     'claude_disconnected',
+    'cursor_not_installed',
+    'cursor_not_connected',
+    'cursor_disconnected',
     'router_model_unconfigured',
     'router_auth_failed',
     'router_unavailable',
@@ -219,6 +222,9 @@ export const settingsSchema = z.object({
   claudeExecutablePath: z.string().nullable(),
   claudeModel: z.string().nullable(),
   claudeEffort: effortSchema.nullable(),
+  /** Added with the Cursor agent, so older rows auto-detect it and use its default model. */
+  cursorExecutablePath: z.string().nullable().default(null),
+  cursorModel: z.string().nullable().default(null),
   router: routerSettingsSchema,
   /** Added after the first release of settings, so older rows get the defaults. */
   memory: memorySettingsSchema.default(defaultMemorySettings),
@@ -242,7 +248,12 @@ export const projectSchema = z.object({
   settings: projectSettingsSchema.default(defaultProjectSettings)
 })
 export const settingsUpdateSchema = settingsSchema
-  .omit({ executablePath: true, claudeExecutablePath: true, workspacePath: true })
+  .omit({
+    executablePath: true,
+    claudeExecutablePath: true,
+    cursorExecutablePath: true,
+    workspacePath: true
+  })
   .strict()
 export const modelSchema = z.object({
   id: z.string(),
@@ -320,12 +331,27 @@ export type ClaudeConnection = {
   models: CodexModel[]
   error: Failure | null
 }
+export type CursorAccount =
+  | { kind: 'cursor'; email: string | null }
+  | { kind: 'signed-out' }
+  | { kind: 'unknown' }
+export type CursorConnection = {
+  status: CodexConnection['status']
+  executablePath: string | null
+  version: string | null
+  account: CursorAccount
+  models: CodexModel[]
+  error: Failure | null
+}
+/** Any worker provider's connection; each provider keeps its own account shape. */
+export type AgentConnection = CodexConnection | ClaudeConnection | CursorConnection
 export type AppSnapshot = {
   sessions: Session[]
   projects: Project[]
   settings: AppSettings
   connection: CodexConnection
   claude: ClaudeConnection
+  cursor: CursorConnection
   routers: Router[]
   workers: RouterWorker[]
   github: GitHubAccount
@@ -333,6 +359,7 @@ export type AppSnapshot = {
 export type AppEvent =
   | { type: 'connection'; connection: CodexConnection }
   | { type: 'claude-connection'; connection: ClaudeConnection }
+  | { type: 'cursor-connection'; connection: CursorConnection }
   | { type: 'session'; session: Session }
   | { type: 'removed'; sessionId: string }
   | { type: 'router'; router: Router }
@@ -363,6 +390,8 @@ export interface OwlsAPI {
   selectExecutable(): Promise<Reply<CodexConnection | null>>
   connectClaude(): Promise<Reply<ClaudeConnection>>
   selectClaudeExecutable(): Promise<Reply<ClaudeConnection | null>>
+  connectCursor(): Promise<Reply<CursorConnection>>
+  selectCursorExecutable(): Promise<Reply<CursorConnection | null>>
   signIn(): Promise<Reply<void>>
   cancelSignIn(): Promise<Reply<void>>
   saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<Reply<AppSettings>>

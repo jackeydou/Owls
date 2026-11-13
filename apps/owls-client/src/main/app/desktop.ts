@@ -10,6 +10,7 @@ import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
 import { safeText } from '../codex/protocol.js'
 import { CodexService } from '../codex/service.js'
+import { CursorService } from '../cursor/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { GitHubAuth } from '../github/auth.js'
 import { DreamingRunner } from '../memory/dreaming.js'
@@ -169,6 +170,7 @@ void app
     service = new OwlsHost(
       new CodexService(store, emit),
       new ClaudeService(store, emit, { query }),
+      new CursorService(store, emit),
       routerThreadHome(root),
       projectsHome(root),
       workspaceHome(root)
@@ -296,6 +298,7 @@ void app
     updater.start()
     void service.connect()
     void service.connectClaude()
+    void service.connectCursor()
     app.on('activate', () => {
       if (!window) createWindow()
     })

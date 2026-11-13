@@ -20,6 +20,7 @@ const en = {
   agent: 'Agent',
   'agent.codex': 'Codex',
   'agent.claude-code': 'Claude Code',
+  'agent.cursor': 'Cursor',
   'permission.read-only': 'Read only',
   'permission.workspace-write': 'Workspace access',
   'permission.full-access': 'Full access',
@@ -73,6 +74,25 @@ const en = {
     'Workspace access lets Claude Code edit project files. Commands and other actions still ask for approval.',
   claudeFullAccessHelp:
     'Full access uses Claude Code auto mode when the model supports it. Actions it cannot decide still ask for approval.',
+  localCursor: 'Local Cursor',
+  localCursorBody: 'Use your installed Cursor CLI and the account you already signed in with.',
+  useLocalCursor: 'Connect local Cursor',
+  connectingCursor: 'Connecting to local Cursor…',
+  cursorAccount: 'Cursor account',
+  cursorAccountUnknown: 'Account details unavailable',
+  cursorRuntime: 'Workers run through the Cursor CLI’s Agent Client Protocol mode.',
+  cursorSignInHelp:
+    'To sign in or switch accounts, run cursor-agent login in a terminal, then reconnect.',
+  cursorWorkerOnly:
+    'Cursor runs workers only. The Router itself runs on Claude Code, Codex, or the Owls engine.',
+  cursorExecutable: 'Cursor CLI executable',
+  cursorExecutableBody:
+    'Detected automatically. Choose a file if the Cursor CLI is installed elsewhere.',
+  cursorInstallHelp: 'Need the Cursor CLI?',
+  cursorAccountUnavailable: 'Connect Cursor to load available models.',
+  cursorPermissionHelp:
+    'Workspace access lets Cursor read and edit files in the task folder. Commands and other actions ask for approval. Read only uses Cursor’s ask mode.',
+  cursorFullAccessHelp: 'Full access approves every Cursor action without asking.',
   defaults: 'Worker defaults',
   defaultsBody:
     'The Router uses these for new workers. Existing workers keep their own configuration.',
@@ -175,7 +195,12 @@ const en = {
     'Claude Code was not found. Choose your local executable in Settings.',
   'errors.claude_not_connected': 'Connect local Claude Code in Settings to continue.',
   'errors.claude_disconnected':
-    'Claude Code stopped before the turn finished. Send a new message to continue.'
+    'Claude Code stopped before the turn finished. Send a new message to continue.',
+  'errors.cursor_not_installed':
+    'The Cursor CLI was not found. Choose your local executable in Settings.',
+  'errors.cursor_not_connected': 'Connect local Cursor in Settings to continue.',
+  'errors.cursor_disconnected':
+    'Cursor stopped before the turn finished. Send a new message to continue.'
 }
 const zh: Record<keyof typeof en, string> = {
   projects: '项目',
@@ -190,6 +215,7 @@ const zh: Record<keyof typeof en, string> = {
   agent: 'Agent',
   'agent.codex': 'Codex',
   'agent.claude-code': 'Claude Code',
+  'agent.cursor': 'Cursor',
   'permission.read-only': '只读',
   'permission.workspace-write': '工作区访问',
   'permission.full-access': '完全访问',
@@ -237,6 +263,23 @@ const zh: Record<keyof typeof en, string> = {
   claudePermissionHelp: '工作区访问允许 Claude Code 编辑项目文件；命令和其他操作仍会请求审批。',
   claudeFullAccessHelp:
     '完全访问会在模型支持时使用 Claude Code 自动模式；无法自动判断的操作仍会请求审批。',
+  localCursor: '本机 Cursor',
+  localCursorBody: '使用已安装的 Cursor CLI 和你已登录的账号。',
+  useLocalCursor: '连接本机 Cursor',
+  connectingCursor: '正在连接本机 Cursor…',
+  cursorAccount: 'Cursor 账号',
+  cursorAccountUnknown: '无法获取账号信息',
+  cursorRuntime: 'Worker 通过 Cursor CLI 的 Agent Client Protocol 模式运行。',
+  cursorSignInHelp: '如需登录或切换账号，请在终端运行 cursor-agent login，然后重新连接。',
+  cursorWorkerOnly:
+    'Cursor 只用于运行 Worker，协调者本身仍运行在 Claude Code、Codex 或 Owls 引擎上。',
+  cursorExecutable: 'Cursor CLI 可执行文件',
+  cursorExecutableBody: '自动检测安装位置；也可以选择其他位置的 Cursor CLI。',
+  cursorInstallHelp: '尚未安装 Cursor CLI？',
+  cursorAccountUnavailable: '连接 Cursor 后即可加载可用模型。',
+  cursorPermissionHelp:
+    '工作区访问允许 Cursor 读取和编辑任务目录中的文件；命令和其他操作仍会请求审批。只读会使用 Cursor 的 ask 模式。',
+  cursorFullAccessHelp: '完全访问会自动批准 Cursor 的所有操作，不再询问。',
   defaults: 'Worker 默认值',
   defaultsBody: '协调者派出新 Worker 时使用，已有 Worker 保留自己的配置。',
   workspaceFolder: '工作目录',
@@ -330,7 +373,10 @@ const zh: Record<keyof typeof en, string> = {
   'errors.interrupted': '应用在本轮完成前关闭，请发送新消息继续。',
   'errors.claude_not_installed': '未找到 Claude Code，请在设置中选择本机可执行文件。',
   'errors.claude_not_connected': '请先在设置中连接本机 Claude Code。',
-  'errors.claude_disconnected': 'Claude Code 在本轮完成前停止，请发送新消息继续。'
+  'errors.claude_disconnected': 'Claude Code 在本轮完成前停止，请发送新消息继续。',
+  'errors.cursor_not_installed': '未找到 Cursor CLI，请在设置中选择本机可执行文件。',
+  'errors.cursor_not_connected': '请先在设置中连接本机 Cursor。',
+  'errors.cursor_disconnected': 'Cursor 在本轮完成前停止，请发送新消息继续。'
 }
 void i18next.use(initReactI18next).init({
   resources: {

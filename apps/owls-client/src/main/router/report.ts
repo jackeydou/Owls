@@ -22,8 +22,10 @@ export const WORKER_REPORT_JSON_SCHEMA: Record<string, unknown> = reportJsonSche
 
 /**
  * Reads a worker's report from the structured output (Claude Code) or the final
- * message text (Codex). Anything that does not match becomes a `progress`
- * report holding the start of the raw text, so the Router always gets an event.
+ * message text (Codex, Cursor). Agents without an output schema may wrap the
+ * JSON in a fence or put text before it, so a trailing JSON object counts too.
+ * Anything that does not match becomes a `progress` report holding the start
+ * of the raw text, so the Router always gets an event.
  */
 export function parseReport(
   structured: unknown,
@@ -36,7 +38,8 @@ export function parseReport(
     try {
       candidates.push(JSON.parse(trimmed))
     } catch {
-      /* Not JSON; fall through to the degraded report. */
+      const trailing = trailingJson(trimmed)
+      if (trailing !== null) candidates.push(trailing)
     }
   }
   for (const candidate of candidates) {
@@ -47,6 +50,26 @@ export function parseReport(
     report: { status: 'progress', summary: trimmed.slice(0, 500), artifacts: [] },
     degraded: true
   }
+}
+/** Fence openings and object starts tried from the end; a report is near the end. */
+const TRAILING_TRIES = 50
+
+/** The JSON object a message ends with, inside a Markdown fence or not; null when none. */
+function trailingJson(text: string): unknown {
+  const fenced = /```(?:json)?\s*\n([\s\S]*?)\n?```\s*$/i.exec(text)
+  const body = fenced ? fenced[1].trim() : text
+  if (!body.endsWith('}')) return null
+  let start = body.lastIndexOf('{')
+  for (let tries = 0; start >= 0 && tries < TRAILING_TRIES; tries++) {
+    try {
+      const value: unknown = JSON.parse(body.slice(start))
+      if (value && typeof value === 'object' && !Array.isArray(value)) return value
+    } catch {
+      /* Not the start of the trailing object; try an earlier brace. */
+    }
+    start = body.lastIndexOf('{', start - 1)
+  }
+  return null
 }
 function clamp(value: unknown): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return value

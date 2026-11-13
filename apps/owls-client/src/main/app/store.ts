@@ -49,6 +49,8 @@ export class OwlsStore {
           claudeExecutablePath: null,
           claudeModel: null,
           claudeEffort: null,
+          cursorExecutablePath: null,
+          cursorModel: null,
           router: defaultRouterSettings,
           memory: defaultMemorySettings,
           layout: defaultLayoutSettings,

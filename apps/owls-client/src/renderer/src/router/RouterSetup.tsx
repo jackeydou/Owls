@@ -1,7 +1,8 @@
 import { Button } from '@renderer/components/ui/button'
 import { SettingsIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
-import type { AgentProvider, Failure, Router } from '../../../shared/app'
+import { type AgentProvider, type Failure, providerSchema, type Router } from '../../../shared/app'
+import type { RouterEngineId } from '../../../shared/router'
 import { agentConnection, isAgentReady, type SettingsTab, useAppStore } from '../app/store'
 import { ThreadRow } from './ThreadRow'
 
@@ -10,15 +11,18 @@ const SETUP_FAILURES = [
   'model_unavailable',
   'router_unavailable',
   'claude_not_connected',
+  'cursor_not_connected',
   'not_connected'
 ]
 export const isSetupFailure = (failure: Failure) => SETUP_FAILURES.includes(failure.code)
 
+type EngineAgent = Exclude<RouterEngineId, 'owls'>
 export type RouterSetupNeed =
-  | { kind: 'owls' | 'claude' | 'codex'; alternate: AgentProvider | null }
+  | { kind: 'owls' | 'claude' | 'codex'; alternate: EngineAgent | null }
   | { kind: 'worker'; provider: AgentProvider; alternate: AgentProvider | null }
 
-const AGENTS: AgentProvider[] = ['claude-code', 'codex']
+/** Agents that can run the Router; any provider can run workers. */
+const ENGINE_AGENTS: EngineAgent[] = ['claude-code', 'codex']
 /** The Settings tab that resolves a need. */
 function settingsTabFor(need: RouterSetupNeed): SettingsTab {
   if (need.kind === 'worker') return need.provider
@@ -29,19 +33,24 @@ function settingsTabFor(need: RouterSetupNeed): SettingsTab {
 export function useRouterSetup(router?: Router): RouterSetupNeed | null {
   const settings = useAppStore((s) => s.settings)
   const claude = useAppStore((s) => s.claude)
+  const cursor = useAppStore((s) => s.cursor)
   const connection = useAppStore((s) => s.connection)
   const ready = (provider: AgentProvider) =>
-    isAgentReady(agentConnection({ claude, connection }, provider))
+    isAgentReady(agentConnection({ claude, cursor, connection }, provider))
   const engine = settings.router.engine
   const failed = Boolean(router?.error && isSetupFailure(router.error))
-  const alternate = AGENTS.find((a) => a !== engine && ready(a)) ?? null
+  const alternate = ENGINE_AGENTS.find((a) => a !== engine && ready(a)) ?? null
   if (engine === 'claude-code' && (!ready('claude-code') || failed))
     return { kind: 'claude', alternate }
   if (engine === 'codex' && (!ready('codex') || failed)) return { kind: 'codex', alternate }
   if (engine === 'owls' && (!settings.router.owls || failed)) return { kind: 'owls', alternate }
   const { provider } = settings
   if (!ready(provider))
-    return { kind: 'worker', provider, alternate: AGENTS.find((a) => ready(a)) ?? null }
+    return {
+      kind: 'worker',
+      provider,
+      alternate: providerSchema.options.find((a) => a !== provider && ready(a)) ?? null
+    }
   return null
 }
 const COPY = {
@@ -59,12 +68,11 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
   const showSettings = useAppStore((s) => s.showSettings)
   const { alternate } = need
   const agent = t(`agent.${need.kind === 'worker' ? need.provider : 'codex'}`)
-  function switchTo(provider: AgentProvider) {
-    void save(
-      need.kind === 'worker'
-        ? { ...settings, provider }
-        : { ...settings, router: { ...settings.router, engine: provider } }
-    )
+  function switchToAlternate() {
+    if (need.kind === 'worker') {
+      if (need.alternate) void save({ ...settings, provider: need.alternate })
+    } else if (need.alternate)
+      void save({ ...settings, router: { ...settings.router, engine: need.alternate } })
   }
   return (
     <ThreadRow speaker="router">
@@ -73,7 +81,7 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
         <p>{t(COPY[need.kind].body, { agent })}</p>
         <div>
           {alternate ? (
-            <Button size="sm" onClick={() => switchTo(alternate)}>
+            <Button size="sm" onClick={switchToAlternate}>
               {t('router.useAgent', { agent: t(`agent.${alternate}`) })}
             </Button>
           ) : null}

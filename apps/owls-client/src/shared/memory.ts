@@ -5,6 +5,18 @@ export const memoryStoreSchema = z.enum(['personal', 'project'])
 /** The fixed project memory kinds (RFC_OWLS_MEMORY 4.1). */
 export const projectMemoryKindSchema = z.enum(['rule', 'decision', 'knowledge', 'lesson', 'status'])
 export const memoryProviderSchema = z.enum(['claude-code', 'codex'])
+/**
+ * Who runs Dreaming when the user has not picked anyone: the worker provider, or
+ * Claude Code for a provider that cannot run Dreaming's memory tools.
+ */
+export function dreamingProvider(
+  chosen: MemoryProvider | null,
+  workerProvider: string
+): MemoryProvider {
+  if (chosen) return chosen
+  const parsed = memoryProviderSchema.safeParse(workerProvider)
+  return parsed.success ? parsed.data : 'claude-code'
+}
 
 /** Longest memory text; one self-contained fact. */
 export const MEMORY_TEXT_LIMIT = 300

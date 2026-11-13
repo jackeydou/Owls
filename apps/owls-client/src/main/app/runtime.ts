@@ -15,6 +15,9 @@ export { ClaudeService } from '../claude/service.js'
 export { CodexClient, discoverExecutable } from '../codex/client.js'
 export { normalizeItem, parseModels, safeText } from '../codex/protocol.js'
 export { CodexService } from '../codex/service.js'
+export { AcpConnection } from '../cursor/acp.js'
+export * as cursorNormalize from '../cursor/normalize.js'
+export { CursorService } from '../cursor/service.js'
 export { GitHubAuth } from '../github/auth.js'
 export {
   lookupPullRequest,
