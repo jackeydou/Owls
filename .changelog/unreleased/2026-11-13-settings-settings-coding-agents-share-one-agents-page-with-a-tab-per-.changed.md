@@ -1,0 +1,1 @@
+- Settings: coding agents share one Agents page with a tab per agent, Router and worker defaults share one page, and setting descriptions are shorter.

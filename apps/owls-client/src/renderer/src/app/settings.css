@@ -167,11 +167,13 @@
   gap: 8px;
   flex-wrap: wrap;
 }
-.owls-settings-section > .owls-settings-actions {
+.owls-settings-section > .owls-settings-actions,
+.owls-settings-tabpanel > .owls-settings-actions {
   justify-content: flex-end;
   padding-bottom: 12px;
 }
-.owls-settings-section > .owls-inline-error {
+.owls-settings-section > .owls-inline-error,
+.owls-settings-tabpanel > .owls-inline-error {
   margin-bottom: 12px;
   padding: 8px 12px;
 }
@@ -406,4 +408,75 @@
 .owls-project-colors .swatch:has(input:focus-visible) {
   outline: 2px solid var(--owl-focus-ring);
   outline-offset: 3px;
+}
+/* Tabs across a page (Agents, Router & Workers): underlined, the open tab's rows below. */
+.owls-settings-tabs {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.owls-settings-section h2 + p + .owls-settings-tabs {
+  margin-top: 16px;
+}
+.owls-settings-tabs > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--owl-radius-xs) var(--owl-radius-xs) 0 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  font-weight: 500;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    transform 80ms ease;
+}
+.owls-settings-tabs > button:hover {
+  color: var(--color-foreground);
+}
+.owls-settings-tabs > button:active {
+  transform: translateY(1px);
+}
+.owls-settings-tabs > button[aria-selected="true"] {
+  border-bottom-color: var(--color-foreground);
+  color: var(--color-foreground);
+}
+.owls-settings-tabs .router-agent-icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+.owls-settings-tabs > button:not([aria-selected="true"]) .router-agent-icon,
+.owls-settings-tabs > button:not([aria-selected="true"]) .owls-settings-tab-owl {
+  opacity: 0.7;
+}
+.owls-settings-tab-owl {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+.owls-settings-tabpanel > .owls-setting-row:first-child,
+.owls-settings-tab-body + .owls-setting-row {
+  border-top: 0;
+}
+.owls-settings-tab-body {
+  padding-top: 20px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owls-agent-status {
+  display: flex;
+  align-items: center;
+  padding: 20px 0 4px;
+}
+.owls-agent-status .owls-connection {
+  font-size: var(--owl-text-sm);
+}
+.owls-agent-status + .owls-setting-row {
+  border-top: 0;
 }

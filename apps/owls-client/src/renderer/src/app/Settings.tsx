@@ -1,11 +1,9 @@
-import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import {
   ArrowLeftIcon,
   BrainIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  FolderOpenIcon,
   GitBranchIcon,
   GitPullRequestIcon,
   type IconComponent,
@@ -14,7 +12,7 @@ import {
   RefreshIcon,
   RouteIcon,
   ScrollTextIcon,
-  SlidersIcon
+  TerminalIcon
 } from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Select } from '@renderer/components/ui/select'
@@ -22,18 +20,16 @@ import { Fragment, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { appLogoSchema, settingsSchema } from '../../../shared/app'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
-import { AgentIcon } from '../router/AgentIcon'
 import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
 import { usePaneWidth } from '../router/pane-width'
-import { RouterSettingsSection } from '../router/RouterSettings'
 import { SettingsUpdatesPane } from '../updates/SettingsUpdates'
 import { appLogoIcons } from './AppLogo'
-import { TaskOptions } from './Controls'
 import { SettingRow } from './SettingRow'
-import { AgentSettingsPane, ClaudeSettingsPane, CursorSettingsPane } from './SettingsAgents'
+import { AgentsSettingsPane } from './SettingsAgents'
 import { GitHubSettingsPane } from './SettingsGitHub'
 import { ProjectSettingsPane } from './SettingsProject'
+import { RouterWorkersSettingsPane } from './SettingsRouterWorkers'
 import {
   type ProjectSettingsPage,
   projectSettingsPages,
@@ -41,18 +37,13 @@ import {
   useAppStore
 } from './store'
 
-type TabEntry = { id: Exclude<SettingsTab, 'project'>; label: string; icon: IconComponent | null }
+type TabEntry = { id: Exclude<SettingsTab, 'project'>; label: string; icon: IconComponent }
 
 const TAB_GROUPS: TabEntry[][] = [
   [
-    { id: 'router', label: 'routerSettings.title', icon: RouteIcon },
-    { id: 'workers', label: 'defaults', icon: SlidersIcon },
+    { id: 'agents', label: 'agents.title', icon: TerminalIcon },
+    { id: 'router', label: 'routerWorkers.title', icon: RouteIcon },
     { id: 'memory', label: 'memory.title', icon: BrainIcon }
-  ],
-  [
-    { id: 'claude-code', label: 'agent.claude-code', icon: null },
-    { id: 'codex', label: 'agent.codex', icon: null },
-    { id: 'cursor', label: 'agent.cursor', icon: null }
   ],
   [
     { id: 'github', label: 'github.title', icon: GitPullRequestIcon },
@@ -60,12 +51,6 @@ const TAB_GROUPS: TabEntry[][] = [
     { id: 'updates', label: 'updates.title', icon: RefreshIcon }
   ]
 ]
-
-function TabIcon({ tab }: { tab: TabEntry }) {
-  if (tab.id === 'claude-code' || tab.id === 'codex' || tab.id === 'cursor')
-    return <AgentIcon provider={tab.id} />
-  return tab.icon ? <tab.icon size={17} /> : null
-}
 
 const PROJECT_PAGE_ICONS: Record<ProjectSettingsPage, IconComponent> = {
   general: InfoIcon,
@@ -180,7 +165,7 @@ function SettingsNav() {
               aria-current={tab.id === current || undefined}
               onClick={() => showSettings(tab.id)}
             >
-              <TabIcon tab={tab} />
+              <tab.icon size={17} />
               <span>{t(tab.label)}</span>
             </button>
           ))}
@@ -189,63 +174,6 @@ function SettingsNav() {
       <ProjectsNav />
       <ResizeHandle {...handle} />
     </nav>
-  )
-}
-
-function WorkerDefaultsPane() {
-  const { t } = useTranslation()
-  return (
-    <section className="owls-settings-section">
-      <h2>{t('defaults')}</h2>
-      <p>{t('defaultsBody')}</p>
-      <TaskOptions />
-      <WorkspaceFolderRow />
-    </section>
-  )
-}
-
-/** The folder for tasks outside any project, with the default spelled out until the user picks one. */
-function WorkspaceFolderRow() {
-  const { t } = useTranslation()
-  const custom = useAppStore((s) => s.settings.workspacePath)
-  const workspaceFolder = useAppStore((s) => s.workspaceFolder)
-  const selectWorkspaceFolder = useAppStore((s) => s.selectWorkspaceFolder)
-  const resetWorkspaceFolder = useAppStore((s) => s.resetWorkspaceFolder)
-  const [folder, setFolder] = useState<string | null>(null)
-  // Reads the folder again whenever the saved choice changes.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `custom` is the trigger, not an input.
-  useEffect(() => {
-    let live = true
-    void workspaceFolder().then((path) => {
-      if (live) setFolder(path)
-    })
-    return () => {
-      live = false
-    }
-  }, [custom, workspaceFolder])
-  return (
-    <SettingRow
-      label={t('workspaceFolder')}
-      description={t('workspaceFolderBody')}
-      detail={folder ? <code className="owls-path">{folder}</code> : null}
-    >
-      <div className="owls-settings-actions">
-        {custom ? (
-          <ActionButton size="sm" variant="ghost" onAction={resetWorkspaceFolder}>
-            {t('workspaceFolderReset')}
-          </ActionButton>
-        ) : null}
-        <ActionButton
-          size="sm"
-          variant="outline"
-          icon={<FolderOpenIcon size={16} />}
-          // The chosen path appears in the row, so the button only needs to show it is working.
-          onAction={async () => void (await selectWorkspaceFolder())}
-        >
-          {t('workspaceFolderChoose')}
-        </ActionButton>
-      </div>
-    </SettingRow>
   )
 }
 
@@ -317,12 +245,9 @@ function AppearancePane() {
 }
 
 const PANES: Record<SettingsTab, () => React.JSX.Element> = {
-  router: RouterSettingsSection,
-  workers: WorkerDefaultsPane,
+  agents: AgentsSettingsPane,
+  router: RouterWorkersSettingsPane,
   memory: SettingsMemoryPane,
-  'claude-code': ClaudeSettingsPane,
-  codex: AgentSettingsPane,
-  cursor: CursorSettingsPane,
   github: GitHubSettingsPane,
   appearance: AppearancePane,
   updates: SettingsUpdatesPane,

@@ -142,7 +142,7 @@ function GitPage({ project }: { project: Project }) {
   const save = useProjectSaver(project)
   const projectGitRefs = useAppStore((s) => s.projectGitRefs)
   const worktrees = useAppStore((s) => s.settings.router.worktrees)
-  const showSettings = useAppStore((s) => s.showSettings)
+  const showRouterSettings = useAppStore((s) => s.showRouterSettings)
   const [refs, setRefs] = useState<ProjectGitRefs | null | 'loading'>('loading')
   useEffect(() => {
     let live = true
@@ -175,7 +175,7 @@ function GitPage({ project }: { project: Project }) {
             size="custom"
             variant="link"
             className="owls-inline-link"
-            onClick={() => showSettings('router')}
+            onClick={() => showRouterSettings('workers')}
           >
             {t('projectSettings.openRouterSettings')}
           </Button>

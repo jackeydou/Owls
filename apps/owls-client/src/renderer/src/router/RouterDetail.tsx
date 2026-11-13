@@ -11,7 +11,7 @@ import { useRouterStore } from './store'
 export function RouterDetail({ router }: { router: Router | undefined }) {
   const { t } = useTranslation()
   const settings = useAppStore((s) => s.settings)
-  const showSettings = useAppStore((s) => s.showSettings)
+  const showRouterSettings = useAppStore((s) => s.showRouterSettings)
   const { discardWorktree, showPanel } = useRouterStore()
   const workers = useRouterStore((s) => s.workers)
   const { engine } = settings.router
@@ -58,7 +58,7 @@ export function RouterDetail({ router }: { router: Router | undefined }) {
             </>
           ) : null}
         </dl>
-        <Button size="sm" variant="outline" onClick={() => showSettings('router')}>
+        <Button size="sm" variant="outline" onClick={() => showRouterSettings('router')}>
           <SettingsIcon size={16} />
           {t('router.openSettings')}
         </Button>

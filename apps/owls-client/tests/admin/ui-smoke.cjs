@@ -157,6 +157,14 @@ app
       evaluate(
         `Array.from(document.querySelectorAll('.owls-settings-nav .router-sidebar-item')).find(el => el.textContent === ${JSON.stringify(label)}).click()`
       )
+    // One agent's tab on the Agents page.
+    const agentTab = async (label) => {
+      await settingsTab('Agents')
+      await waitFor("Boolean(document.querySelector('.owls-agent-tabs'))")
+      await evaluate(
+        `Array.from(document.querySelectorAll('.owls-agent-tabs [role=tab]')).find(el => el.textContent === ${JSON.stringify(label)}).click()`
+      )
+    }
     // The draft as it is sent: mentions read as `@name`.
     const draftText = (scope) =>
       evaluate(`document.querySelector('${scope} .router-draft-input').editor.getText()`)
@@ -376,11 +384,11 @@ app
 
       await evaluate("document.querySelector('.router-sidebar-settings').click()")
       await waitFor("Boolean(document.querySelector('.owls-settings-content'))")
-      await settingsTab('Worker defaults')
+      await settingsTab('Router & Workers')
       await waitFor(
-        "document.querySelector('.owls-settings-content h2')?.textContent === 'Worker defaults'"
+        "document.querySelector('.owls-settings-content h2')?.textContent === 'Router & Workers'"
       )
-      await settingsTab('Codex')
+      await agentTab('Codex')
       await waitFor("Boolean(document.querySelector('.owls-settings-actions button'))")
       assert.ok(
         await evaluate(
@@ -407,8 +415,8 @@ app
       )
       await waitFor(() => host.snapshot().settings.appLogo === 'duo-night')
       await capture('settings')
-      await settingsTab('Codex')
-      await waitFor("document.body.textContent.includes('导入并使用本地 Codex 登录')")
+      await agentTab('Codex')
+      await waitFor("document.body.textContent.includes('连接本机 Codex')")
       await press('Escape')
       await waitFor("Boolean(document.querySelector('.router-chat'))")
 
@@ -991,8 +999,8 @@ app
       assert.equal(claudeSession.items.find((i) => i.id === 'claude-tool').status, 'completed')
       await evaluate("document.querySelector('.router-sidebar-settings').click()")
       await waitFor("Boolean(document.querySelector('.owls-settings-content'))")
-      await settingsTab('Claude Code')
-      await waitFor("document.body.textContent.includes('本机 Claude Code')")
+      await agentTab('Claude Code')
+      await waitFor("document.body.textContent.includes('连接本机 Claude Code')")
       assert.ok(await evaluate("document.body.textContent.includes('claude@example.com')"))
       await capture('claude-settings')
       console.log(

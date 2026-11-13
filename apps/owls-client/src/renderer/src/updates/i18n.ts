@@ -1,12 +1,10 @@
 export const updatesEn = {
   'updates.title': 'Updates',
-  'updates.body':
-    'Owls checks for new versions in the background, downloads them, and installs them the next time it quits.',
+  'updates.body': 'Updates download on their own and install when you quit.',
   'updates.version': 'Version',
   'updates.versionValue': 'Owls {{version}}',
   'updates.channel': 'Update channel',
-  'updates.channelHelp':
-    'Beta gets test releases before they ship and moves to stable releases when they are newer.',
+  'updates.channelHelp': 'Beta gets new versions early.',
   'updates.channel.stable': 'Stable',
   'updates.channel.beta': 'Beta',
   'updates.check': 'Check for updates',
@@ -35,11 +33,11 @@ export const updatesEn = {
 
 export const updatesZh: Record<keyof typeof updatesEn, string> = {
   'updates.title': '更新',
-  'updates.body': 'Owls 会在后台检查新版本并自动下载，下次退出时完成安装。',
+  'updates.body': '自动下载更新，退出时安装。',
   'updates.version': '版本',
   'updates.versionValue': 'Owls {{version}}',
   'updates.channel': '更新渠道',
-  'updates.channelHelp': 'Beta 渠道会提前收到测试版本；正式版本更新时也会升级到正式版本。',
+  'updates.channelHelp': 'Beta 抢先获得新版本。',
   'updates.channel.stable': '正式版',
   'updates.channel.beta': 'Beta',
   'updates.check': '检查更新',
