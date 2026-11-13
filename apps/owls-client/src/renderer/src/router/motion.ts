@@ -25,7 +25,10 @@ function projectRect(projectId: string | null): Rect | null {
 function animateZoom(to: 'map' | 'chat', rect: Rect | null) {
   const root = document.documentElement
   const stage = document.querySelector('.router-stage')?.getBoundingClientRect()
-  const options = { duration: ZOOM_MS, easing: EASE_OUT }
+  // Hold the end frame until the transition removes its pseudo-elements. Without a
+  // fill, the old snapshot snaps back to full opacity for a frame after the
+  // animation ends, and the map flashes through the conversation's clear background.
+  const options = { duration: ZOOM_MS, easing: EASE_OUT, fill: 'forwards' } as const
   const [chat, map] =
     to === 'map'
       ? ['::view-transition-old(router-stage)', '::view-transition-new(router-stage)']
