@@ -461,12 +461,18 @@ test('parseReport accepts structured output and degrades bad text', () => {
     parseReport(null, '{"status":"blocked","summary":"needs a key","artifacts":[]}').report.status,
     'blocked'
   )
+  // A long summary is kept whole; only a runaway one is bounded.
   const long = parseReport({ status: 'done', summary: 'x'.repeat(1500), artifacts: [] }, '')
-  assert.equal(long.report.summary.length, 1000)
+  assert.equal(long.report.summary.length, 1500)
+  const huge = parseReport({ status: 'done', summary: 'x'.repeat(25_000), artifacts: [] }, '')
+  assert.equal(huge.report.summary.length, 20_000)
   const bad = parseReport(null, 'plain words')
   assert.equal(bad.degraded, true)
   assert.equal(bad.report.status, 'progress')
   assert.equal(bad.report.summary, 'plain words')
+  // A final message that is not a report keeps its end, not only its first lines.
+  const prose = `${'y'.repeat(800)} the end`
+  assert.equal(parseReport(null, prose).report.summary, prose)
 })
 
 test('batches render deterministically and escape their closing tag', () => {
@@ -495,7 +501,24 @@ test('batches render deterministically and escape their closing tag', () => {
       }
     ]),
     '- w_a · idle · branch owls/w_a · A — done\n- w_b · running · B'
-  )
+  ) // A report under the batch limit reaches the Router whole; a longer one points at recall.
+  const report = (summary) =>
+    renderBatch(
+      'b_2',
+      [
+        {
+          seq: 7,
+          kind: 'worker_report',
+          at,
+          workerId: 'w_a',
+          goal: 'A',
+          report: { status: 'done', summary, artifacts: [] }
+        }
+      ],
+      null
+    )
+  assert.ok(report('z'.repeat(1500)).includes(`${'z'.repeat(1500)}\n</owls-batch>`))
+  assert.match(report('z'.repeat(2500)), /z{2000}… \(truncated, recall: ev_7\)\n<\/owls-batch>$/)
 })
 
 test('trimContext drops whole old segments and notes the current state', () => {

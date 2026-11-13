@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { type WorkerReport, workerReportSchema } from '../../shared/router.js'
+import { WORKER_SUMMARY_LIMIT, type WorkerReport, workerReportSchema } from '../../shared/router.js'
 
 const { $schema: _draft, ...reportJsonSchema } = z.toJSONSchema(
   z
@@ -24,8 +24,8 @@ export const WORKER_REPORT_JSON_SCHEMA: Record<string, unknown> = reportJsonSche
  * Reads a worker's report from the structured output (Claude Code) or the final
  * message text (Codex, Cursor). Agents without an output schema may wrap the
  * JSON in a fence or put text before it, so a trailing JSON object counts too.
- * Anything that does not match becomes a `progress` report holding the start
- * of the raw text, so the Router always gets an event.
+ * Anything that does not match becomes a `progress` report holding the raw
+ * text, so the Router always gets an event.
  */
 export function parseReport(
   structured: unknown,
@@ -47,7 +47,7 @@ export function parseReport(
     if (parsed.success) return { report: parsed.data, degraded: false }
   }
   return {
-    report: { status: 'progress', summary: trimmed.slice(0, 500), artifacts: [] },
+    report: { status: 'progress', summary: trimmed.slice(0, WORKER_SUMMARY_LIMIT), artifacts: [] },
     degraded: true
   }
 }
@@ -76,7 +76,10 @@ function clamp(value: unknown): unknown {
   const record = value as Record<string, unknown>
   return {
     ...record,
-    summary: typeof record.summary === 'string' ? record.summary.slice(0, 1000) : record.summary,
+    summary:
+      typeof record.summary === 'string'
+        ? record.summary.slice(0, WORKER_SUMMARY_LIMIT)
+        : record.summary,
     artifacts: Array.isArray(record.artifacts) ? record.artifacts.slice(0, 20) : record.artifacts
   }
 }
