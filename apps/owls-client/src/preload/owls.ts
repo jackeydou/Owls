@@ -38,6 +38,7 @@ const api: OwlsAPI = {
   gitHubSignOut: () => ipcRenderer.invoke('owls:github-sign-out'),
   watchWorkerGitHub: (input) => ipcRenderer.invoke('owls:github-watch-worker', input),
   unwatchWorkerGitHub: (input) => ipcRenderer.invoke('owls:github-unwatch-worker', input),
+  pullRequests: () => ipcRenderer.invoke('owls:github-pull-requests'),
   onEvent: (listener) => {
     const handler = (_: Electron.IpcRendererEvent, event: AppEvent) => listener(event)
     ipcRenderer.on('owls:event', handler)

@@ -1,5 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
 import { ExternalLinkIcon, LoaderIcon } from '@renderer/components/ui/icons'
+import { Select } from '@renderer/components/ui/select'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -10,6 +11,7 @@ import {
   type GitHubSignInFailure,
   gitHubTokenSchema
 } from '../../../shared/github'
+import { SettingRow } from './SettingRow'
 import { useAppStore } from './store'
 
 const METHODS: GitHubAuthMethod[] = ['app', 'gh-cli', 'token']
@@ -175,6 +177,31 @@ function TokenMethod({ account }: { account: GitHubAccount }) {
 
 const METHOD_BODIES = { app: AppMethod, 'gh-cli': CliMethod, token: TokenMethod }
 
+/** Whether the sidebar offers the Pull requests page. */
+function PullRequestsSetting() {
+  const { t } = useTranslation()
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
+  return (
+    <SettingRow
+      label={t('pulls.setting')}
+      htmlFor="github-pull-requests"
+      description={t('pulls.settingHelp')}
+    >
+      <Select
+        id="github-pull-requests"
+        value={settings.pullRequestsVisible ? 'show' : 'hide'}
+        onChange={(event) =>
+          void saveSettings({ ...settings, pullRequestsVisible: event.target.value === 'show' })
+        }
+      >
+        <option value="show">{t('pulls.setting.show')}</option>
+        <option value="hide">{t('pulls.setting.hide')}</option>
+      </Select>
+    </SettingRow>
+  )
+}
+
 export function GitHubSettingsPane() {
   const { t } = useTranslation()
   const account = useAppStore((s) => s.github)
@@ -215,6 +242,7 @@ export function GitHubSettingsPane() {
           )
         })}
       </div>
+      <PullRequestsSetting />
     </section>
   )
 }

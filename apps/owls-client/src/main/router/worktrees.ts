@@ -51,6 +51,8 @@ export interface WorkerWorkspaces {
   ): Promise<WorkerRemoteBranch | null>
   /** A repository's branches and remotes, for the project settings; null for no repository. */
   refs(projectPath: string): Promise<ProjectGitRefs | null>
+  /** The URL of the remote a project's workers push to; null without a repository or remote. */
+  remoteUrl(projectPath: string, git?: ProjectGitSettings): Promise<string | null>
 }
 
 /** For hosts without git worktrees: every worker runs in the project checkout. */
@@ -66,7 +68,8 @@ export const checkoutOnly: WorkerWorkspaces = {
   prune: async () => {},
   commitPaths: async () => [],
   remoteBranch: async () => null,
-  refs: async () => null
+  refs: async () => null,
+  remoteUrl: async () => null
 }
 
 /** Owls' own branch for a worker; the deliverable the user merges. */
@@ -279,6 +282,15 @@ export class GitWorkspaces implements WorkerWorkspaces {
     const ref = `refs/remotes/${remote}/${branch}`
     const pushed = await succeeds(path, ['rev-parse', '--verify', '--quiet', ref])
     return { remoteUrl, branch, pushed }
+  }
+
+  async remoteUrl(
+    projectPath: string,
+    settings: ProjectGitSettings = defaultProjectSettings.git
+  ): Promise<string | null> {
+    if (!existsSync(projectPath)) return null
+    const remote = settings.remote ?? DEFAULT_REMOTE
+    return git(projectPath, ['remote', 'get-url', remote], FETCH_TIMEOUT_MS).catch(() => null)
   }
 
   async refs(projectPath: string): Promise<ProjectGitRefs | null> {

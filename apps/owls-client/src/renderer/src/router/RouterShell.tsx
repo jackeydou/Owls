@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../app/failures'
 import { SettingsPage } from '../app/Settings'
 import { useAppStore } from '../app/store'
+import { PullRequestsView } from '../pulls/PullRequestsView'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
 import { ProjectsSidebar } from './ProjectsSidebar'
@@ -30,7 +31,10 @@ function Panel() {
 }
 /** The stage around the current view and its details panel, whose width it owns. */
 function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
-  const view = useAppStore((s) => s.view)
+  // Hiding the page in Settings returns to the thread instead of a page with no way back.
+  const view = useAppStore((s) =>
+    s.view === 'pulls' && !s.settings.pullRequestsVisible ? 'chat' : s.view
+  )
   const threadId = useAppStore((s) => s.threadId)
   const panelOpen = useRouterStore((s) => s.panel !== null)
   const { width, handle } = usePaneWidth('panel', 'left')
@@ -39,7 +43,13 @@ function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
       className={sidebarHidden ? 'router-stage sidebar-hidden' : 'router-stage'}
       style={{ '--owl-panel-width': `${width}px` } as React.CSSProperties}
     >
-      {view === 'map' ? <MapView /> : <RouterChat key={threadId ?? 'new'} />}
+      {view === 'map' ? (
+        <MapView />
+      ) : view === 'pulls' ? (
+        <PullRequestsView />
+      ) : (
+        <RouterChat key={threadId ?? 'new'} />
+      )}
       <Panel />
       {/* A sibling over the panel's left edge, so neither detail view has to carry it. */}
       {panelOpen ? <ResizeHandle {...handle} className="router-panel-resize" /> : null}

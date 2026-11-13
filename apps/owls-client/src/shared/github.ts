@@ -53,3 +53,25 @@ export type WorkerGitHubStatus =
   | { kind: 'no-pull-request'; branch: string }
   | { kind: 'pull-request'; pullRequest: WorkerPullRequest }
   | { kind: 'failed'; reason: 'rate-limited' | 'unavailable' }
+
+/** A pull request an agent opened, and the worker whose work it carries. */
+export type AgentPullRequest = WorkerPullRequest & {
+  workerId: string
+  branch: string
+  createdAt: string
+  updatedAt: string
+}
+/** One project's agent pull requests, or why they cannot be read. */
+export type ProjectPullRequestsStatus =
+  /** The project's repository is not on GitHub. */
+  | { kind: 'unsupported' }
+  | { kind: 'not-installed'; owner: string; name: string }
+  | { kind: 'no-access'; owner: string; name: string }
+  | { kind: 'failed'; reason: 'rate-limited' | 'unavailable' }
+  /** Newest activity first. */
+  | { kind: 'ready'; owner: string; name: string; pullRequests: AgentPullRequest[] }
+export type ProjectPullRequests = { projectId: string; status: ProjectPullRequestsStatus }
+export type PullRequestOverview =
+  | { kind: 'signed-out' }
+  /** Projects in the app's order. */
+  | { kind: 'ready'; projects: ProjectPullRequests[]; fetchedAt: string }

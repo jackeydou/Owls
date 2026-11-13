@@ -1,0 +1,1 @@
+- Pull requests: a new list shows every pull request agents opened across projects, with merge state, review, and CI status, filterable by merge state, checks, and project and sortable by what needs attention. (#81)

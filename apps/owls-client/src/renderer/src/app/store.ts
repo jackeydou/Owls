@@ -63,10 +63,13 @@ export type ProjectSettingsPage = (typeof projectSettingsPages)[number]
 type State = {
   loaded: boolean
   error: Failure | null
-  /** `chat` and `map` are the same space at two distances; `settings` replaces the whole window. */
-  view: 'chat' | 'map' | 'settings'
+  /**
+   * `chat` and `map` are the same space at two distances; `pulls` lists agents' pull
+   * requests; `settings` replaces the whole window.
+   */
+  view: 'chat' | 'map' | 'pulls' | 'settings'
   /** Where Settings returns to. */
-  lastView: 'chat' | 'map'
+  lastView: 'chat' | 'map' | 'pulls'
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
   /** The project and page shown while `settingsTab` is `project`. */
@@ -98,6 +101,7 @@ type State = {
   /** Opens a thread that exists once its first message is sent. */
   newThread(projectId?: string): void
   showMap(): void
+  showPullRequests(): void
   focusProject(projectId: string | null): void
   clearError(): void
   /** Opens the folder picker. Resolves to the project's id, or null when canceled. */
@@ -202,7 +206,8 @@ export const useAppStore = create<State>((set, get) => {
       router: defaultRouterSettings,
       memory: defaultMemorySettings,
       layout: defaultLayoutSettings,
-      updateChannel: null
+      updateChannel: null,
+      pullRequestsVisible: true
     },
     connection: {
       status: 'disconnected',
@@ -354,6 +359,7 @@ export const useAppStore = create<State>((set, get) => {
       if (view === 'chat') zoomBetweenViews('map', routerProjectId, show)
       else show()
     },
+    showPullRequests: () => set({ view: 'pulls', error: null }),
     focusProject: (projectId) => set({ routerProjectId: projectId }),
     clearError: () => set({ error: null }),
     pickProject: async () => {
@@ -440,7 +446,8 @@ export const useAppStore = create<State>((set, get) => {
           router: settings.router,
           memory: settings.memory,
           layout: settings.layout,
-          updateChannel: settings.updateChannel
+          updateChannel: settings.updateChannel,
+          pullRequestsVisible: settings.pullRequestsVisible
         })
       )
       if (saved) set({ settings: saved })

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { GitHubAccount, WorkerGitHubStatus } from './github.js'
+import type { GitHubAccount, PullRequestOverview, WorkerGitHubStatus } from './github.js'
 import {
   defaultMemorySettings,
   type MemoryCategoryAction,
@@ -213,7 +213,9 @@ export const settingsSchema = z.object({
   /** Pane widths and the Projects sidebar; also added after the first release. */
   layout: layoutSettingsSchema.default(defaultLayoutSettings),
   /** Null follows the installed build: a beta build gets beta updates, a stable one stable. */
-  updateChannel: updateChannelSchema.nullable().default(null)
+  updateChannel: updateChannelSchema.nullable().default(null),
+  /** Shows the Pull requests page in the sidebar; added later, so older rows show it. */
+  pullRequestsVisible: z.boolean().default(true)
 })
 export const projectSchema = z.object({
   id: z.string(),
@@ -379,6 +381,8 @@ export interface OwlsAPI {
   gitHubSignOut(): Promise<Reply<void>>
   watchWorkerGitHub(input: WorkerAction): Promise<Reply<void>>
   unwatchWorkerGitHub(input: WorkerAction): Promise<Reply<void>>
+  /** Every pull request agents opened, per project, read from GitHub now. */
+  pullRequests(): Promise<Reply<PullRequestOverview>>
   onEvent(listener: (event: AppEvent) => void): () => void
   memory: MemoryAPI
   updates: UpdatesAPI

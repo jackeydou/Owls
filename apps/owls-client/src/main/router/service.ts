@@ -2,6 +2,7 @@ import type {
   AppEvent,
   Failure,
   ForwardOrigin,
+  Project,
   Router,
   SessionItem,
   ThreadItem
@@ -461,6 +462,10 @@ export class RouterService implements TurnProfiles {
   /** A project repository's branches and remotes, for its settings page. */
   gitRefs(projectPath: string): Promise<ProjectGitRefs | null> {
     return this.workspaces.refs(projectPath)
+  }
+  /** The URL of the remote a project's workers push to, for finding their pull requests. */
+  projectRemoteUrl(project: Project): Promise<string | null> {
+    return this.workspaces.remoteUrl(project.path, project.settings.git)
   }
   linkPullRequest(workerId: string, link: WorkerPullRequestLink): void {
     this.pool.linkPullRequest(workerId, link)
