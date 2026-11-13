@@ -12,7 +12,7 @@ import { useCardsStore, watchCards } from '../cards/store'
 import { PullRequestsView } from '../pulls/PullRequestsView'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
-import { ProjectsSidebar } from './ProjectsSidebar'
+import { ProjectsSidebar, ProjectsToggle } from './ProjectsSidebar'
 import { usePaneWidth } from './pane-width'
 import { RouterChat } from './RouterChat'
 import { RouterDetail } from './RouterDetail'
@@ -33,7 +33,13 @@ function Panel() {
   return worker ? <WorkerDetail key={worker.id} worker={worker} /> : null
 }
 /** The stage around the current view and its details panel, whose width it owns. */
-function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
+function Stage({
+  sidebarHidden,
+  projectsHidden
+}: {
+  sidebarHidden: boolean
+  projectsHidden: boolean
+}) {
   // Hiding the page in Settings returns to the thread instead of a page with no way back.
   const view = useAppStore((s) =>
     s.view === 'pulls' && !s.settings.pullRequestsVisible ? 'chat' : s.view
@@ -43,7 +49,13 @@ function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
   const { width, handle } = usePaneWidth('panel', 'left')
   return (
     <div
-      className={sidebarHidden ? 'router-stage sidebar-hidden' : 'router-stage'}
+      className={[
+        'router-stage',
+        sidebarHidden ? 'sidebar-hidden' : null,
+        projectsHidden ? 'projects-hidden' : null
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={{ '--owl-panel-width': `${width}px` } as React.CSSProperties}
     >
       {view === 'map' ? (
@@ -151,10 +163,11 @@ export function RouterShell() {
   return (
     <>
       {collapsed ? null : <Sidebar />}
-      <Stage sidebarHidden={collapsed} />
+      <Stage sidebarHidden={collapsed} projectsHidden={!projectsOpen} />
       {projectsOpen ? <ProjectsSidebar /> : null}
-      {/* Stays after the stage: Chromium applies app regions in document order, whatever the
-          z-index, so a title bar later in the DOM would turn this button back into a drag area. */}
+      {/* The toggles stay after the stage and the sidebars: Chromium applies app regions in
+          document order, whatever the z-index, so a title bar later in the DOM would turn them
+          back into drag areas. */}
       <IconButton
         className="router-sidebar-toggle"
         label={sidebarLabel}
@@ -163,6 +176,7 @@ export function RouterShell() {
         icon={<SidebarLeftIcon size={18} />}
         onClick={toggleSidebar}
       />
+      <ProjectsToggle />
       <ForwardDialog />
       <CaptureDialog />
       <SendCardsDialog />

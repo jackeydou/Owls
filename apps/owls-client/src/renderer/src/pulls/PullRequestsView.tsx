@@ -28,7 +28,6 @@ import { OwlAvatar } from '../app/OwlAvatar'
 import { useAppStore } from '../app/store'
 import { projectHue, workerTitle } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
-import { ProjectsToggle } from '../router/ProjectsSidebar'
 import { useRouterStore } from '../router/store'
 import { pullRequestRows, usePullRequestsStore, watchPullRequests } from './store'
 import './pulls.css'
@@ -302,7 +301,6 @@ export function PullRequestsView() {
             pending={loading}
             onAction={refresh}
           />
-          <ProjectsToggle />
         </div>
       </header>
       <div className="pulls-body">
