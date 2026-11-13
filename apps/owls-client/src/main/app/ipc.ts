@@ -2,7 +2,12 @@ import { writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } from 'electron'
 import { z } from 'zod'
-import { type Reply, respondSchema, settingsUpdateSchema } from '../../shared/app.js'
+import {
+  type AppSettings,
+  type Reply,
+  respondSchema,
+  settingsUpdateSchema
+} from '../../shared/app.js'
 import { gitHubTokenSchema } from '../../shared/github.js'
 import {
   memoryCategoryActionSchema,
@@ -40,7 +45,8 @@ const executableFolder = (path: string | null) => (path ? dirname(path) : app.ge
 export function registerIpc(
   host: OwlsHost,
   getWindow: () => BrowserWindow | null,
-  updates: Pick<AppUpdater, 'snapshot' | 'check' | 'install' | 'channelChanged'>
+  updates: Pick<AppUpdater, 'snapshot' | 'check' | 'install' | 'channelChanged'>,
+  settingsSaved: (settings: AppSettings, previous: AppSettings) => void
 ): void {
   let lastProjectParent = app.getPath('home')
   function handle<T>(channel: string, action: (input: unknown) => T | Promise<T>): void {
@@ -77,6 +83,7 @@ export function registerIpc(
     const saved = host.saveSettings({ ...previous, ...settingsUpdateSchema.parse(input) })
     if (saved.appLogo !== previous.appLogo) applyAppLogo(saved.appLogo, getWindow())
     if (saved.updateChannel !== previous.updateChannel) updates.channelChanged()
+    settingsSaved(saved, previous)
     return saved
   })
   handle('respond', (input) => host.respond(respondSchema.parse(input)))

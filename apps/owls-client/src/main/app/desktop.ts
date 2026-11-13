@@ -38,6 +38,7 @@ import { AppUpdater } from '../updates/updater.js'
 import { applyAppLogo } from './app-logo.js'
 import { OwlsHost } from './host.js'
 import { registerIpc } from './ipc.js'
+import { applyAppMenu, type MenuDeps } from './menu.js'
 import { OwlsStore } from './store.js'
 
 const profile = configureDevAppInstanceProfile()
@@ -252,7 +253,26 @@ void app
         return true
       }
     })
-    registerIpc(service, () => window, updater)
+    const menu: MenuDeps = {
+      window: () => {
+        if (!window) createWindow()
+        return window
+      },
+      checkForUpdates: () => void updater?.check()
+    }
+    registerIpc(
+      service,
+      () => window,
+      updater,
+      (saved, previous) => {
+        if (
+          saved.language !== previous.language ||
+          saved.pullRequestsVisible !== previous.pullRequestsVisible
+        )
+          applyAppMenu(saved, menu)
+      }
+    )
+    applyAppMenu(store.settings(), menu)
     createWindow()
     updater.start()
     void service.connect()

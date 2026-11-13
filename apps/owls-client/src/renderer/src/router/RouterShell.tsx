@@ -74,6 +74,8 @@ function ActionError() {
     </div>
   )
 }
+/** Keys whose ⌘ shortcuts the macOS application menu owns there; see main/app/menu.ts. */
+const MENU_SHORTCUTS = new Set(window.owlsPlatform === 'darwin' ? [',', 'b', 'n', 'j'] : [])
 /** Backs out one level at a time: Settings, then details, then the map. */
 function stepBack() {
   const { panel, showPanel } = useRouterStore.getState()
@@ -93,6 +95,7 @@ export function RouterShell() {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()
       if (!(event.metaKey || event.ctrlKey)) return
+      if (MENU_SHORTCUTS.has(event.key.toLowerCase())) return
       const { view, showMap, showChat, showSettings, toggleSidebar, newThread } =
         useAppStore.getState()
       if (event.key === ',') {

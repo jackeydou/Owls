@@ -12,6 +12,7 @@ import {
   type MemoryView,
   memorySettingsSchema
 } from './memory.js'
+import type { MenuCommand } from './menu.js'
 import {
   type CloneProject,
   type CreateProject,
@@ -384,6 +385,8 @@ export interface OwlsAPI {
   /** Every pull request agents opened, per project, read from GitHub now. */
   pullRequests(): Promise<Reply<PullRequestOverview>>
   onEvent(listener: (event: AppEvent) => void): () => void
+  /** Commands chosen in the native application menu (macOS). */
+  onMenuCommand(listener: (command: MenuCommand) => void): () => void
   memory: MemoryAPI
   updates: UpdatesAPI
 }

@@ -30,7 +30,7 @@ import { useRouterStore } from './store'
 /** Projects offered under Recents; the rest are in the sidebar list. */
 const RECENT_LIMIT = 5
 
-type Source = 'github' | 'quick'
+export type NewProjectSource = 'github' | 'quick'
 
 /** Projects by their latest thread activity, most recent first; untouched ones last. */
 function useRecentProjects() {
@@ -63,10 +63,10 @@ export function AddProjectMenu() {
   const pickProject = useAppStore((s) => s.pickProject)
   const showChat = useAppStore((s) => s.showChat)
   const recents = useRecentProjects()
-  const [source, setSource] = useState<Source | null>(null)
+  const [source, setSource] = useState<NewProjectSource | null>(null)
   // A form opening from the menu keeps its focus instead of returning it to the button.
   const keepFocus = useRef(false)
-  const open = (next: Source) => {
+  const open = (next: NewProjectSource) => {
     keepFocus.current = true
     setSource(next)
   }
@@ -121,8 +121,14 @@ export function AddProjectMenu() {
   )
 }
 
-/** The form behind "Open GitHub project" and "Quick start". */
-function NewProjectDialog({ source, onClose }: { source: Source; onClose: () => void }) {
+/** The form behind "Open GitHub project" and "Quick start", also opened from the app menu. */
+export function NewProjectDialog({
+  source,
+  onClose
+}: {
+  source: NewProjectSource
+  onClose: () => void
+}) {
   const { t } = useTranslation()
   const projectsFolder = useAppStore((s) => s.projectsFolder)
   const chooseProjectsFolder = useAppStore((s) => s.chooseProjectsFolder)
