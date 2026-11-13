@@ -65,11 +65,12 @@ type State = {
   error: Failure | null
   /**
    * `chat` and `map` are the same space at two distances; `cards` is the user's
-   * knowledge library and boards; `settings` replaces the whole window.
+   * knowledge library and boards; `pulls` lists agents' pull requests; `settings`
+   * replaces the whole window.
    */
-  view: 'chat' | 'map' | 'cards' | 'settings'
+  view: 'chat' | 'map' | 'cards' | 'pulls' | 'settings'
   /** Where Settings returns to. */
-  lastView: 'chat' | 'map' | 'cards'
+  lastView: 'chat' | 'map' | 'cards' | 'pulls'
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
   /** The project and page shown while `settingsTab` is `project`. */
@@ -102,6 +103,7 @@ type State = {
   newThread(projectId?: string): void
   showMap(): void
   showCards(): void
+  showPullRequests(): void
   focusProject(projectId: string | null): void
   clearError(): void
   /** Opens the folder picker. Resolves to the project's id, or null when canceled. */
@@ -206,7 +208,8 @@ export const useAppStore = create<State>((set, get) => {
       router: defaultRouterSettings,
       memory: defaultMemorySettings,
       layout: defaultLayoutSettings,
-      updateChannel: null
+      updateChannel: null,
+      pullRequestsVisible: true
     },
     connection: {
       status: 'disconnected',
@@ -359,6 +362,7 @@ export const useAppStore = create<State>((set, get) => {
       else show()
     },
     showCards: () => set({ view: 'cards', error: null }),
+    showPullRequests: () => set({ view: 'pulls', error: null }),
     focusProject: (projectId) => set({ routerProjectId: projectId }),
     clearError: () => set({ error: null }),
     pickProject: async () => {
@@ -445,7 +449,8 @@ export const useAppStore = create<State>((set, get) => {
           router: settings.router,
           memory: settings.memory,
           layout: settings.layout,
-          updateChannel: settings.updateChannel
+          updateChannel: settings.updateChannel,
+          pullRequestsVisible: settings.pullRequestsVisible
         })
       )
       if (saved) set({ settings: saved })

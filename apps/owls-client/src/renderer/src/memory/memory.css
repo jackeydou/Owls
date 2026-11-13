@@ -80,7 +80,7 @@
   gap: 8px;
   min-width: 0;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-xs);
   font-size: var(--owl-text-sm);
   text-align: left;
 }
@@ -223,7 +223,7 @@
   width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--owl-radius-sm);
   background: transparent;
   font-size: var(--owl-text-sm);
   line-height: var(--owl-leading-normal);
@@ -294,7 +294,7 @@
 .memory-dialog-quote {
   margin-bottom: 12px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card-muted);
   white-space: pre-wrap;
 }

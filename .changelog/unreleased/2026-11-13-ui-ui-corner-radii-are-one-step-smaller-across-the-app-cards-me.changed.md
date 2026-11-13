@@ -1,0 +1,1 @@
+- UI: corner radii are one step smaller across the app (cards, menus, dialogs, inputs, buttons, composer). (#82)

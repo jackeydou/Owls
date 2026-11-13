@@ -23,7 +23,7 @@ export function Dialog({
     <dialog
       ref={ref}
       className={cn(
-        'm-auto w-[min(480px,calc(100vw-48px))] [-webkit-app-region:no-drag] rounded-xl border border-border bg-card p-5 text-foreground shadow-lg backdrop:bg-black/30',
+        'm-auto w-[min(480px,calc(100vw-48px))] [-webkit-app-region:no-drag] rounded-(--owl-radius-md) border border-border bg-card p-5 text-foreground shadow-lg backdrop:bg-black/30',
         className
       )}
       onCancel={(event) => {

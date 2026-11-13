@@ -70,7 +70,7 @@
   width: 100%;
   height: 30px;
   padding: 0 8px;
-  border-radius: 4px;
+  border-radius: var(--owl-radius-xs);
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-sm);
   text-align: left;
@@ -166,7 +166,7 @@
   max-width: 320px;
   padding: 3px 6px;
   margin: 0 -6px;
-  border-radius: 4px;
+  border-radius: var(--owl-radius-xs);
   background: transparent;
   font-size: var(--owl-text-sm);
   font-weight: 600;
@@ -183,7 +183,7 @@
   width: 200px;
   height: 30px;
   padding: 0 8px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
   color: var(--color-muted-foreground);
   transition: background 120ms;
 }
@@ -208,7 +208,7 @@
   gap: 8px;
   margin: 0 20px 8px;
   padding: 6px 6px 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
   background: color-mix(in oklch, var(--color-destructive) 10%, transparent);
   color: var(--color-destructive);
   font-size: var(--owl-text-xs);
@@ -292,7 +292,7 @@
   flex-direction: column;
   gap: 6px;
   padding: 14px 16px 12px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card);
   box-shadow: var(--owl-card-shadow);
   transition: box-shadow 120ms;
@@ -421,7 +421,7 @@
   min-width: 0;
   height: 26px;
   padding: 0 8px;
-  border-radius: 4px;
+  border-radius: var(--owl-radius-xs);
   background: transparent;
   font-size: var(--owl-text-xs);
   outline: none;
@@ -452,7 +452,7 @@
 .card-editor-read > button {
   position: absolute;
   inset: -6px -10px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
   cursor: text;
 }
 .card-menu-source {
@@ -497,7 +497,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 16px 18px 14px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card);
   box-shadow: var(--owl-card-shadow);
   cursor: default;
@@ -551,7 +551,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 6px;
-  border-radius: 10px;
+  border-radius: var(--owl-radius-lg);
   transform: translateY(-50%);
 }
 .board-rail button[aria-pressed="true"] {
@@ -569,7 +569,7 @@
   width: 260px;
   padding: 8px 6px;
   overflow-y: auto;
-  border-radius: 10px;
+  border-radius: var(--owl-radius-lg);
 }
 .board-tray header {
   display: flex;
@@ -587,7 +587,7 @@
   gap: 4px;
   height: 32px;
   padding: 0 2px 0 10px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
   font-size: var(--owl-text-xs);
   cursor: grab;
 }
@@ -616,7 +616,7 @@
   gap: 2px;
   height: 40px;
   padding: 0 6px;
-  border-radius: 8px;
+  border-radius: var(--owl-radius-md);
   color: var(--color-foreground);
 }
 .board-zoom button {
@@ -624,7 +624,7 @@
   place-items: center;
   min-width: 30px;
   height: 30px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
 }
 .board-zoom button:hover {
   background: var(--color-sidebar-hover);
@@ -674,7 +674,7 @@
   height: 26px;
   padding: 0 4px 0 8px;
   border: 1px solid var(--owl-card-chip-border);
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
   background: var(--owl-card-chip);
   color: var(--color-foreground);
   font-size: var(--owl-text-2xs);
@@ -712,7 +712,7 @@
   height: 32px;
   padding: 0 10px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card);
   color: var(--color-foreground);
   font-size: var(--owl-text-xs);
@@ -735,7 +735,7 @@
   display: -webkit-box;
   overflow: hidden;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: var(--owl-radius-sm);
   background: var(--color-card-muted);
   font-size: var(--owl-text-sm);
   line-height: var(--owl-leading-normal);

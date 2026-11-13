@@ -21,7 +21,7 @@ import type {
   cardCaptureSchema,
   cardSaveSchema
 } from '../../shared/cards.js'
-import type { GitHubAccount } from '../../shared/github.js'
+import type { GitHubAccount, PullRequestOverview } from '../../shared/github.js'
 import type {
   MemoryCategoryAction,
   MemoryExportFormat,
@@ -56,6 +56,7 @@ import type { DreamingRunner } from '../memory/dreaming.js'
 import type { MemoryService } from '../memory/service.js'
 import type { MemorySweeper } from '../memory/sweep.js'
 import type { DreamingTriggers } from '../memory/triggers.js'
+import type { ProjectPullRequests } from '../router/project-pull-requests.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
 import { OwlsError } from './errors.js'
@@ -71,7 +72,11 @@ type BoardSaveInput = z.infer<typeof boardSaveSchema>
  */
 export class OwlsHost {
   private router: RouterService | null = null
-  private github: { auth: GitHubAuth; workers: WorkerGitHub } | null = null
+  private github: {
+    auth: GitHubAuth
+    workers: WorkerGitHub
+    pullRequests: ProjectPullRequests
+  } | null = null
   private memory: {
     service: MemoryService
     dreaming: DreamingRunner
@@ -91,7 +96,7 @@ export class OwlsHost {
     this.codex.setTurnProfiles(router)
     this.claude.setTurnProfiles(router)
   }
-  attachGitHub(github: { auth: GitHubAuth; workers: WorkerGitHub }): void {
+  attachGitHub(github: NonNullable<OwlsHost['github']>): void {
     this.github = github
   }
   attachMemory(memory: NonNullable<OwlsHost['memory']>): void {
@@ -229,6 +234,9 @@ export class OwlsHost {
   }
   unwatchWorkerGitHub(input: WorkerAction): void {
     this.requireGitHub().workers.unwatch(input)
+  }
+  pullRequests(): Promise<PullRequestOverview> {
+    return this.requireGitHub().pullRequests.read()
   }
   memoryList(input: MemoryListRequest): MemoryView[] {
     return this.requireMemory().service.list(input)

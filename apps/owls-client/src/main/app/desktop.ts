@@ -31,6 +31,7 @@ import {
   dreamingEngineFactory,
   type EngineDeps
 } from '../router/engines/factory.js'
+import { ProjectPullRequests } from '../router/project-pull-requests.js'
 import { RouterService } from '../router/service.js'
 import { RouterStore } from '../router/store.js'
 import { WorkerGitHub } from '../router/worker-github.js'
@@ -40,6 +41,7 @@ import { applyAppLogo } from './app-logo.js'
 import { OwlsError } from './errors.js'
 import { OwlsHost } from './host.js'
 import { registerIpc } from './ipc.js'
+import { applyAppMenu, type MenuDeps } from './menu.js'
 import { OwlsStore } from './store.js'
 
 const profile = configureDevAppInstanceProfile()
@@ -247,7 +249,17 @@ void app
     const workerGitHub: WorkerGitHub = new WorkerGitHub(router, github, (workerId, status) =>
       emit({ type: 'worker-github', workerId, status })
     )
-    service.attachGitHub({ auth: github, workers: workerGitHub })
+    const pullRequests = new ProjectPullRequests(
+      {
+        projects,
+        workers: () => router?.snapshot().workers ?? [],
+        projectRemoteUrl: async (project) => (await router?.projectRemoteUrl(project)) ?? null,
+        remoteBranch: async (workerId) => (await router?.remoteBranch(workerId)) ?? null,
+        linkPullRequest: (workerId, link) => router?.linkPullRequest(workerId, link)
+      },
+      github
+    )
+    service.attachGitHub({ auth: github, workers: workerGitHub, pullRequests })
     void github.load()
     updater = new AppUpdater({
       savedChannel: () => store.settings().updateChannel,
@@ -258,7 +270,26 @@ void app
         return true
       }
     })
-    registerIpc(service, () => window, updater)
+    const menu: MenuDeps = {
+      window: () => {
+        if (!window) createWindow()
+        return window
+      },
+      checkForUpdates: () => void updater?.check()
+    }
+    registerIpc(
+      service,
+      () => window,
+      updater,
+      (saved, previous) => {
+        if (
+          saved.language !== previous.language ||
+          saved.pullRequestsVisible !== previous.pullRequestsVisible
+        )
+          applyAppMenu(saved, menu)
+      }
+    )
+    applyAppMenu(store.settings(), menu)
     createWindow()
     updater.start()
     void service.connect()

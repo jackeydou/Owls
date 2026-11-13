@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { RouterShell } from '../router/RouterShell'
 import { UpdatePopup } from '../updates/UpdatePopup'
 import { failureMessage } from './failures'
+import { MenuCommands } from './MenuCommands'
 import { useAppStore } from './store'
 import './app.css'
 
@@ -42,6 +43,7 @@ export default function App() {
           {t('loading')}
         </main>
       )}
+      {loaded ? <MenuCommands /> : null}
       {loaded ? <UpdatePopup /> : null}
       {error ? (
         <div className="owls-error-toast" role="alert">

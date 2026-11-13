@@ -9,6 +9,7 @@ import { useAppStore } from '../app/store'
 import { CaptureDialog, SendCardsDialog } from '../cards/CardDialogs'
 import { CardsView } from '../cards/CardsView'
 import { useCardsStore, watchCards } from '../cards/store'
+import { PullRequestsView } from '../pulls/PullRequestsView'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
 import { ProjectsSidebar } from './ProjectsSidebar'
@@ -33,7 +34,10 @@ function Panel() {
 }
 /** The stage around the current view and its details panel, whose width it owns. */
 function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
-  const view = useAppStore((s) => s.view)
+  // Hiding the page in Settings returns to the thread instead of a page with no way back.
+  const view = useAppStore((s) =>
+    s.view === 'pulls' && !s.settings.pullRequestsVisible ? 'chat' : s.view
+  )
   const threadId = useAppStore((s) => s.threadId)
   const panelOpen = useRouterStore((s) => s.panel !== null)
   const { width, handle } = usePaneWidth('panel', 'left')
@@ -46,6 +50,8 @@ function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
         <MapView />
       ) : view === 'cards' ? (
         <CardsView />
+      ) : view === 'pulls' ? (
+        <PullRequestsView />
       ) : (
         <RouterChat key={threadId ?? 'new'} />
       )}
@@ -73,6 +79,8 @@ function ActionError() {
     </div>
   )
 }
+/** Keys whose ⌘ shortcuts the macOS application menu owns there; see main/app/menu.ts. */
+const MENU_SHORTCUTS = new Set(window.owlsPlatform === 'darwin' ? [',', 'b', 'n', 'j', 'k'] : [])
 /** Backs out one level at a time: Settings, then details, then the map. */
 function stepBack() {
   const { panel, showPanel } = useRouterStore.getState()
@@ -102,6 +110,7 @@ export function RouterShell() {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()
       if (!(event.metaKey || event.ctrlKey)) return
+      if (MENU_SHORTCUTS.has(event.key.toLowerCase())) return
       const { view, showMap, showChat, showCards, showSettings, toggleSidebar, newThread } =
         useAppStore.getState()
       if (event.key === ',') {

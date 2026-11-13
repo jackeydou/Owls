@@ -43,7 +43,7 @@ export const MenuContent = forwardRef<
           sideOffset={sideOffset}
           collisionPadding={collisionPadding}
           className={cn(
-            'z-[90] min-w-[220px] [-webkit-app-region:no-drag] max-w-[320px] rounded-xl border border-border/70 bg-card p-1 text-(length:--owl-text-sm) text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
+            'z-[90] min-w-[220px] [-webkit-app-region:no-drag] max-w-[320px] rounded-(--owl-radius-md) border border-border/70 bg-card p-1 text-(length:--owl-text-sm) text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
             className
           )}
           onPointerDown={(event) => {
@@ -73,7 +73,7 @@ export const MenuItem = forwardRef<
   <DropdownMenu.Item
     ref={ref}
     className={cn(
-      'flex h-8 cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 outline-none data-[disabled]:pointer-events-none data-[highlighted]:bg-card-muted data-[disabled]:opacity-50 [&_svg]:shrink-0 [&_svg]:text-muted-foreground',
+      'flex h-8 cursor-default select-none items-center gap-2.5 rounded-(--owl-radius-xs) px-2.5 outline-none data-[disabled]:pointer-events-none data-[highlighted]:bg-card-muted data-[disabled]:opacity-50 [&_svg]:shrink-0 [&_svg]:text-muted-foreground',
       className
     )}
     {...props}
