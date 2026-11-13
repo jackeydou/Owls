@@ -11,6 +11,22 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1300-beta.1
+
+### Highlights
+
+- Worker reports reach the Router in full instead of being cut off at 1,000 characters.
+- The Router thread has room below the message box, so a sent message moves to the top of the view.
+
+### Changes
+
+- Router: the thread scrolls past its end so the message box can sit at the top, and a sent message moves to the top of the view. (#95)
+
+### Fixes
+
+- Router: worker reports are no longer silently cut at 1,000 characters; the batch shows up to 2,000 and recall returns the rest. (#93)
+- Workers: the Open in menu shows each app's real icon instead of a generic placeholder. (#94)
+
 ## 2026.11.1200-beta.3
 
 ### Highlights
