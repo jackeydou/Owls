@@ -39,6 +39,7 @@ import {
   workerActionSchema
 } from '../../shared/router.js'
 import type { AppUpdater } from '../updates/updater.js'
+import { macAppIcon } from './app-icon.js'
 import { applyAppLogo } from './app-logo.js'
 import { toFailure } from './errors.js'
 import type { OwlsHost } from './host.js'
@@ -57,12 +58,7 @@ export function registerIpc(
   settingsSaved: (settings: AppSettings, previous: AppSettings) => void
 ): void {
   let lastProjectParent = app.getPath('home')
-  const openIn = new OpenInApps(
-    nodeOpenInPlatform(async (path) => {
-      const icon = await app.getFileIcon(path, { size: 'normal' })
-      return icon.isEmpty() ? null : icon.toDataURL()
-    })
-  )
+  const openIn = new OpenInApps(nodeOpenInPlatform(macAppIcon))
   function handle<T>(channel: string, action: (input: unknown) => T | Promise<T>): void {
     ipcMain.handle(
       `owls:${channel}`,

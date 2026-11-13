@@ -3,7 +3,12 @@ import { createRequire } from 'node:module'
 import test from 'node:test'
 
 const require = createRequire(import.meta.url)
-const { OPEN_IN_CATALOG, OpenInApps, settingsSchema } = require('../../out/main/app/runtime.js')
+const {
+  bundleIconFile,
+  OPEN_IN_CATALOG,
+  OpenInApps,
+  settingsSchema
+} = require('../../out/main/app/runtime.js')
 
 /** A fake Mac: `files` are the app bundles on disk, `spotlight` maps bundle ids to paths. */
 function fakeMac({ files = [], spotlight = {}, folders = ['/repo'], platform = 'darwin' } = {}) {
@@ -83,4 +88,13 @@ test('saved settings without a choice, or with an unknown app, fall back to none
   assert.equal(field.parse(undefined), null)
   assert.equal(field.parse('notepad'), null)
   assert.equal(field.parse('zed'), 'zed')
+})
+
+test('the icon file comes from the bundle Info.plist, with .icns added when it is left out', () => {
+  assert.equal(bundleIconFile({ CFBundleIconFile: 'Cursor.icns' }), 'Cursor.icns')
+  assert.equal(bundleIconFile({ CFBundleIconFile: 'AppIcon' }), 'AppIcon.icns')
+  assert.equal(bundleIconFile({ CFBundleIconName: 'AppIcon' }), null)
+  assert.equal(bundleIconFile({ CFBundleIconFile: '../../etc/x' }), null)
+  assert.equal(bundleIconFile({ CFBundleIconFile: '' }), null)
+  assert.equal(bundleIconFile(null), null)
 })

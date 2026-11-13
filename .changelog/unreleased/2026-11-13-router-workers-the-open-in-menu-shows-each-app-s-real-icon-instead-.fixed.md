@@ -1,0 +1,1 @@
+- Workers: the Open in menu shows each app's real icon instead of a generic placeholder.
