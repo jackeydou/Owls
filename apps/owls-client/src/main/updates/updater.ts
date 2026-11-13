@@ -11,7 +11,7 @@ import {
 } from '../../shared/updates.js'
 
 const FIRST_CHECK_DELAY_MS = 30_000
-const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000
+const CHECK_INTERVAL_MS = 2 * 60 * 60 * 1000
 const FEED_TIMEOUT_MS = 30_000
 
 export type AppUpdaterDeps = {
