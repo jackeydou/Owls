@@ -1,7 +1,7 @@
 import { ActionButton, ActionIconButton } from '@renderer/components/ui/action-button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { AlertCircleIcon, ForwardIcon, LoaderIcon, StopIcon } from '@renderer/components/ui/icons'
-import { type ReactNode, useEffect, useMemo, useRef } from 'react'
+import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router, SessionItem } from '../../../shared/app'
 import { ConversationItem } from '../app/Conversation'
@@ -96,6 +96,29 @@ function DirectedMessage({ item }: { item: SessionItem }) {
     </>
   )
 }
+/** Room left above the editor when it is scrolled to the top. */
+const TAIL_GAP = 16
+/** How close to the natural end still counts as following the thread. */
+const FOLLOW_SLACK = 120
+
+/**
+ * The spacer below the thread is sized so the editor's top can reach the top of the view,
+ * pushing the history out of sight. The "natural end" is the scroll position where the
+ * editor's bottom meets the view's bottom; anything past it is spacer.
+ */
+function naturalEnd(scroller: HTMLElement, spacer: HTMLElement) {
+  return Math.max(0, scroller.scrollHeight - scroller.clientHeight - spacer.offsetHeight)
+}
+function sizeSpacer(scroller: HTMLElement, content: HTMLElement, spacer: HTMLElement) {
+  const editor = content.querySelector<HTMLElement>('.router-editor')
+  if (!editor) {
+    spacer.style.height = '0px'
+    return
+  }
+  const below = content.getBoundingClientRect().bottom - editor.getBoundingClientRect().top
+  spacer.style.height = `${Math.max(0, Math.round(scroller.clientHeight - below - TAIL_GAP))}px`
+}
+
 /** A focused editor under the rest; a click on the page's blank space lands there. */
 function focusEditor(scroller: HTMLElement) {
   if (!window.getSelection()?.isCollapsed) return
@@ -123,20 +146,65 @@ export function RouterTimeline({
   )
   const scroll = useRef<HTMLDivElement>(null)
   const content = useRef<HTMLDivElement>(null)
+  const spacer = useRef<HTMLDivElement>(null)
   const nearBottom = useRef(true)
+  /** Set while a smooth scroll to a just-sent message runs, so following does not cut it off. */
+  const pinning = useRef(false)
   const running = router?.status === 'running'
   const last = entries.at(-1)
   const lastEntrySpeaker = last ? speakerOf(last) : null
   // Watches the size, not the entries: streaming, the tray, and the draft all grow the thread.
+  // Following keeps the editor in view: past the natural end (history scrolled away) the view
+  // stays put while a reply grows above the editor, until the editor reaches the bottom.
   useEffect(() => {
     const scroller = scroll.current
-    if (!scroller || !content.current) return
+    const body = content.current
+    const tail = spacer.current
+    if (!scroller || !body || !tail) return
     const observer = new ResizeObserver(() => {
-      if (nearBottom.current) scroller.scrollTop = scroller.scrollHeight
+      sizeSpacer(scroller, body, tail)
+      if (!nearBottom.current || pinning.current) return
+      const end = naturalEnd(scroller, tail)
+      if (scroller.scrollTop < end) scroller.scrollTop = end
     })
-    observer.observe(content.current)
+    observer.observe(body)
+    observer.observe(scroller)
     return () => observer.disconnect()
   }, [])
+  // A message the user just sent moves to the top, so the reply has the whole view below it.
+  const routerId = router?.id
+  const lastUser = [...entries].reverse().find((entry) => speakerOf(entry) === 'user')?.id
+  const seen = useRef<{ routerId: string | undefined; lastUser: string | undefined } | null>(null)
+  useLayoutEffect(() => {
+    const previous = seen.current
+    seen.current = loaded ? { routerId, lastUser } : null
+    const scroller = scroll.current
+    const tail = spacer.current
+    if (!previous || previous.routerId !== routerId || !lastUser || previous.lastUser === lastUser)
+      return
+    const row = scroller?.querySelector<HTMLElement>(`[data-entry-id="${CSS.escape(lastUser)}"]`)
+    if (!scroller || !tail || !content.current || !row) return
+    sizeSpacer(scroller, content.current, tail)
+    const top =
+      scroller.scrollTop +
+      row.getBoundingClientRect().top -
+      scroller.getBoundingClientRect().top -
+      TAIL_GAP
+    pinning.current = true
+    nearBottom.current = true
+    const done = () => {
+      pinning.current = false
+      scroller.removeEventListener('scrollend', done)
+    }
+    scroller.addEventListener('scrollend', done)
+    scroller.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' })
+    // No scroll happens when the row is already in place, so no scrollend either.
+    const fallback = window.setTimeout(done, 1000)
+    return () => {
+      window.clearTimeout(fallback)
+      done()
+    }
+  }, [routerId, lastUser, loaded])
   return (
     <RouterIdContext.Provider value={router?.id ?? null}>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: a pointer shortcut; Tab reaches the editor. */}
@@ -146,10 +214,15 @@ export function RouterTimeline({
         ref={scroll}
         onScroll={() => {
           const el = scroll.current
-          if (el) nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120
+          if (el && spacer.current)
+            nearBottom.current = el.scrollTop >= naturalEnd(el, spacer.current) - FOLLOW_SLACK
         }}
         onClick={(event) => {
-          if (event.target === scroll.current || event.target === content.current)
+          if (
+            event.target === scroll.current ||
+            event.target === content.current ||
+            event.target === spacer.current
+          )
             focusEditor(event.currentTarget)
         }}
       >
@@ -177,6 +250,7 @@ export function RouterTimeline({
             return (
               <ThreadRow
                 key={entry.id}
+                entryId={entry.id}
                 speaker={speaker}
                 follows={Boolean(previous) && speakerOf(previous) === speaker}
               >
@@ -248,6 +322,7 @@ export function RouterTimeline({
           ) : null}
           {editor}
         </div>
+        <div className="router-tail-space" ref={spacer} aria-hidden="true" />
       </div>
     </RouterIdContext.Provider>
   )

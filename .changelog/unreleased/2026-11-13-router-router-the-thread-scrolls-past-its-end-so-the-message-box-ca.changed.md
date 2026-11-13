@@ -1,0 +1,1 @@
+- Router: the thread scrolls past its end so the message box can sit at the top, and a sent message moves to the top of the view.
