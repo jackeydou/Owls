@@ -23,6 +23,12 @@
   --owl-radius-md: 8px;
   --owl-radius-lg: 10px;
   --owl-radius-xl: 12px;
+  /* Focus. Never the browser's default black ring: keyboard focus gets a soft
+     foreground-tinted outline, and text fields show focus on their own border
+     or wrapper (see the base focus rules in assets/main.css). */
+  --owl-focus-ring: color-mix(in srgb, var(--color-foreground) 22%, transparent);
+  --owl-field-focus-border: color-mix(in srgb, var(--color-foreground) 30%, transparent);
+  --owl-field-focus-shadow: 0 0 0 3px color-mix(in srgb, var(--color-foreground) 8%, transparent);
   /* Links in agent Markdown. Worker links are status tags (router.css), not these. */
   --owl-link: #0b6bcb;
   --owl-link-hover: #0853a0;
@@ -162,13 +168,6 @@
   align-items: center;
   gap: 12px;
   color: var(--color-muted-foreground);
-}
-.owls-app button:focus-visible,
-.owls-app input:focus-visible,
-.owls-app textarea:focus-visible,
-.owls-activity summary:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
 }
 @media (prefers-reduced-motion: reduce) {
   .owls-app .animate-spin {

@@ -231,7 +231,8 @@
   outline: none;
 }
 .memory-editor textarea:focus-visible {
-  border-color: var(--color-accent);
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
 }
 .memory-editor-bar {
   display: flex;
