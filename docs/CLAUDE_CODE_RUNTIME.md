@@ -59,6 +59,12 @@ tools and approval prompts. `bypassPermissions` is never used.
 card whose answers return as `updatedInput.answers` keyed by question text.
 Subagent messages (`parent_tool_use_id`) are not shown in the parent task.
 
+Router worker turns also get an in-process MCP server named `owls` with one
+tool, `report` (`mcp__owls__report`), through which the worker reports to the
+Router. `canUseTool` approves it without a card; it is not listed in
+`allowedTools`, because the SDK warns on every query that a bare entry there
+shadows the callback.
+
 ## Recovery
 
 A turn releases its task at its result, so follow-up messages never race the

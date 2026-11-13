@@ -16,6 +16,7 @@ import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
 import { turnDiff } from '../claude/normalize.js'
 import { recordSchema, safeText, string } from '../codex/protocol.js'
+import { REPORT_SERVER_NAME } from '../router/report.js'
 import type { TurnProfiles } from '../router/service.js'
 import { AcpConnection, AcpReplyError, METHOD_NOT_FOUND } from './acp.js'
 import { discoverCursorExecutable } from './discovery.js'
@@ -48,6 +49,11 @@ const initializeSchema = z.object({
   agentCapabilities: z
     .object({
       loadSession: z.boolean().catch(false).default(false),
+      mcpCapabilities: z
+        .object({ http: z.boolean().catch(false).default(false) })
+        .loose()
+        .catch({ http: false })
+        .default({ http: false }),
       sessionCapabilities: z
         .object({ systemPrompt: z.unknown().optional() })
         .loose()
@@ -55,8 +61,8 @@ const initializeSchema = z.object({
         .default({})
     })
     .loose()
-    .catch({ loadSession: false, sessionCapabilities: {} })
-    .default({ loadSession: false, sessionCapabilities: {} }),
+    .catch({ loadSession: false, mcpCapabilities: { http: false }, sessionCapabilities: {} })
+    .default({ loadSession: false, mcpCapabilities: { http: false }, sessionCapabilities: {} }),
   authMethods: z
     .array(z.object({ id: z.string() }).loose())
     .catch([])
@@ -330,12 +336,23 @@ export class CursorService {
       if (init.authMethods.some((m) => m.id === 'cursor_login'))
         await connection.request('authenticate', { methodId: 'cursor_login' }, 60_000)
       const profile = this.profiles?.profile(session.id) ?? null
-      const instructions = profile ? workerPrompt(profile) : null
+      // ACP clients may hand an agent HTTP MCP servers only when it advertises them.
+      const reportUrl =
+        profile && init.agentCapabilities.mcpCapabilities.http
+          ? await profile.report.endpoint()
+          : null
+      const instructions = profile ? workerPrompt(profile, reportUrl !== null) : null
       const systemPrompt =
         instructions && init.agentCapabilities.sessionCapabilities.systemPrompt
           ? { systemPrompt: { mode: 'append', content: [{ type: 'text', text: instructions }] } }
           : {}
-      const modes = await this.openSession(session, runtime, connection, init, systemPrompt)
+      const mcpServers = reportUrl
+        ? [{ type: 'http', name: REPORT_SERVER_NAME, url: reportUrl, headers: [] }]
+        : []
+      const modes = await this.openSession(session, runtime, connection, init, {
+        mcpServers,
+        ...systemPrompt
+      })
       const mode = cursorMode(session.permission)
       if (modes && modes.currentModeId !== mode && modes.availableModes.some((m) => m.id === mode))
         await connection.request(
@@ -374,9 +391,9 @@ export class CursorService {
     runtime: Runtime,
     connection: AcpConnection,
     init: z.infer<typeof initializeSchema>,
-    systemPrompt: Record<string, unknown>
+    options: { mcpServers: unknown[] } & Record<string, unknown>
   ): Promise<z.infer<typeof modesSchema>> {
-    const base = { cwd: session.cwd, mcpServers: [], ...systemPrompt }
+    const base = { cwd: session.cwd, ...options }
     if (session.threadId && init.agentCapabilities.loadSession) {
       runtime.replaying = true
       try {

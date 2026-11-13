@@ -21,6 +21,11 @@ import { defaultProjectSettings, type SaveProject } from '../../shared/projects.
 import { type SessionPlace, sessionCwd } from '../app/agent-runtime.js'
 import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
+import {
+  CODEX_REPORT_TOOL_NAME,
+  REPORT_TOOL_DESCRIPTION,
+  REPORT_TOOL_INPUT_SCHEMA
+} from '../router/report.js'
 import type { TurnOutcome, TurnProfiles } from '../router/service.js'
 import { CodexClient, discoverExecutable } from './client.js'
 import {
@@ -35,6 +40,12 @@ import {
 
 const execFileAsync = promisify(execFile)
 const active = (s: Session): boolean => ['starting', 'running', 'waiting'].includes(s.status)
+const CODEX_REPORT_TOOL = {
+  type: 'function',
+  name: CODEX_REPORT_TOOL_NAME,
+  description: REPORT_TOOL_DESCRIPTION,
+  inputSchema: REPORT_TOOL_INPUT_SCHEMA
+}
 type PendingRequest = {
   wireId: string | number
   sessionId: string
@@ -129,7 +140,8 @@ export class CodexService {
         (reason) => this.disconnected(reason)
       )
       this.client = client
-      await client.start(executable)
+      // Worker threads get the report tool as a dynamic tool, which needs the experimental API (F6).
+      await client.start(executable, { experimentalApi: true })
       this.connection = {
         ...this.connection,
         executablePath: executable,
@@ -257,7 +269,12 @@ export class CodexService {
       }
       if (!session.threadId) {
         const response = record(
-          await client.request('thread/start', { ...policy, ephemeral: false })
+          await client.request('thread/start', {
+            ...policy,
+            ephemeral: false,
+            // Stored with the thread, so later turns and resumes keep the tool (F7, F26).
+            ...(profile ? { dynamicTools: [CODEX_REPORT_TOOL] } : {})
+          })
         )
         const thread = record(response.thread)
         session.threadId = z.string().parse(thread.id)
@@ -283,8 +300,7 @@ export class CodexService {
           clientUserMessageId: input.commandId,
           input: [{ type: 'text', text: input.text, text_elements: [] }],
           ...(session.model ? { model: session.model } : {}),
-          ...(session.effort ? { effort: session.effort } : {}),
-          ...(profile ? { outputSchema: profile.reportSchema } : {})
+          ...(session.effort ? { effort: session.effort } : {})
         })
       )
       const turn = record(response.turn)
@@ -441,7 +457,8 @@ export class CodexService {
       return
     }
     if (frame.id !== undefined) {
-      this.openRequest(session, frame)
+      if (frame.method === 'item/tool/call') this.callTool(session, frame)
+      else this.openRequest(session, frame)
       return
     }
     const turnId = string(params.turnId, session.turnId ?? '')
@@ -581,6 +598,20 @@ export class CodexService {
         return
     }
     this.changed(session)
+  }
+  /** Answers a dynamic tool call; the worker report tool is the only one Owls registers. */
+  private callTool(session: Session, frame: RpcFrame): void {
+    if (frame.id === undefined) return
+    const params = frame.params ?? {}
+    const profile = this.profiles?.profile(session.id) ?? null
+    const result =
+      profile && params.tool === CODEX_REPORT_TOOL_NAME
+        ? profile.report.call(params.arguments)
+        : { ok: false, text: 'This tool is not available.' }
+    this.client?.respond(frame.id, {
+      success: result.ok,
+      contentItems: [{ type: 'inputText', text: result.text }]
+    })
   }
   private openRequest(session: Session, frame: RpcFrame): void {
     if (frame.id === undefined || !frame.method) return

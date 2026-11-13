@@ -2,7 +2,9 @@
 // A scripted stand-in for the Cursor CLI. `acp` speaks the Agent Client Protocol
 // over stdio; the prompt text picks a scenario. Every frame it receives, and its
 // arguments, are logged to `.mock-acp-log.jsonl` in the working directory.
-const { appendFileSync } = require('node:fs')
+// A `.mock-acp-http` file there makes it advertise HTTP MCP servers, and a
+// "report" prompt then calls the report tool of the HTTP MCP server it was given.
+const { appendFileSync, existsSync } = require('node:fs')
 const { join } = require('node:path')
 const readline = require('node:readline')
 
@@ -32,6 +34,8 @@ const send = (frame) => process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0',
 let nextId = 1000
 const waiting = new Map()
 let cancel = null
+/** MCP servers the client gave each session. */
+const sessionServers = new Map()
 function ask(method, params) {
   const id = nextId++
   send({ id, method, params })
@@ -51,6 +55,35 @@ async function prompt(params) {
       cancel = resolve
     })
     return { stopReason: 'cancelled' }
+  }
+  if (input.includes('report through mcp')) {
+    const server = (sessionServers.get(sessionId) ?? []).find((s) => s.type === 'http')
+    if (!server) {
+      // Without the tool, follow the JSON report prompt instead.
+      update(sessionId, text('agent_message_chunk', report))
+      return { stopReason: 'end_turn' }
+    }
+    const { Client } = require('@modelcontextprotocol/sdk/client/index.js')
+    const {
+      StreamableHTTPClientTransport
+    } = require('@modelcontextprotocol/sdk/client/streamableHttp.js')
+    const client = new Client({ name: 'mock-cursor', version: '1' })
+    await client.connect(new StreamableHTTPClientTransport(new URL(server.url)))
+    const { tools } = await client.listTools()
+    const results = []
+    for (const args of [
+      { status: 'progress', summary: 'Halfway there.' },
+      {
+        status: 'done',
+        summary: 'Wrote the notes.',
+        artifacts: [{ kind: 'file', ref: 'notes.md' }]
+      }
+    ])
+      results.push(await client.callTool({ name: 'report', arguments: args }))
+    await client.close()
+    log({ mcp: { name: server.name, tools: tools.map((t) => t.name), results } })
+    update(sessionId, text('agent_message_chunk', 'All set.'))
+    return { stopReason: 'end_turn' }
   }
   if (input.includes('question')) {
     const answer = await ask('cursor/ask_question', {
@@ -141,13 +174,19 @@ async function handle(frame) {
     case 'initialize':
       return {
         protocolVersion: 1,
-        agentCapabilities: { loadSession: true },
+        agentCapabilities: {
+          loadSession: true,
+          ...(existsSync(join(process.cwd(), '.mock-acp-http'))
+            ? { mcpCapabilities: { http: true } }
+            : {})
+        },
         authMethods: [{ id: 'cursor_login', name: 'Cursor login' }]
       }
     case 'authenticate':
     case 'session/set_mode':
       return {}
     case 'session/new':
+      sessionServers.set('cursor-session-1', params.mcpServers)
       return {
         sessionId: 'cursor-session-1',
         modes: {
@@ -157,6 +196,7 @@ async function handle(frame) {
       }
     case 'session/load':
       if (params.sessionId === 'missing') throw new Error('Session not found')
+      sessionServers.set(params.sessionId, params.mcpServers)
       // Loading replays the conversation the client already shows.
       update(params.sessionId, text('agent_message_chunk', 'replayed'))
       return { modes: { currentModeId: 'agent', availableModes: [{ id: 'agent' }, { id: 'ask' }] } }

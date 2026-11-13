@@ -50,6 +50,8 @@ function eventText(event: InboxEvent): string {
         : ''
       return `[${event.seq}] worker_report · ${event.workerId} · ${clock(event.at)} · ${event.report.status}\nGoal: ${escapeBatch(short(event.goal, 200))}\n${escapeBatch(clip(event.report.summary, REPORT_TEXT_LIMIT, event.seq))}${escapeBatch(artifacts)}`
     }
+    case 'worker_progress':
+      return `[${event.seq}] worker_progress · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe worker is still running. Its latest note:\n${escapeBatch(clip(event.summary, REPORT_TEXT_LIMIT, event.seq))}`
     case 'worker_waiting':
       return `[${event.seq}] worker_waiting · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nWaiting for the user to approve: ${escapeBatch(short(event.detail, 300))}`
     case 'worker_failed':

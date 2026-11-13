@@ -68,10 +68,18 @@ answered with JSON-RPC "method not found".
 
 ## Worker reports
 
-ACP has no output schema. Worker turns prepend the worker instructions and the
-report JSON Schema to the prompt (or send them as `systemPrompt` when the agent
-advertises that capability), and `parseReport` accepts a trailing JSON object,
-fenced or not, in the final assistant message.
+Workers report through the Owls `report` MCP tool. When the agent advertises
+`agentCapabilities.mcpCapabilities.http`, `session/new` and `session/load` pass
+one HTTP MCP server named `owls`: a Streamable HTTP endpoint that Owls serves on
+127.0.0.1 with an unguessable per-session path (`WorkerReportServer`). Cursor
+builds since mid-2026 accept editor-provided servers without the file-based MCP
+approval step; older builds may ignore them, which falls back as below.
+
+ACP has no output schema. Without the HTTP capability, worker turns prepend the
+worker instructions and the report JSON Schema to the prompt (or send them as
+`systemPrompt` when the agent advertises that capability). Whenever the tool was
+not called, `parseReport` accepts a trailing JSON object, fenced or not, in the
+final assistant message.
 
 ## Stopping
 

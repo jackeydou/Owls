@@ -2105,7 +2105,7 @@ test('project instructions follow the worker instructions in a fixed order', () 
   })
   assert.ok(text.indexOf('Use pnpm.') < text.indexOf('Fill in the template.'))
   assert.doesNotMatch(text, /review code/)
-  assert.match(text, /output schema/)
+  assert.match(text, /report to the Router/)
 })
 
 test('the Router reads each project description in its project list', () => {
@@ -2956,7 +2956,7 @@ test('search_memory sits in the fixed tool order only while memory is on', async
   const off = await withTools(async () => [], { memory: fakeMemory(false) })
   assert.ok(!off.engine.tools.some((t) => t.name === 'search_memory'))
   assert.match(off.engine.runs[0].text, firstBatch('go'), 'no memory block without memory')
-  assert.equal(ROUTER_PROMPT_VERSION, 12)
+  assert.equal(ROUTER_PROMPT_VERSION, 13)
   off.service.close()
 })
 

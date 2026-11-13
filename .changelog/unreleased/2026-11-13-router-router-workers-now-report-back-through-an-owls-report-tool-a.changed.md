@@ -1,0 +1,1 @@
+- Router: workers now report back through an Owls report tool (an MCP server for Claude Code and Cursor, a dynamic tool for Codex) and can send progress notes mid-task; parsing the final message remains the fallback. (#99)

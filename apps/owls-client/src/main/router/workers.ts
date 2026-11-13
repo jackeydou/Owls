@@ -10,7 +10,12 @@ import type {
   Session
 } from '../../shared/app.js'
 import { defaultProjectSettings, type ProjectSettings } from '../../shared/projects.js'
-import type { RouterWorker, WorkerPullRequestLink, WorkerStatus } from '../../shared/router.js'
+import type {
+  RouterWorker,
+  WorkerPullRequestLink,
+  WorkerReport,
+  WorkerStatus
+} from '../../shared/router.js'
 import type { SessionPlace } from '../app/agent-runtime.js'
 import { OwlsError } from '../app/errors.js'
 import { safeText } from '../codex/protocol.js'
@@ -21,7 +26,12 @@ import {
   WORKSPACE_INSTRUCTIONS,
   worktreeInstructions
 } from './prompt.js'
-import { parseReport, WORKER_REPORT_JSON_SCHEMA } from './report.js'
+import {
+  parseReport,
+  parseToolReport,
+  type ReportToolResult,
+  WORKER_REPORT_JSON_SCHEMA
+} from './report.js'
 import type { RouterStore } from './store.js'
 import {
   type DispatchTaskInput,
@@ -40,11 +50,27 @@ import type {
 } from './worker-target.js'
 import type { WorkerWorkspaces, WorktreeRepo, WorktreeWorkspace } from './worktrees.js'
 
+/**
+ * The report tool a task service attaches to a worker's turn. Every agent gets
+ * the same tool: Claude Code as an in-process MCP server, Codex as a dynamic
+ * tool, and Cursor through `endpoint`, a local Streamable HTTP MCP server.
+ */
+export type ReportTool = {
+  /** Records a report the worker sent; returns the text its agent sees. */
+  call(input: unknown): ReportToolResult
+  /** The MCP endpoint serving this worker's report tool. */
+  endpoint(): Promise<string>
+}
 /** What a task service asks before each turn, and reports after it. */
-export type TurnProfile = { instructions: string; reportSchema: Record<string, unknown> }
+export type TurnProfile = {
+  instructions: string
+  /** The final-message format, for a turn that cannot attach the report tool. */
+  reportSchema: Record<string, unknown>
+  report: ReportTool
+}
 export type TurnOutcome = {
   status: 'completed' | 'failed' | 'interrupted'
-  /** Claude Code `structured_output`; null for Codex, whose report is the final text. */
+  /** Claude Code `structured_output`; null when the agent ran without an output schema. */
   structured: unknown
   text: string
 }
@@ -120,6 +146,8 @@ export class WorkerPool implements TurnProfiles {
   private readonly workers = new Map<string, RouterWorker>()
   /** Workers the Router asked to stop, whose stop needs no new batch. */
   private readonly stopping = new Set<string>()
+  /** Final reports sent through the report tool during the current turn, by worker. */
+  private readonly turnReports = new Map<string, WorkerReport>()
   private nextCodexStart = 0
   private closed = false
   /** Settles once startup cleanup of worktrees has run. */
@@ -130,7 +158,8 @@ export class WorkerPool implements TurnProfiles {
     private readonly host: WorkerHost,
     private readonly inbox: WorkerInbox,
     private readonly emit: (worker: RouterWorker) => void,
-    private readonly workspaces: WorkerWorkspaces
+    private readonly workspaces: WorkerWorkspaces,
+    private readonly reportEndpoint: (sessionId: string) => Promise<string>
   ) {
     for (const worker of store.workers()) {
       this.workers.set(worker.id, worker)
@@ -472,7 +501,48 @@ export class WorkerPool implements TurnProfiles {
       ]
         .filter(Boolean)
         .join('\n\n'),
-      reportSchema: WORKER_REPORT_JSON_SCHEMA
+      reportSchema: WORKER_REPORT_JSON_SCHEMA,
+      report: {
+        call: (input) => this.toolReport(sessionId, input),
+        endpoint: () => this.reportEndpoint(sessionId)
+      }
+    }
+  }
+
+  /**
+   * A report the worker sent through its report tool. Progress goes to the
+   * Router's next batch without starting one; a final report waits for the
+   * turn to end, so the Router never hears "done" from a worker still running.
+   */
+  toolReport(sessionId: string, input: unknown): ReportToolResult {
+    const worker = this.bySession(sessionId)
+    if (!worker || worker.status === 'removed' || this.closed)
+      return { ok: false, text: 'This task is no longer an Owls worker.' }
+    if (!activeWorker(worker))
+      return { ok: false, text: 'Owls takes reports only while your turn is running.' }
+    const parsed = parseToolReport(input)
+    if (!parsed.ok) return parsed
+    const { report } = parsed
+    if (report.status === 'progress') {
+      this.inbox.settle(
+        worker.routerId,
+        (e) => e.kind === 'worker_progress' && e.workerId === worker.id,
+        'superseded'
+      )
+      this.inbox.add(
+        worker.routerId,
+        { ...this.event('worker_progress', worker), summary: report.summary },
+        false
+      )
+      return {
+        ok: true,
+        text: 'Progress noted for the Router. Keep working, and call report again when you finish.'
+      }
+    }
+    this.turnReports.set(worker.id, report)
+    return {
+      ok: true,
+      text: 'Report received. The Router reads it when your turn ends: finish with a short message for the user and end your turn.'
     }
   }
 
@@ -480,8 +550,19 @@ export class WorkerPool implements TurnProfiles {
     const worker = this.bySession(sessionId)
     if (!worker || worker.status === 'removed' || this.closed) return
     const stopped = this.stopping.delete(worker.id)
+    const sent = this.turnReports.get(worker.id)
+    this.turnReports.delete(worker.id)
+    // Progress notes the Router has not read yet are stale once the turn ends.
+    this.inbox.settle(
+      worker.routerId,
+      (e) => e.kind === 'worker_progress' && e.workerId === worker.id,
+      'superseded'
+    )
     if (outcome.status === 'completed') {
-      const { report, degraded } = parseReport(outcome.structured, outcome.text)
+      // The report tool is the main channel; the final message is read only when it was not called.
+      const { report, degraded } = sent
+        ? { report: sent, degraded: false }
+        : parseReport(outcome.structured, outcome.text)
       // A report the Router has not seen yet is replaced, not stacked (RFC 8, rule 5).
       if (worker.status === 'reported')
         this.inbox.settle(
@@ -624,6 +705,7 @@ export class WorkerPool implements TurnProfiles {
     }
     const text = worker.next ?? worker.goal
     worker.next = null
+    this.turnReports.delete(worker.id)
     try {
       await this.host.send({ sessionId: worker.sessionId, commandId: crypto.randomUUID(), text })
     } catch {
