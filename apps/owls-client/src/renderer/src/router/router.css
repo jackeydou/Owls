@@ -23,6 +23,7 @@
   --owl-bar-height: 44px;
   --owl-toggle-size: 28px;
   --owl-toggle-left: 10px;
+  --owl-toggle-right: 10px;
 }
 /* Clears the window controls; desktop.ts centers them on the same bar height. */
 html[data-platform="darwin"] {
@@ -296,25 +297,31 @@ html[data-platform="darwin"] {
 .router-projects button {
   -webkit-app-region: no-drag;
 }
+/* The head clears the toggle, which sits over its right end, past the sidebar's 8px padding. */
 .router-projects-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
   height: var(--owl-bar-height);
-  padding: 0 0 0 8px;
+  padding: 0 calc(var(--owl-toggle-right) + var(--owl-toggle-size) - 4px) 0 8px;
 }
 .router-projects-head h2 {
   color: var(--color-foreground);
   font-size: var(--owl-text-sm);
   font-weight: 600;
 }
+/* Fixed like the left sidebar's toggle, so it stays put whichever view the stage shows. */
 .router-projects-toggle {
-  flex-shrink: 0;
-}
-.router-projects-toggle[aria-pressed="true"] {
-  background: var(--color-sidebar-active);
-  color: var(--color-foreground);
+  position: fixed;
+  z-index: 30;
+  top: calc((var(--owl-bar-height) - var(--owl-toggle-size)) / 2);
+  right: var(--owl-toggle-right);
+  width: var(--owl-toggle-size);
+  height: var(--owl-toggle-size);
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+  -webkit-app-region: no-drag;
 }
 /* Sits over the details panel's left edge, inside it, and follows its width cap. */
 .router-stage > .router-panel-resize {
@@ -330,6 +337,17 @@ html.pane-resizing * {
 .router-stage.sidebar-hidden .owls-topbar,
 .router-stage.sidebar-hidden .map-hud {
   padding-left: calc(var(--owl-toggle-left) + var(--owl-toggle-size) + 12px);
+}
+/* With the Projects sidebar closed, whatever reaches the window's right edge makes room for its
+   toggle: the view's title bar, or the details panel's head when the panel is open. */
+.router-stage.projects-hidden {
+  --owl-projects-toggle-room: calc(var(--owl-toggle-right) + var(--owl-toggle-size) + 8px);
+}
+.router-stage.projects-hidden .owls-topbar,
+.router-stage.projects-hidden .map-hud,
+.router-stage.projects-hidden .cards-hud,
+.router-stage.projects-hidden .router-panel > header {
+  padding-right: var(--owl-projects-toggle-room);
 }
 .router-stage {
   position: relative;

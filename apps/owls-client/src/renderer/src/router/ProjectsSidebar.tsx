@@ -132,7 +132,10 @@ function ProjectRow({ project }: { project: Project }) {
     </div>
   )
 }
-/** The title bar button that opens and closes the Projects sidebar. */
+/**
+ * Opens and closes the Projects sidebar from the window's top-right corner, whatever the view:
+ * over the sidebar's head while it is open, and at the end of the title bar while it is closed.
+ */
 export function ProjectsToggle() {
   const { t } = useTranslation()
   const open = useAppStore((s) => s.settings.layout.projectsOpen)
@@ -140,11 +143,11 @@ export function ProjectsToggle() {
   const label = t(open ? 'router.hideProjects' : 'router.showProjects')
   return (
     <IconButton
-      className="owls-bar-button router-projects-toggle"
+      className="router-projects-toggle"
       label={label}
       tooltip={label}
       tooltipSide="bottom"
-      aria-pressed={open}
+      aria-expanded={open}
       icon={<SidebarRightIcon size={18} />}
       onClick={toggleProjects}
     />

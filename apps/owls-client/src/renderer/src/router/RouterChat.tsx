@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '../app/store'
 import { threadTitle, useThreadTitle } from './activity'
-import { ProjectsToggle } from './ProjectsSidebar'
 import { RequestTray } from './RequestTray'
 import { RouterGuide } from './RouterGuide'
 import { RouterSetupNotice, useRouterSetup } from './RouterSetup'
@@ -40,9 +39,6 @@ export function RouterChat() {
             {projectName ? <span>{projectName}</span> : null}
           </div>
         ) : null}
-        <div className="owls-topbar-actions">
-          <ProjectsToggle />
-        </div>
       </header>
       <div className="owls-conversation-column">
         {missing && !guideSkipped && !router?.itemCount ? (
