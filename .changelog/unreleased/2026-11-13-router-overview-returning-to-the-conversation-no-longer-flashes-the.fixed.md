@@ -1,0 +1,1 @@
+- Overview: returning to the conversation no longer flashes the map after its exit animation. (#87)
