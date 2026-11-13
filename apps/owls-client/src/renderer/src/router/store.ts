@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Failure, Reply, Router, ThreadItem } from '../../../shared/app'
 import type { WorkerGitHubStatus } from '../../../shared/github'
+import type { OpenInApp, OpenWorkerIn } from '../../../shared/open-in'
 import type {
   ForwardMessage,
   OwlsProviderId,
@@ -37,6 +38,8 @@ type State = {
   /** Threads whose whole history has arrived, as opposed to only live changes. */
   itemsLoaded: Record<string, boolean>
   forwarding: Forwarding | null
+  /** Apps a worker's folder can open in; null until first loaded. */
+  openInApps: OpenInApp[] | null
   /** GitHub status by worker, for the workers whose panels have been open. */
   gitHub: Record<string, WorkerGitHubStatus>
   providers: RouterProviderInfo[]
@@ -70,6 +73,9 @@ type State = {
   interrupt(routerId: string): Promise<void>
   resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
   stopWorker(routerId: string, workerId: string): Promise<void>
+  loadOpenInApps(): Promise<void>
+  /** Resolves true once the app was asked to open the worker's folder. */
+  openWorkerIn(input: OpenWorkerIn): Promise<boolean>
   removeWorker(routerId: string, workerId: string): Promise<void>
   discardWorktree(routerId: string, workerId: string): Promise<void>
   showPanel(panel: RouterPanel | null): void
@@ -131,6 +137,7 @@ export const useRouterStore = create<State>((set, get) => {
     items: {},
     itemsLoaded: {},
     forwarding: null,
+    openInApps: null,
     gitHub: {},
     providers: [],
     sending: false,
@@ -231,6 +238,18 @@ export const useRouterStore = create<State>((set, get) => {
     },
     resolveBatch: async (routerId, batchId, decision) => {
       await action(() => window.owls.resolveBatch({ routerId, batchId, decision }))
+    },
+    loadOpenInApps: async () => {
+      const reply = await window.owls.openInApps()
+      // An unreadable app list only hides the button; it is not worth an error banner.
+      set({ openInApps: reply.ok ? reply.value : [] })
+    },
+    openWorkerIn: async (input) => {
+      const opened = await action(async () => {
+        const reply = await window.owls.openWorkerIn(input)
+        return reply.ok ? { ok: true as const, value: true } : reply
+      })
+      return opened === true
     },
     stopWorker: async (routerId, workerId) => {
       await action(() => window.owls.stopWorker({ routerId, workerId }))

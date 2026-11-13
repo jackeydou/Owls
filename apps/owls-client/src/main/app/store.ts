@@ -54,7 +54,8 @@ export class OwlsStore {
           layout: defaultLayoutSettings,
           updateChannel: null,
           pullRequestsVisible: true,
-          workspacePath: null
+          workspacePath: null,
+          openInApp: null
         }
   }
   saveSettings(value: AppSettings): AppSettings {

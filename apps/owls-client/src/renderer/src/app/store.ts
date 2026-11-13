@@ -215,7 +215,8 @@ export const useAppStore = create<State>((set, get) => {
       layout: defaultLayoutSettings,
       updateChannel: null,
       pullRequestsVisible: true,
-      workspacePath: null
+      workspacePath: null,
+      openInApp: null
     },
     connection: {
       status: 'disconnected',
@@ -466,7 +467,8 @@ export const useAppStore = create<State>((set, get) => {
           memory: settings.memory,
           layout: settings.layout,
           updateChannel: settings.updateChannel,
-          pullRequestsVisible: settings.pullRequestsVisible
+          pullRequestsVisible: settings.pullRequestsVisible,
+          openInApp: settings.openInApp
         })
       )
       if (saved) set({ settings: saved })

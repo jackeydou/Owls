@@ -1,4 +1,4 @@
-export { layoutSettingsSchema } from '../../shared/app.js'
+export { layoutSettingsSchema, settingsSchema } from '../../shared/app.js'
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
 export { parseGitHubRepo, saveProjectSchema } from '../../shared/projects.js'
 export {
@@ -64,5 +64,6 @@ export { checkoutOnly, GitWorkspaces } from '../router/worktrees.js'
 export { applyCommand } from '../sync/commands.js'
 export { SyncLog } from '../sync/sync-log.js'
 export { OwlsHost } from './host.js'
+export { OPEN_IN_CATALOG, OpenInApps } from './open-in.js'
 export { cloneGitHubProject, createQuickProject } from './project-sources.js'
 export { OwlsStore } from './store.js'

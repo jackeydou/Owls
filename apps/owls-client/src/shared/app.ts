@@ -22,6 +22,7 @@ import {
   memorySettingsSchema
 } from './memory.js'
 import type { MenuCommand } from './menu.js'
+import { type OpenInApp, type OpenWorkerIn, openInAppIdSchema } from './open-in.js'
 import {
   type CloneProject,
   type CreateProject,
@@ -232,7 +233,9 @@ export const settingsSchema = z.object({
    * Where workers run tasks that belong to no project. Null uses the default,
    * `~/Owls/Workspace`; added later, so older rows get it.
    */
-  workspacePath: z.string().nullable().default(null)
+  workspacePath: z.string().nullable().default(null),
+  /** The app "Open in" uses; null picks the first installed editor. Added later. */
+  openInApp: openInAppIdSchema.nullable().catch(null).default(null)
 })
 export const projectSchema = z.object({
   id: z.string(),
@@ -394,6 +397,10 @@ export interface OwlsAPI {
   discardWorktree(input: WorkerAction): Promise<Reply<void>>
   stopWorker(input: WorkerAction): Promise<Reply<void>>
   removeWorker(input: WorkerAction): Promise<Reply<void>>
+  /** Editors, the file manager, and terminals installed on this Mac, in menu order. */
+  openInApps(): Promise<Reply<OpenInApp[]>>
+  /** Opens a worker's folder (its worktree, project, or workspace) in an installed app. */
+  openWorkerIn(input: OpenWorkerIn): Promise<Reply<void>>
   routerProviders(): Promise<Reply<RouterProviderInfo[]>>
   setRouterKey(input: SetRouterKey): Promise<Reply<void>>
   removeRouterKey(providerId: string): Promise<Reply<void>>

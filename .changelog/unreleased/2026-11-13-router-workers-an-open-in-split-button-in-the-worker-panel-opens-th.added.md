@@ -1,0 +1,1 @@
+- Workers: an Open in split button in the worker panel opens the worker's folder in an installed editor, Finder, or terminal (VS Code, Cursor, Zed, Xcode, JetBrains IDEs, Ghostty, and more), shows each app's own icon, and remembers the last choice.

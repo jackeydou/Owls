@@ -393,6 +393,14 @@ export class RouterService implements TurnProfiles {
     if (worker.status !== 'removed') this.host.remove(worker.sessionId)
   }
 
+  /** The session of a worker on this device, whose folder the user can open in another app. */
+  workerSession(input: WorkerAction): string {
+    const worker = this.pool.get(input.workerId)
+    if (!worker || worker.routerId !== this.ownRouter(input.routerId).id)
+      throw new OwlsError('request_unavailable', 'This worker no longer exists.')
+    return worker.sessionId
+  }
+
   /** Worker calls report model-facing errors; the user gets a stable failure instead. */
   private async forUser<T>(call: () => Promise<T>): Promise<T> {
     try {
