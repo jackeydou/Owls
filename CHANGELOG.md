@@ -11,6 +11,18 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1300-beta.2
+
+### Highlights
+
+- Tasks that don't belong to a project start in the workspace folder again instead of failing.
+
+### Changes
+
+### Fixes
+
+- Router: tasks outside any project now start in the workspace folder instead of failing with "Choose a project before starting a task". (#97)
+
 ## 2026.11.1300-beta.1
 
 ### Highlights
