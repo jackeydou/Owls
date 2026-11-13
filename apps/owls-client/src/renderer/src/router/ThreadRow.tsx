@@ -8,14 +8,17 @@ export type ThreadSpeaker = 'router' | 'user'
 export function ThreadRow({
   speaker,
   follows = false,
+  entryId,
   children
 }: {
   speaker: ThreadSpeaker
   follows?: boolean
+  /** Lets the timeline find a row, e.g. to bring a just-sent message to the top. */
+  entryId?: string
   children: ReactNode
 }) {
   return (
-    <div className={`router-row ${speaker}${follows ? ' follows' : ''}`}>
+    <div className={`router-row ${speaker}${follows ? ' follows' : ''}`} data-entry-id={entryId}>
       <div className="router-row-avatar" aria-hidden="true">
         {follows ? null : speaker === 'router' ? (
           <OwlAvatar speaker="router" />
