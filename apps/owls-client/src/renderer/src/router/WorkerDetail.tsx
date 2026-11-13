@@ -23,6 +23,7 @@ import { SaveCardAction } from '../cards/CardActions'
 import { canStop, type WorkerState, workerState, workerTitle } from './activity'
 import { DiffCounts, DiffView } from './DiffView'
 import { diffStats, parseDiff } from './diff'
+import { OpenInButton } from './OpenInButton'
 import { useRouterStore } from './store'
 import { WorkerConversation } from './WorkerConversation'
 import { WorkerGitHub } from './WorkerGitHub'
@@ -113,6 +114,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             </small>
           ) : null}
         </div>
+        <OpenInButton worker={worker} />
         {canStop(worker) ? (
           <ActionIconButton
             size="sm"

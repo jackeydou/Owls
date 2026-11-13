@@ -231,3 +231,69 @@
   color: var(--color-muted-foreground);
   background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
+/* "Open in": a split button, the remembered app's icon plus a chevron for the others.
+   The header's `> div` rule stretches its title block; this one keeps its own width. */
+.router-panel > header > .open-in {
+  display: inline-flex;
+  flex: none;
+  align-items: stretch;
+  height: 28px;
+  margin-top: 2px;
+  padding: 0;
+  margin-right: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card);
+  -webkit-app-region: no-drag;
+}
+.open-in > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 600;
+  line-height: 1;
+  transition:
+    background-color 100ms,
+    transform 100ms;
+}
+.open-in > button:hover:not(:disabled) {
+  background: var(--color-card-muted);
+}
+.open-in > button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.open-in > button:disabled {
+  cursor: default;
+}
+.open-in-main {
+  padding: 0 8px 0 6px;
+  border-radius: calc(var(--owl-radius-sm) - 1px) 0 0 calc(var(--owl-radius-sm) - 1px);
+}
+.open-in-main img,
+.open-in-main svg {
+  flex: none;
+}
+.open-in > .open-in-more {
+  padding: 0 6px;
+  border-left: 1px solid var(--color-border);
+  border-radius: 0 calc(var(--owl-radius-sm) - 1px) calc(var(--owl-radius-sm) - 1px) 0;
+  color: var(--color-muted-foreground);
+}
+.open-in-letter {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--owl-radius-xs);
+  background: var(--color-card-muted);
+  color: var(--color-muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .open-in > button:active:not(:disabled) {
+    transform: none;
+  }
+}

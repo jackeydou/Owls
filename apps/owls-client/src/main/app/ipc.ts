@@ -22,6 +22,7 @@ import {
   memoryRemoveSchema,
   memorySaveSchema
 } from '../../shared/memory.js'
+import { openWorkerInSchema } from '../../shared/open-in.js'
 import {
   cloneProjectSchema,
   createProjectSchema,
@@ -41,6 +42,7 @@ import type { AppUpdater } from '../updates/updater.js'
 import { applyAppLogo } from './app-logo.js'
 import { toFailure } from './errors.js'
 import type { OwlsHost } from './host.js'
+import { nodeOpenInPlatform, OpenInApps } from './open-in.js'
 
 /**
  * Since Electron 43 an open dialog without `defaultPath` starts in Downloads and no longer
@@ -55,6 +57,12 @@ export function registerIpc(
   settingsSaved: (settings: AppSettings, previous: AppSettings) => void
 ): void {
   let lastProjectParent = app.getPath('home')
+  const openIn = new OpenInApps(
+    nodeOpenInPlatform(async (path) => {
+      const icon = await app.getFileIcon(path, { size: 'normal' })
+      return icon.isEmpty() ? null : icon.toDataURL()
+    })
+  )
   function handle<T>(channel: string, action: (input: unknown) => T | Promise<T>): void {
     ipcMain.handle(
       `owls:${channel}`,
@@ -129,6 +137,11 @@ export function registerIpc(
       cancelId: 0
     })
     if (result.response === 1) host.removeWorker(request)
+  })
+  handle('open-in-apps', () => openIn.list())
+  handle('open-worker-in', (input) => {
+    const { appId, ...worker } = openWorkerInSchema.parse(input)
+    return openIn.open(appId, host.workerFolder(worker))
   })
   handle('router-providers', () => host.routerProviders())
   handle('router-set-key', (input) => host.setRouterKey(setRouterKeySchema.parse(input)))

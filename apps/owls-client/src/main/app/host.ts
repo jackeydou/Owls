@@ -212,6 +212,13 @@ export class OwlsHost {
   removeWorker(input: WorkerAction): void {
     this.requireRouter().removeWorker(input)
   }
+  /** The folder a worker works in: its worktree, or its project or the workspace folder. */
+  workerFolder(input: WorkerAction): string {
+    const sessionId = this.requireRouter().workerSession(input)
+    const session = this.snapshot().sessions.find((s) => s.id === sessionId)
+    if (!session) throw new OwlsError('request_unavailable', 'This worker no longer exists.')
+    return session.cwd
+  }
   routerProviders(): RouterProviderInfo[] {
     return this.requireRouter().providers()
   }
