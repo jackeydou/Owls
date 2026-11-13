@@ -38,7 +38,9 @@ const {
   OwlsEngine,
   OwlsHost,
   RouterCredentials,
+  ROUTER_INSTRUCTIONS,
   ROUTER_PROMPT_VERSION,
+  routerInstructions,
   RouterService,
   defaultEngineFactory,
   GitWorkspaces,
@@ -1671,14 +1673,15 @@ test('the Codex engine runs a locked-down thread, answers tool calls, and resume
       }
     }
   ]
-  const make = (promptVersion = 2) =>
+  const make = (promptVersion = 2, customInstructions = null) =>
     new CodexEngine({
       server,
       executable: '/bin/codex',
       cwd: PROJECT.path,
       model: 'gpt-test',
-      instructions: 'Route.',
+      instructions: customInstructions ? 'Route my way.' : 'Route.',
       promptVersion,
+      customInstructions,
       tools: tools.map((t) => ({
         ...t,
         schema: require('zod').z.object({ goal: require('zod').z.string() })
@@ -1753,6 +1756,23 @@ test('the Codex engine runs a locked-down thread, answers tool calls, and resume
   // New instructions need a new thread.
   const bumped = await make(3).run({ batchId: 'b_5', text: 'Hi', native: lost.native }, sink)
   assert.deepEqual(bumped.native, { engine: 'codex', threadId: 'thread-3', promptVersion: 3 })
+  // So do the user's own instructions, and going back to the defaults.
+  const custom = await make(3, 'abc').run(
+    { batchId: 'b_6', text: 'Hi', native: bumped.native },
+    sink
+  )
+  assert.deepEqual(custom.native, {
+    engine: 'codex',
+    threadId: 'thread-4',
+    promptVersion: 3,
+    custom: 'abc'
+  })
+  const customStart = codex.requests.filter((r) => r.method === 'thread/start').at(-1).params
+  assert.equal(customStart.developerInstructions, 'Route my way.')
+  const kept = await make(3, 'abc').run({ batchId: 'b_7', text: 'Hi', native: custom.native }, sink)
+  assert.equal(kept.native.threadId, 'thread-4')
+  const restored = await make(3).run({ batchId: 'b_8', text: 'Hi', native: custom.native }, sink)
+  assert.deepEqual(restored.native, { engine: 'codex', threadId: 'thread-5', promptVersion: 3 })
   server.close()
 })
 
@@ -2094,6 +2114,19 @@ test('a project repository lists its branches and remotes, sorted', async (t) =>
   const plain = join(dir, 'plain')
   mkdirSync(plain)
   assert.equal(await workspaces.refs(plain), null)
+})
+
+test('the Router runs with the instructions saved in Settings, or the defaults', () => {
+  const base = { engine: 'owls', owls: null, claudeModel: null, codexModel: null }
+  assert.deepEqual(routerInstructions({ ...base, instructions: null }), {
+    text: ROUTER_INSTRUCTIONS,
+    custom: null
+  })
+  const mine = routerInstructions({ ...base, instructions: 'Route my way.' })
+  assert.equal(mine.text, 'Route my way.')
+  assert.match(mine.custom, /^[0-9a-f]{16}$/)
+  assert.equal(routerInstructions({ ...base, instructions: 'Route my way.' }).custom, mine.custom)
+  assert.notEqual(routerInstructions({ ...base, instructions: 'Route.' }).custom, mine.custom)
 })
 
 test('project instructions follow the worker instructions in a fixed order', () => {

@@ -293,6 +293,40 @@
   font-family: var(--font-mono);
   font-size: var(--owl-text-xs);
 }
+.owls-router-instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.owls-router-instructions .owls-setting-textarea {
+  min-height: 240px;
+}
+.owls-router-instructions-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.owls-router-instructions-state {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.owls-settings-dialog h2 {
+  margin-bottom: 12px;
+  font-size: var(--owl-text-lg);
+  font-weight: 600;
+}
+.owls-settings-dialog p {
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owls-settings-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
 .owls-setting-textarea::placeholder {
   color: var(--color-muted-foreground);
 }
