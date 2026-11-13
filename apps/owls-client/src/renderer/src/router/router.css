@@ -94,7 +94,9 @@ html[data-platform="darwin"] {
   height: 32px;
   padding: 0 8px;
   border-radius: var(--owl-radius-xs);
-  color: var(--color-muted-foreground);
+  /* Nav text stays the same color in every state: only the background marks hover and the
+     current item. */
+  color: var(--color-foreground);
   font-size: var(--owl-text-sm);
   text-align: left;
 }
@@ -107,7 +109,6 @@ html[data-platform="darwin"] {
 .router-thread[aria-current="true"],
 .router-project[aria-current="true"] {
   background: var(--color-sidebar-active);
-  color: var(--color-foreground);
 }
 .router-sidebar-item > span,
 .router-thread > span,
@@ -119,18 +120,14 @@ html[data-platform="darwin"] {
   white-space: nowrap;
 }
 .router-sidebar-item kbd {
+  color: var(--color-muted-foreground);
   font-family: inherit;
   font-size: var(--owl-text-2xs);
 }
-/* The sidebar's own actions stay quiet: background and shortcut show only under the pointer
-   or keyboard focus, and the current one is marked by its text alone. */
-.router-sidebar-action[aria-current="true"] {
-  background: transparent;
-}
-.router-sidebar-action:hover,
-.router-sidebar-action:focus-visible {
+.router-sidebar-action:focus-visible:not([aria-current="true"]) {
   background: var(--color-sidebar-hover);
 }
+/* The sidebar's own actions show their shortcut only under the pointer or keyboard focus. */
 .router-sidebar-action kbd {
   opacity: 0;
   transition: opacity 120ms ease;

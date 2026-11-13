@@ -336,6 +336,10 @@ Release MR flow:
   styling fit before adding the dependency.
 - Tooltips must use the shared Tooltip components. Do not use native `title`
   attributes as the tooltip implementation.
+- Sidebar and nav items (`.router-sidebar-item` and friends) keep one text color,
+  `--color-foreground`, in every state. Mark hover and the current item with the
+  background only (`--color-sidebar-hover` / `--color-sidebar-active`); do not
+  dim unselected items with `--color-muted-foreground`.
 - Never ship the browser's default black focus ring. The base focus rules in
   `assets/main.css` give keyboard focus a soft `--owl-focus-ring` outline and
   strip outlines from text fields. Show text-field focus on the field border or

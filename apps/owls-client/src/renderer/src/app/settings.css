@@ -260,9 +260,6 @@
   font-size: var(--owl-text-2xs);
   font-weight: 600;
 }
-.owls-settings-project[aria-expanded="true"] {
-  color: var(--color-foreground);
-}
 .owls-settings-project[aria-expanded="true"] > b {
   box-shadow: inset 0 0 0 1.5px var(--owl-c);
 }
@@ -312,13 +309,6 @@
   font-weight: 400;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-/* Inside a project only the selected page has a background: the project row and the other
-   pages show the pointer through their text color alone. */
-.owls-settings-nav .owls-settings-project:hover,
-.owls-settings-subnav .router-sidebar-item:not([aria-current="true"]):hover {
-  background: transparent;
-  color: var(--color-foreground);
 }
 .owls-settings-chevron {
   flex-shrink: 0;
