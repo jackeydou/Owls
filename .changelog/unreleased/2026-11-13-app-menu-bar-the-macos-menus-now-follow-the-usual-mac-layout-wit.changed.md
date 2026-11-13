@@ -1,0 +1,1 @@
+- Menu bar: the macOS menus now follow the usual Mac layout, with Settings and Check for Updates in the Owls menu, new thread and project commands in File, sidebar, Overview, and Pull Requests in View, and documentation and feedback links in Help, in English or Chinese.
