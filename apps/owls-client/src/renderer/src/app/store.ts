@@ -73,6 +73,7 @@ export type SettingsTab =
   | 'updates'
   /** One project's settings; `settingsProject` says which project and page. */
   | 'project'
+export type RouterSettingsTab = 'router' | 'workers'
 export const projectSettingsPages = ['general', 'git', 'instructions'] as const
 export type ProjectSettingsPage = (typeof projectSettingsPages)[number]
 
@@ -91,6 +92,8 @@ type State = {
   settingsTab: SettingsTab
   /** The agent tab open on the Agents page; survives leaving Settings like `settingsTab`. */
   settingsAgent: AgentProvider
+  /** The tab open on the Router & Workers page. */
+  settingsRouterTab: RouterSettingsTab
   /** The project and page shown while `settingsTab` is `project`. */
   settingsProject: { projectId: string; page: ProjectSettingsPage } | null
   github: GitHubAccount
@@ -109,6 +112,8 @@ type State = {
   showSettings(tab?: SettingsTab): void
   /** Opens Settings on one agent's tab of the Agents page. */
   showAgentSettings(provider: AgentProvider): void
+  /** Opens Settings on one tab of the Router & Workers page. */
+  showRouterSettings(tab: RouterSettingsTab): void
   /** Opens Settings on one project's page, its general page by default. */
   showProjectSettings(projectId: string, page?: ProjectSettingsPage): void
   gitHubSignIn(): Promise<void>
@@ -216,6 +221,7 @@ export const useAppStore = create<State>((set, get) => {
     lastView: 'chat',
     settingsTab: 'agents',
     settingsAgent: 'claude-code',
+    settingsRouterTab: 'router',
     settingsProject: null,
     threadId: null,
     github: { status: 'signed-out', failure: null },
@@ -374,6 +380,14 @@ export const useAppStore = create<State>((set, get) => {
         lastView: state.view === 'settings' ? state.lastView : state.view,
         settingsTab: 'agents',
         settingsAgent: provider,
+        error: null
+      })),
+    showRouterSettings: (tab) =>
+      set((state) => ({
+        view: 'settings',
+        lastView: state.view === 'settings' ? state.lastView : state.view,
+        settingsTab: 'router',
+        settingsRouterTab: tab,
         error: null
       })),
     showProjectSettings: (projectId, page = 'general') =>

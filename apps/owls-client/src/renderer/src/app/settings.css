@@ -167,11 +167,13 @@
   gap: 8px;
   flex-wrap: wrap;
 }
-.owls-settings-section > .owls-settings-actions {
+.owls-settings-section > .owls-settings-actions,
+.owls-settings-tabpanel > .owls-settings-actions {
   justify-content: flex-end;
   padding-bottom: 12px;
 }
-.owls-settings-section > .owls-inline-error {
+.owls-settings-section > .owls-inline-error,
+.owls-settings-tabpanel > .owls-inline-error {
   margin-bottom: 12px;
   padding: 8px 12px;
 }
@@ -417,14 +419,17 @@
   outline: 2px solid var(--owl-focus-ring);
   outline-offset: 3px;
 }
-/* Agents page: one underlined tab per coding agent, the open one's rows below. */
-.owls-agent-tabs {
+/* Tabs across a page (Agents, Router & Workers): underlined, the open tab's rows below. */
+.owls-settings-tabs {
   display: flex;
   gap: 24px;
   margin-top: 20px;
   border-bottom: 1px solid var(--color-border);
 }
-.owls-agent-tabs > button {
+.owls-settings-section h2 + p + .owls-settings-tabs {
+  margin-top: 16px;
+}
+.owls-settings-tabs > button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -440,23 +445,39 @@
     border-color 120ms ease,
     transform 80ms ease;
 }
-.owls-agent-tabs > button:hover {
+.owls-settings-tabs > button:hover {
   color: var(--color-foreground);
 }
-.owls-agent-tabs > button:active {
+.owls-settings-tabs > button:active {
   transform: translateY(1px);
 }
-.owls-agent-tabs > button[aria-selected="true"] {
+.owls-settings-tabs > button[aria-selected="true"] {
   border-bottom-color: var(--color-foreground);
   color: var(--color-foreground);
 }
-.owls-agent-tabs .router-agent-icon {
+.owls-settings-tabs .router-agent-icon {
   flex-shrink: 0;
   width: 15px;
   height: 15px;
 }
-.owls-agent-tabs > button:not([aria-selected="true"]) .router-agent-icon {
+.owls-settings-tabs > button:not([aria-selected="true"]) .router-agent-icon,
+.owls-settings-tabs > button:not([aria-selected="true"]) .owls-settings-tab-owl {
   opacity: 0.7;
+}
+.owls-settings-tab-owl {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+.owls-settings-tabpanel > .owls-setting-row:first-child,
+.owls-settings-tab-body + .owls-setting-row {
+  border-top: 0;
+}
+.owls-settings-tab-body {
+  padding-top: 20px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
 }
 .owls-agent-status {
   display: flex;
@@ -467,25 +488,5 @@
   font-size: var(--owl-text-sm);
 }
 .owls-agent-status + .owls-setting-row {
-  border-top: 0;
-}
-/* A named group inside one page, such as Router and Workers. */
-.owls-settings-section .owls-settings-subhead {
-  margin-top: 36px;
-  font-size: var(--owl-text-lg);
-  font-weight: 500;
-}
-.owls-settings-section h2 + p + .owls-settings-subhead {
-  margin-top: 28px;
-}
-.owls-settings-subhead-body {
-  margin-top: 4px;
-  color: var(--color-muted-foreground);
-  font-size: var(--owl-text-sm);
-  line-height: var(--owl-leading-normal);
-}
-.owls-settings-section .owls-settings-subhead + .owls-setting-row,
-.owls-settings-section .owls-settings-subhead-body + .owls-setting-row {
-  margin-top: 8px;
   border-top: 0;
 }

@@ -1,11 +1,12 @@
 import { Button } from '@renderer/components/ui/button'
 import { ExternalLinkIcon, FolderOpenIcon, RefreshIcon } from '@renderer/components/ui/icons'
-import { type ReactNode, useEffect, useId, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider, CodexConnection, Failure } from '../../../shared/app'
 import { AgentIcon } from '../router/AgentIcon'
 import { failureMessage, uiFailure } from './failures'
 import { SettingRow } from './SettingRow'
+import { SettingsTabs } from './SettingsTabs'
 import { useAppStore } from './store'
 
 /** One agent's tab: its connection state first, then its rows. */
@@ -42,52 +43,22 @@ export function AgentsSettingsPane() {
   const { t } = useTranslation()
   const current = useAppStore((s) => s.settingsAgent)
   const showAgentSettings = useAppStore((s) => s.showAgentSettings)
-  const id = useId()
   const Pane = AGENT_PANES[current]
-  // Arrow keys move between tabs, as in any tab list.
-  function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
-    if (!step) return
-    event.preventDefault()
-    const next =
-      AGENT_TABS[(AGENT_TABS.indexOf(current) + step + AGENT_TABS.length) % AGENT_TABS.length]
-    showAgentSettings(next)
-    document.getElementById(`${id}-${next}`)?.focus()
-  }
   return (
     <section className="owls-settings-section">
       <h2>{t('agents.title')}</h2>
-      <div
-        className="owls-agent-tabs"
-        role="tablist"
-        aria-label={t('agents.title')}
-        onKeyDown={onKeyDown}
-      >
-        {AGENT_TABS.map((provider) => (
-          <button
-            type="button"
-            role="tab"
-            key={provider}
-            id={`${id}-${provider}`}
-            aria-selected={provider === current}
-            aria-controls={`${id}-panel`}
-            tabIndex={provider === current ? 0 : -1}
-            onClick={() => showAgentSettings(provider)}
-          >
-            <AgentIcon provider={provider} />
-            {t(`agent.${provider}`)}
-          </button>
-        ))}
-      </div>
-      <div
-        className="owls-agent-panel"
-        role="tabpanel"
-        id={`${id}-panel`}
-        aria-labelledby={`${id}-${current}`}
-        key={current}
+      <SettingsTabs
+        label={t('agents.title')}
+        tabs={AGENT_TABS.map((provider) => ({
+          id: provider,
+          label: t(`agent.${provider}`),
+          icon: <AgentIcon provider={provider} />
+        }))}
+        current={current}
+        onSelect={showAgentSettings}
       >
         <Pane />
-      </div>
+      </SettingsTabs>
     </section>
   )
 }

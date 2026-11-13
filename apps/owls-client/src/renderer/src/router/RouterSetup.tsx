@@ -65,7 +65,7 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
   const { t } = useTranslation()
   const settings = useAppStore((s) => s.settings)
   const save = useAppStore((s) => s.saveSettings)
-  const showSettings = useAppStore((s) => s.showSettings)
+  const showRouterSettings = useAppStore((s) => s.showRouterSettings)
   const showAgentSettings = useAppStore((s) => s.showAgentSettings)
   const { alternate } = need
   const agent = t(`agent.${need.kind === 'worker' ? need.provider : 'codex'}`)
@@ -92,7 +92,7 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
             onClick={() => {
               const agent = settingsAgentFor(need)
               if (agent) showAgentSettings(agent)
-              else showSettings('router')
+              else showRouterSettings('router')
             }}
           >
             <SettingsIcon size={16} />
