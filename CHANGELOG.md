@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1200-beta.2
+
+### Highlights
+
+- Knowledge cards: save Router replies and worker results as cards, organize them on boards, and attach them to messages.
+- A new Pull Requests list shows every pull request agents opened across projects, with merge, review, and CI status.
+- The macOS menu bar follows the usual Mac layout.
+
+### Changes
+
+- Menu bar: the macOS menus now follow the usual Mac layout, with Settings and Check for Updates in the Owls menu, new thread and project commands in File, sidebar, Overview, and Pull Requests in View, and documentation and feedback links in Help, in English or Chinese. (#83)
+- Cards: save Router replies and worker results as knowledge cards, organize them on boards, and attach them to messages for the Router or a worker. (#80)
+- Pull requests: a new list shows every pull request agents opened across projects, with merge state, review, and CI status, filterable by merge state, checks, and project and sortable by what needs attention. (#81)
+- UI: corner radii are one step smaller across the app (cards, menus, dialogs, inputs, buttons, composer). (#82)
+
+### Fixes
+
 ## 2026.11.1200-beta.1
 
 ### Highlights
