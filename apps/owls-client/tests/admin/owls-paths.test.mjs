@@ -8,7 +8,7 @@ import {
   rmSync,
   writeFileSync
 } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
 import { pathToFileURL } from 'node:url'
@@ -282,5 +282,21 @@ test('workerWorktreesRoot uses the visible folder only for the default data root
     rmSync(root, { recursive: true, force: true })
     delete globalThis.__owlsPathsDefaultDataRoot
     delete globalThis.__owlsPathsDefaultWorktreesRoot
+  }
+})
+
+test('workspaceHome is ~/Owls/Workspace only for the default data root', async () => {
+  const root = mkdtempSync(join(process.cwd(), '.owls-paths-test-'))
+  const loaded = await loadOwlsPathsForTest()
+  try {
+    const defaultRoot = join(root, '.owls')
+    globalThis.__owlsPathsDefaultDataRoot = defaultRoot
+    assert.equal(loaded.module.workspaceHome(defaultRoot), join(homedir(), 'Owls', 'Workspace'))
+    const isolated = join(root, 'isolated')
+    assert.equal(loaded.module.workspaceHome(isolated), join(isolated, 'workspace'))
+  } finally {
+    loaded.cleanup()
+    rmSync(root, { recursive: true, force: true })
+    delete globalThis.__owlsPathsDefaultDataRoot
   }
 })

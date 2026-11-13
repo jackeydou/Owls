@@ -835,7 +835,7 @@ export class RouterService implements TurnProfiles {
     return log
   }
   /**
-   * The workers, and the projects when there are several, for a context that
+   * The workers, and the projects when there are any, for a context that
    * lacks them. A context the engine trimmed also lost the memory block, so it
    * gets a line naming the categories it can still search.
    */

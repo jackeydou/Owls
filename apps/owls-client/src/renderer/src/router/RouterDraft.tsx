@@ -153,7 +153,8 @@ function useMentions(
  * A message being written. Text goes to the thread's Router, creating the thread
  * on the first send, unless a worker is addressed, by `@` here or by `target`
  * when the map has one selected. `@` also names projects; a new thread runs its
- * workers in the first project its first message names, or in `projectId`.
+ * workers in the first project its first message names, or in `projectId`, and
+ * otherwise in the workspace folder.
  */
 export function useRouterDraft({
   projectId,
@@ -161,7 +162,6 @@ export function useRouterDraft({
   target,
   isSendKey,
   disabled = false,
-  chooseProject,
   onThread,
   linkedCards,
   onSent
@@ -171,8 +171,6 @@ export function useRouterDraft({
   target?: RouterWorker | null
   isSendKey: (event: KeyboardEvent) => boolean
   disabled?: boolean
-  /** Asked for a project when the draft is sent with none. Null keeps the draft. */
-  chooseProject?: () => Promise<string | null>
   /** Told which thread took the first message of a new one. */
   onThread?: (threadId: string) => void
   /** Cards that follow a selection elsewhere, such as a board's; they replace the attached ones. */
@@ -199,7 +197,6 @@ export function useRouterDraft({
   const [trigger, setTrigger] = useState<Trigger | null>(null)
   const [highlight, setHighlight] = useState(0)
   const [dismissed, setDismissed] = useState(false)
-  const choosing = useRef(false)
   const addressed = target ?? mention
   const query = dismissed || !trigger ? null : trigger.query
   const options = useMentions(router, query, cards).filter(
@@ -253,13 +250,8 @@ export function useRouterDraft({
   }
   async function submit() {
     const message = editor.getText({ blockSeparator: '\n' }).trim()
-    if (!message || sending || choosing.current) return
-    choosing.current = true
-    const chosen = router
-      ? null
-      : (firstProject(editor) ?? projectId ?? (await chooseProject?.()) ?? null)
-    choosing.current = false
-    if (!router && !chosen && chooseProject) return
+    if (!message || sending) return
+    const chosen = router ? null : (firstProject(editor) ?? projectId)
     const current = router ?? created.current ?? (await createThread(chosen))
     if (!current) return
     created.current = router ? null : current

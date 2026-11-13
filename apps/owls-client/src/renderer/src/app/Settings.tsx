@@ -4,6 +4,7 @@ import {
   BrainIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  FolderOpenIcon,
   GitBranchIcon,
   GitPullRequestIcon,
   type IconComponent,
@@ -195,7 +196,64 @@ function WorkerDefaultsPane() {
       <h2>{t('defaults')}</h2>
       <p>{t('defaultsBody')}</p>
       <TaskOptions />
+      <WorkspaceFolderRow />
     </section>
+  )
+}
+
+/** The folder for tasks outside any project, with the default spelled out until the user picks one. */
+function WorkspaceFolderRow() {
+  const { t } = useTranslation()
+  const custom = useAppStore((s) => s.settings.workspacePath)
+  const workspaceFolder = useAppStore((s) => s.workspaceFolder)
+  const selectWorkspaceFolder = useAppStore((s) => s.selectWorkspaceFolder)
+  const resetWorkspaceFolder = useAppStore((s) => s.resetWorkspaceFolder)
+  const [folder, setFolder] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  // Reads the folder again whenever the saved choice changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `custom` is the trigger, not an input.
+  useEffect(() => {
+    let live = true
+    void workspaceFolder().then((path) => {
+      if (live) setFolder(path)
+    })
+    return () => {
+      live = false
+    }
+  }, [custom, workspaceFolder])
+  const run = async (change: () => Promise<unknown>) => {
+    setBusy(true)
+    await change()
+    setBusy(false)
+  }
+  return (
+    <SettingRow
+      label={t('workspaceFolder')}
+      description={t('workspaceFolderBody')}
+      detail={folder ? <code className="owls-path">{folder}</code> : null}
+    >
+      <div className="owls-settings-actions">
+        {custom ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => void run(resetWorkspaceFolder)}
+          >
+            {t('workspaceFolderReset')}
+          </Button>
+        ) : null}
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() => void run(selectWorkspaceFolder)}
+        >
+          <FolderOpenIcon size={16} />
+          {t('workspaceFolderChoose')}
+        </Button>
+      </div>
+    </SettingRow>
   )
 }
 

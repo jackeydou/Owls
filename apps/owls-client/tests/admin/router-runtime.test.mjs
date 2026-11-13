@@ -52,6 +52,12 @@ const {
 } = require('../../out/main/app/runtime.js')
 
 const PROJECT = { id: 'p1', name: 'demo', path: '/tmp/owls-router-demo' }
+const WORKSPACE = '/tmp/owls-workspace'
+/** A thread's first batch lists the projects, so even a lone message arrives as a batch. */
+const firstBatch = (text) =>
+  new RegExp(
+    `^<owls-batch id="b_[0-9a-f]+" events="1">\\nProjects:\\n- demo · p1 · default\\n\\[1\\] user_message · user · [0-9:]+\\n${text}\\n</owls-batch>$`
+  )
 
 function fakeHost(overrides = {}) {
   const created = []
@@ -87,6 +93,7 @@ function fakeHost(overrides = {}) {
     host: {
       projects: () => overrides.projects ?? [PROJECT],
       threadHome: () => '/tmp/owls-thread-home',
+      workspace: () => WORKSPACE,
       settings: () => settings,
       providerReady: (provider) => (overrides.ready ?? ['codex', 'claude-code']).includes(provider),
       createSession: (input, worker) => {
@@ -219,7 +226,7 @@ test('message → dispatch → report → reply runs through the Owls engine', a
   ])
   service.send({ routerId: router.id, commandId: crypto.randomUUID(), text: 'How many files?' })
   await waitFor(() => current().status === 'idle' && current().items.length >= 3, 'first batch')
-  assert.equal(seen[0], 'How many files?', 'a lone user message is sent as plain text')
+  assert.match(seen[0], firstBatch('How many files\\?'), 'the first batch lists the projects')
   assert.equal(created.length, 1)
   assert.equal(created[0].cwd, PROJECT.path, 'workers run in the Router project')
   assert.equal(created[0].provider, 'codex')
@@ -632,7 +639,7 @@ test('the Inbox persists events and records each batch', async () => {
       .filter((e) => e.kind === 'user_message')
       .map((e) => e.seq)
   )
-  assert.equal(engine.runs[0].text, 'Lint please')
+  assert.match(engine.runs[0].text, firstBatch('Lint please'))
   const worker = service.snapshot().workers[0]
   service.settled(worker.sessionId, report('Clean.'))
   await waitFor(() => engine.runs.length === 2, 'report batch')
@@ -819,7 +826,7 @@ test('switching engines starts the new engine with the worker state', async () =
   await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'claude batch')
   assert.match(
     engine.runs[1].text,
-    /^<owls-batch id="b_[0-9a-f]+" events="1">\nCurrent workers:\n- w_[0-9a-f]+ · running · Index the docs/
+    /^<owls-batch id="b_[0-9a-f]+" events="1">\nCurrent workers:\n- w_[0-9a-f]+ · running · project demo · Index the docs/
   )
   assert.deepEqual(current().native, { engine: 'claude-code', sessionId: 'claude-1' })
   send(service, router, 'And now?')
@@ -1512,7 +1519,7 @@ test('fixing the settings clears the failure and sends the waiting message', asy
   configured = true
   service.settingsChanged()
   await waitFor(() => engine.runs.length === 1, 'waiting message sent')
-  assert.equal(engine.runs[0].text, 'Hello')
+  assert.match(engine.runs[0].text, firstBatch('Hello'))
   assert.equal(current().error, null)
   service.close()
 })
@@ -2404,7 +2411,8 @@ test('the host lists the sessions of both runtimes, newest first', () => {
     { ...runtime, snapshot: () => ({ sessions: [session('codex-worker', '1')] }) },
     { ...runtime, sessionList: () => [session('claude-worker', '2')] },
     '/tmp/owls-thread-home',
-    '/tmp/owls-projects'
+    '/tmp/owls-projects',
+    '/tmp/owls-workspace'
   )
   assert.deepEqual(
     host.snapshot().sessions.map((s) => s.id),
@@ -2557,7 +2565,7 @@ test('dispatch picks the named project, the parent project, or the default', asy
   service.close()
 })
 
-test('a thread with no default must name a project once there are several', async () => {
+test('a thread with no default runs unnamed tasks in the workspace', async () => {
   const { engine, service, current, created } = scripted({
     projectId: null,
     host: { projects: [PROJECT, OTHER] }
@@ -2565,17 +2573,100 @@ test('a thread with no default must name a project once there are several', asyn
   const router = service.snapshot().routers[0]
   let failure = null
   engine.onRun = async (_input, tools) => {
+    await dispatchFrom(tools).execute({ goal: 'Somewhere' })
     await dispatchFrom(tools)
-      .execute({ goal: 'Somewhere' })
+      .execute({ goal: 'Nowhere', project: 'missing' })
       .catch((error) => {
         failure = error
       })
   }
   await send(service, router, 'go')
-  await waitFor(() => current().status === 'idle' && failure, 'refused')
+  await waitFor(() => current().status === 'idle' && failure, 'dispatched')
+  assert.deepEqual(
+    created.map((s) => s.cwd),
+    [WORKSPACE]
+  )
+  assert.equal(service.snapshot().workers[0].projectId, null)
   assert.equal(failure.code, 'project_required')
-  assert.match(failure.message, /demo, Other/)
-  assert.equal(created.length, 0)
+  assert.match(failure.message, /demo, Other, workspace/)
+  service.close()
+})
+
+test('a single project is listed but not used unless the task names it', async () => {
+  const workspaces = fakeWorkspaces()
+  const { engine, service, current, created } = scripted({
+    projectId: null,
+    workspaces,
+    host: { settings: worktreeSettings }
+  })
+  const router = service.snapshot().routers[0]
+  const results = []
+  let listed = null
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length !== 1) return
+    const dispatch = async (input) => JSON.parse(await dispatchFrom(tools).execute(input))
+    results.push(await dispatch({ goal: 'Write a script' }))
+    results.push(await dispatch({ goal: 'Write a note' }))
+    results.push(await dispatch({ goal: 'Fix the build', project: 'demo' }))
+    results.push(await dispatch({ goal: 'Follow up', parent: results[0].workerId }))
+    listed = JSON.parse(await tools.find((tool) => tool.name === 'list_workers').execute({}))
+  }
+  await send(service, router, 'go')
+  await waitFor(() => current().status === 'idle' && results.length === 4, 'dispatches')
+  assert.match(engine.runs[0].text, /Projects:\n- demo · p1\n/, 'the Router sees the project')
+  assert.deepEqual(
+    results.map((r) => [r.status, r.workspace]),
+    [
+      ['started', 'checkout'],
+      ['started', 'checkout'],
+      ['started', 'worktree'],
+      ['started', 'checkout']
+    ],
+    'workspace writers do not wait for each other and get no worktree'
+  )
+  assert.deepEqual(
+    created.map((s) => s.cwd),
+    [WORKSPACE, WORKSPACE, `/worktrees/${results[2].workerId}`, WORKSPACE]
+  )
+  assert.deepEqual(
+    workspaces.calls.filter(([call]) => call === 'inspect'),
+    [['inspect', PROJECT.path]],
+    'only the project task looks for a repository'
+  )
+  const workers = service.snapshot().workers
+  const byGoal = (goal) => workers.find((w) => w.goal === goal)
+  assert.equal(byGoal('Write a script').projectId, null)
+  assert.equal(byGoal('Follow up').projectId, null, 'a child stays in its parent workspace')
+  assert.equal(byGoal('Fix the build').projectId, PROJECT.id)
+  assert.match(
+    service.profile(byGoal('Write a script').sessionId).instructions,
+    /general workspace folder/
+  )
+  assert.doesNotMatch(
+    service.profile(byGoal('Fix the build').sessionId).instructions,
+    /general workspace folder/
+  )
+  assert.equal(
+    listed.workers.find((w) => w.goal === 'Write a script').project,
+    'workspace',
+    'the Router sees where each worker runs'
+  )
+  service.close()
+})
+
+test('a thread with a default project can still send a task to the workspace', async () => {
+  const { engine, service, router, current, created } = scripted()
+  engine.onRun = async (_input, tools) => {
+    if (engine.runs.length !== 1) return
+    await dispatchFrom(tools).execute({ goal: 'In the project' })
+    await dispatchFrom(tools).execute({ goal: 'Elsewhere', project: 'Workspace' })
+  }
+  await send(service, router, 'go')
+  await waitFor(() => current().status === 'idle' && created.length === 2, 'dispatches')
+  assert.deepEqual(
+    created.map((s) => s.cwd),
+    [PROJECT.path, WORKSPACE]
+  )
   service.close()
 })
 
@@ -2791,7 +2882,10 @@ test('a new thread reads memory once in its first batch and can search it', asyn
   )
   service.send({ routerId: router.id, commandId: crypto.randomUUID(), text: 'Hi there' })
   await waitFor(() => current().status === 'idle' && current().items.length >= 3, 'first batch')
-  assert.match(seen[0], /<owls-batch id="b_[0-9a-f]+" events="1">\nMemory \(saved by Owls/)
+  assert.match(
+    seen[0],
+    /<owls-batch id="b_[0-9a-f]+" events="1">\nProjects:\n- demo · p1 · default\nMemory \(saved by Owls/
+  )
   assert.match(seen[0], /Prefers short replies \(p1\)/)
   assert.match(seen[0], /user_message · user/)
   assert.deepEqual(memory.searches, [{ query: 'replies' }])
@@ -2810,8 +2904,8 @@ test('search_memory sits in the fixed tool order only while memory is on', async
   on.service.close()
   const off = await withTools(async () => [], { memory: fakeMemory(false) })
   assert.ok(!off.engine.tools.some((t) => t.name === 'search_memory'))
-  assert.equal(off.engine.runs[0].text, 'go', 'no memory block without memory')
-  assert.equal(ROUTER_PROMPT_VERSION, 11)
+  assert.match(off.engine.runs[0].text, firstBatch('go'), 'no memory block without memory')
+  assert.equal(ROUTER_PROMPT_VERSION, 12)
   off.service.close()
 })
 

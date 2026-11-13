@@ -9,8 +9,11 @@
 
 1. **Thread 是全局的。** 一个 thread 就是一段对话和它自己的 Router，代码里仍叫 `router`、`routerId`。
 2. **项目是派发时的参数。** `Router.projectId` 只是默认项目，可以为空。`dispatch_task` 按
-   `project`、父 Worker 的项目、默认项目、唯一项目的顺序决定在哪个项目运行，都没有时返回 `project_required`。
-3. **Worker 属于项目。** `RouterWorker.projectId` 必填。同一 checkout 的写入者按项目串行，不按 thread，
+   `project`、父 Worker 的项目、默认项目的顺序决定在哪个项目运行；都没有时在工作目录（Workspace，
+   默认 `~/Owls/Workspace`，可在设置里修改）运行。只有一个项目时也不会默认用它，Router 只在任务与项目相关时
+   才指定项目，`project: "workspace"` 可以绕开默认项目。名字不存在时返回 `project_required`。
+3. **Worker 属于项目或工作目录。** `RouterWorker.projectId` 为空表示在工作目录运行，不用 worktree，
+   彼此也不串行（各自在子目录里写文件）。同一 checkout 的写入者按项目串行，不按 thread，
    否则同一项目的两个 thread 会同时写一个 checkout。
 4. **转发存冻结的副本，不存活引用。** 内容复制到目标 thread，同时记录来源，走 Inbox，所以三个引擎都不用改。
 5. **不做向后兼容。** 产品未发布。Drizzle 迁移已重建成一份 `0000_init.sql`，旧数据库不能继续使用，

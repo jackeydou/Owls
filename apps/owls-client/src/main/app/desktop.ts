@@ -22,7 +22,8 @@ import {
   memoryDreamingHome,
   projectsHome,
   routerThreadHome,
-  workerWorktreesRoot
+  workerWorktreesRoot,
+  workspaceHome
 } from '../owls-paths.js'
 import { RouterCredentials, type SecretCipher } from '../router/credentials.js'
 import { CodexRouterServer } from '../router/engines/codex.js'
@@ -169,7 +170,8 @@ void app
       new CodexService(store, emit),
       new ClaudeService(store, emit, { query }),
       routerThreadHome(root),
-      projectsHome(root)
+      projectsHome(root),
+      workspaceHome(root)
     )
     const routerStore = new RouterStore(store)
     const credentials = new RouterCredentials(routerStore, safeStorageCipher)

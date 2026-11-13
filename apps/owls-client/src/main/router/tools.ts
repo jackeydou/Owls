@@ -25,6 +25,9 @@ export class RouterToolError extends Error {
   }
 }
 
+/** The `project` value that sends a task to the workspace folder instead of a project. */
+export const WORKSPACE_PROJECT = 'workspace'
+
 export const dispatchTaskInput = z
   .object({
     goal: z.string().trim().min(1).max(4000).describe('What the worker should accomplish.'),
@@ -49,13 +52,13 @@ export const dispatchTaskInput = z
       .max(200)
       .optional()
       .describe(
-        "The project to work in, by name or ID. Omit to use the parent's project, or else the thread's default."
+        `The project to work in, by name or ID, or "${WORKSPACE_PROJECT}" for the user's workspace folder. Omit to use the parent's project, else the thread's default project, else the workspace.`
       ),
     context: z
       .string()
       .max(8000)
       .optional()
-      .describe('Background the worker needs that is not in the project itself.'),
+      .describe('Background the worker needs that is not in its working folder.'),
     provider: providerSchema
       .optional()
       .describe('Coding agent to run the task. Omit to use the default agent.'),

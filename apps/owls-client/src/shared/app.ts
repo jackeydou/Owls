@@ -227,7 +227,12 @@ export const settingsSchema = z.object({
   /** Null follows the installed build: a beta build gets beta updates, a stable one stable. */
   updateChannel: updateChannelSchema.nullable().default(null),
   /** Shows the Pull requests page in the sidebar; added later, so older rows show it. */
-  pullRequestsVisible: z.boolean().default(true)
+  pullRequestsVisible: z.boolean().default(true),
+  /**
+   * Where workers run tasks that belong to no project. Null uses the default,
+   * `~/Owls/Workspace`; added later, so older rows get it.
+   */
+  workspacePath: z.string().nullable().default(null)
 })
 export const projectSchema = z.object({
   id: z.string(),
@@ -237,7 +242,7 @@ export const projectSchema = z.object({
   settings: projectSettingsSchema.default(defaultProjectSettings)
 })
 export const settingsUpdateSchema = settingsSchema
-  .omit({ executablePath: true, claudeExecutablePath: true })
+  .omit({ executablePath: true, claudeExecutablePath: true, workspacePath: true })
   .strict()
 export const modelSchema = z.object({
   id: z.string(),
@@ -366,6 +371,12 @@ export interface OwlsAPI {
   projectsFolder(): Promise<Reply<string>>
   /** Opens the system folder picker for where a new project goes; null when canceled. */
   chooseProjectsFolder(): Promise<Reply<string | null>>
+  /** Where workers run tasks that belong to no project. */
+  workspaceFolder(): Promise<Reply<string>>
+  /** Opens the folder picker and saves the workspace folder; null when canceled. */
+  selectWorkspaceFolder(): Promise<Reply<AppSettings | null>>
+  /** Goes back to the default workspace folder. */
+  resetWorkspaceFolder(): Promise<Reply<AppSettings>>
   cloneProject(input: CloneProject): Promise<Reply<Project>>
   createProject(input: CreateProject): Promise<Reply<Project>>
   /** Saves a project's name and settings; resolves to the saved project. */

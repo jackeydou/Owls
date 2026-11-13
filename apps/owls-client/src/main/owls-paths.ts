@@ -50,6 +50,17 @@ export function projectsHome(dataRoot = getDataRoot()): string {
     : join(dataRoot, 'projects')
 }
 
+/**
+ * Where workers run tasks that belong to no project, unless the user picked
+ * another folder: next to the projects for the default data root, inside a
+ * custom data root otherwise.
+ */
+export function workspaceHome(dataRoot = getDataRoot()): string {
+  return resolve(dataRoot) === resolve(defaultDataRoot())
+    ? join(homedir(), 'Owls', 'Workspace')
+    : join(dataRoot, 'workspace')
+}
+
 /** The working directory of Router engines in threads with no default project. */
 export function routerThreadHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'router-threads')

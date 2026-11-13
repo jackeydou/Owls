@@ -53,7 +53,8 @@ export class OwlsStore {
           memory: defaultMemorySettings,
           layout: defaultLayoutSettings,
           updateChannel: null,
-          pullRequestsVisible: true
+          pullRequestsVisible: true,
+          workspacePath: null
         }
   }
   saveSettings(value: AppSettings): AppSettings {

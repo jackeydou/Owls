@@ -14,7 +14,12 @@ import type { RouterWorker, WorkerPullRequestLink, WorkerStatus } from '../../sh
 import { OwlsError } from '../app/errors.js'
 import { safeText } from '../codex/protocol.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
-import { projectInstructions, WORKER_INSTRUCTIONS, worktreeInstructions } from './prompt.js'
+import {
+  projectInstructions,
+  WORKER_INSTRUCTIONS,
+  WORKSPACE_INSTRUCTIONS,
+  worktreeInstructions
+} from './prompt.js'
 import { parseReport, WORKER_REPORT_JSON_SCHEMA } from './report.js'
 import type { RouterStore } from './store.js'
 import {
@@ -23,7 +28,8 @@ import {
   type MessageWorkerInput,
   type MessageWorkerResult,
   RouterToolError,
-  type StopWorkerResult
+  type StopWorkerResult,
+  WORKSPACE_PROJECT
 } from './tools.js'
 import type {
   ApproveWorkerInput,
@@ -59,6 +65,8 @@ export type WorkerHost = {
   projects(): Project[]
   /** The engine's working directory for a thread with no default project. */
   threadHome(): string
+  /** Where workers run tasks that belong to no project; created when missing. */
+  workspace(): string
   settings(): AppSettings
   providerReady(provider: AgentProvider): boolean
   /** `worker` marks a session whose `cwd` is a worker worktree of `projectPath`. */
@@ -174,7 +182,7 @@ export class WorkerPool implements TurnProfiles {
       throw new RouterToolError('provider_unavailable', `${provider} is not connected.`)
     const project = this.projectFor(request.defaultProjectId, input)
     const key = createHash('sha256')
-      .update(project.id)
+      .update(project?.id ?? '')
       .update('\0')
       .update(input.goal)
       .update('\0')
@@ -198,8 +206,12 @@ export class WorkerPool implements TurnProfiles {
         'worker_limit_reached',
         `At most ${QUEUE_LIMIT} workers can wait to start. Wait for some to report.`
       )
+    // The workspace folder is shared scratch space, not a repository, so it gets no worktrees.
     const wantsWorktree =
-      permission !== 'read-only' && settings.router.worktrees && input.workspace !== 'checkout'
+      project !== null &&
+      permission !== 'read-only' &&
+      settings.router.worktrees &&
+      input.workspace !== 'checkout'
     const repo = wantsWorktree ? await this.workspaces.inspect(project.path) : null
     // The same call may have finished while the repository was inspected.
     const after = repeated()
@@ -218,12 +230,17 @@ export class WorkerPool implements TurnProfiles {
     let session: Session
     try {
       session =
-        workspace.kind === 'worktree'
+        workspace.kind === 'worktree' && project
           ? this.host.createSession(
               { provider, cwd: workspace.cwd, permission, ...selection },
               { projectPath: project.path }
             )
-          : this.host.createSession({ provider, cwd: project.path, permission, ...selection })
+          : this.host.createSession({
+              provider,
+              cwd: project?.path ?? this.host.workspace(),
+              permission,
+              ...selection
+            })
     } catch (error) {
       throw new RouterToolError('dispatch_failed', safeText(String(error)).slice(0, 200))
     }
@@ -231,7 +248,7 @@ export class WorkerPool implements TurnProfiles {
     const worker: RouterWorker = {
       id,
       routerId: request.routerId,
-      projectId: project.id,
+      projectId: project?.id ?? null,
       sessionId: session.id,
       provider,
       goal: input.goal,
@@ -354,8 +371,12 @@ export class WorkerPool implements TurnProfiles {
       }))
   }
 
-  /** The name of the project a worker runs in, while that project exists. */
+  /**
+   * The name of the project a worker runs in, while that project exists, or
+   * the workspace value for a worker outside any project.
+   */
   projectName(worker: RouterWorker): string | null {
+    if (worker.projectId === null) return WORKSPACE_PROJECT
     return this.host.projects().find((p) => p.id === worker.projectId)?.name ?? null
   }
 
@@ -443,6 +464,7 @@ export class WorkerPool implements TurnProfiles {
       instructions: [
         WORKER_INSTRUCTIONS,
         tree ? worktreeInstructions(tree.branch, settings.git.remote) : null,
+        worker.projectId === null ? WORKSPACE_INSTRUCTIONS : null,
         project
       ]
         .filter(Boolean)
@@ -542,6 +564,8 @@ export class WorkerPool implements TurnProfiles {
     if (active.length >= WORKER_LIMIT) return false
     // A worktree is this worker's alone; only writers sharing the checkout wait for each other.
     if (worker.permission === 'read-only' || worktreeOf(worker)) return true
+    // Workspace tasks are unrelated to each other and keep to their own subfolders.
+    if (worker.projectId === null) return true
     // Threads share projects, so this compares the project, not the thread.
     return !active.some(
       (w) => w.projectId === worker.projectId && w.permission !== 'read-only' && !worktreeOf(w)
@@ -611,37 +635,31 @@ export class WorkerPool implements TurnProfiles {
     return true
   }
 
-  /** The named project, else the parent's, else the thread's default, else the only one. */
-  private projectFor(defaultProjectId: string | null, input: DispatchTaskInput): Project {
+  /**
+   * The named project, else the parent's, else the thread's default; null runs
+   * the task in the workspace folder. Having a single project does not make it
+   * the default: unrelated tasks stay out of it.
+   */
+  private projectFor(defaultProjectId: string | null, input: DispatchTaskInput): Project | null {
     const projects = this.host.projects()
-    const names = () =>
-      projects
-        .map((p) => p.name)
-        .sort((a, b) => a.localeCompare(b))
-        .join(', ')
     const wanted = input.project?.toLocaleLowerCase()
     if (wanted) {
       const matches = projects.filter(
         (p) => p.id === input.project || p.name.toLocaleLowerCase() === wanted
       )
       if (matches.length === 1) return matches[0]
+      if (!matches.length && wanted === WORKSPACE_PROJECT) return null
+      const names = [...projects.map((p) => p.name).sort((a, b) => a.localeCompare(b))]
       throw new RouterToolError(
         'project_required',
         matches.length
           ? 'Several projects have this name. Use the project ID from the batch.'
-          : `There is no such project. The projects are: ${names()}.`
+          : `There is no such project. Use one of: ${[...names, WORKSPACE_PROJECT].join(', ')}.`
       )
     }
-    const fallback = (input.parent && this.workers.get(input.parent)?.projectId) || defaultProjectId
-    const found = projects.find((p) => p.id === fallback)
-    if (found) return found
-    if (projects.length === 1) return projects[0]
-    throw new RouterToolError(
-      'project_required',
-      projects.length
-        ? `Name the project for this task. The projects are: ${names()}.`
-        : 'The user has no projects yet. Ask them to add one.'
-    )
+    const parent = input.parent ? this.workers.get(input.parent) : undefined
+    const fallback = parent ? parent.projectId : defaultProjectId
+    return projects.find((p) => p.id === fallback) ?? null
   }
   /** A worker this Router may build on: its own, or one the user forwarded to this thread. */
   private parentFor(routerId: string, workerId: string): RouterWorker {

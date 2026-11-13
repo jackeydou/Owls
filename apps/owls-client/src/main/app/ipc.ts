@@ -199,6 +199,16 @@ export function registerIpc(
     })
     return result.canceled || !result.filePaths[0] ? null : result.filePaths[0]
   })
+  handle('workspace-folder', () => host.workspaceFolder())
+  handle('select-workspace-folder', async () => {
+    const result = await dialog.showOpenDialog({
+      defaultPath: host.workspaceFolder(),
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    return host.setWorkspaceFolder(result.filePaths[0])
+  })
+  handle('reset-workspace-folder', () => host.setWorkspaceFolder(null))
   handle('clone-project', (input) => host.cloneProject(cloneProjectSchema.parse(input)))
   handle('create-project', (input) => host.createProject(createProjectSchema.parse(input)))
   handle('save-project', (input) => host.saveProject(saveProjectSchema.parse(input)))

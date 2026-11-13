@@ -58,8 +58,9 @@ function WorkerStateIcon({ worker }: { worker: RouterWorker }) {
 export function WorkerDetail({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
   const session = useAppStore((s) => s.sessions.find((x) => x.id === worker.sessionId))
+  // A workspace worker has no project; its session's folder shortens paths instead.
   const projectPath = useAppStore(
-    (s) => s.projects.find((p) => p.id === worker.projectId)?.path ?? ''
+    (s) => s.projects.find((p) => p.id === worker.projectId)?.path ?? session?.cwd ?? ''
   )
   const { stopWorker, removeWorker, showPanel, startForward } = useRouterStore()
   const { report } = worker
