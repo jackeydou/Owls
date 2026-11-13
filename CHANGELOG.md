@@ -11,6 +11,27 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1200-beta.3
+
+### Highlights
+
+- Run worker tasks with your local Cursor CLI.
+- Open a worker's folder in your editor, Finder, or terminal from the worker panel.
+- Tasks without a project run in a workspace folder you can change in Settings.
+
+### Changes
+
+- Chat: Markdown links are blue without an underline, ask in a popover anchored to the link with Copy link and Open, and Cmd-click opens them directly. (#89)
+- Router: tasks that do not belong to a project now run in a workspace folder (~/Owls/Workspace by default, changeable in Settings) instead of the only project. (#85)
+- Workers: an Open in split button in the worker panel opens the worker's folder in an installed editor, Finder, or terminal (VS Code, Cursor, Zed, Xcode, JetBrains IDEs, Ghostty, and more), shows each app's own icon, and remembers the last choice. (#91)
+- Buttons: every button now shows it was pressed, async buttons show a spinner while working, and actions like Check for updates or Export confirm the result. (#86)
+- Workers: run worker tasks with your local Cursor CLI through its Agent Client Protocol mode, with a new Settings → Cursor page. (#90)
+
+### Fixes
+
+- Overview: returning to the conversation no longer flashes the map after its exit animation. (#87)
+- UI: focus no longer draws a thick black outline on inputs, buttons, and links; keyboard focus uses a soft themed ring. (#88)
+
 ## 2026.11.1200-beta.2
 
 ### Highlights
