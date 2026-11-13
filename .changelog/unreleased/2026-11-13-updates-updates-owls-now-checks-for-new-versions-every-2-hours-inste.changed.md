@@ -1,0 +1,1 @@
+- Updates: Owls now checks for new versions every 2 hours instead of every 4. (#102)
