@@ -11,6 +11,7 @@ import type {
 } from '../../shared/app.js'
 import { defaultProjectSettings, type ProjectSettings } from '../../shared/projects.js'
 import type { RouterWorker, WorkerPullRequestLink, WorkerStatus } from '../../shared/router.js'
+import type { SessionPlace } from '../app/agent-runtime.js'
 import { OwlsError } from '../app/errors.js'
 import { safeText } from '../codex/protocol.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
@@ -69,8 +70,8 @@ export type WorkerHost = {
   workspace(): string
   settings(): AppSettings
   providerReady(provider: AgentProvider): boolean
-  /** `worker` marks a session whose `cwd` is a worker worktree of `projectPath`. */
-  createSession(input: CreateSession, worker?: { projectPath: string }): Session
+  /** `place` marks a session in a project's worktree or in the workspace folder. */
+  createSession(input: CreateSession, place?: SessionPlace): Session
   /** Removes a stopped worker's session; the `removed` event does the rest. */
   remove(sessionId: string): void
   send(input: SendMessage): Promise<void>
@@ -235,14 +236,14 @@ export class WorkerPool implements TurnProfiles {
         workspace.kind === 'worktree' && project
           ? this.host.createSession(
               { provider, cwd: workspace.cwd, permission, ...selection },
-              { projectPath: project.path }
+              { kind: 'worktree', projectPath: project.path }
             )
-          : this.host.createSession({
-              provider,
-              cwd: project?.path ?? this.host.workspace(),
-              permission,
-              ...selection
-            })
+          : project
+            ? this.host.createSession({ provider, cwd: project.path, permission, ...selection })
+            : this.host.createSession(
+                { provider, cwd: this.host.workspace(), permission, ...selection },
+                { kind: 'workspace' }
+              )
     } catch (error) {
       throw new RouterToolError('dispatch_failed', safeText(String(error)).slice(0, 200))
     }

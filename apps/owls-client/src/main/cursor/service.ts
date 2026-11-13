@@ -1,5 +1,4 @@
 import { execFile } from 'node:child_process'
-import { realpathSync } from 'node:fs'
 import { promisify } from 'node:util'
 import { z } from 'zod'
 import appPackage from '../../../package.json'
@@ -12,6 +11,7 @@ import type {
   SendMessage,
   Session
 } from '../../shared/app.js'
+import { type SessionPlace, sessionCwd } from '../app/agent-runtime.js'
 import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
 import { turnDiff } from '../claude/normalize.js'
@@ -221,14 +221,11 @@ export class CursorService {
     return stdout
   }
   /**
-   * `worker` marks a session in a worker's worktree of a registered project,
-   * which may not exist yet. Cursor has no reasoning effort setting.
+   * `place` marks a worker session in a worktree of a registered project or in
+   * the workspace folder (`SessionPlace`). Cursor has no reasoning effort setting.
    */
-  createSession(input: CreateSession, worker?: { projectPath: string }): Session {
-    const cwd = worker ? input.cwd : realpathSync(input.cwd)
-    const projectPath = worker?.projectPath ?? cwd
-    if (!this.store.projects().some((p) => p.path === projectPath))
-      throw new OwlsError('project_required', 'Choose a project before starting a task.')
+  createSession(input: CreateSession, place?: SessionPlace): Session {
+    const cwd = sessionCwd(input.cwd, place, this.store.projects())
     this.validateModel(input.model)
     const now = new Date().toISOString()
     const session: Session = {

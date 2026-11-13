@@ -1,11 +1,38 @@
+import { realpathSync } from 'node:fs'
 import type {
   AgentConnection,
   CreateSession,
+  Project,
   RespondRequest,
   SendMessage,
   Session
 } from '../../shared/app.js'
 import type { TurnProfiles } from '../router/service.js'
+import { OwlsError } from './errors.js'
+
+/**
+ * Where a worker session runs when its `cwd` is not a project's own folder: a
+ * worker's worktree of a registered project, which may not exist yet, or the
+ * workspace folder the host made for tasks that belong to no project.
+ */
+export type SessionPlace = { kind: 'worktree'; projectPath: string } | { kind: 'workspace' }
+
+/**
+ * The working directory a new session gets, after checking that it may run
+ * there: a registered project, a worktree of one, or the workspace folder.
+ */
+export function sessionCwd(
+  cwd: string,
+  place: SessionPlace | undefined,
+  projects: Project[]
+): string {
+  if (place?.kind === 'workspace') return realpathSync(cwd)
+  const resolved = place ? cwd : realpathSync(cwd)
+  const projectPath = place?.projectPath ?? resolved
+  if (!projects.some((p) => p.path === projectPath))
+    throw new OwlsError('project_required', 'Choose a project before starting a task.')
+  return resolved
+}
 
 /**
  * What the host needs from each worker provider's runtime. A session belongs to
@@ -16,8 +43,8 @@ export interface AgentRuntime {
   connectionState(): AgentConnection
   hasActiveTasks(): boolean
   setTurnProfiles(profiles: TurnProfiles): void
-  /** `worker` marks a session in a worker's worktree, which may not exist yet. */
-  createSession(input: CreateSession, worker?: { projectPath: string }): Session
+  /** `place` marks a session outside a project's own folder; see `SessionPlace`. */
+  createSession(input: CreateSession, place?: SessionPlace): Session
   send(input: SendMessage): Promise<void>
   /** Resolves `not_running` when no turn can take the message; the caller queues it. */
   steer(
