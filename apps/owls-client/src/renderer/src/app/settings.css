@@ -210,7 +210,7 @@
   border-color: var(--color-accent);
 }
 .owls-logo-option:has(input:focus-visible) {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--owl-focus-ring);
   outline-offset: 2px;
 }
 .owls-logo-option img {
@@ -414,6 +414,6 @@
   font-size: var(--owl-text-sm);
 }
 .owls-project-colors .swatch:has(input:focus-visible) {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--owl-focus-ring);
   outline-offset: 3px;
 }

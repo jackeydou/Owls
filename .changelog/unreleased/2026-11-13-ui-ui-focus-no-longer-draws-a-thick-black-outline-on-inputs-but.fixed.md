@@ -1,0 +1,1 @@
+- UI: focus no longer draws a thick black outline on inputs, buttons, and links; keyboard focus uses a soft themed ring.

@@ -213,6 +213,29 @@
   *::-webkit-scrollbar-corner {
     background: transparent;
   }
+
+  /* Focus. Replaces Chromium's default black focus ring everywhere. Keyboard
+     focus on buttons, links, and other controls draws a soft themed outline.
+     Text fields match :focus-visible on every click, so they draw no outline;
+     the field's own border or its wrapper shows focus with
+     --owl-field-focus-border and --owl-field-focus-shadow. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--owl-focus-ring);
+    outline-offset: 2px;
+  }
+
+  :is(
+      input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]),
+      textarea,
+      select,
+      [contenteditable]
+    ):focus-visible {
+    outline: none;
+  }
 }
 
 @layer components {
@@ -248,8 +271,8 @@
     background: color-mix(in srgb, var(--color-foreground) 5%, var(--color-card));
   }
   .owls-select:focus-visible {
-    border-color: color-mix(in srgb, var(--color-foreground) 30%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-foreground) 8%, transparent);
+    border-color: var(--owl-field-focus-border);
+    box-shadow: var(--owl-field-focus-shadow);
   }
   .owls-select:disabled {
     opacity: 0.5;
@@ -938,15 +961,6 @@
       color-mix(in oklch, var(--color-card) 92%, transparent) 112px,
       var(--color-card) 100%
     );
-  }
-}
-
-@layer utilities {
-  :is(button, [role="button"]):focus:focus,
-  :is(button, [role="button"]):focus-visible:focus-visible {
-    outline: none;
-    --tw-ring-shadow: 0 0 #0000;
-    --tw-ring-offset-shadow: 0 0 #0000;
   }
 }
 

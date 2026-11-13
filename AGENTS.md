@@ -336,6 +336,11 @@ Release MR flow:
   styling fit before adding the dependency.
 - Tooltips must use the shared Tooltip components. Do not use native `title`
   attributes as the tooltip implementation.
+- Never ship the browser's default black focus ring. The base focus rules in
+  `assets/main.css` give keyboard focus a soft `--owl-focus-ring` outline and
+  strip outlines from text fields. Show text-field focus on the field border or
+  its wrapper with `--owl-field-focus-border` / `--owl-field-focus-shadow`. Do
+  not add `--color-accent`, black, or other hard outlines for focus.
 - For forms and settings, persist through the established settings or IPC flow.
   Do not add renderer-only runtime knobs that drift from main-process state.
 - Keep accessibility text and visible copy in the same i18n change. Do not add

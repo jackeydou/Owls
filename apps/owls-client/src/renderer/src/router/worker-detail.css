@@ -9,7 +9,7 @@
   border-radius: 50%;
 }
 .worker-state:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  outline: 2px solid var(--owl-focus-ring);
   outline-offset: 2px;
 }
 .worker-state[data-state="done"] {
@@ -65,7 +65,7 @@
   box-shadow: inset 0 0 0 1px var(--color-border);
 }
 .worker-changes-toggle:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  outline: 2px solid var(--owl-focus-ring);
 }
 
 /* Conversation */
@@ -129,7 +129,7 @@
   transform: rotate(90deg);
 }
 .worker-fold:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  outline: 2px solid var(--owl-focus-ring);
   border-radius: var(--owl-radius-xs);
 }
 .worker-report-note {

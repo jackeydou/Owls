@@ -496,7 +496,7 @@ html.pane-resizing * {
   background: color-mix(in srgb, var(--owl-tag-bg), var(--owl-tag-fg) 10%);
 }
 .router-worker-link:focus-visible {
-  outline: 2px solid var(--color-owls-blue-300);
+  outline: 2px solid var(--owl-focus-ring);
   outline-offset: 1px;
 }
 .router-worker-link > span {
@@ -710,6 +710,10 @@ html.pane-resizing * {
   line-height: var(--owl-leading-normal);
   resize: none;
   outline: none;
+}
+.router-forward textarea:focus-visible {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
 }
 .router-forward footer {
   display: flex;
@@ -1413,7 +1417,8 @@ html.pane-resizing * {
   outline: none;
 }
 .router-input:focus-visible {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
 }
 
 .router-new-project h2 {

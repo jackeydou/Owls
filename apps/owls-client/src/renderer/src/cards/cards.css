@@ -191,6 +191,9 @@
 .cards-search:focus-within {
   background: var(--color-sidebar-hover);
 }
+.cards-search:focus-within {
+  box-shadow: var(--owl-field-focus-shadow);
+}
 .cards-search input {
   flex: 1;
   min-width: 0;
@@ -719,7 +722,8 @@
   outline: none;
 }
 .cards-dialog form > label input:focus {
-  border-color: var(--color-border-strong);
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
 }
 .cards-dialog h2 {
   margin-bottom: 12px;

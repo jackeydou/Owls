@@ -316,6 +316,10 @@
   font-size: var(--owl-text-xs);
   margin-top: 8px;
 }
+.owls-answer-input:focus-visible {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
 .owls-request-actions {
   display: flex;
   gap: 8px;
