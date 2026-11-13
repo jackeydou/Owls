@@ -9,6 +9,7 @@ export const menuCommands = [
   'toggle-sidebar',
   'toggle-projects',
   'toggle-overview',
+  'toggle-cards',
   'pull-requests'
 ] as const
 export type MenuCommand = (typeof menuCommands)[number]

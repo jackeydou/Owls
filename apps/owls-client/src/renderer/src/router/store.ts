@@ -66,7 +66,7 @@ type State = {
   /** Lasts until the app restarts: the guide comes back while setup is incomplete. */
   guideSkipped: boolean
   skipGuide(): void
-  send(routerId: string, text: string, workerId?: string): Promise<boolean>
+  send(routerId: string, text: string, workerId?: string, cardIds?: string[]): Promise<boolean>
   interrupt(routerId: string): Promise<void>
   resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
   stopWorker(routerId: string, workerId: string): Promise<void>
@@ -205,7 +205,7 @@ export const useRouterStore = create<State>((set, get) => {
     },
     guideSkipped: false,
     skipGuide: () => set({ guideSkipped: true }),
-    send: async (routerId, text, workerId) => {
+    send: async (routerId, text, workerId, cardIds = []) => {
       if (get().sending) return false
       set({ sending: true, error: null })
       try {
@@ -214,6 +214,7 @@ export const useRouterStore = create<State>((set, get) => {
             routerId,
             commandId: crypto.randomUUID(),
             text,
+            cardIds,
             ...(workerId ? { workerId } : {})
           })
         )

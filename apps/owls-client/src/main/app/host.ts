@@ -1,4 +1,5 @@
 import { mkdirSync } from 'node:fs'
+import type { z } from 'zod'
 import type {
   AgentProvider,
   AppSettings,
@@ -12,6 +13,14 @@ import type {
   Session,
   ThreadItem
 } from '../../shared/app.js'
+import type {
+  Board,
+  boardSaveSchema,
+  Card,
+  CardLibrary,
+  cardCaptureSchema,
+  cardSaveSchema
+} from '../../shared/cards.js'
 import type { GitHubAccount, PullRequestOverview } from '../../shared/github.js'
 import type {
   MemoryCategoryAction,
@@ -39,6 +48,7 @@ import type {
   ThreadItemsRequest,
   WorkerAction
 } from '../../shared/router.js'
+import type { CardService } from '../cards/service.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { CodexService } from '../codex/service.js'
 import type { GitHubAuth } from '../github/auth.js'
@@ -51,6 +61,10 @@ import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
 import { OwlsError } from './errors.js'
 import { cloneGitHubProject, createQuickProject } from './project-sources.js'
+
+type CardSaveInput = z.infer<typeof cardSaveSchema>
+type CardCaptureInput = z.infer<typeof cardCaptureSchema>
+type BoardSaveInput = z.infer<typeof boardSaveSchema>
 
 /**
  * Owns the desktop workspace and routes each worker session to the runtime that
@@ -69,6 +83,7 @@ export class OwlsHost {
     triggers: DreamingTriggers
     sweeper: MemorySweeper
   } | null = null
+  private cards: CardService | null = null
   constructor(
     private readonly codex: CodexService,
     private readonly claude: ClaudeService,
@@ -86,6 +101,9 @@ export class OwlsHost {
   }
   attachMemory(memory: NonNullable<OwlsHost['memory']>): void {
     this.memory = memory
+  }
+  attachCards(cards: CardService): void {
+    this.cards = cards
   }
   /** A worker session's items, from whichever runtime owns it. */
   sessionItems(sessionId: string): Session['items'] {
@@ -164,8 +182,10 @@ export class OwlsHost {
   threadItems(input: ThreadItemsRequest): ThreadItem[] {
     return this.requireRouter().items(input.routerId, input.after)
   }
+  /** Freezes the attached cards first, so a missing card refuses the whole message. */
   sendRouter(input: SendRouterMessage): Promise<void> {
-    return this.requireRouter().send(input)
+    const cards = input.cardIds.length ? this.requireCards().attach(input.cardIds) : []
+    return this.requireRouter().send(input, cards)
   }
   forward(input: ForwardMessage): Router {
     return this.requireRouter().forward(input)
@@ -245,6 +265,28 @@ export class OwlsHost {
   }
   memoryExport(format: MemoryExportFormat): string {
     return this.requireMemory().service.export(format)
+  }
+  cardLibrary(): CardLibrary {
+    return this.requireCards().library()
+  }
+  cardSave(input: CardSaveInput): Card {
+    return this.requireCards().save(input)
+  }
+  cardCapture(input: CardCaptureInput): Card {
+    return this.requireCards().capture(input)
+  }
+  cardRemove(id: string): void {
+    this.requireCards().remove(id)
+  }
+  boardSave(input: BoardSaveInput): Board {
+    return this.requireCards().saveBoard(input)
+  }
+  boardRemove(id: string): void {
+    this.requireCards().removeBoard(id)
+  }
+  private requireCards(): CardService {
+    if (!this.cards) throw new OwlsError('router_unavailable', 'Cards are not available.')
+    return this.cards
   }
   private requireMemory(): NonNullable<OwlsHost['memory']> {
     if (!this.memory) throw new OwlsError('router_unavailable', 'Memory is not available.')

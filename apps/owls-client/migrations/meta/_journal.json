@@ -8,6 +8,13 @@
       "when": 1794352336223,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794527385578,
+      "tag": "0001_knowledge_cards",
+      "breakpoints": true
     }
   ]
 }

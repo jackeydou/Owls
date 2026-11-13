@@ -26,6 +26,8 @@ function run(command: MenuCommand, openProjectForm: (source: NewProjectSource) =
       return inSettings ? undefined : app.toggleProjects()
     case 'toggle-overview':
       return app.view === 'map' ? app.showChat() : app.showMap()
+    case 'toggle-cards':
+      return app.view === 'cards' ? app.showChat() : app.showCards()
     case 'pull-requests':
       return app.settings.pullRequestsVisible ? app.showPullRequests() : undefined
   }

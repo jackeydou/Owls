@@ -6,6 +6,9 @@ import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../app/failures'
 import { SettingsPage } from '../app/Settings'
 import { useAppStore } from '../app/store'
+import { CaptureDialog, SendCardsDialog } from '../cards/CardDialogs'
+import { CardsView } from '../cards/CardsView'
+import { useCardsStore, watchCards } from '../cards/store'
 import { PullRequestsView } from '../pulls/PullRequestsView'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
@@ -45,12 +48,14 @@ function Stage({ sidebarHidden }: { sidebarHidden: boolean }) {
     >
       {view === 'map' ? (
         <MapView />
+      ) : view === 'cards' ? (
+        <CardsView />
       ) : view === 'pulls' ? (
         <PullRequestsView />
       ) : (
         <RouterChat key={threadId ?? 'new'} />
       )}
-      <Panel />
+      {view === 'cards' ? null : <Panel />}
       {/* A sibling over the panel's left edge, so neither detail view has to carry it. */}
       {panelOpen ? <ResizeHandle {...handle} className="router-panel-resize" /> : null}
     </div>
@@ -75,11 +80,20 @@ function ActionError() {
   )
 }
 /** Keys whose ⌘ shortcuts the macOS application menu owns there; see main/app/menu.ts. */
-const MENU_SHORTCUTS = new Set(window.owlsPlatform === 'darwin' ? [',', 'b', 'n', 'j'] : [])
+const MENU_SHORTCUTS = new Set(window.owlsPlatform === 'darwin' ? [',', 'b', 'n', 'j', 'k'] : [])
 /** Backs out one level at a time: Settings, then details, then the map. */
 function stepBack() {
   const { panel, showPanel } = useRouterStore.getState()
   const { view, showChat, leaveSettings } = useAppStore.getState()
+  if (view === 'cards') {
+    // Escape in a card's fields leaves the field, so an unsaved edit is not closed away.
+    const focused = document.activeElement
+    if (focused instanceof HTMLElement && focused.closest('.card-editor')) return focused.blur()
+    const cards = useCardsStore.getState()
+    if (cards.openCardId) cards.openCard(null)
+    else if (cards.selected.length) cards.setSelected([])
+    return
+  }
   if (view === 'settings') leaveSettings()
   else if (panel) showPanel(null)
   else if (view === 'map') showChat()
@@ -91,12 +105,13 @@ export function RouterShell() {
   const projectsOpen = useAppStore((s) => s.settings.layout.projectsOpen)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
   const sidebarLabel = t(collapsed ? 'router.showSidebar' : 'router.hideSidebar')
+  useEffect(() => watchCards(), [])
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()
       if (!(event.metaKey || event.ctrlKey)) return
       if (MENU_SHORTCUTS.has(event.key.toLowerCase())) return
-      const { view, showMap, showChat, showSettings, toggleSidebar, newThread } =
+      const { view, showMap, showChat, showCards, showSettings, toggleSidebar, newThread } =
         useAppStore.getState()
       if (event.key === ',') {
         event.preventDefault()
@@ -115,6 +130,11 @@ export function RouterShell() {
         event.preventDefault()
         if (view === 'map') showChat()
         else showMap()
+      }
+      if (event.key.toLowerCase() === 'k' && !event.shiftKey) {
+        event.preventDefault()
+        if (view === 'cards') showChat()
+        else showCards()
       }
     }
     window.addEventListener('keydown', keydown)
@@ -144,6 +164,8 @@ export function RouterShell() {
         onClick={toggleSidebar}
       />
       <ForwardDialog />
+      <CaptureDialog />
+      <SendCardsDialog />
       <ActionError />
     </>
   )

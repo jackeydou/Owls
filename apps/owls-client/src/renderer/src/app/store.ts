@@ -64,12 +64,13 @@ type State = {
   loaded: boolean
   error: Failure | null
   /**
-   * `chat` and `map` are the same space at two distances; `pulls` lists agents' pull
-   * requests; `settings` replaces the whole window.
+   * `chat` and `map` are the same space at two distances; `cards` is the user's
+   * knowledge library and boards; `pulls` lists agents' pull requests; `settings`
+   * replaces the whole window.
    */
-  view: 'chat' | 'map' | 'pulls' | 'settings'
+  view: 'chat' | 'map' | 'cards' | 'pulls' | 'settings'
   /** Where Settings returns to. */
-  lastView: 'chat' | 'map' | 'pulls'
+  lastView: 'chat' | 'map' | 'cards' | 'pulls'
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
   /** The project and page shown while `settingsTab` is `project`. */
@@ -101,6 +102,7 @@ type State = {
   /** Opens a thread that exists once its first message is sent. */
   newThread(projectId?: string): void
   showMap(): void
+  showCards(): void
   showPullRequests(): void
   focusProject(projectId: string | null): void
   clearError(): void
@@ -359,6 +361,7 @@ export const useAppStore = create<State>((set, get) => {
       if (view === 'chat') zoomBetweenViews('map', routerProjectId, show)
       else show()
     },
+    showCards: () => set({ view: 'cards', error: null }),
     showPullRequests: () => set({ view: 'pulls', error: null }),
     focusProject: (projectId) => set({ routerProjectId: projectId }),
     clearError: () => set({ error: null }),

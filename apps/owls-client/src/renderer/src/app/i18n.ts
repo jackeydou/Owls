@@ -1,5 +1,6 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { cardsEn, cardsZh } from '../cards/i18n'
 import { memoryEn, memoryZh } from '../memory/i18n'
 import { pullsEn, pullsZh } from '../pulls/i18n'
 import { routerEn, routerZh } from '../router/i18n'
@@ -311,10 +312,26 @@ const zh: Record<keyof typeof en, string> = {
 void i18next.use(initReactI18next).init({
   resources: {
     en: {
-      owls: { ...en, ...routerEn, ...pullsEn, ...memoryEn, ...projectSettingsEn, ...updatesEn }
+      owls: {
+        ...en,
+        ...routerEn,
+        ...cardsEn,
+        ...pullsEn,
+        ...memoryEn,
+        ...projectSettingsEn,
+        ...updatesEn
+      }
     },
     'zh-CN': {
-      owls: { ...zh, ...routerZh, ...pullsZh, ...memoryZh, ...projectSettingsZh, ...updatesZh }
+      owls: {
+        ...zh,
+        ...routerZh,
+        ...cardsZh,
+        ...pullsZh,
+        ...memoryZh,
+        ...projectSettingsZh,
+        ...updatesZh
+      }
     }
   },
   lng: navigator.language.startsWith('zh') ? 'zh-CN' : 'en',

@@ -18,6 +18,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RouterWorker } from '../../../shared/router'
 import { useAppStore } from '../app/store'
+import { SaveCardAction } from '../cards/CardActions'
 import { canStop, type WorkerState, workerState, workerTitle } from './activity'
 import { DiffCounts, DiffView } from './DiffView'
 import { diffStats, parseDiff } from './diff'
@@ -140,6 +141,14 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
                 projectId: worker.projectId
               })
             }
+          />
+        ) : null}
+        {report ? (
+          <SaveCardAction
+            source={{ kind: 'worker', routerId: worker.routerId, workerId: worker.id }}
+            text={report.summary}
+            title={title}
+            projectId={worker.projectId}
           />
         ) : null}
         <IconButton

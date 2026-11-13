@@ -3,7 +3,7 @@ import { LoaderIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
 import { useAppStore } from '../app/store'
-import { DraftInput, DraftTarget, MentionMenu, useRouterDraft } from './RouterDraft'
+import { DraftCards, DraftInput, DraftTarget, MentionMenu, useRouterDraft } from './RouterDraft'
 import { ThreadRow } from './ThreadRow'
 
 const isCommandEnter = (event: KeyboardEvent) =>
@@ -32,6 +32,7 @@ export function ThreadEditor({ router }: { router: Router | undefined }) {
     <ThreadRow speaker="user">
       <div className="router-editor">
         {addressed ? <DraftTarget worker={addressed} onClear={draft.clearMention} /> : null}
+        <DraftCards cards={draft.cards} onRemove={draft.removeCard} />
         <DraftInput
           editor={draft.editor}
           empty={empty}

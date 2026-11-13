@@ -8,6 +8,12 @@ import {
   respondSchema,
   settingsUpdateSchema
 } from '../../shared/app.js'
+import {
+  boardSaveSchema,
+  cardCaptureSchema,
+  cardIdSchema,
+  cardSaveSchema
+} from '../../shared/cards.js'
 import { gitHubTokenSchema } from '../../shared/github.js'
 import {
   memoryCategoryActionSchema,
@@ -144,6 +150,12 @@ export function registerIpc(
   handle('memory-category', (input) => host.memoryCategory(memoryCategoryActionSchema.parse(input)))
   handle('memory-run', () => host.memoryRunNow())
   handle('memory-runs', () => host.memoryRuns())
+  handle('cards-library', () => host.cardLibrary())
+  handle('cards-save', (input) => host.cardSave(cardSaveSchema.parse(input)))
+  handle('cards-capture', (input) => host.cardCapture(cardCaptureSchema.parse(input)))
+  handle('cards-remove', (input) => host.cardRemove(cardIdSchema.parse(input)))
+  handle('cards-save-board', (input) => host.boardSave(boardSaveSchema.parse(input)))
+  handle('cards-remove-board', (input) => host.boardRemove(cardIdSchema.parse(input)))
   handle('updates-snapshot', () => updates.snapshot())
   handle('updates-check', () => updates.check())
   handle('updates-install', () => updates.install())

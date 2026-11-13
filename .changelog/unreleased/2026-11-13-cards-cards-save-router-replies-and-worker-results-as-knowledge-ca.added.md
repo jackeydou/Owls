@@ -1,0 +1,1 @@
+- Cards: save Router replies and worker results as knowledge cards, organize them on boards, and attach them to messages for the Router or a worker.
