@@ -409,7 +409,7 @@ app
       await waitFor("document.querySelector('.owls-settings-content h2')?.textContent === '外观'")
       assert.equal(host.snapshot().settings.language, 'zh-CN')
       assert.equal(host.snapshot().settings.theme, 'dark')
-      assert.equal(host.snapshot().settings.appLogo, 'duo-white')
+      assert.equal(host.snapshot().settings.appLogo, 'trio-white')
       await evaluate(
         "[...document.querySelectorAll('input[name=owls-app-logo]')].length === 9 && document.querySelectorAll('input[name=owls-app-logo]')[1].click()"
       )
