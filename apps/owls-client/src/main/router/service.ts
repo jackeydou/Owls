@@ -22,6 +22,7 @@ import type {
   WorkerPullRequestLink,
   WorkerReport
 } from '../../shared/router.js'
+import { totalTokens, type UsageEntry } from '../../shared/usage-stats.js'
 import { OwlsError } from '../app/errors.js'
 import type { CapturedContent } from '../cards/service.js'
 import type { RouterMemory } from '../memory/service.js'
@@ -53,6 +54,8 @@ type ActiveBatch = {
   id: string
   startedAt: number
   tokens: number
+  /** The engine the batch runs on, for usage records. */
+  engine: RouterEngineId
   /** Workers dispatched in this batch that the conversation does not show yet. */
   dispatches: Set<string>
 }
@@ -111,7 +114,9 @@ export class RouterService implements TurnProfiles {
     private readonly emit: (event: AppEvent) => void,
     private readonly createEngine: EngineFactory,
     private readonly workspaces: WorkerWorkspaces = checkoutOnly,
-    private readonly memory: RouterMemory = noMemory
+    private readonly memory: RouterMemory = noMemory,
+    /** Keeps the token usage the engines report, for the usage page. */
+    private readonly recordUsage: (entry: UsageEntry) => void = () => {}
   ) {
     // A batch still sending when the app stopped may or may not have reached the model.
     for (const batch of store.batches('sending')) store.finishBatch(batch.id, 'dispatch_unknown')
@@ -575,6 +580,7 @@ export class RouterService implements TurnProfiles {
       id: `b_${crypto.randomUUID().slice(0, 8)}`,
       startedAt: Date.now(),
       tokens: 0,
+      engine: settings.engine,
       dispatches: new Set()
     }
     this.store.openBatch(
@@ -735,9 +741,16 @@ export class RouterService implements TurnProfiles {
         if (item.kind === 'tool') this.showDispatches(router, batch)
       },
       usage: (usage) => {
-        const tokens = usage.input + usage.output + usage.cacheRead + usage.cacheWrite
+        const tokens = totalTokens(usage)
         batch.tokens += tokens
         router.tokens = (router.tokens ?? 0) + tokens
+        this.recordUsage({
+          ...usage,
+          agent: batch.engine,
+          role: 'router',
+          // Threads are global; only workers belong to a project.
+          projectId: null
+        })
       }
     }
   }

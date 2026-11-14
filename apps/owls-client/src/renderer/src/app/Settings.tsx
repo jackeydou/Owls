@@ -2,6 +2,7 @@ import { Button } from '@renderer/components/ui/button'
 import {
   ArrowLeftIcon,
   BrainIcon,
+  ChartIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   GitBranchIcon,
@@ -24,6 +25,7 @@ import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
 import { usePaneWidth } from '../router/pane-width'
 import { SettingsUpdatesPane } from '../updates/SettingsUpdates'
+import { UsageStatsPane } from '../usage/UsageStatsPane'
 import { appLogoIcons } from './AppLogo'
 import { SettingRow } from './SettingRow'
 import { AgentsSettingsPane } from './SettingsAgents'
@@ -43,7 +45,8 @@ const TAB_GROUPS: TabEntry[][] = [
   [
     { id: 'agents', label: 'agents.title', icon: TerminalIcon },
     { id: 'router', label: 'routerWorkers.title', icon: RouteIcon },
-    { id: 'memory', label: 'memory.title', icon: BrainIcon }
+    { id: 'memory', label: 'memory.title', icon: BrainIcon },
+    { id: 'usage', label: 'usageStats.title', icon: ChartIcon }
   ],
   [
     { id: 'github', label: 'github.title', icon: GitPullRequestIcon },
@@ -248,6 +251,7 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   agents: AgentsSettingsPane,
   router: RouterWorkersSettingsPane,
   memory: SettingsMemoryPane,
+  usage: UsageStatsPane,
   github: GitHubSettingsPane,
   appearance: AppearancePane,
   updates: SettingsUpdatesPane,

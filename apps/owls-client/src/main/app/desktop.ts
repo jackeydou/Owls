@@ -5,6 +5,7 @@ import { is } from '@electron-toolkit/utils'
 import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
+import type { UsageEntry } from '../../shared/usage-stats.js'
 import { CardService } from '../cards/service.js'
 import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
@@ -39,6 +40,7 @@ import { RouterStore } from '../router/store.js'
 import { WorkerGitHub } from '../router/worker-github.js'
 import { GitWorkspaces } from '../router/worktrees.js'
 import { AppUpdater } from '../updates/updater.js'
+import { UsageLedger } from '../usage/ledger.js'
 import { applyAppLogo } from './app-logo.js'
 import { OwlsError } from './errors.js'
 import { OwlsHost } from './host.js'
@@ -175,6 +177,9 @@ void app
       projectsHome(root),
       workspaceHome(root)
     )
+    const usage = new UsageLedger(store)
+    service.attachUsage(usage)
+    const recordUsage = (entry: UsageEntry) => usage.record(entry)
     const routerStore = new RouterStore(store)
     const credentials = new RouterCredentials(routerStore, safeStorageCipher)
     const engineDeps: EngineDeps = {
@@ -206,7 +211,8 @@ void app
       emit,
       defaultEngineFactory(engineDeps),
       new GitWorkspaces(workerWorktreesRoot(root)),
-      memory
+      memory,
+      recordUsage
     )
     service.attachRouter(router)
     const dreaming = new DreamingRunner({
@@ -226,7 +232,8 @@ void app
           return home
         }
       }),
-      changed: memoryChanged
+      changed: memoryChanged,
+      recordUsage
     })
     triggers = new DreamingTriggers({
       threads: () => router?.snapshot().routers ?? [],

@@ -3,6 +3,7 @@ import type { Failure, SessionItem } from '../../../shared/app.js'
 import { toFailure } from '../../app/errors.js'
 import { CodexClient } from '../../codex/client.js'
 import { type RpcFrame, record, recordSchema, safeText, string } from '../../codex/protocol.js'
+import { codexCallUsage } from '../../usage/turn-usage.js'
 import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
 import { type RouterTool, toolErrorText, toolJsonSchema } from '../tools.js'
 
@@ -226,6 +227,8 @@ export class CodexEngine implements RouterEngine {
   private threadId: string | null = null
   /** The thread's running token total; Codex can repeat an update, which must not count twice. */
   private total: number | null = null
+  /** The model Codex picked for the thread, for usage; null until it says. */
+  private model: string | null = null
 
   constructor(private readonly options: CodexEngineOptions) {}
 
@@ -254,7 +257,14 @@ export class CodexEngine implements RouterEngine {
       let text = input.text
       if (threadId && !host.loaded.has(threadId)) {
         try {
-          await client.request('thread/resume', { ...this.policy(), threadId, excludeTurns: true })
+          const resumed = record(
+            await client.request('thread/resume', {
+              ...this.policy(),
+              threadId,
+              excludeTurns: true
+            })
+          )
+          if (typeof resumed.model === 'string') this.model = resumed.model
           host.loaded.add(threadId)
         } catch {
           threadId = null
@@ -277,6 +287,7 @@ export class CodexEngine implements RouterEngine {
           })
         )
         threadId = z.string().parse(record(response.thread).id)
+        this.model = typeof response.model === 'string' ? response.model : null
         host.loaded.add(threadId)
       }
       this.threadId = threadId
@@ -417,15 +428,7 @@ export class CodexEngine implements RouterEngine {
           if (total === this.total) return
           this.total = total
         }
-        const last = recordSchema.catch({}).parse(usage.last)
-        const number = (key: string) => (typeof last[key] === 'number' ? last[key] : 0)
-        const cached = number('cachedInputTokens')
-        turn.sink.usage({
-          input: Math.max(0, number('inputTokens') - cached),
-          output: number('outputTokens'),
-          cacheRead: cached,
-          cacheWrite: number('cacheWriteInputTokens')
-        })
+        turn.sink.usage(codexCallUsage(usage.last, this.model ?? this.options.model))
         return
       }
       case 'turn/completed': {

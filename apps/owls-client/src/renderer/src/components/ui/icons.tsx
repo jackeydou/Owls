@@ -118,6 +118,16 @@ export const CardsIcon = createIcon(
     <path d="M2.25 11.25 L2.25 4.25 C2.25 3.145 3.145 2.25 4.25 2.25 L11.25 2.25" />
   </g>
 )
+export const ChartIcon = createIcon(
+  'Chart',
+  'outline',
+  <g>
+    <line x1="2.75" y1="13.25" x2="13.25" y2="13.25" />
+    <line x1="4.75" y1="10.75" x2="4.75" y2="8.25" />
+    <line x1="8" y1="10.75" x2="8" y2="3.75" />
+    <line x1="11.25" y1="10.75" x2="11.25" y2="6.25" />
+  </g>
+)
 export const CheckIcon = createIcon(
   'Check',
   'outline',

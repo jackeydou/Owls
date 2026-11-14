@@ -1,4 +1,12 @@
-import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import {
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex
+} from 'drizzle-orm/sqlite-core'
 import type { AppSettings, Project, Router, Session, SessionItem } from '../../shared/app.js'
 import type { Board, Card } from '../../shared/cards.js'
 import type { Memory, MemoryCategory, MemoryRun } from '../../shared/memory.js'
@@ -216,4 +224,26 @@ export const boardsTable = sqliteTable(
     value: text('value', { mode: 'json' }).$type<Board>().notNull()
   },
   (table) => [index('boards_rev').on(table.rev)]
+)
+/**
+ * Token usage, one row per turn and model as the agent reported it. Local to
+ * this device; rows are never edited.
+ */
+export const usageEventsTable = sqliteTable(
+  'usage_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    at: text('at').notNull(),
+    agent: text('agent').notNull(),
+    role: text('role').notNull(),
+    model: text('model'),
+    projectId: text('project_id'),
+    input: integer('input').notNull(),
+    output: integer('output').notNull(),
+    cacheRead: integer('cache_read').notNull(),
+    cacheWrite: integer('cache_write').notNull(),
+    reasoning: integer('reasoning').notNull(),
+    costUsd: real('cost_usd')
+  },
+  (table) => [index('usage_events_at').on(table.at)]
 )

@@ -19,7 +19,7 @@ import type {
 import { questionSchema } from '../../shared/app.js'
 import { defaultProjectSettings, type SaveProject } from '../../shared/projects.js'
 import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
-import { type SessionPlace, sessionCwd } from '../app/agent-runtime.js'
+import { type SessionPlace, sessionCwd, type WorkerUsageRecorder } from '../app/agent-runtime.js'
 import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
 import {
@@ -28,6 +28,7 @@ import {
   REPORT_TOOL_INPUT_SCHEMA
 } from '../router/report.js'
 import type { TurnOutcome, TurnProfiles } from '../router/service.js'
+import { codexCallUsage } from '../usage/turn-usage.js'
 import { CodexClient, discoverExecutable } from './client.js'
 import {
   normalizeItem,
@@ -66,6 +67,9 @@ export class CodexService {
   private connecting: Promise<CodexConnection> | null = null
   private loginId: string | null = null
   private profiles: TurnProfiles | null = null
+  private recordUsage: WorkerUsageRecorder = () => {}
+  /** The model Codex picked for each loaded thread, for usage records. */
+  private readonly models = new Map<string, string>()
   private closed = false
   private connection: CodexConnection = {
     status: 'disconnected',
@@ -100,6 +104,9 @@ export class CodexService {
   /** Lets the Router give each worker turn its instructions and report format. */
   setTurnProfiles(profiles: TurnProfiles): void {
     this.profiles = profiles
+  }
+  setUsageRecorder(recorder: WorkerUsageRecorder): void {
+    this.recordUsage = recorder
   }
   owns(sessionId: string): boolean {
     return this.sessions.has(sessionId)
@@ -280,14 +287,18 @@ export class CodexService {
         )
         const thread = record(response.thread)
         session.threadId = z.string().parse(thread.id)
+        if (typeof response.model === 'string') this.models.set(session.id, response.model)
         this.loaded.add(session.id)
         this.changed(session, true)
       } else if (!this.loaded.has(session.id)) {
-        await client.request('thread/resume', {
-          ...policy,
-          threadId: session.threadId,
-          excludeTurns: true
-        })
+        const resumed = record(
+          await client.request('thread/resume', {
+            ...policy,
+            threadId: session.threadId,
+            excludeTurns: true
+          })
+        )
+        if (typeof resumed.model === 'string') this.models.set(session.id, resumed.model)
         this.loaded.add(session.id)
       }
       if (this.cancelled.delete(session.id)) {
@@ -560,8 +571,14 @@ export class CodexService {
         break
       case 'thread/tokenUsage/updated': {
         const usage = record(params.tokenUsage)
-        const total = record(usage.total)
-        session.tokens = z.number().parse(total.totalTokens)
+        const total = z.number().parse(record(usage.total).totalTokens)
+        // Codex can repeat an update, and a resumed thread starts from its saved total.
+        if (total !== session.tokens)
+          this.recordUsage(
+            session.id,
+            codexCallUsage(usage.last, this.models.get(session.id) ?? session.model)
+          )
+        session.tokens = total
         break
       }
       case 'turn/completed': {

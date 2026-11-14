@@ -1,0 +1,1 @@
+- Settings: new Usage stats page shows the tokens each agent used per day, cache hit rate, estimated cost, and a breakdown by agent, model, project, and role. (#114)

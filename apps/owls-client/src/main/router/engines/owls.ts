@@ -187,10 +187,14 @@ export class OwlsEngine implements RouterEngine {
         const usage = message.usage
         if (usage)
           sink.usage({
+            model: `${message.provider}/${message.model}`,
             input: usage.input,
             output: usage.output,
             cacheRead: usage.cacheRead,
-            cacheWrite: usage.cacheWrite
+            cacheWrite: usage.cacheWrite,
+            reasoning: usage.reasoning ?? 0,
+            // Custom endpoints have no price table and report zero.
+            costUsd: usage.cost.total > 0 ? usage.cost.total : null
           })
         this.current = null
         return
