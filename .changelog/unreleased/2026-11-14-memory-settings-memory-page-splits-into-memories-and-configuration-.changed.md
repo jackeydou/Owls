@@ -1,0 +1,1 @@
+- Settings: Memory page splits into Memories and Configuration tabs, with a cleaner memory list, filter chips, and a single Export menu.

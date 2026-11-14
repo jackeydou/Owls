@@ -1,12 +1,13 @@
 import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
-import { DownloadIcon, LoaderIcon, SparklesIcon, XIcon } from '@renderer/components/ui/icons'
+import { BrainIcon, SlidersIcon, SparklesIcon, XIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MemoryRun, MemorySettings } from '../../../shared/memory'
 import { dreamingProvider, memoryProviderSchema } from '../../../shared/memory'
 import { SettingRow } from '../app/SettingRow'
+import { SettingsTabs } from '../app/SettingsTabs'
 import { useAppStore } from '../app/store'
 import { useRouterStore } from '../router/store'
 import { MemoryBrowser } from './MemoryBrowser'
@@ -131,17 +132,16 @@ function MemorySettingsRows() {
             ))}
         </Select>
       </SettingRow>
-      <p className="owlto-note">{t('memory.deviceNote')}</p>
     </>
   )
 }
 
-function RunStatus() {
+/** When memories were last sorted, with a button to sort them now. */
+function SortRow() {
   const { t } = useTranslation()
   const learn = useAppStore((s) => s.settings.memory.learn)
   const overview = useMemoryStore((s) => s.overview)
   const runNow = useMemoryStore((s) => s.runNow)
-  const exportAs = useMemoryStore((s) => s.exportAs)
   const last = overview?.lastRun ?? null
   const running = overview?.running ?? false
   const status = running
@@ -152,41 +152,30 @@ function RunStatus() {
         ? t('memory.lastRunFailed', { reason: runReason(last, t) })
         : t('memory.lastRun', { time: clock(last.createdAt), count: last.added.length })
   return (
-    <div className="memory-status">
-      <span role="status" className={last?.status === 'failed' && !running ? 'failed' : undefined}>
-        {running ? <LoaderIcon size={14} className="animate-spin" aria-hidden /> : null}
-        {status}
-      </span>
-      <div className="owlto-settings-actions">
-        <ActionButton
-          size="sm"
-          variant="outline"
-          disabled={!learn}
-          pending={running}
-          icon={<SparklesIcon size={15} aria-hidden />}
-          onAction={runNow}
+    <SettingRow
+      label={t('memory.sort')}
+      description={
+        <span
+          role="status"
+          className={
+            last?.status === 'failed' && !running ? 'memory-status failed' : 'memory-status'
+          }
         >
-          {t('memory.runNow')}
-        </ActionButton>
-        <ActionButton
-          size="sm"
-          variant="outline"
-          icon={<DownloadIcon size={15} aria-hidden />}
-          doneLabel={t('memory.export.done')}
-          onAction={async () => ((await exportAs('markdown')) ? 'done' : 'quiet')}
-        >
-          {t('memory.export.markdown')}
-        </ActionButton>
-        <ActionButton
-          size="sm"
-          variant="ghost"
-          doneLabel={t('memory.export.done')}
-          onAction={async () => ((await exportAs('json')) ? 'done' : 'quiet')}
-        >
-          {t('memory.export.json')}
-        </ActionButton>
-      </div>
-    </div>
+          {status}
+        </span>
+      }
+    >
+      <ActionButton
+        size="sm"
+        variant="outline"
+        disabled={!learn}
+        pending={running}
+        icon={<SparklesIcon size={15} aria-hidden />}
+        onAction={runNow}
+      >
+        {t('memory.runNow')}
+      </ActionButton>
+    </SettingRow>
   )
 }
 
@@ -229,11 +218,14 @@ function RecentRuns() {
   )
 }
 
+type MemoryTab = 'memories' | 'config'
+
 export function SettingsMemoryPane() {
   const { t } = useTranslation()
   const refresh = useMemoryStore((s) => s.refresh)
   const error = useMemoryStore((s) => s.error)
   const clearError = useMemoryStore((s) => s.clearError)
+  const [tab, setTab] = useState<MemoryTab>('memories')
   useEffect(() => {
     void refresh()
     return window.owlto.memory.onChanged(() => void refresh())
@@ -242,23 +234,47 @@ export function SettingsMemoryPane() {
     <section className="owlto-settings-section memory-pane">
       <h2>{t('memory.title')}</h2>
       <p>{t('memory.body')}</p>
-      <MemorySettingsRows />
-      <RunStatus />
-      {error ? (
-        <div className="owlto-inline-error memory-error" role="alert">
-          <span>{t(error)}</span>
-          <Button
-            size="custom"
-            variant="ghost"
-            aria-label={t('memory.error.dismiss')}
-            onClick={clearError}
-          >
-            <XIcon size={15} aria-hidden />
-          </Button>
-        </div>
-      ) : null}
-      <MemoryBrowser />
-      <RecentRuns />
+      <SettingsTabs<MemoryTab>
+        label={t('memory.title')}
+        tabs={[
+          {
+            id: 'memories',
+            label: t('memory.tab.memories'),
+            icon: <BrainIcon size={15} aria-hidden />
+          },
+          {
+            id: 'config',
+            label: t('memory.tab.config'),
+            icon: <SlidersIcon size={15} aria-hidden />
+          }
+        ]}
+        current={tab}
+        onSelect={setTab}
+      >
+        {error ? (
+          <div className="owlto-inline-error memory-error" role="alert">
+            <span>{t(error)}</span>
+            <Button
+              size="custom"
+              variant="ghost"
+              aria-label={t('memory.error.dismiss')}
+              onClick={clearError}
+            >
+              <XIcon size={15} aria-hidden />
+            </Button>
+          </div>
+        ) : null}
+        {tab === 'memories' ? (
+          <MemoryBrowser />
+        ) : (
+          <>
+            <MemorySettingsRows />
+            <SortRow />
+            <p className="owlto-note">{t('memory.deviceNote')}</p>
+            <RecentRuns />
+          </>
+        )}
+      </SettingsTabs>
     </section>
   )
 }
