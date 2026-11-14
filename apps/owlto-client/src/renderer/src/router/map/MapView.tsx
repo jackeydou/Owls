@@ -252,7 +252,7 @@ export function MapView() {
               onClick={() => showChat()}
             >
               <ArrowLeftIcon size={15} aria-hidden />
-              {t('map.backShort')}
+              <span className="map-back-label">{t('map.backShort')}</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">

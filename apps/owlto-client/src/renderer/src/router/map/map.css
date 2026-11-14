@@ -530,6 +530,14 @@
   gap: 6px;
   padding: 0 8px 0 6px;
 }
+.map-back-label {
+  /* A tight line box keeps the label's glyphs on the button's center line. */
+  line-height: 1;
+}
+.map-back svg {
+  /* Glyphs sit about a pixel above their box center; lift the arrow to meet them. */
+  translate: 0 -1px;
+}
 .map-back-kbd {
   margin-left: 8px;
   opacity: 0.7;
