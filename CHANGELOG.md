@@ -11,6 +11,21 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1400-beta.2
+
+### Highlights
+
+- New Profile page in Settings for your name and avatar.
+- The Memory page is split into Memories and Configuration tabs.
+
+### Changes
+
+- Settings: new Profile page for your name and avatar, with a default user owl; connecting GitHub uses your GitHub avatar until you pick one, and the Overview and Router chat show it. (#124)
+- Settings: Memory page splits into Memories and Configuration tabs, with a cleaner memory list, filter chips, and a single Export menu. (#122)
+- Overview: header shows a Back button and an agents-working count; the title, projects count, and In progress / All filter are gone. (#123)
+
+### Fixes
+
 ## 2026.11.1400-beta.1
 
 ### Highlights
