@@ -30,7 +30,8 @@ export const usageEn = {
     'Cursor CLI shows usage only in its interactive /usage screen, so Owls cannot read it.',
   'usage.reason.failed': 'Could not read usage. Try refreshing.',
   'usage.connect': 'Connect',
-  'usage.openDashboard': 'Open Cursor dashboard'
+  'usage.openDashboard': 'Open Cursor dashboard',
+  'usage.summaryRow': '{{agent}}: {{percent}}% used'
 }
 
 export const usageZh: typeof usageEn = {
@@ -64,5 +65,6 @@ export const usageZh: typeof usageEn = {
     'Cursor CLI 只在交互式 /usage 界面显示用量，没有可读取的接口，Owls 暂时无法获取。',
   'usage.reason.failed': '读取用量失败，请刷新重试。',
   'usage.connect': '去连接',
-  'usage.openDashboard': '打开 Cursor 用量页'
+  'usage.openDashboard': '打开 Cursor 用量页',
+  'usage.summaryRow': '{{agent}}：已用 {{percent}}%'
 }

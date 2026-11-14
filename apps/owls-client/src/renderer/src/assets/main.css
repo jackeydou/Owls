@@ -1330,3 +1330,9 @@ html[data-theme="dark"] .owls-activity-shimmer {
 .grid-stack > .grid-stack-item > .ui-resizable-se:hover {
   opacity: 1;
 }
+
+/* An open anchored card needs outside presses to reach the page so they can close it; see
+   holdDragRegions in components/ui/popover.tsx. Unlayered so it outranks every drag region. */
+:root[data-popover-open] * {
+  -webkit-app-region: no-drag;
+}

@@ -34,3 +34,21 @@ export const useUsageStore = create<State>((set) => ({
     throw new Error('usage_failed')
   }
 }))
+
+/** How often the sidebar summary asks again; the host keeps answers for a minute. */
+const SUMMARY_REFRESH_MS = 5 * 60_000
+
+/** Reads now and then every few minutes for the sidebar summary; the return stops it. */
+export function watchUsage(): () => void {
+  const read = () => {
+    useUsageStore
+      .getState()
+      .load(false)
+      .catch(() => {
+        /* The summary keeps the last answer; the panel shows the failure. */
+      })
+  }
+  read()
+  const timer = setInterval(read, SUMMARY_REFRESH_MS)
+  return () => clearInterval(timer)
+}
