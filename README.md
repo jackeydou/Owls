@@ -64,9 +64,9 @@ When an owl is busy, you'll see it typing away on its laptop:
   for the workers.
 - **Pull requests in one place.** See every pull request your owls opened, with
   merge, review, and check status, and sort by what needs your attention.
-- **Knowledge cards and whiteboards.** Save useful answers as cards, sort them
-  with tags, lay them out on boards, and attach them to new messages. Press `⌘K`
-  to open your cards.
+- **Notes and whiteboards.** Save useful answers as notes, sort them with tags,
+  lay them out on boards, and attach them to new messages. Press `⌘K` to open
+  your notes.
 - **Usage at a glance.** See how much of each agent's plan you have left, and
   browse daily usage and estimated cost in Settings.
 - **Updates itself.** Owlto checks for new versions in the background and offers
