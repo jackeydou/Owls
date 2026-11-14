@@ -14,11 +14,13 @@ import {
   MenuSeparator,
   MenuTrigger
 } from '@renderer/components/ui/menu'
+import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Select } from '@renderer/components/ui/select'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CARD_BODY_LIMIT, CARD_TITLE_LIMIT, type Card, type CardSave } from '../../../shared/cards'
 import { useAppStore } from '../app/store'
+import { usePaneWidth } from '../router/pane-width'
 import { useRouterStore } from '../router/store'
 import { nextSlot } from './board'
 import { CardBody } from './CardBody'
@@ -187,6 +189,7 @@ export function CardEditor({ cardId }: { cardId: string }) {
   const [projectId, setProjectId] = useState<string | null>(card?.projectId ?? null)
   const [editing, setEditing] = useState(creating || !card?.body)
   const bodyField = useRef<HTMLTextAreaElement>(null)
+  const { width, handle } = usePaneWidth('card', 'left')
   useAutosave(cardId, { title, body, tags: parseTags(tags), projectId }, (created) => {
     adoptCard(created.id)
     // A card written on a board lands on that board.
@@ -199,7 +202,12 @@ export function CardEditor({ cardId }: { cardId: string }) {
   })
   if (!creating && !card) return null
   return (
-    <aside className="card-editor" aria-label={t('cards.editor')}>
+    <aside
+      className="card-editor"
+      aria-label={t('cards.editor')}
+      style={{ '--owl-card-width': `${width}px` } as React.CSSProperties}
+    >
+      <ResizeHandle {...handle} />
       <header>
         <span className="card-editor-space" />
         {card ? <CardMenu card={card} /> : null}

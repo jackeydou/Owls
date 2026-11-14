@@ -1,0 +1,1 @@
+- Cards: the open card's close button no longer sits under the right sidebar toggle, and the card panel can be dragged wider or narrower by its left edge.

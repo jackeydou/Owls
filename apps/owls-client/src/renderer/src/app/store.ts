@@ -175,7 +175,8 @@ type State = {
 export const paneWidthKey = {
   sidebar: 'sidebarWidth',
   projects: 'projectsWidth',
-  panel: 'panelWidth'
+  panel: 'panelWidth',
+  card: 'cardWidth'
 } as const satisfies Record<ResizablePane, keyof typeof defaultLayoutSettings>
 export function clampPaneWidth(pane: ResizablePane, width: number): number {
   const { min, max } = paneWidthBounds[pane]

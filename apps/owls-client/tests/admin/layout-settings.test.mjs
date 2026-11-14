@@ -16,6 +16,7 @@ test('saved sidebar widths at the old defaults follow the current defaults', () 
     sidebarWidth: null,
     projectsWidth: null,
     panelWidth: 480,
+    cardWidth: null,
     projectsOpen: true,
     rightPanel: 'projects'
   })
@@ -51,4 +52,16 @@ test('widths the user dragged to are kept', () => {
   assert.equal(layout.sidebarWidth, 300)
   assert.equal(layout.projectsWidth, 352)
   assert.equal(layout.panelWidth, null)
+})
+
+test('the card panel width is kept, and older rows follow its default', () => {
+  const older = layoutSettingsSchema.parse({
+    sidebarWidth: null,
+    projectsWidth: null,
+    panelWidth: null,
+    projectsOpen: false
+  })
+  assert.equal(older.cardWidth, null)
+  const saved = layoutSettingsSchema.parse({ ...older, cardWidth: 620 })
+  assert.equal(saved.cardWidth, 620)
 })

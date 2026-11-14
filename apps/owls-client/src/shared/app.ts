@@ -185,7 +185,8 @@ export const defaultAppLogo = 'trio-white' satisfies z.infer<typeof appLogoSchem
 export const paneWidthBounds = {
   sidebar: { min: 200, max: 440, initial: 264 },
   projects: { min: 220, max: 480, initial: 304 },
-  panel: { min: 360, max: 960, initial: 480 }
+  panel: { min: 360, max: 960, initial: 480 },
+  card: { min: 340, max: 960, initial: 460 }
 } as const
 export type ResizablePane = keyof typeof paneWidthBounds
 /**
@@ -203,6 +204,8 @@ export const layoutSettingsSchema = z.object({
   sidebarWidth: followLegacyDefault(legacyPaneDefaults.sidebarWidth),
   projectsWidth: followLegacyDefault(legacyPaneDefaults.projectsWidth),
   panelWidth: paneWidthSchema,
+  /** The open card's editor on the Cards page; added later, so older rows follow the default. */
+  cardWidth: paneWidthSchema.catch(null),
   /** Whether the right-hand sidebar is open; named for its first and once only content. */
   projectsOpen: z.boolean(),
   /** Which list the right-hand sidebar shows; added later, so older rows show projects. */
@@ -213,6 +216,7 @@ export const defaultLayoutSettings: LayoutSettings = {
   sidebarWidth: null,
   projectsWidth: null,
   panelWidth: null,
+  cardWidth: null,
   projectsOpen: false,
   rightPanel: 'projects'
 }
