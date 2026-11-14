@@ -345,6 +345,10 @@ Release MR flow:
   strip outlines from text fields. Show text-field focus on the field border or
   its wrapper with `--owl-field-focus-border` / `--owl-field-focus-shadow`. Do
   not add `--color-accent`, black, or other hard outlines for focus.
+- Fixed or floating overlays (popups, toasts, menus, dialogs) must set
+  `-webkit-app-region: no-drag`. Sidebars and title bars are full-height drag
+  regions, and Electron ignores z-order for drag regions, so an overlay without
+  it swallows clicks over them.
 - For forms and settings, persist through the established settings or IPC flow.
   Do not add renderer-only runtime knobs that drift from main-process state.
 - Keep accessibility text and visible copy in the same i18n change. Do not add

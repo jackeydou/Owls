@@ -1,3 +1,5 @@
+/* Floats over sidebars whose drag regions span their full height. Electron resolves drag regions
+   without z-order, so an overlay must opt out or clicks on it move the window instead. */
 .owls-update-popup {
   position: fixed;
   right: 20px;
@@ -14,6 +16,7 @@
   color: var(--color-foreground);
   box-shadow: 0 8px 28px #0000001a;
   animation: owls-update-popup-in 160ms ease-out;
+  -webkit-app-region: no-drag;
 }
 .owls-update-popup-icon {
   display: flex;
