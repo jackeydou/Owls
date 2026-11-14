@@ -19,6 +19,7 @@ import type {
 import { defaultAppLogo, defaultLayoutSettings, paneWidthBounds } from '../../../shared/app'
 import type { GitHubAccount } from '../../../shared/github'
 import { defaultMemorySettings } from '../../../shared/memory'
+import { defaultProfile, type ProfileUpdate } from '../../../shared/profile'
 import type {
   CloneProject,
   CreateProject,
@@ -72,6 +73,8 @@ export type SettingsTab =
   /** Token usage recorded on this device. */
   | 'usage'
   | 'github'
+  /** The user's name and avatar. */
+  | 'profile'
   | 'appearance'
   | 'updates'
   /** One project's settings; `settingsProject` says which project and page. */
@@ -170,6 +173,10 @@ type State = {
   connectCursor(): Promise<void>
   selectCursorExecutable(): Promise<void>
   saveSettings(settings: AppSettings): Promise<void>
+  /** Saves the user's name or avatar choice; resolves to whether it was saved. */
+  saveProfile(update: ProfileUpdate): Promise<boolean>
+  /** Switches the avatar to the GitHub one; resolves to whether it worked. */
+  applyGitHubAvatar(): Promise<boolean>
   respond(input: RespondRequest): Promise<void>
 }
 export const paneWidthKey = {
@@ -256,7 +263,8 @@ export const useAppStore = create<State>((set, get) => {
       updateChannel: null,
       pullRequestsVisible: true,
       workspacePath: null,
-      openInApp: null
+      openInApp: null,
+      profile: defaultProfile
     },
     connection: {
       status: 'disconnected',
@@ -331,6 +339,10 @@ export const useAppStore = create<State>((set, get) => {
       if (event.type === 'github-account') {
         gitHubEvents++
         set({ github: event.account })
+        return
+      }
+      if (event.type === 'profile') {
+        set((state) => ({ settings: { ...state.settings, profile: event.profile } }))
         return
       }
       if (event.type === 'worker-github') {
@@ -562,6 +574,16 @@ export const useAppStore = create<State>((set, get) => {
         })
       )
       if (saved) set({ settings: saved })
+    },
+    saveProfile: async (update) => {
+      const saved = await action(() => window.owlto.saveProfile(update))
+      if (saved) set({ settings: saved })
+      return Boolean(saved)
+    },
+    applyGitHubAvatar: async () => {
+      const saved = await action(() => window.owlto.applyGitHubAvatar())
+      if (saved) set({ settings: saved })
+      return Boolean(saved)
     },
     respond: async (input) => {
       await action(() => window.owlto.respond(input))

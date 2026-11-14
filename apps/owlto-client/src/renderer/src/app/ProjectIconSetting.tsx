@@ -11,46 +11,12 @@ import {
 import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
 import { SettingRow } from './SettingRow'
+import { squareImageFromFile } from './square-image'
 
 /** Side of the square an image icon is stored at: sharp at 2x in a 20px tile, and small. */
 const ICON_SIZE = 96
 const DEFAULT_EMOJI = '📁'
 const COLORS = Array.from({ length: PROJECT_COLORS }, (_, index) => index + 1)
-
-/**
- * Crops a picked image to its centered square and scales it to `ICON_SIZE`, so the
- * stored data URL stays small whatever the user picks. Rejects files it cannot decode.
- */
-async function iconFromFile(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file)
-  try {
-    const side = Math.min(bitmap.width, bitmap.height)
-    const canvas = document.createElement('canvas')
-    canvas.width = ICON_SIZE
-    canvas.height = ICON_SIZE
-    const context = canvas.getContext('2d')
-    if (!context) throw new Error('No 2D canvas')
-    context.imageSmoothingQuality = 'high'
-    context.drawImage(
-      bitmap,
-      (bitmap.width - side) / 2,
-      (bitmap.height - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      ICON_SIZE,
-      ICON_SIZE
-    )
-    const png = canvas.toDataURL('image/png')
-    if (png.length <= PROJECT_ICON_IMAGE_LIMIT) return png
-    const jpeg = canvas.toDataURL('image/jpeg', 0.85)
-    if (jpeg.length <= PROJECT_ICON_IMAGE_LIMIT) return jpeg
-    throw new Error('Icon too large')
-  } finally {
-    bitmap.close()
-  }
-}
 
 /** The emoji or short text of an emoji icon, saved when the field loses focus. */
 function EmojiField({ value, onCommit }: { value: string; onCommit: (value: string) => void }) {
@@ -154,7 +120,7 @@ export function ProjectIconSetting({
               const file = event.target.files?.[0]
               event.target.value = ''
               if (!file) return
-              iconFromFile(file).then(
+              squareImageFromFile(file, ICON_SIZE, PROJECT_ICON_IMAGE_LIMIT).then(
                 (src) => saveIcon({ kind: 'image', src }),
                 () => setFailed(true)
               )

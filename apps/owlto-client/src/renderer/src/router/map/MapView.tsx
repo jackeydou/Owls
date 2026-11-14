@@ -3,7 +3,7 @@ import { ArrowLeftIcon } from '@renderer/components/ui/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { buildWorkerMap, isInPlay, type MapNode, type MapSide } from '../../../../shared/worker-map'
+import { buildWorkerMap, type MapNode, type MapSide } from '../../../../shared/worker-map'
 import { useAppStore } from '../../app/store'
 import { isWaitingOnUser, isWorking, openRequests, projectHue } from '../activity'
 import { RouterComposer } from '../RouterComposer'
@@ -188,7 +188,6 @@ export function MapView() {
   const workers = projects.flatMap((p) => p.workers).filter((w) => w.status !== 'removed')
   const waiting = workers.filter(isWaitingOnUser).length
   const working = workers.filter(isWorking).length
-  const inPlay = workers.filter(isInPlay).length
   const focusProjectData = projects.find((p) => p.id === projectId)
   const target = workers.find((w) => w.id === selectedWorker) ?? null
   const targetProject = target ? projects.find((p) => p.workers.includes(target)) : focusProjectData
@@ -234,7 +233,6 @@ export function MapView() {
                     : node.kind === 'project' && node.projectId === projectId && !selectedWorker
                 }
                 dim={Boolean(lit && !lit.has(node.id))}
-                inPlay={inPlay}
                 now={now}
               />
             ))}

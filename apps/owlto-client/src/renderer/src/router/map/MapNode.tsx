@@ -8,9 +8,9 @@ import {
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapNode } from '../../../../shared/worker-map'
-import { AppLogoMark } from '../../app/AppLogo'
 import { OwlAvatar } from '../../app/OwlAvatar'
 import { useAppStore } from '../../app/store'
+import { UserAvatar } from '../../app/UserAvatar'
 import {
   elapsed,
   isWaitingOnUser,
@@ -190,7 +190,6 @@ export const MapNodeView = memo(function MapNodeView({
   hue,
   selected,
   dim,
-  inPlay,
   now
 }: {
   node: MapNode
@@ -198,10 +197,10 @@ export const MapNodeView = memo(function MapNodeView({
   hue: string
   selected: boolean
   dim: boolean
-  inPlay: number
   now: number
 }) {
   const { t } = useTranslation()
+  const name = useAppStore((s) => s.settings.profile.name)
   const tone = node.kind === 'worker' ? workerTone(node.worker) : null
   const state =
     tone === 'wait' || tone === 'bad'
@@ -230,9 +229,8 @@ export const MapNodeView = memo(function MapNodeView({
     >
       {node.kind === 'root' ? (
         <>
-          <AppLogoMark />
-          <strong>{t('map.you')}</strong>
-          <small>{t('map.inPlay', { count: inPlay })}</small>
+          <UserAvatar />
+          <strong>{name ?? t('map.you')}</strong>
         </>
       ) : node.kind === 'project' ? (
         <ProjectBody node={node} project={project} />

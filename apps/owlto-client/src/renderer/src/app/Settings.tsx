@@ -13,7 +13,8 @@ import {
   RefreshIcon,
   RouteIcon,
   ScrollTextIcon,
-  TerminalIcon
+  TerminalIcon,
+  UserIcon
 } from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Select } from '@renderer/components/ui/select'
@@ -30,6 +31,7 @@ import { appLogoIcons } from './AppLogo'
 import { SettingRow } from './SettingRow'
 import { AgentsSettingsPane } from './SettingsAgents'
 import { GitHubSettingsPane } from './SettingsGitHub'
+import { ProfileSettingsPane } from './SettingsProfile'
 import { ProjectSettingsPane } from './SettingsProject'
 import { RouterWorkersSettingsPane } from './SettingsRouterWorkers'
 import {
@@ -50,6 +52,7 @@ const TAB_GROUPS: TabEntry[][] = [
   ],
   [
     { id: 'github', label: 'github.title', icon: GitPullRequestIcon },
+    { id: 'profile', label: 'profile.title', icon: UserIcon },
     { id: 'appearance', label: 'appearance', icon: PaletteIcon },
     { id: 'updates', label: 'updates.title', icon: RefreshIcon }
   ]
@@ -253,6 +256,7 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   memory: SettingsMemoryPane,
   usage: UsageStatsPane,
   github: GitHubSettingsPane,
+  profile: ProfileSettingsPane,
   appearance: AppearancePane,
   updates: SettingsUpdatesPane,
   project: ProjectSettingsPane

@@ -520,3 +520,31 @@
 .owlto-agent-status + .owlto-setting-row {
   border-top: 0;
 }
+
+.owlto-profile-avatar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.owlto-profile-avatar-preview {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+}
+/* An uploaded photo may be white at the edge, so it gets a hairline the owl does not need. */
+.owlto-profile-avatar-preview:not([data-avatar="owl"]) {
+  box-shadow: 0 0 0 1px var(--color-border);
+}
+.owlto-profile-avatar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.owlto-profile-avatar-body > small {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}

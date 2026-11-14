@@ -823,9 +823,11 @@ html.pane-resizing * {
   height: 24px;
   color: var(--color-muted-foreground);
 }
-.router-row.user .router-row-avatar:not(:empty) {
+.router-row.user .owlto-user-avatar {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: var(--color-card-muted);
+  object-fit: cover;
 }
 .router-row .owlto-user-message,
 .router-row .owlto-markdown,

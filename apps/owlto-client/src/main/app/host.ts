@@ -66,6 +66,7 @@ import type { WorkerGitHub } from '../router/worker-github.js'
 import type { UsageLedger } from '../usage/ledger.js'
 import type { AgentRuntime } from './agent-runtime.js'
 import { OwltoError } from './errors.js'
+import type { UserProfile } from './profile.js'
 import { cloneGitHubProject, createQuickProject } from './project-sources.js'
 
 const USAGE_TTL_MS = 60_000
@@ -93,6 +94,7 @@ export class OwltoHost {
     sweeper: MemorySweeper
   } | null = null
   private cards: CardService | null = null
+  private profile: UserProfile | null = null
   private ledger: UsageLedger | null = null
   private readonly runtimes: Record<AgentProvider, AgentRuntime>
   private usageCache: { at: number; value: Promise<UsageOverview>; pending: boolean } | null = null
@@ -141,6 +143,15 @@ export class OwltoHost {
   }
   attachCards(cards: CardService): void {
     this.cards = cards
+  }
+  attachProfile(profile: UserProfile): void {
+    this.profile = profile
+  }
+  saveProfile(input: unknown): AppSettings {
+    return this.requireProfile().update(input)
+  }
+  applyGitHubAvatar(): Promise<AppSettings> {
+    return this.requireProfile().applyGitHubAvatar()
   }
   /** A worker session's items, from whichever runtime owns it. */
   sessionItems(sessionId: string): Session['items'] {
@@ -374,6 +385,10 @@ export class OwltoHost {
   private requireMemory(): NonNullable<OwltoHost['memory']> {
     if (!this.memory) throw new OwltoError('router_unavailable', 'Memory is not available.')
     return this.memory
+  }
+  private requireProfile(): UserProfile {
+    if (!this.profile) throw new OwltoError('request_unavailable', 'The profile is not available.')
+    return this.profile
   }
   private requireGitHub(): NonNullable<OwltoHost['github']> {
     if (!this.github) throw new OwltoError('github_unavailable', 'GitHub is not available.')
