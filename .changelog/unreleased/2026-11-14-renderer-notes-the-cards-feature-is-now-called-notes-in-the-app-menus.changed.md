@@ -1,0 +1,1 @@
+- Notes: the Cards feature is now called Notes (笔记) in the app, menus, and README.

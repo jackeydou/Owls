@@ -22,7 +22,7 @@ type BoardSaveInput = z.infer<typeof boardSaveSchema>
 export type CapturedContent = { text: string; source: CardSource }
 
 const newId = (prefix: string) => `${prefix}_${randomBytes(6).toString('hex')}`
-const missingCard = () => new OwltoError('request_unavailable', 'This card no longer exists.')
+const missingCard = () => new OwltoError('request_unavailable', 'This note no longer exists.')
 const missingBoard = () => new OwltoError('request_unavailable', 'This board no longer exists.')
 
 /**
@@ -150,7 +150,7 @@ export class CardService {
     })
     const size = cards.reduce((sum, card) => sum + card.title.length + card.body.length, 0)
     if (size > ATTACHED_TEXT_LIMIT)
-      throw new OwltoError('invalid_request', 'These cards are too long to send together.')
+      throw new OwltoError('invalid_request', 'These notes are too long to send together.')
     return cards
   }
   private liveCard(id: string): Card {
