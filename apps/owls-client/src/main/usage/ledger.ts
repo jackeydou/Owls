@@ -1,14 +1,16 @@
-import { asc, gte, type SQL, sql } from 'drizzle-orm'
+import { and, asc, eq, gte, type SQL, sql } from 'drizzle-orm'
 import {
   emptyTokenCounts,
   type TokenCounts,
   totalTokens,
+  type UsageAgent,
   type UsageDay,
   type UsageEntry,
   type UsageGroup,
   type UsageRange,
   type UsageStats,
-  type UsageTotals
+  type UsageTotals,
+  usageAgentSchema
 } from '../../shared/usage-stats.js'
 import { usageEventsTable } from '../app/schema.js'
 import type { OwlsStore } from '../app/store.js'
@@ -89,14 +91,18 @@ export class UsageLedger {
       .run()
   }
 
-  stats(range: UsageRange): UsageStats {
+  /** Sums `range`; `agent` keeps only that agent's rows, null sums every agent. */
+  stats(range: UsageRange, agent: UsageAgent | null = null): UsageStats {
     const now = this.now()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     let start: Date | null =
       range === 'all'
         ? null
         : new Date(today.getFullYear(), today.getMonth(), today.getDate() - RANGE_DAYS[range] + 1)
-    const where = start ? gte(t.at, start.toISOString()) : undefined
+    const where = and(
+      start ? gte(t.at, start.toISOString()) : undefined,
+      agent ? eq(t.agent, agent) : undefined
+    )
     const group = (key: SQL<string | null>): UsageGroup[] =>
       this.store.db
         .select({ key, ...sums, ...priced })
@@ -136,8 +142,17 @@ export class UsageLedger {
         const row = byDay.get(key)
         days.push({ ...(row ?? emptyTokenCounts()), day: key })
       }
+    const recordedAgents = new Set(
+      this.store.db
+        .selectDistinct({ agent: t.agent })
+        .from(t)
+        .all()
+        .map((row) => row.agent)
+    )
     return {
       range,
+      agent,
+      agents: usageAgentSchema.options.filter((a) => recordedAgents.has(a)),
       since: start ? localDay(start) : null,
       totals,
       days,

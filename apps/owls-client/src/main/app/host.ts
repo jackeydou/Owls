@@ -50,7 +50,7 @@ import type {
   WorkerAction
 } from '../../shared/router.js'
 import { type UsageOverview, unavailableUsage } from '../../shared/usage.js'
-import type { UsageRange, UsageStats } from '../../shared/usage-stats.js'
+import type { UsageStats, UsageStatsRequest } from '../../shared/usage-stats.js'
 import type { CardService } from '../cards/service.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { CodexService } from '../codex/service.js'
@@ -129,9 +129,9 @@ export class OwlsHost {
         })
       })
   }
-  usageStats(range: UsageRange): UsageStats {
+  usageStats({ range, agent }: UsageStatsRequest): UsageStats {
     if (!this.ledger) throw new OwlsError('request_unavailable', 'Usage stats are not available.')
-    return this.ledger.stats(range)
+    return this.ledger.stats(range, agent)
   }
   attachGitHub(github: NonNullable<OwlsHost['github']>): void {
     this.github = github

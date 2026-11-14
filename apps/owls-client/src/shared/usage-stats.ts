@@ -50,8 +50,19 @@ export type UsageDay = TokenCounts & { day: string }
 /** Totals for one group; `key` is null for rows with no model or no project. */
 export type UsageGroup = UsageTotals & { key: string | null }
 
+/** What the usage page asks for: a range, and one agent or every agent (null). */
+export const usageStatsRequestSchema = z.object({
+  range: usageRangeSchema,
+  agent: usageAgentSchema.nullable()
+})
+export type UsageStatsRequest = z.infer<typeof usageStatsRequestSchema>
+
 export type UsageStats = {
   range: UsageRange
+  /** The agent the numbers are for; null for every agent. */
+  agent: UsageAgent | null
+  /** Agents with any recorded usage, in a fixed order, for the agent filter. */
+  agents: UsageAgent[]
   /** First day of the range, `YYYY-MM-DD`; for `all`, the first recorded day or null when empty. */
   since: string | null
   totals: UsageTotals

@@ -165,6 +165,17 @@ test('the ledger sums a range by day, agent, role, model, and project', (t) => {
     ['p1', null]
   )
 
+  assert.deepEqual(week.agents, ['claude-code', 'codex'])
+  const codex = ledger.stats('7d', 'codex')
+  assert.equal(codex.agent, 'codex')
+  assert.deepEqual(codex.agents, ['claude-code', 'codex'])
+  assert.equal(codex.totals.input + codex.totals.cacheRead, 100)
+  assert.deepEqual(
+    codex.byModel.map((g) => g.key),
+    ['gpt-5.6-sol']
+  )
+  assert.equal(ledger.stats('all', 'codex').since, '2026-11-14')
+
   const all = ledger.stats('all')
   assert.equal(all.since, '2026-11-01')
   assert.equal(all.days.length, 14)

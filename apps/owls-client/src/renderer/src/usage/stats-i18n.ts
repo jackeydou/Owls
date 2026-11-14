@@ -3,6 +3,8 @@ export const usageStatsEn = {
   'usageStats.description':
     'Tokens your agents used on this computer, as each agent reported them. Counting started with this version.',
   'usageStats.range': 'Time range',
+  'usageStats.agentFilter': 'Agent',
+  'usageStats.allAgents': 'All agents',
   'usageStats.range.7d': '7 days',
   'usageStats.range.30d': '30 days',
   'usageStats.range.90d': '90 days',
@@ -56,6 +58,8 @@ export const usageStatsZh: typeof usageStatsEn = {
   'usageStats.description':
     '各个 Agent 在这台电脑上消耗的 token，数据来自 Agent 自己的上报。从这个版本开始记录。',
   'usageStats.range': '时间范围',
+  'usageStats.agentFilter': 'Agent',
+  'usageStats.allAgents': '全部 Agent',
   'usageStats.range.7d': '7 天',
   'usageStats.range.30d': '30 天',
   'usageStats.range.90d': '90 天',

@@ -6,10 +6,12 @@ import { useTranslation } from 'react-i18next'
 import {
   cacheHitRate,
   totalTokens,
+  type UsageAgent,
   type UsageDay,
   type UsageGroup,
   type UsageRange,
   type UsageStats,
+  usageAgentSchema,
   usageRangeSchema
 } from '../../../shared/usage-stats'
 import { OwlAvatar } from '../app/OwlAvatar'
@@ -81,7 +83,8 @@ function Kpis({ stats }: { stats: UsageStats }) {
     },
     {
       label: t('usageStats.kpi.cost'),
-      value: f.cost(totals.costUsd),
+      // No agent in view reported a cost, so a zero would read as free.
+      value: totals.unpricedTokens >= totalTokens(totals) ? '–' : f.cost(totals.costUsd),
       detail: totals.unpricedTokens
         ? t('usageStats.kpi.costPartial', { tokens: f.tokens(totals.unpricedTokens) })
         : t('usageStats.kpi.costDetail')
@@ -236,6 +239,37 @@ function DailyChart({ days }: { days: UsageDay[] }) {
   )
 }
 
+function AgentFilter({ stats }: { stats: UsageStats | null }) {
+  const { t } = useTranslation()
+  const agent = useUsageStatsStore((s) => s.agent)
+  const setAgent = useUsageStatsStore((s) => s.setAgent)
+  const name = useGroupName()
+  const recorded = stats?.agents ?? []
+  const agents: (UsageAgent | null)[] = [
+    null,
+    ...usageAgentSchema.options.filter((a) => recorded.includes(a) || a === agent)
+  ]
+  return (
+    <fieldset className="owls-segmented owls-stats-agents" aria-label={t('usageStats.agentFilter')}>
+      {agents.map((option) => (
+        <button
+          type="button"
+          key={option ?? 'all'}
+          aria-pressed={option === agent}
+          onClick={() => setAgent(option)}
+        >
+          {option ? <AgentIcon agent={option} /> : null}
+          {option ? name('agent', option) : t('usageStats.allAgents')}
+        </button>
+      ))}
+    </fieldset>
+  )
+}
+
+function AgentIcon({ agent }: { agent: UsageAgent }) {
+  return <OwlAvatar speaker={agent === 'owls' ? 'router' : agent} />
+}
+
 function useGroupName(): (groupBy: UsageGroupBy, key: string | null) => string {
   const { t } = useTranslation()
   const projects = useAppStore((s) => s.projects)
@@ -257,14 +291,11 @@ function useGroupName(): (groupBy: UsageGroupBy, key: string | null) => string {
 }
 
 function GroupIcon({ groupBy, row }: { groupBy: UsageGroupBy; row: UsageGroup }) {
-  if (
-    groupBy === 'agent' &&
-    (row.key === 'claude-code' || row.key === 'codex' || row.key === 'cursor')
-  )
-    return <OwlAvatar speaker={row.key} />
-  if ((groupBy === 'agent' && row.key === 'owls') || (groupBy === 'role' && row.key === 'router'))
-    return <OwlAvatar speaker="router" />
-  return null
+  if (groupBy === 'agent') {
+    const agent = usageAgentSchema.safeParse(row.key)
+    return agent.success ? <AgentIcon agent={agent.data} /> : null
+  }
+  return groupBy === 'role' && row.key === 'router' ? <OwlAvatar speaker="router" /> : null
 }
 
 function Breakdown({ stats }: { stats: UsageStats }) {
@@ -279,6 +310,8 @@ function Breakdown({ stats }: { stats: UsageStats }) {
     project: stats.byProject,
     role: stats.byRole
   }
+  // Grouping one agent's numbers by agent says nothing.
+  const groups = stats.agent ? GROUPS.filter((g) => g !== 'agent') : GROUPS
   const shown = rows[groupBy]
   const total = totalTokens(stats.totals)
   return (
@@ -286,7 +319,7 @@ function Breakdown({ stats }: { stats: UsageStats }) {
       <div className="owls-stats-card-head">
         <h3>{t('usageStats.breakdown')}</h3>
         <fieldset className="owls-segmented" aria-label={t('usageStats.groupBy')}>
-          {GROUPS.map((group) => (
+          {groups.map((group) => (
             <button
               type="button"
               key={group}
@@ -358,6 +391,9 @@ export function UsageStatsPane() {
         </div>
       </div>
       <div className="owls-stats-controls">
+        <AgentFilter stats={stats} />
+      </div>
+      <div className="owls-stats-controls owls-stats-controls-range">
         <fieldset className="owls-segmented" aria-label={t('usageStats.range')}>
           {usageRangeSchema.options.map((option: UsageRange) => (
             <button
