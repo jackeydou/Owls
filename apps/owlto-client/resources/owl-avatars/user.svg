@@ -1,8 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><clipPath id="c"><circle cx="256" cy="256" r="256"/></clipPath></defs>
 <g clip-path="url(#c)">
 <rect width="512" height="512" fill="#F2B544"/>
-<g transform="translate(256 304) rotate(0) scale(1.16) translate(-256 -270)"><path d="M72 620 L72 290 C72 160 156 100 256 100 C356 100 440 160 440 290 L440 620 Z" fill="#fff" stroke="#151515" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M244 104 C238 80 250 62 272 58 C262 72 264 88 276 102" fill="#fff" stroke="#151515" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(256 304) rotate(0) scale(1.16) translate(-256 -270)"><path d="M72 620 L72 168 Q72 150 86 140 L138 104 Q150 96 160 106 L184 132 Q190 138 200 138 L312 138 Q322 138 328 132 L352 106 Q362 96 374 104 L426 140 Q440 150 440 168 L440 620 Z" fill="#fff" stroke="#151515" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M72 404 C112 424 134 476 134 620" fill="none" stroke="#151515" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M440 404 C400 424 378 476 378 620" fill="none" stroke="#151515" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M203 428 q15 16 30 0" fill="none" stroke="#151515" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
