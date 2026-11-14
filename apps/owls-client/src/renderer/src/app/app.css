@@ -153,6 +153,8 @@
   box-shadow: 0 6px 25px #00000015;
   font-size: var(--owl-text-xs);
   z-index: 50;
+  /* Floats over drag regions; see .owls-update-popup. */
+  -webkit-app-region: no-drag;
 }
 .owls-error-toast > svg {
   flex-shrink: 0;

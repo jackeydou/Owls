@@ -1,0 +1,1 @@
+- Updates: the update popup's buttons respond to clicks again. (#110)
