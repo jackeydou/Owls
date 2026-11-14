@@ -1,0 +1,1 @@
+- Overview: header shows a Back button and an agents-working count; the title, projects count, and In progress / All filter are gone.

@@ -8,7 +8,6 @@ import type {
   RouterProviderInfo,
   RouterWorker
 } from '../../../shared/router'
-import type { MapFilter } from '../../../shared/worker-map'
 import { UIError, uiFailure } from '../app/failures'
 
 function unwrap<T>(reply: Reply<T>): T {
@@ -46,7 +45,6 @@ type State = {
   sending: boolean
   error: Failure | null
   panel: RouterPanel | null
-  mapFilter: MapFilter
   /** Projects whose finished workers are open on the map. */
   openDone: ReadonlySet<string>
   /** Workers whose children are folded on the map. */
@@ -79,7 +77,6 @@ type State = {
   removeWorker(routerId: string, workerId: string): Promise<void>
   discardWorktree(routerId: string, workerId: string): Promise<void>
   showPanel(panel: RouterPanel | null): void
-  setMapFilter(filter: MapFilter): void
   toggleDone(projectId: string): void
   toggleCollapsed(workerId: string): void
   toggleProjectFold(projectId: string): void
@@ -143,7 +140,6 @@ export const useRouterStore = create<State>((set, get) => {
     sending: false,
     error: null,
     panel: null,
-    mapFilter: 'active',
     openDone: new Set(),
     collapsed: new Set(),
     foldedProjects: new Set(),
@@ -261,7 +257,6 @@ export const useRouterStore = create<State>((set, get) => {
       await action(() => window.owlto.discardWorktree({ routerId, workerId }))
     },
     showPanel: (panel) => set({ panel }),
-    setMapFilter: (mapFilter) => set({ mapFilter }),
     toggleDone: (projectId) => set((state) => ({ openDone: toggled(state.openDone, projectId) })),
     toggleCollapsed: (workerId) =>
       set((state) => ({ collapsed: toggled(state.collapsed, workerId) })),

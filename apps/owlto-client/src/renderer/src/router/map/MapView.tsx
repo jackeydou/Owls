@@ -1,4 +1,6 @@
 import { Button } from '@renderer/components/ui/button'
+import { ArrowLeftIcon } from '@renderer/components/ui/icons'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buildWorkerMap, isInPlay, type MapNode, type MapSide } from '../../../../shared/worker-map'
@@ -56,10 +58,9 @@ export function MapView() {
   const showChat = useAppStore((s) => s.showChat)
   const focusProject = useAppStore((s) => s.focusProject)
   const panel = useRouterStore((s) => s.panel)
-  const filter = useRouterStore((s) => s.mapFilter)
   const openDone = useRouterStore((s) => s.openDone)
   const collapsed = useRouterStore((s) => s.collapsed)
-  const { showPanel, setMapFilter, toggleDone } = useRouterStore()
+  const { showPanel, toggleDone } = useRouterStore()
   const selectedWorker = panel?.kind === 'worker' ? panel.workerId : null
   const [hover, setHover] = useState<string | null>(null)
   // A joined string, so streaming never rebuilds the map; only a new or settled request does.
@@ -76,12 +77,11 @@ export function MapView() {
       approvals: new Set(
         projects.flatMap((p) => p.workers).flatMap((w) => (sessions.has(w.sessionId) ? [w.id] : []))
       ),
-      filter,
       openDone,
       collapsed,
       sides: rememberedSides
     })
-  }, [projects, approvalSessions, filter, openDone, collapsed])
+  }, [projects, approvalSessions, openDone, collapsed])
   useEffect(() => {
     for (const [id, side] of map.sides) rememberedSides.set(id, side)
     camera.update({
@@ -188,7 +188,6 @@ export function MapView() {
   const workers = projects.flatMap((p) => p.workers).filter((w) => w.status !== 'removed')
   const waiting = workers.filter(isWaitingOnUser).length
   const working = workers.filter(isWorking).length
-  const moving = projects.filter((p) => p.workers.some(isInPlay)).length
   const inPlay = workers.filter(isInPlay).length
   const focusProjectData = projects.find((p) => p.id === projectId)
   const target = workers.find((w) => w.id === selectedWorker) ?? null
@@ -243,13 +242,25 @@ export function MapView() {
         </div>
       </div>
       <header className="map-hud">
-        <div className="map-hud-title">
-          <strong>{t('map.title')}</strong>
-          <span>
-            {t('map.summaryProjects', { count: moving })} ·{' '}
-            {t('map.summaryWorkers', { count: working })}
-          </span>
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="map-back"
+              aria-label={t('map.back')}
+              onClick={() => showChat()}
+            >
+              <ArrowLeftIcon size={15} aria-hidden />
+              {t('map.backShort')}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {t('map.back')}
+            <kbd className="map-back-kbd">⌘ J</kbd>
+          </TooltipContent>
+        </Tooltip>
+        <span className="map-hud-summary">{t('map.summaryAgents', { count: working })}</span>
         {waiting ? (
           <Button size="sm" variant="outline" className="map-waiting" onClick={nextWaiting}>
             {t('map.waiting', { count: waiting })}
@@ -257,25 +268,6 @@ export function MapView() {
           </Button>
         ) : null}
         <span className="map-hud-space" />
-        <fieldset className="map-filter" aria-label={t('map.filter')}>
-          {(['active', 'all'] as const).map((value) => (
-            <button
-              type="button"
-              key={value}
-              aria-pressed={filter === value}
-              onClick={() => {
-                setMapFilter(value)
-                camera.reset()
-              }}
-            >
-              {t(`map.filter.${value}`)}
-            </button>
-          ))}
-        </fieldset>
-        <Button size="sm" variant="outline" className="map-back" onClick={() => showChat()}>
-          {t('map.back')}
-          <kbd>⌘ J</kbd>
-        </Button>
       </header>
       <div className="map-zoom">
         <button type="button" aria-label={t('map.zoomOut')} onClick={() => camera.zoomBy(0.8)}>
