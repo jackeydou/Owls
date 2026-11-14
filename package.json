@@ -1,11 +1,11 @@
 {
-  "name": "owls",
+  "name": "owlto",
   "version": "2026.11.1300-beta.5",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "pnpm --filter owls-client dev --",
-    "debug:app": "node apps/owls-client/scripts/debug-app.mjs",
+    "dev": "pnpm --filter owlto-client dev --",
+    "debug:app": "node apps/owlto-client/scripts/debug-app.mjs",
     "changelog:add": "node scripts/changelog-add-unreleased.mjs",
     "changelog:check": "node scripts/changelog-check.mjs",
     "changelog:compose": "node scripts/changelog-compose-release.mjs",
@@ -15,7 +15,7 @@
     "lint:fix": "biome check --write",
     "format": "biome format --write",
     "release:check": "node scripts/release-check.mjs",
-    "test": "pnpm --filter owls-client test:unit"
+    "test": "pnpm --filter owlto-client test:unit"
   },
   "keywords": [],
   "author": "",

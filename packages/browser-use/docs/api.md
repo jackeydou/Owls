@@ -1,6 +1,6 @@
-# Owls Browser Use API
+# Owlto Browser Use API
 
-Owls Browser Use follows Codex's in-app Browser API shape. Select the in-app
+Owlto Browser Use follows Codex's in-app Browser API shape. Select the in-app
 browser with:
 
 ```js
@@ -8,7 +8,7 @@ const browser = await agent.browsers.get("iab");
 const tab = (await browser.tabs.selected()) ?? await browser.tabs.new();
 ```
 
-The current Owls backend exposes one session-scoped tab with id `session`.
+The current Owlto backend exposes one session-scoped tab with id `session`.
 
 ## Agent
 
@@ -183,7 +183,7 @@ interface PlaywrightAPI {
 }
 ```
 
-`evaluate` is part of the Codex shape but is not exposed by Owls yet; it throws
+`evaluate` is part of the Codex shape but is not exposed by Owlto yet; it throws
 an explicit error. `frameLocator` is also not implemented yet.
 
 ## Locators

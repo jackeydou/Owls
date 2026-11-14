@@ -61,6 +61,6 @@ intentionally has no release-facing entry, write a concrete
 `Changelog: N/A - <reason>` in the MR body and run the checker with
 `--changelog-na`.
 
-This is intentionally a lightweight repository-local workflow. Owls Client is
+This is intentionally a lightweight repository-local workflow. Owlto Client is
 an Electron CalVer app, not a multi-package npm publishing repo, so it does not
 use Changesets.

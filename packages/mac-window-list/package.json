@@ -1,7 +1,7 @@
 {
-  "name": "@owls/mac-window-list",
+  "name": "@owlto/mac-window-list",
   "version": "0.1.0",
-  "description": "Enumerate on-screen macOS windows via CGWindowListCopyWindowInfo. Internal Owls package.",
+  "description": "Enumerate on-screen macOS windows via CGWindowListCopyWindowInfo. Internal Owlto package.",
   "private": true,
   "main": "index.js",
   "types": "index.d.ts",

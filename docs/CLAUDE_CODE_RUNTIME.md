@@ -1,28 +1,28 @@
-# Owls Claude Code Runtime
+# Owlto Claude Code Runtime
 
 ## Scope
 
-Owls can run workers with the user's installed Claude Code CLI next to the
+Owlto can run workers with the user's installed Claude Code CLI next to the
 [Codex runtime](CODEX_APP_SERVER.md). Each worker gets its agent when it is
 dispatched and never switches afterward. Both runtimes share projects, settings,
-and `owls.db`.
+and `owlto.db`.
 
 ## Entries and ownership
 
-- Host routing: `apps/owls-client/src/main/app/host.ts`.
+- Host routing: `apps/owlto-client/src/main/app/host.ts`.
 - Discovery: `src/main/claude/discovery.ts`.
 - Session orchestration: `src/main/claude/service.ts`.
 - Event, tool, and permission normalization: `src/main/claude/normalize.ts`.
 
-Paths after the first entry are relative to `apps/owls-client/`.
+Paths after the first entry are relative to `apps/owlto-client/`.
 
 Claude Code owns its model requests, native tools, context, compaction,
-authentication, hooks, MCP servers, and native session storage. Owls owns
+authentication, hooks, MCP servers, and native session storage. Owlto owns
 project selection, worker sessions, normalized items, settings, and approval routing.
 
 ## Local executable, no bundled fallback
 
-Owls drives the CLI through the official Agent SDK
+Owlto drives the CLI through the official Agent SDK
 (`@anthropic-ai/claude-agent-sdk/core`, pinned to the version paired with the
 supported CLI) and always passes `pathToClaudeCodeExecutable`. The SDK's
 platform CLI packages are listed in `ignoredOptionalDependencies` in
@@ -46,7 +46,7 @@ result, which is required for permission prompts and interrupt. Options load
 preset, matching the CLI. The native `session_id` is saved as the task's thread
 ID and passed as `resume` on later turns.
 
-| Owls permission | Claude Code |
+| Owlto permission | Claude Code |
 | --- | --- |
 | Read only | `default` mode with `Edit`, `NotebookEdit`, `Write` disallowed |
 | Workspace access | `acceptEdits` |
@@ -59,8 +59,8 @@ tools and approval prompts. `bypassPermissions` is never used.
 card whose answers return as `updatedInput.answers` keyed by question text.
 Subagent messages (`parent_tool_use_id`) are not shown in the parent task.
 
-Router worker turns also get an in-process MCP server named `owls` with one
-tool, `report` (`mcp__owls__report`), through which the worker reports to the
+Router worker turns also get an in-process MCP server named `owlto` with one
+tool, `report` (`mcp__owlto__report`), through which the worker reports to the
 Router. `canUseTool` approves it without a card; it is not listed in
 `allowedTools`, because the SDK warns on every query that a bare entry there
 shadows the callback.
@@ -75,11 +75,11 @@ sends an SDK interrupt and aborts the process if the turn does not end.
 ## Verification
 
 ```bash
-pnpm --filter owls-client test:claude
-pnpm --filter owls-client test:ui
-pnpm --filter owls-client verify:claude
-pnpm --filter owls-client verify:claude --prompt
-pnpm --filter owls-client verify:claude --tools
+pnpm --filter owlto-client test:claude
+pnpm --filter owlto-client test:ui
+pnpm --filter owlto-client verify:claude
+pnpm --filter owlto-client verify:claude --prompt
+pnpm --filter owlto-client verify:claude --tools
 ```
 
 `test:claude` drives the service through a scripted SDK. The UI smoke covers the

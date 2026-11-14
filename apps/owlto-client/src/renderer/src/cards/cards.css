@@ -1,0 +1,728 @@
+:root {
+  --owl-card-shadow: 0 0 0 1px rgb(16 18 22 / 6%), 0 1px 3px rgb(16 18 22 / 8%);
+  --owl-card-shadow-hover: 0 0 0 1px rgb(16 18 22 / 8%), 0 4px 14px rgb(16 18 22 / 10%);
+  --owl-float-shadow: 0 0 0 1px rgb(16 18 22 / 6%), 0 6px 24px rgb(16 18 22 / 10%);
+  --owl-card-picked: #3b82f6;
+  --owl-board-bg: #ffffff;
+  --owl-board-dot: #1a1c1f12;
+  --owl-card-chip: color-mix(in oklch, var(--color-warning) 12%, var(--color-card));
+  --owl-card-chip-border: color-mix(in oklch, var(--color-warning) 35%, transparent);
+}
+[data-theme="dark"] {
+  --owl-card-shadow: 0 0 0 1px #ffffff1a, 0 1px 3px rgb(0 0 0 / 40%);
+  --owl-card-shadow-hover: 0 0 0 1px #ffffff26, 0 4px 14px rgb(0 0 0 / 50%);
+  --owl-float-shadow: 0 0 0 1px #ffffff1a, 0 6px 24px rgb(0 0 0 / 50%);
+  --owl-board-bg: #0d0d0d;
+  --owl-board-dot: #ffffff14;
+}
+
+.cards-view {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  background: var(--color-background);
+}
+
+/* Header */
+.cards-main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.cards-hud {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  height: var(--owl-bar-height);
+  padding: 0 12px 0 20px;
+  -webkit-app-region: drag;
+}
+.cards-hud > * {
+  -webkit-app-region: no-drag;
+}
+.cards-hud-space {
+  flex: 1;
+  -webkit-app-region: drag;
+}
+/* The title bar makes room for the window controls and the sidebar's toggle. */
+.router-stage.sidebar-hidden .cards-hud {
+  padding-left: calc(var(--owl-toggle-left) + var(--owl-toggle-size) + 12px);
+}
+.cards-hud-icons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cards-hud-icons > button[aria-pressed="true"] {
+  background: var(--color-sidebar-active);
+  color: var(--owl-card-picked);
+}
+.cards-menu {
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+}
+.cards-menu-count {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+.cards-crumbs {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--owl-text-sm);
+}
+.cards-crumbs > button {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+}
+.cards-crumbs > button:hover {
+  color: var(--color-foreground);
+}
+.cards-crumbs > span {
+  color: var(--color-border-strong);
+}
+.cards-crumbs strong {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.board-title {
+  field-sizing: content;
+  min-width: 2em;
+  max-width: 320px;
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: var(--owl-radius-xs);
+  background: transparent;
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+  outline: none;
+}
+.board-title:hover,
+.board-title:focus {
+  background: var(--color-sidebar-hover);
+}
+.cards-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 200px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+  transition: background 120ms;
+}
+.cards-search:hover,
+.cards-search:focus-within {
+  background: var(--color-sidebar-hover);
+}
+.cards-search:focus-within {
+  box-shadow: var(--owl-field-focus-shadow);
+}
+.cards-search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+  outline: none;
+}
+.cards-search input::-webkit-search-cancel-button {
+  display: none;
+}
+.cards-search button {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--owl-radius-xs);
+}
+.cards-search button:hover {
+  color: var(--color-foreground);
+}
+.cards-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 20px 8px;
+  padding: 6px 6px 6px 12px;
+  border-radius: var(--owl-radius-sm);
+  background: color-mix(in oklch, var(--color-destructive) 10%, transparent);
+  color: var(--color-destructive);
+  font-size: var(--owl-text-xs);
+}
+.cards-error span {
+  flex: 1;
+}
+.cards-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 420px;
+  margin: 48px auto;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+  text-align: center;
+}
+
+/* A card's rendered body, small and clipped, on tiles and boards */
+.card-body.owlto-markdown {
+  color: var(--color-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: 1.55;
+}
+.card-tile .card-body,
+.board-card .card-body {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+}
+.card-tile .card-body {
+  max-height: 168px;
+}
+.board-card .card-body {
+  max-height: 320px;
+}
+.card-body.owlto-markdown :is(p, li, td, th, blockquote, code) {
+  font-size: inherit;
+}
+.card-body.owlto-markdown :is(p, ul, ol, pre, blockquote, table) {
+  margin-block: 0 6px;
+}
+.card-body.owlto-markdown :is(h1, h2, h3, h4) {
+  margin-block: 8px 4px;
+  font-size: var(--owl-text-xs);
+  font-weight: 600;
+}
+.card-body.owlto-markdown :is(ul, ol) {
+  padding-left: 18px;
+}
+.card-body.owlto-markdown ul {
+  list-style: disc;
+}
+.card-body.owlto-markdown ol {
+  list-style: decimal;
+}
+.card-body.owlto-markdown li::marker {
+  color: var(--color-muted-foreground);
+}
+
+/* Card list: cards flow in columns like a board without the canvas */
+.cards-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.cards-grid {
+  columns: 260px;
+  column-gap: 14px;
+  padding: 8px 20px 32px;
+}
+.cards-grid > li {
+  break-inside: avoid;
+  margin-bottom: 14px;
+}
+.card-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px 12px;
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card);
+  box-shadow: var(--owl-card-shadow);
+  transition: box-shadow 120ms;
+}
+.card-tile:hover {
+  box-shadow: var(--owl-card-shadow-hover);
+}
+.card-tile[aria-current="true"] {
+  box-shadow:
+    0 0 0 1.5px var(--color-border-strong),
+    var(--owl-card-shadow);
+}
+.card-tile[data-selected] {
+  box-shadow:
+    0 0 0 2px var(--owl-card-picked),
+    var(--owl-card-shadow);
+}
+.card-tile h4,
+.board-card h4 {
+  padding-right: 20px;
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.card-tile-open {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.card-tile-check {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-card);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.card-tile:hover .card-tile-check,
+.card-tile-check:focus-visible,
+.card-tile-check[aria-pressed="true"] {
+  opacity: 1;
+}
+.card-tile-check[aria-pressed="true"] {
+  border-color: var(--owl-card-picked);
+  background: var(--owl-card-picked);
+  color: white;
+}
+
+/* Editor panel: a page, not a form */
+.card-editor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  /* Dragged wider by its left edge; the card list always keeps some room. */
+  width: min(var(--owl-card-width), 70%);
+  border-left: 1px solid var(--color-border);
+  background: var(--color-card);
+}
+.card-editor > header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--owl-bar-height);
+  padding: 0 10px;
+  -webkit-app-region: drag;
+}
+.card-editor > header > * {
+  -webkit-app-region: no-drag;
+}
+.card-editor-space {
+  flex: 1;
+  -webkit-app-region: drag;
+}
+.card-editor-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px 28px 40px;
+  overflow-y: auto;
+}
+.card-editor-title {
+  field-sizing: content;
+  width: 100%;
+  background: transparent;
+  font-size: var(--owl-text-xl);
+  font-weight: 600;
+  line-height: 1.3;
+  resize: none;
+  outline: none;
+}
+.card-editor-title::placeholder,
+.card-editor-body::placeholder,
+.card-editor-tags::placeholder {
+  color: var(--color-muted-foreground);
+  opacity: 0.6;
+}
+.card-editor-props {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0 18px -8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.card-editor-props .card-editor-project {
+  width: auto;
+  height: 26px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.card-editor-props .card-editor-project:hover {
+  background: var(--color-sidebar-hover);
+}
+.card-editor-tags {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--owl-radius-xs);
+  background: transparent;
+  font-size: var(--owl-text-xs);
+  outline: none;
+}
+.card-editor-tags:hover,
+.card-editor-tags:focus {
+  background: var(--color-sidebar-hover);
+  color: var(--color-foreground);
+}
+.card-editor-body {
+  field-sizing: content;
+  width: 100%;
+  min-height: 240px;
+  background: transparent;
+  font-size: var(--owl-text-sm);
+  line-height: 1.65;
+  resize: none;
+  outline: none;
+}
+.card-editor-read {
+  position: relative;
+  min-height: 120px;
+}
+.card-editor-read .card-body.owlto-markdown {
+  font-size: var(--owl-text-sm);
+  line-height: 1.65;
+}
+.card-editor-read > button {
+  position: absolute;
+  inset: -6px -10px;
+  border-radius: var(--owl-radius-sm);
+  cursor: text;
+}
+.card-menu-source {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Boards */
+.board-view {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid var(--color-border);
+}
+.board-stage {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  cursor: grab;
+  background-color: var(--owl-board-bg);
+  background-image: radial-gradient(var(--owl-board-dot) 1px, transparent 1px);
+  background-size: 22px 22px;
+  touch-action: none;
+}
+.board-stage.dragging {
+  cursor: grabbing;
+}
+.board-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+.board-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 14px;
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card);
+  box-shadow: var(--owl-card-shadow);
+  cursor: default;
+  user-select: none;
+}
+.board-card:hover {
+  box-shadow: var(--owl-card-shadow-hover);
+}
+.board-card[data-selected] {
+  box-shadow:
+    0 0 0 2px var(--owl-card-picked),
+    var(--owl-card-shadow);
+}
+.board-card h4 {
+  padding-right: 44px;
+  font-size: var(--owl-text-base);
+}
+.board-card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.board-card:hover .board-card-actions,
+.board-card:focus-within .board-card-actions {
+  opacity: 1;
+}
+.board-empty {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.board-rail,
+.board-zoom,
+.board-tray {
+  background: var(--color-card);
+  box-shadow: var(--owl-float-shadow);
+}
+.board-rail {
+  position: absolute;
+  z-index: 6;
+  top: 50%;
+  left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: var(--owl-radius-lg);
+  transform: translateY(-50%);
+}
+.board-rail button[aria-pressed="true"] {
+  background: var(--color-sidebar-active);
+  color: var(--owl-card-picked);
+}
+.board-tray {
+  position: absolute;
+  z-index: 7;
+  top: 14px;
+  left: 72px;
+  max-height: calc(100% - 28px);
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  padding: 8px 6px;
+  overflow-y: auto;
+  border-radius: var(--owl-radius-lg);
+}
+.board-tray header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 6px 10px;
+}
+.board-tray h3 {
+  font-size: var(--owl-text-xs);
+  font-weight: 600;
+}
+.board-tray li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 2px 0 10px;
+  border-radius: var(--owl-radius-sm);
+  font-size: var(--owl-text-xs);
+  cursor: grab;
+}
+.board-tray li:hover {
+  background: var(--color-sidebar-hover);
+}
+.board-tray li span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.board-tray p {
+  padding: 4px 10px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.board-zoom {
+  position: absolute;
+  z-index: 6;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  padding: 0 6px;
+  border-radius: var(--owl-radius-md);
+  color: var(--color-foreground);
+}
+.board-zoom button {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  border-radius: var(--owl-radius-sm);
+}
+.board-zoom button:hover {
+  background: var(--color-sidebar-hover);
+}
+.board-zoom-level {
+  padding: 0 6px;
+  font-size: var(--owl-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.board-zoom-minus {
+  width: 12px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.board-bar {
+  position: absolute;
+  z-index: 6;
+  bottom: 16px;
+  left: 50%;
+  width: min(560px, calc(100% - 280px));
+  transform: translateX(-50%);
+}
+
+/* Cards in drafts and messages */
+.router-draft-cards,
+.message-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.router-draft-cards {
+  padding: 8px 10px 0;
+}
+.router-editor .router-draft-cards {
+  padding: 0 0 6px;
+}
+.message-cards {
+  margin-top: 8px;
+}
+.router-draft-cards li,
+.message-cards button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 260px;
+  height: 26px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--owl-card-chip-border);
+  border-radius: var(--owl-radius-sm);
+  background: var(--owl-card-chip);
+  color: var(--color-foreground);
+  font-size: var(--owl-text-2xs);
+}
+.message-cards button {
+  padding-right: 8px;
+}
+.message-cards button:disabled {
+  opacity: 0.6;
+}
+.router-draft-cards span,
+.message-cards span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-draft-cards button {
+  width: 20px;
+  height: 20px;
+}
+.router-mention-card {
+  color: var(--color-warning);
+}
+
+/* Dialogs */
+.cards-dialog form > label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+.cards-dialog form > label input {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-size: var(--owl-text-xs);
+  outline: none;
+}
+.cards-dialog form > label input:focus {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
+.cards-dialog h2 {
+  margin-bottom: 12px;
+  font-size: var(--owl-text-lg);
+  font-weight: 600;
+}
+.cards-dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cards-dialog blockquote {
+  display: -webkit-box;
+  overflow: hidden;
+  padding: 8px 12px;
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card-muted);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+.cards-dialog-note {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+}
+.cards-dialog > .cards-dialog-note {
+  margin-bottom: 12px;
+}
+.cards-dialog-error {
+  color: var(--color-destructive);
+  font-size: var(--owl-text-xs);
+}
+.cards-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+/* On the one-line composer the cards take their own row above the input. */
+.router-composer .owlto-composer:has(.router-draft-cards) {
+  flex-wrap: wrap;
+}
+.router-composer .router-draft-cards {
+  flex-basis: 100%;
+  padding: 4px 0 0;
+}
+.router-mentions button small {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.router-draft-cards svg,
+.message-cards svg {
+  flex-shrink: 0;
+}

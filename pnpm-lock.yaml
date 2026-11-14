@@ -30,7 +30,7 @@ importers:
         specifier: ^2.4.9
         version: 2.4.9
 
-  apps/owls-client:
+  apps/owlto-client:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':
         specifier: 0.3.316
@@ -47,7 +47,7 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
         version: 1.29.0(zod@4.4.3)
-      '@owls/mac-input':
+      '@owlto/mac-input':
         specifier: workspace:*
         version: link:../../packages/mac-input
       better-sqlite3:
@@ -102,16 +102,16 @@ importers:
       '@libsql/client':
         specifier: ^0.15.15
         version: 0.15.15
-      '@owls/mac-cursor-overlay':
+      '@owlto/mac-cursor-overlay':
         specifier: workspace:*
         version: link:../../packages/mac-cursor-overlay
-      '@owls/mac-process-limits':
+      '@owlto/mac-process-limits':
         specifier: workspace:*
         version: link:../../packages/mac-process-limits
-      '@owls/mac-window-list':
+      '@owlto/mac-window-list':
         specifier: workspace:*
         version: link:../../packages/mac-window-list
-      '@owls/session-inspector':
+      '@owlto/session-inspector':
         specifier: workspace:*
         version: link:../../packages/session-inspector
       '@radix-ui/react-dropdown-menu':
@@ -270,7 +270,7 @@ importers:
 
   packages/browser-use:
     dependencies:
-      '@owls/local-rpc-client':
+      '@owlto/local-rpc-client':
         specifier: workspace:*
         version: link:../local-rpc-client
     devDependencies:
@@ -317,7 +317,7 @@ importers:
         specifier: ^3.6.2
         version: 3.6.2(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.1)(node-addon-api@8.9.2)
 
-  packages/owls-sites-plugin: {}
+  packages/owlto-sites-plugin: {}
 
   packages/session-inspector:
     devDependencies:

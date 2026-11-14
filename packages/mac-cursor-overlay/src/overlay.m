@@ -9,14 +9,14 @@
 typedef struct {
   double x;
   double y;
-} OwlsPoint;
+} OwltoPoint;
 
 typedef struct {
   double x;
   double y;
   double width;
   double height;
-} OwlsRect;
+} OwltoRect;
 
 typedef struct {
   bool has_window;
@@ -24,31 +24,31 @@ typedef struct {
   bool cursor_visible;
   bool debug_backdrop_visible;
   int level;
-  OwlsRect bounds;
-  OwlsPoint cursor_position;
-} OwlsOverlayState;
+  OwltoRect bounds;
+  OwltoPoint cursor_position;
+} OwltoOverlayState;
 
-typedef NS_ENUM(NSInteger, OwlsOverlayLevel) {
-  OwlsOverlayLevelNormal = 0,
-  OwlsOverlayLevelFloating = 1,
-  OwlsOverlayLevelTornOffMenu = 2,
-  OwlsOverlayLevelModalPanel = 3,
-  OwlsOverlayLevelMainMenu = 4,
-  OwlsOverlayLevelStatus = 5,
-  OwlsOverlayLevelPopUpMenu = 6,
-  OwlsOverlayLevelScreenSaver = 7
+typedef NS_ENUM(NSInteger, OwltoOverlayLevel) {
+  OwltoOverlayLevelNormal = 0,
+  OwltoOverlayLevelFloating = 1,
+  OwltoOverlayLevelTornOffMenu = 2,
+  OwltoOverlayLevelModalPanel = 3,
+  OwltoOverlayLevelMainMenu = 4,
+  OwltoOverlayLevelStatus = 5,
+  OwltoOverlayLevelPopUpMenu = 6,
+  OwltoOverlayLevelScreenSaver = 7
 };
 
-static const CGFloat kOwlsCursorSize = 24.0;
-static const CGFloat kOwlsDebugHudInset = 16.0;
-static const CGFloat kOwlsCursorForwardAngle = 0.0;
-static const CGPoint kOwlsCursorHotspot = { 5.0, 3.5 };
-static NSString *const kOwlsClickRippleLayerName = @"owls-click-ripple";
+static const CGFloat kOwltoCursorSize = 24.0;
+static const CGFloat kOwltoDebugHudInset = 16.0;
+static const CGFloat kOwltoCursorForwardAngle = 0.0;
+static const CGPoint kOwltoCursorHotspot = { 5.0, 3.5 };
+static NSString *const kOwltoClickRippleLayerName = @"owlto-click-ripple";
 
-@interface OwlsCursorOverlayView : NSView
+@interface OwltoCursorOverlayView : NSView
 @end
 
-@implementation OwlsCursorOverlayView
+@implementation OwltoCursorOverlayView
 
 - (BOOL)isFlipped {
   return YES;
@@ -56,10 +56,10 @@ static NSString *const kOwlsClickRippleLayerName = @"owls-click-ripple";
 
 @end
 
-@interface OwlsCursorOverlayManager : NSObject
+@interface OwltoCursorOverlayManager : NSObject
 
 @property(nonatomic, strong) NSPanel *window;
-@property(nonatomic, strong) OwlsCursorOverlayView *view;
+@property(nonatomic, strong) OwltoCursorOverlayView *view;
 @property(nonatomic, strong) CALayer *rootLayer;
 @property(nonatomic, strong) CALayer *debugBackdropLayer;
 @property(nonatomic, strong) CATextLayer *debugTextLayer;
@@ -85,12 +85,12 @@ static NSString *const kOwlsClickRippleLayerName = @"owls-click-ripple";
 - (BOOL)setCursorPressedValue:(BOOL)pressed;
 - (BOOL)setDebugBackdropVisible:(BOOL)visible label:(NSString *)label;
 - (void)removeClickRipples;
-- (OwlsOverlayState)overlayState;
+- (OwltoOverlayState)overlayState;
 - (BOOL)disposeOverlay;
 
 @end
 
-static void OwlsRunOnMainThreadSync(dispatch_block_t block) {
+static void OwltoRunOnMainThreadSync(dispatch_block_t block) {
   if ([NSThread isMainThread]) {
     block();
     return;
@@ -98,30 +98,30 @@ static void OwlsRunOnMainThreadSync(dispatch_block_t block) {
   dispatch_sync(dispatch_get_main_queue(), block);
 }
 
-static NSInteger OwlsWindowLevelForOverlayLevel(NSInteger level) {
+static NSInteger OwltoWindowLevelForOverlayLevel(NSInteger level) {
   switch (level) {
-    case OwlsOverlayLevelNormal:
+    case OwltoOverlayLevelNormal:
       return CGWindowLevelForKey(kCGNormalWindowLevelKey);
-    case OwlsOverlayLevelFloating:
+    case OwltoOverlayLevelFloating:
       return CGWindowLevelForKey(kCGFloatingWindowLevelKey);
-    case OwlsOverlayLevelTornOffMenu:
+    case OwltoOverlayLevelTornOffMenu:
       return CGWindowLevelForKey(kCGTornOffMenuWindowLevelKey);
-    case OwlsOverlayLevelModalPanel:
+    case OwltoOverlayLevelModalPanel:
       return CGWindowLevelForKey(kCGModalPanelWindowLevelKey);
-    case OwlsOverlayLevelMainMenu:
+    case OwltoOverlayLevelMainMenu:
       return CGWindowLevelForKey(kCGMainMenuWindowLevelKey);
-    case OwlsOverlayLevelStatus:
+    case OwltoOverlayLevelStatus:
       return CGWindowLevelForKey(kCGStatusWindowLevelKey);
-    case OwlsOverlayLevelPopUpMenu:
+    case OwltoOverlayLevelPopUpMenu:
       return CGWindowLevelForKey(kCGPopUpMenuWindowLevelKey);
-    case OwlsOverlayLevelScreenSaver:
+    case OwltoOverlayLevelScreenSaver:
       return CGWindowLevelForKey(kCGScreenSaverWindowLevelKey);
     default:
       return CGWindowLevelForKey(kCGFloatingWindowLevelKey);
   }
 }
 
-static CGPathRef OwlsCreateCursorPath(void) {
+static CGPathRef OwltoCreateCursorPath(void) {
   CGMutablePathRef path = CGPathCreateMutable();
   CGPathMoveToPoint(path, NULL, 5.0, 3.5);
   CGPathAddLineToPoint(path, NULL, 5.0, 21.5);
@@ -134,14 +134,14 @@ static CGPathRef OwlsCreateCursorPath(void) {
   return path;
 }
 
-static void OwlsApplyDisabledActions(void (^block)(void)) {
+static void OwltoApplyDisabledActions(void (^block)(void)) {
   [CATransaction begin];
   [CATransaction setDisableActions:YES];
   block();
   [CATransaction commit];
 }
 
-static CGFloat OwlsIntersectionArea(CGRect a, CGRect b) {
+static CGFloat OwltoIntersectionArea(CGRect a, CGRect b) {
   CGRect intersection = CGRectIntersection(a, b);
   if (CGRectIsNull(intersection) || CGRectIsEmpty(intersection)) {
     return 0.0;
@@ -149,7 +149,7 @@ static CGFloat OwlsIntersectionArea(CGRect a, CGRect b) {
   return intersection.size.width * intersection.size.height;
 }
 
-static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
+static CGRect OwltoCocoaRectFromQuartzRect(CGRect quartzRect) {
   NSArray<NSScreen *> *screens = NSScreen.screens;
   NSScreen *bestScreen = nil;
   CGRect bestQuartzFrame = CGRectZero;
@@ -162,7 +162,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
     }
     CGDirectDisplayID displayId = (CGDirectDisplayID) screenNumber.unsignedIntValue;
     CGRect displayQuartzFrame = CGDisplayBounds(displayId);
-    CGFloat area = OwlsIntersectionArea(quartzRect, displayQuartzFrame);
+    CGFloat area = OwltoIntersectionArea(quartzRect, displayQuartzFrame);
     if (area > bestArea) {
       bestArea = area;
       bestScreen = screen;
@@ -188,17 +188,17 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   );
 }
 
-@implementation OwlsCursorOverlayManager
+@implementation OwltoCursorOverlayManager
 
 + (instancetype)sharedManager {
-  static OwlsCursorOverlayManager *manager = nil;
+  static OwltoCursorOverlayManager *manager = nil;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
-    manager = [[OwlsCursorOverlayManager alloc] init];
-    manager.level = OwlsOverlayLevelFloating;
+    manager = [[OwltoCursorOverlayManager alloc] init];
+    manager.level = OwltoOverlayLevelFloating;
     manager.bounds = CGRectMake(0.0, 0.0, 1.0, 1.0);
     manager.cursorPosition = CGPointMake(-200.0, -200.0);
-    manager.cursorHeading = kOwlsCursorForwardAngle;
+    manager.cursorHeading = kOwltoCursorForwardAngle;
     manager.attachedWindowId = 0;
   });
   return manager;
@@ -223,13 +223,13 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   window.hasShadow = NO;
   window.backgroundColor = [NSColor clearColor];
   window.ignoresMouseEvents = YES;
-  window.level = OwlsWindowLevelForOverlayLevel(self.level);
+  window.level = OwltoWindowLevelForOverlayLevel(self.level);
   window.collectionBehavior =
     NSWindowCollectionBehaviorCanJoinAllSpaces |
     NSWindowCollectionBehaviorFullScreenAuxiliary |
     NSWindowCollectionBehaviorStationary;
 
-  OwlsCursorOverlayView *view = [[OwlsCursorOverlayView alloc] initWithFrame:window.contentView.bounds];
+  OwltoCursorOverlayView *view = [[OwltoCursorOverlayView alloc] initWithFrame:window.contentView.bounds];
   view.wantsLayer = YES;
   view.layer = [CALayer layer];
   view.layer.frame = view.bounds;
@@ -245,7 +245,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   [view.layer addSublayer:debugBackdropLayer];
 
   CATextLayer *debugTextLayer = [CATextLayer layer];
-  debugTextLayer.frame = CGRectMake(kOwlsDebugHudInset, kOwlsDebugHudInset, 360.0, 28.0);
+  debugTextLayer.frame = CGRectMake(kOwltoDebugHudInset, kOwltoDebugHudInset, 360.0, 28.0);
   debugTextLayer.foregroundColor = NSColor.whiteColor.CGColor;
   debugTextLayer.backgroundColor = [NSColor colorWithSRGBRed:0.06 green:0.09 blue:0.16 alpha:0.82].CGColor;
   debugTextLayer.cornerRadius = 8.0;
@@ -258,7 +258,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   [view.layer addSublayer:debugTextLayer];
 
   CAShapeLayer *cursorLayer = [CAShapeLayer layer];
-  cursorLayer.bounds = CGRectMake(0.0, 0.0, kOwlsCursorSize, kOwlsCursorSize);
+  cursorLayer.bounds = CGRectMake(0.0, 0.0, kOwltoCursorSize, kOwltoCursorSize);
   cursorLayer.anchorPoint = CGPointMake(0.5, 0.5);
   cursorLayer.position = self.cursorPosition;
   cursorLayer.fillColor = [NSColor colorWithSRGBRed:0.02 green:0.02 blue:0.02 alpha:1.0].CGColor;
@@ -272,7 +272,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   cursorLayer.shadowOffset = CGSizeMake(0.0, 3.0);
   cursorLayer.opacity = self.cursorVisible ? 1.0 : 0.0;
 
-  CGPathRef cursorPath = OwlsCreateCursorPath();
+  CGPathRef cursorPath = OwltoCreateCursorPath();
   cursorLayer.path = cursorPath;
   CGPathRelease(cursorPath);
   [view.layer addSublayer:cursorLayer];
@@ -290,23 +290,23 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
 - (void)applyBounds:(CGRect)bounds {
   self.bounds = bounds;
   [self ensureWindowIfNeeded];
-  CGRect windowFrame = OwlsCocoaRectFromQuartzRect(bounds);
-  OwlsApplyDisabledActions(^{
+  CGRect windowFrame = OwltoCocoaRectFromQuartzRect(bounds);
+  OwltoApplyDisabledActions(^{
     [self removeClickRipples];
     [self.window setFrame:windowFrame display:NO];
     self.view.frame = CGRectMake(0.0, 0.0, bounds.size.width, bounds.size.height);
     self.rootLayer.frame = self.view.bounds;
     self.debugBackdropLayer.frame = self.view.bounds;
-    self.debugTextLayer.frame = CGRectMake(kOwlsDebugHudInset, kOwlsDebugHudInset, 360.0, 28.0);
+    self.debugTextLayer.frame = CGRectMake(kOwltoDebugHudInset, kOwltoDebugHudInset, 360.0, 28.0);
   });
 }
 
 - (void)applyLevel:(NSInteger)level {
   self.level = level;
   [self ensureWindowIfNeeded];
-  NSInteger effectiveLevel = self.attachedWindowId > 0 ? OwlsOverlayLevelNormal : level;
+  NSInteger effectiveLevel = self.attachedWindowId > 0 ? OwltoOverlayLevelNormal : level;
   self.window.floatingPanel = self.attachedWindowId <= 0;
-  self.window.level = OwlsWindowLevelForOverlayLevel(effectiveLevel);
+  self.window.level = OwltoWindowLevelForOverlayLevel(effectiveLevel);
 }
 
 - (BOOL)showWithBounds:(CGRect)bounds level:(NSInteger)level {
@@ -348,9 +348,9 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   [self ensureWindowIfNeeded];
   self.cursorPosition = point;
   self.cursorVisible = YES;
-  CGFloat rotation = self.cursorHeading - kOwlsCursorForwardAngle;
-  CGPoint center = CGPointMake(kOwlsCursorSize / 2.0, kOwlsCursorSize / 2.0);
-  CGPoint hotspotFromCenter = CGPointMake(kOwlsCursorHotspot.x - center.x, kOwlsCursorHotspot.y - center.y);
+  CGFloat rotation = self.cursorHeading - kOwltoCursorForwardAngle;
+  CGPoint center = CGPointMake(kOwltoCursorSize / 2.0, kOwltoCursorSize / 2.0);
+  CGPoint hotspotFromCenter = CGPointMake(kOwltoCursorHotspot.x - center.x, kOwltoCursorHotspot.y - center.y);
   CGFloat cosRotation = cos(rotation);
   CGFloat sinRotation = sin(rotation);
   CGPoint rotatedHotspotFromCenter = CGPointMake(
@@ -361,7 +361,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
     point.x - rotatedHotspotFromCenter.x,
     point.y - rotatedHotspotFromCenter.y
   );
-  OwlsApplyDisabledActions(^{
+  OwltoApplyDisabledActions(^{
     self.cursorLayer.position = layerPosition;
     self.cursorLayer.transform = CATransform3DMakeRotation(rotation, 0.0, 0.0, 1.0);
     self.cursorLayer.opacity = 1.0;
@@ -369,7 +369,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
 }
 
 - (BOOL)jumpCursorTo:(CGPoint)point {
-  self.cursorHeading = kOwlsCursorForwardAngle;
+  self.cursorHeading = kOwltoCursorForwardAngle;
   [self applyCursorPoseAt:point];
   return YES;
 }
@@ -378,7 +378,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   [self ensureWindowIfNeeded];
 
   CAShapeLayer *rippleLayer = [CAShapeLayer layer];
-  rippleLayer.name = kOwlsClickRippleLayerName;
+  rippleLayer.name = kOwltoClickRippleLayerName;
   rippleLayer.bounds = CGRectMake(0.0, 0.0, 24.0, 24.0);
   rippleLayer.position = point;
   rippleLayer.fillColor = [NSColor colorWithSRGBRed:0.02 green:0.02 blue:0.02 alpha:opacity * 0.25].CGColor;
@@ -416,7 +416,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
 - (void)removeClickRipples {
   NSArray<CALayer *> *sublayers = [self.rootLayer.sublayers copy];
   for (CALayer *layer in sublayers) {
-    if ([layer.name isEqualToString:kOwlsClickRippleLayerName]) {
+    if ([layer.name isEqualToString:kOwltoClickRippleLayerName]) {
       [layer removeFromSuperlayer];
     }
   }
@@ -443,7 +443,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
 - (BOOL)setCursorVisibleValue:(BOOL)visible {
   [self ensureWindowIfNeeded];
   self.cursorVisible = visible;
-  OwlsApplyDisabledActions(^{
+  OwltoApplyDisabledActions(^{
     self.cursorLayer.opacity = visible ? 1.0 : 0.0;
   });
   return YES;
@@ -456,9 +456,9 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
     return YES;
   }
   [self.cursorLayer removeAnimationForKey:@"press"];
-  OwlsApplyDisabledActions(^{
+  OwltoApplyDisabledActions(^{
     self.cursorLayer.transform = CATransform3DMakeRotation(
-      self.cursorHeading - kOwlsCursorForwardAngle,
+      self.cursorHeading - kOwltoCursorForwardAngle,
       0.0,
       0.0,
       1.0
@@ -481,15 +481,15 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   return YES;
 }
 
-- (OwlsOverlayState)overlayState {
-  OwlsOverlayState state;
+- (OwltoOverlayState)overlayState {
+  OwltoOverlayState state;
   state.has_window = self.window != nil;
   state.window_visible = self.window != nil ? self.window.visible : false;
   state.cursor_visible = self.cursorVisible;
   state.debug_backdrop_visible = self.debugBackdropVisible;
   state.level = (int) self.level;
-  state.bounds = (OwlsRect){ self.bounds.origin.x, self.bounds.origin.y, self.bounds.size.width, self.bounds.size.height };
-  state.cursor_position = (OwlsPoint){ self.cursorPosition.x, self.cursorPosition.y };
+  state.bounds = (OwltoRect){ self.bounds.origin.x, self.bounds.origin.y, self.bounds.size.width, self.bounds.size.height };
+  state.cursor_position = (OwltoPoint){ self.cursorPosition.x, self.cursorPosition.y };
   return state;
 }
 
@@ -505,7 +505,7 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
   self.debugTextLayer = nil;
   self.cursorLayer = nil;
   self.cursorPosition = CGPointMake(-200.0, -200.0);
-  self.cursorHeading = kOwlsCursorForwardAngle;
+  self.cursorHeading = kOwltoCursorForwardAngle;
   self.cursorVisible = NO;
   self.debugBackdropVisible = NO;
   return YES;
@@ -513,102 +513,102 @@ static CGRect OwlsCocoaRectFromQuartzRect(CGRect quartzRect) {
 
 @end
 
-bool owls_cursor_overlay_show(OwlsRect bounds, int level) {
+bool owlto_cursor_overlay_show(OwltoRect bounds, int level) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager]
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager]
       showWithBounds:CGRectMake(bounds.x, bounds.y, bounds.width, bounds.height)
               level:level];
   });
   return success;
 }
 
-bool owls_cursor_overlay_hide(void) {
+bool owlto_cursor_overlay_hide(void) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager] hideOverlay];
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager] hideOverlay];
   });
   return success;
 }
 
-bool owls_cursor_overlay_set_bounds(OwlsRect bounds) {
+bool owlto_cursor_overlay_set_bounds(OwltoRect bounds) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager]
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager]
       setBoundsRect:CGRectMake(bounds.x, bounds.y, bounds.width, bounds.height)];
   });
   return success;
 }
 
-bool owls_cursor_overlay_set_level(int level) {
+bool owlto_cursor_overlay_set_level(int level) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager] setWindowLevel:level];
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager] setWindowLevel:level];
   });
   return success;
 }
 
-bool owls_cursor_overlay_set_attached_window_id(uint32_t window_id) {
+bool owlto_cursor_overlay_set_attached_window_id(uint32_t window_id) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager] setAttachedWindowIdValue:(NSInteger) window_id];
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager] setAttachedWindowIdValue:(NSInteger) window_id];
   });
   return success;
 }
 
-bool owls_cursor_overlay_jump_cursor(OwlsPoint point) {
+bool owlto_cursor_overlay_jump_cursor(OwltoPoint point) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager] jumpCursorTo:CGPointMake(point.x, point.y)];
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager] jumpCursorTo:CGPointMake(point.x, point.y)];
   });
   return success;
 }
 
-bool owls_cursor_overlay_flash_click(OwlsPoint point) {
+bool owlto_cursor_overlay_flash_click(OwltoPoint point) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager] flashClickAt:CGPointMake(point.x, point.y)];
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager] flashClickAt:CGPointMake(point.x, point.y)];
   });
   return success;
 }
 
-bool owls_cursor_overlay_set_cursor_visible(bool visible) {
+bool owlto_cursor_overlay_set_cursor_visible(bool visible) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager] setCursorVisibleValue:visible];
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager] setCursorVisibleValue:visible];
   });
   return success;
 }
 
-bool owls_cursor_overlay_set_cursor_pressed(bool pressed) {
+bool owlto_cursor_overlay_set_cursor_pressed(bool pressed) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager] setCursorPressedValue:pressed];
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager] setCursorPressedValue:pressed];
   });
   return success;
 }
 
-bool owls_cursor_overlay_set_debug_backdrop(bool visible, const char *label) {
+bool owlto_cursor_overlay_set_debug_backdrop(bool visible, const char *label) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
+  OwltoRunOnMainThreadSync(^{
     NSString *message = label != NULL ? [NSString stringWithUTF8String:label] : nil;
-    success = [[OwlsCursorOverlayManager sharedManager] setDebugBackdropVisible:visible label:message];
+    success = [[OwltoCursorOverlayManager sharedManager] setDebugBackdropVisible:visible label:message];
   });
   return success;
 }
 
-OwlsOverlayState owls_cursor_overlay_get_state(void) {
-  __block OwlsOverlayState state = { 0 };
-  OwlsRunOnMainThreadSync(^{
-    state = [[OwlsCursorOverlayManager sharedManager] overlayState];
+OwltoOverlayState owlto_cursor_overlay_get_state(void) {
+  __block OwltoOverlayState state = { 0 };
+  OwltoRunOnMainThreadSync(^{
+    state = [[OwltoCursorOverlayManager sharedManager] overlayState];
   });
   return state;
 }
 
-bool owls_cursor_overlay_dispose(void) {
+bool owlto_cursor_overlay_dispose(void) {
   __block BOOL success = YES;
-  OwlsRunOnMainThreadSync(^{
-    success = [[OwlsCursorOverlayManager sharedManager] disposeOverlay];
+  OwltoRunOnMainThreadSync(^{
+    success = [[OwltoCursorOverlayManager sharedManager] disposeOverlay];
   });
   return success;
 }

@@ -1,0 +1,348 @@
+/*
+ * Token kinds take the first four categorical hues in a fixed order, so each
+ * kind keeps its color in the chart, legend, and tooltip. Dark mode uses the
+ * same hues stepped for the dark surface.
+ */
+.owlto-stats,
+.owlto-stats-tip {
+  --owlto-stats-cacheRead: #2a78d6;
+  --owlto-stats-input: #eb6834;
+  --owlto-stats-cacheWrite: #1baf7a;
+  --owlto-stats-output: #eda100;
+}
+html[data-theme="dark"] .owlto-stats,
+html[data-theme="dark"] .owlto-stats-tip {
+  --owlto-stats-cacheRead: #3987e5;
+  --owlto-stats-input: #d95926;
+  --owlto-stats-cacheWrite: #199e70;
+  --owlto-stats-output: #c98500;
+}
+[data-kind="cacheRead"] {
+  --owlto-stats-kind: var(--owlto-stats-cacheRead);
+}
+[data-kind="input"] {
+  --owlto-stats-kind: var(--owlto-stats-input);
+}
+[data-kind="cacheWrite"] {
+  --owlto-stats-kind: var(--owlto-stats-cacheWrite);
+}
+[data-kind="output"] {
+  --owlto-stats-kind: var(--owlto-stats-output);
+}
+
+.owlto-stats-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+.owlto-stats-controls-range {
+  margin-top: 10px;
+}
+.owlto-stats-agents > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.owlto-stats-agents .owlto-owl-avatar {
+  width: 16px;
+  height: 16px;
+}
+.owlto-stats-controls .owlto-segmented,
+.owlto-stats-card-head .owlto-segmented {
+  border-radius: var(--owl-radius-sm);
+}
+.owlto-stats-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+.owlto-stats-body[aria-busy] {
+  opacity: 0.7;
+  transition: opacity 120ms;
+}
+.owlto-stats-quiet {
+  margin-top: 18px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+}
+.owlto-stats-empty {
+  margin-top: 0;
+  padding: 28px 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--owl-radius-md);
+  text-align: center;
+}
+.owlto-stats-alert {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  color: var(--owl-bad);
+  font-size: var(--owl-text-sm);
+}
+.owlto-stats-note {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+}
+
+.owlto-stats-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.owlto-stats-kpi,
+.owlto-stats-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-md);
+  background: var(--color-card);
+}
+.owlto-stats-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+}
+.owlto-stats-kpi span {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.owlto-stats-kpi strong {
+  font-size: var(--owl-text-2xl);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: var(--owl-leading-tight);
+}
+.owlto-stats-kpi small {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+}
+
+.owlto-stats-card {
+  padding: 14px 16px 12px;
+}
+.owlto-stats-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+}
+.owlto-stats-card h3 {
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+}
+.owlto-stats-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.owlto-stats-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.owlto-stats-legend i,
+.owlto-stats-tip i {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--owlto-stats-kind);
+}
+
+/* The plot: recessive gridlines with their labels on the left, columns on top. */
+.owlto-stats-chart {
+  position: relative;
+  height: 168px;
+  padding-left: 44px;
+}
+.owlto-stats-grid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.owlto-stats-grid > div {
+  position: relative;
+  height: 0;
+  margin-left: 44px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+.owlto-stats-grid > div:last-child {
+  border-top-color: var(--color-border);
+}
+.owlto-stats-grid span {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: -7px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.owlto-stats-bars {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 100%;
+}
+.owlto-stats-bars[data-dense] {
+  gap: 1px;
+}
+/* The whole column is the hover target, not just its painted height. */
+.owlto-stats-column {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 28px;
+  align-items: flex-end;
+  justify-content: center;
+  margin: 0 auto;
+  border-radius: 4px 4px 0 0;
+}
+.owlto-stats-column[data-active] {
+  background: color-mix(in srgb, var(--color-foreground) 6%, transparent);
+}
+.owlto-stats-stack {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+.owlto-stats-bars[data-dense] .owlto-stats-stack {
+  gap: 1px;
+}
+.owlto-stats-stack > span {
+  flex-shrink: 0;
+  min-height: 1px;
+  background: var(--owlto-stats-kind);
+}
+.owlto-stats-stack > span:last-child {
+  border-radius: 4px 4px 0 0;
+}
+.owlto-stats-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding-left: 44px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+
+.owlto-stats-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 170px;
+  font-size: var(--owl-text-xs);
+}
+.owlto-stats-tip strong {
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+.owlto-stats-tip > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.owlto-stats-tip b,
+.owlto-stats-table td {
+  font-variant-numeric: tabular-nums;
+}
+.owlto-stats-tip b {
+  margin-left: auto;
+  font-weight: 500;
+}
+.owlto-stats-tip-total {
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--color-border);
+}
+
+.owlto-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--owl-text-sm);
+}
+.owlto-stats-table th,
+.owlto-stats-table td {
+  height: 34px;
+  padding: 0 8px;
+  border-top: 1px solid var(--color-border);
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.owlto-stats-table thead th {
+  height: 28px;
+  border-top: 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 400;
+}
+.owlto-stats-table th:first-child {
+  padding-left: 0;
+  text-align: left;
+  font-weight: 400;
+}
+.owlto-stats-table td:last-child,
+.owlto-stats-table th:last-child {
+  padding-right: 0;
+}
+.owlto-stats-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 280px;
+}
+.owlto-stats-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.owlto-stats-name .owlto-owl-avatar {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.owlto-stats-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  color: var(--color-muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.owlto-stats-share > span {
+  width: 96px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+}
+.owlto-stats-share > span > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+}
+
+@media (max-width: 760px) {
+  .owlto-stats-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

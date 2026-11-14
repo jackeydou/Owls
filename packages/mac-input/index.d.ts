@@ -110,7 +110,7 @@ export interface AxPressNodeResult {
 export declare function backgroundClick(options: BackgroundClickOptions): void
 
 export interface BackgroundClickOptions {
-  /** Target process pid (e.g. `MacWindow.ownerPid` from @owls/mac-window-list). */
+  /** Target process pid (e.g. `MacWindow.ownerPid` from @owlto/mac-window-list). */
   pid: number
   /** CoreGraphics window id of the target window (`MacWindow.windowId`). */
   windowId: number
@@ -193,7 +193,9 @@ export interface BackgroundDragOptions {
  *   2. Post the keyboard event via `CGEventPostToPid` — bypasses the system
  *      event tap and the foreground app entirely.
  */
-export declare function backgroundPressKey(options: BackgroundPressKeyOptions): BackgroundPressKeyResult
+export declare function backgroundPressKey(
+  options: BackgroundPressKeyOptions
+): BackgroundPressKeyResult
 
 export interface BackgroundPressKeyOptions {
   pid: number
@@ -274,7 +276,7 @@ export interface CaptureWindowPngOptions {
  */
 export declare function checkAccessibility(): AccessibilityStatus
 
-export declare const enum DeliveryBypassModifier {
+export declare enum DeliveryBypassModifier {
   Command = 'Command',
   Option = 'Option'
 }
@@ -325,7 +327,9 @@ export interface FrontmostApp {
  * The output is capped by `max_depth` and `max_nodes` to avoid pathological
  * trees from WebViews / complex Electron apps.
  */
-export declare function getFocusedWindowAccessibilityTree(options: FocusedWindowAccessibilityTreeOptions): FocusedWindowAccessibilityTree
+export declare function getFocusedWindowAccessibilityTree(
+  options: FocusedWindowAccessibilityTreeOptions
+): FocusedWindowAccessibilityTree
 
 /** Return the pid of the current foreground app via NSWorkspace. */
 export declare function getFrontmostAppPid(): FrontmostApp
@@ -343,7 +347,7 @@ export interface ModifierFlags {
   function?: boolean
 }
 
-export declare const enum MouseButton {
+export declare enum MouseButton {
   Left = 'Left',
   Right = 'Right',
   Middle = 'Middle'

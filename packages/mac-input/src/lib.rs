@@ -5,7 +5,7 @@
 //! event APIs. All coordinates are in **CG global points** (top-left origin
 //! of the primary display, Y grows down) - same coordinate space used by
 //! `CGWindowListCopyWindowInfo`, Electron's `screen.getAllDisplays()`, and
-//! the screenshot tools in `apps/owls-client/src/main/screen-capture.ts`.
+//! the screenshot tools in `apps/owlto-client/src/main/screen-capture.ts`.
 //!
 //! Posting events to other applications requires the calling process to be
 //! granted **Accessibility** permission in System Settings -> Privacy &

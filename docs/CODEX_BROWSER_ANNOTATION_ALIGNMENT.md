@@ -2,12 +2,12 @@
 
 ## Current Decision
 
-Owls's visible Browser panel uses a renderer-owned Electron `<webview>`, aligned
+Owlto's visible Browser panel uses a renderer-owned Electron `<webview>`, aligned
 with Codex's embedded browser architecture. Main process still validates and
 tracks the guest `WebContents` through a narrow attach handshake.
 
 Codex can render browser annotation UI in a sibling DOM overlay because its
-browser surface is a renderer `<webview>`. Owls now has the same renderer DOM
+browser surface is a renderer `<webview>`. Owlto now has the same renderer DOM
 layering available for cursor and app-owned overlay UI. The current annotation
 implementation continues to install a narrow browser annotation runtime from a
 dedicated isolated preload. That runtime owns visible hover boxes, draft editors,
@@ -49,7 +49,7 @@ The payload carries:
 
 The Browser panel keeps submitted annotations pending until the user clicks
 `Send`. The composer then receives each payload through the existing
-`owls:add-chat-comment` event. The prompt path uses existing message part
+`owlto:add-chat-comment` event. The prompt path uses existing message part
 projection. The implementation must not append full page text into the input
 box.
 
@@ -64,7 +64,7 @@ annotation.
 The renderer-created webview is guarded in main before attach:
 
 - only the main app window can attach embedded browser webviews
-- the browser partition is forced to the Owls browser profile
+- the browser partition is forced to the Owlto browser profile
 - Node integration is disabled, context isolation and sandboxing are enabled
 - only the app-owned browser annotation preload is installed
 

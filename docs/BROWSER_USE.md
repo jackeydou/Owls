@@ -4,16 +4,16 @@
 
 Initial runtime implementation in progress.
 
-Owls Browser Use exposes the session browser through a Codex-shaped runtime
-script backed by local RPC. Browser automation remains owned by the Owls main
+Owlto Browser Use exposes the session browser through a Codex-shaped runtime
+script backed by local RPC. Browser automation remains owned by the Owlto main
 process, while agents interact with it through the bundled
 `control-in-app-browser` skill and `scripts/browser-client.mjs`.
 
 ## Abstract
 
-Browser Use is Owls's session-scoped browser automation runtime. It lets agents
+Browser Use is Owlto's session-scoped browser automation runtime. It lets agents
 open pages, inspect DOM state, click, fill, wait, scroll, take screenshots, and
-perform coordinate-based CUA actions against the current Owls session browser.
+perform coordinate-based CUA actions against the current Owlto session browser.
 
 The agent-facing entrypoint is the built `browser-client.mjs` script in the
 bundled `in-app-browser-use` plugin. The script installs a Codex-aligned
@@ -44,7 +44,7 @@ authority and validates requests at a narrow process boundary.
 - Use the bundled skill to teach agents when and how to load the runtime.
 - Keep Browser Use runtime availability independent from the
   `in-app-browser-use` plugin installation state.
-- Keep browser sessions scoped to Owls session ids.
+- Keep browser sessions scoped to Owlto session ids.
 - Keep renderer, preload, local RPC, and runtime boundaries narrow and typed.
 - Preserve deterministic action flow: observe, resolve, act, verify.
 
@@ -53,7 +53,7 @@ authority and validates requests at a narrow process boundary.
 - Do not create a general-purpose remote browser automation server.
 - Do not expose arbitrary Chrome DevTools Protocol execution through local RPC,
   runtime, preload, or renderer APIs.
-- Do not let the runtime read or write Owls SQLite data, browser profile files,
+- Do not let the runtime read or write Owlto SQLite data, browser profile files,
   or Electron `WebContents` directly.
 - Do not add runtime configuration through environment variables.
 - Do not require follow-up Browser Use commands to keep the Browser panel open
@@ -95,7 +95,7 @@ UI             -> IPC handler       -> local RPC handler
 
 ## Product Model
 
-Each Owls session can own one browser runtime:
+Each Owlto session can own one browser runtime:
 
 ```text
 Session A
@@ -133,7 +133,7 @@ type BrowserSessionId = string
 ```
 
 Local RPC methods accept `sessionId`. Agent-launched runtime calls receive the
-current Owls session id through Owls's existing process execution context
+current Owlto session id through Owlto's existing process execution context
 injection for that Node REPL command. This is allowed because it is generic
 process execution context, not special runtime configuration. It does not
 configure Browser Use behavior, toggle App features, or replace persisted
@@ -150,7 +150,7 @@ actionable error instead of using a global shared browser.
 The built runtime script is delivered from:
 
 ```text
-apps/owls-client/resources/plugins/plugins/in-app-browser-use/scripts/browser-client.mjs
+apps/owlto-client/resources/plugins/plugins/in-app-browser-use/scripts/browser-client.mjs
 ```
 
 Agents load it with an absolute path from the bundled skill:
@@ -284,8 +284,8 @@ preserve these rules:
 The bundled `in-app-browser-use` plugin should:
 
 - Provide the Browser Use skill that explains when and how to load the runtime.
-- Provide the built `@owls/browser-use` runtime script as an
-  Owls-controlled plugin script shipped from App resources.
+- Provide the built `@owlto/browser-use` runtime script as an
+  Owlto-controlled plugin script shipped from App resources.
 - Avoid deciding whether Browser Use runtime exists. The App owns runtime
   availability; the plugin owns guidance and script delivery.
 
@@ -293,7 +293,7 @@ The bundled `in-app-browser-use` plugin should:
 
 1. Add local RPC methods for Browser Use actions.
 2. Keep Browser Use runtime state in the App main process.
-3. Add `packages/browser-use` as the `@owls/browser-use` runtime package.
+3. Add `packages/browser-use` as the `@owlto/browser-use` runtime package.
 4. Build `browser-client.mjs` from that package and sync it into the bundled
    plugin scripts directory.
 5. Update the Browser Use skill to load the runtime first.
@@ -315,10 +315,10 @@ Add focused coverage for:
 Use targeted package checks for implementation changes:
 
 ```bash
-pnpm --filter @owls/browser-use typecheck
-pnpm --filter @owls/browser-use build
-pnpm --filter owls-client typecheck:node
-pnpm --filter owls-client test:plugins
+pnpm --filter @owlto/browser-use typecheck
+pnpm --filter @owlto/browser-use build
+pnpm --filter owlto-client typecheck:node
+pnpm --filter owlto-client test:plugins
 ```
 
 Do not run local Electron or Playwright E2E in the shared worktree unless the

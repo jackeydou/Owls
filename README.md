@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="apps/owls-client/resources/app-logos/trio-white.png" width="144" alt="Owls logo">
+  <img src="apps/owlto-client/resources/app-logos/trio-white.png" width="144" alt="Owlto logo">
 </p>
 
-<h1 align="center">Owls</h1>
+<h1 align="center">Owlto</h1>
 
 <p align="center">
   A team of coding owls on your Mac.<br>
@@ -15,7 +15,7 @@
 
 ---
 
-Owls is a desktop app for people who use AI coding agents. Instead of juggling
+Owlto is a desktop app for people who use AI coding agents. Instead of juggling
 several terminal windows, you chat with one **Router** owl. It plans the work,
 sends each part to a **worker** (Claude Code, Codex, or Cursor), keeps an eye on
 them, and comes back with one clear answer.
@@ -27,19 +27,19 @@ on each other's toes, and you can look in on any of them whenever you like.
 
 | | Owl | What it does |
 | :---: | --- | --- |
-| <img src="apps/owls-client/resources/owl-avatars/router.svg" width="64" alt="Router owl"> | **Router** | The one you talk to. Plans the work, picks the right workers, and sums up what they did. |
-| <img src="apps/owls-client/resources/owl-avatars/claude-code.svg" width="64" alt="Claude Code owl"> | **Claude Code** | A worker powered by Claude Code on your Mac. |
-| <img src="apps/owls-client/resources/owl-avatars/codex.svg" width="64" alt="Codex owl"> | **Codex** | A worker powered by Codex on your Mac. |
-| <img src="apps/owls-client/resources/owl-avatars/cursor.svg" width="64" alt="Cursor owl"> | **Cursor** | A worker powered by Cursor on your Mac. |
-| <img src="apps/owls-client/resources/owl-avatars/workers.svg" width="64" alt="A group of owls"> | **The team** | Big jobs get split across several owls working side by side. |
+| <img src="apps/owlto-client/resources/owl-avatars/router.svg" width="64" alt="Router owl"> | **Router** | The one you talk to. Plans the work, picks the right workers, and sums up what they did. |
+| <img src="apps/owlto-client/resources/owl-avatars/claude-code.svg" width="64" alt="Claude Code owl"> | **Claude Code** | A worker powered by Claude Code on your Mac. |
+| <img src="apps/owlto-client/resources/owl-avatars/codex.svg" width="64" alt="Codex owl"> | **Codex** | A worker powered by Codex on your Mac. |
+| <img src="apps/owlto-client/resources/owl-avatars/cursor.svg" width="64" alt="Cursor owl"> | **Cursor** | A worker powered by Cursor on your Mac. |
+| <img src="apps/owlto-client/resources/owl-avatars/workers.svg" width="64" alt="A group of owls"> | **The team** | Big jobs get split across several owls working side by side. |
 
 When an owl is busy, you'll see it typing away on its laptop:
 
 <p>
-  <img src="apps/owls-client/resources/owl-avatars/working/router.svg" width="56" alt="Router owl at work">
-  <img src="apps/owls-client/resources/owl-avatars/working/claude-code.svg" width="56" alt="Claude Code owl at work">
-  <img src="apps/owls-client/resources/owl-avatars/working/codex.svg" width="56" alt="Codex owl at work">
-  <img src="apps/owls-client/resources/owl-avatars/working/cursor.svg" width="56" alt="Cursor owl at work">
+  <img src="apps/owlto-client/resources/owl-avatars/working/router.svg" width="56" alt="Router owl at work">
+  <img src="apps/owlto-client/resources/owl-avatars/working/claude-code.svg" width="56" alt="Claude Code owl at work">
+  <img src="apps/owlto-client/resources/owl-avatars/working/codex.svg" width="56" alt="Codex owl at work">
+  <img src="apps/owlto-client/resources/owl-avatars/working/cursor.svg" width="56" alt="Cursor owl at work">
 </p>
 
 ## Features
@@ -69,23 +69,23 @@ When an owl is busy, you'll see it typing away on its laptop:
   to open your cards.
 - **Usage at a glance.** See how much of each agent's plan you have left, and
   browse daily usage and estimated cost in Settings.
-- **Updates itself.** Owls checks for new versions in the background and offers
+- **Updates itself.** Owlto checks for new versions in the background and offers
   to restart when one is ready. Choose the stable or beta channel.
 - **Make it yours.** Light and dark themes, English and Simplified Chinese, and
   nine owl logos for your Dock.
 
 <p>
-  <img src="apps/owls-client/resources/app-logos/duo-white.svg" width="72" alt="Pair logo">
-  <img src="apps/owls-client/resources/app-logos/lean-cream.svg" width="72" alt="Huddle logo">
-  <img src="apps/owls-client/resources/app-logos/trio-night.svg" width="72" alt="Trio logo">
+  <img src="apps/owlto-client/resources/app-logos/duo-white.svg" width="72" alt="Pair logo">
+  <img src="apps/owlto-client/resources/app-logos/lean-cream.svg" width="72" alt="Huddle logo">
+  <img src="apps/owlto-client/resources/app-logos/trio-night.svg" width="72" alt="Trio logo">
 </p>
 
 ## Install
 
 1. Go to the [Releases page](https://github.com/jackeydou/Owls/releases) and
-   download the latest `Owls-<version>.dmg`.
-2. Open the file and drag **Owls** into your **Applications** folder.
-3. Open Owls from Applications or Launchpad.
+   download the latest `.dmg` file.
+2. Open the file and drag **Owlto** into your **Applications** folder.
+3. Open Owlto from Applications or Launchpad.
 
 You need a Mac with Apple silicon (M1 or later) running macOS 13 Ventura or
 later.
@@ -94,7 +94,7 @@ later.
 
 ### 1. Install at least one coding agent
 
-Owls works with the coding agents you already use. Install one or more of them
+Owlto works with the coding agents you already use. Install one or more of them
 and sign in once in Terminal:
 
 **Claude Code**
@@ -114,7 +114,7 @@ codex
 ```
 
 Sign in with your ChatGPT account when asked. You can also sign in later from
-Owls.
+Owlto.
 
 **Cursor**
 
@@ -125,10 +125,10 @@ cursor-agent login
 
 Cursor can work as a worker, but not as the Router.
 
-### 2. Connect it in Owls
+### 2. Connect it in Owlto
 
 Open **Settings** (`⌘,`) → **Agents**, choose the agent's tab, and click
-**Connect local …** (for example, **Connect local Claude Code**). Owls finds
+**Connect local …** (for example, **Connect local Claude Code**). Owlto finds
 the agent on your Mac and shows the account you're signed in with.
 
 Then open **Settings → Router & Workers** to choose which agent runs the Router
@@ -138,7 +138,7 @@ and which one your workers use by default.
 
 - Press `⌘N` for a new conversation and tell the Router what you need.
 - Type `@` to choose a project. Tasks that don't belong to a project run in a
-  workspace folder (`~/Owls/Workspace` unless you pick another one in Settings).
+  workspace folder (`~/Owlto/Workspace` unless you pick another one in Settings).
 - Click a worker to see what it's doing, or press `⌘J` to see everything on the
   map.
 
@@ -147,7 +147,7 @@ and which one your workers use by default.
 
 ## Privacy
 
-Owls runs on your Mac and uses the agents you installed and signed in to
+Owlto runs on your Mac and uses the agents you installed and signed in to
 yourself. It never copies your passwords or sign-in tokens; it only reads your
 account status to show who you're signed in as.
 
@@ -157,10 +157,10 @@ Found a bug or have an idea? [Open an issue](https://github.com/jackeydou/Owls/i
 Please don't include passwords, private code, or other personal data. Report
 security problems privately.
 
-Want to help build Owls? See [CONTRIBUTING.md](CONTRIBUTING.md).
+Want to help build Owlto? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Owls is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+Owlto is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 Claude Code, Codex, and Cursor are installed separately and follow their own
 terms.
