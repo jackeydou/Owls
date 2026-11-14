@@ -41,7 +41,7 @@ writeFileSync(
     <key>CFBundleExecutable</key>
     <string>Owlto Computer Use</string>
     <key>CFBundleIdentifier</key>
-    <string>us.owltoapp.owlto.computer-use</string>
+    <string>dev.owlto.computer-use</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>

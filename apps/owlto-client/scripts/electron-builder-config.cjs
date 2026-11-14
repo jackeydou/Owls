@@ -34,7 +34,7 @@ function removePlistKeyIfPresent(plistPath, key) {
 }
 
 module.exports = {
-  appId: 'us.owltoapp.owlto.app',
+  appId: 'dev.owlto.app',
   productName: 'Owlto',
   copyright: 'Copyright © 2026 Owlto Team',
   // macOS updates come from Electron's autoUpdater and the feed built by

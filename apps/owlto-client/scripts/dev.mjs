@@ -13,7 +13,7 @@ const APP_ARG_NAMES = new Set([
 ])
 const ELECTRON_SWITCH_NAMES = new Set(['--enable-logging'])
 const REACT_SCAN_ARG_NAME = '--react-scan'
-const OWLTO_DEV_BUNDLE_ID = 'us.owltoapp.owlto.dev'
+const OWLTO_DEV_BUNDLE_ID = 'dev.owlto.dev'
 const OWLTO_DEV_APP_NAME = 'Owlto Dev'
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const owltoAppIconPath = resolve(packageDirectory, 'build/icon.icns')
