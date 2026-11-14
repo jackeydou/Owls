@@ -255,6 +255,15 @@ export const ForwardIcon = createIcon(
     <path d="M9.75 3.5 L13.25 7 L9.75 10.5" />
   </g>
 )
+export const GaugeIcon = createIcon(
+  'Gauge',
+  'outline',
+  <g>
+    <path d="M2.8 11.75 A6 6 0 1 1 13.2 11.75" />
+    <line x1="8" y1="8.75" x2="10.5" y2="6.25" />
+    <circle cx="8" cy="8.75" r="0.825" fill="currentColor" stroke="none" />
+  </g>
+)
 export const GitBranchIcon = createIcon(
   'GitBranch',
   'outline',

@@ -21,6 +21,7 @@ import type {
   Session,
   SessionItem
 } from '../../shared/app.js'
+import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
 import { type SessionPlace, sessionCwd } from '../app/agent-runtime.js'
 import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
@@ -46,6 +47,7 @@ import {
   toolResultText,
   turnDiff
 } from './normalize.js'
+import { parseClaudeUsage } from './usage.js'
 
 const execFileAsync = promisify(execFile)
 const REPORT_TOOL = `mcp__${REPORT_SERVER_NAME}__${REPORT_TOOL_NAME}`
@@ -197,7 +199,40 @@ export class ClaudeService {
    * Starts the CLI without a prompt to read its model catalog and account.
    * No model request is sent, but user-level session hooks may run.
    */
-  private async probe(executable: string): Promise<unknown> {
+  private probe(executable: string): Promise<unknown> {
+    return this.withIdleQuery(executable, (query) => query.initializationResult())
+  }
+  /**
+   * The claude.ai plan's usage windows, read through the CLI's structured
+   * `/usage` control request. It starts the CLI without a prompt, so no model
+   * request is sent. The SDK marks the call experimental; a CLI without it
+   * reports usage as failed rather than guessing.
+   */
+  async usage(): Promise<AgentUsage> {
+    const connection = this.connection
+    if (connection.status !== 'ready' || !connection.executablePath)
+      return unavailableUsage('claude-code', 'not-connected')
+    if (connection.account.kind === 'api-key') return unavailableUsage('claude-code', 'api-key')
+    if (connection.account.kind === 'external')
+      return unavailableUsage('claude-code', 'no-plan-limits')
+    try {
+      const response = await this.withIdleQuery(connection.executablePath, async (query) => {
+        await query.initializationResult()
+        return query.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({
+          skipBehaviors: true
+        })
+      })
+      return parseClaudeUsage(response, connection.account)
+    } catch {
+      const plan = connection.account.kind === 'claude' ? connection.account.plan : null
+      return unavailableUsage('claude-code', 'failed', plan)
+    }
+  }
+  /** Runs `read` against a CLI started with no prompt, then closes it. */
+  private async withIdleQuery<T>(
+    executable: string,
+    read: (query: Query) => Promise<T>
+  ): Promise<T> {
     const input = inputStream()
     const query = this.sdk.query({
       prompt: input.stream,
@@ -209,15 +244,11 @@ export class ClaudeService {
           /* Drain until the probe closes. */
         }
       } catch {
-        /* The probe result is reported through initializationResult. */
+        /* The probe result is reported through `read`. */
       }
     })()
     try {
-      return await withTimeout(
-        query.initializationResult(),
-        30_000,
-        'Claude Code did not finish starting.'
-      )
+      return await withTimeout(read(query), 30_000, 'Claude Code did not finish starting.')
     } finally {
       input.close()
       query.close()

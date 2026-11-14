@@ -57,6 +57,19 @@ lines.on('line', (line) => {
         requiresOpenaiAuth: true
       }
     })
+  if (method === 'account/rateLimits/read')
+    return send({
+      id,
+      result: {
+        rateLimits: {
+          limitId: 'codex',
+          primary: { usedPercent: 42, windowDurationMins: 300, resetsAt: 1_900_000_000 },
+          secondary: { usedPercent: 7.5, windowDurationMins: 10_080, resetsAt: 1_900_300_000 },
+          credits: { hasCredits: true, unlimited: false, balance: '12.50' },
+          planType: 'plus'
+        }
+      }
+    })
   if (method === 'model/list')
     return send({
       id,

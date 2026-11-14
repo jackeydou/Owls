@@ -47,6 +47,7 @@ import {
   type WorkerAction
 } from './router.js'
 import { type UpdateSnapshot, updateChannelSchema } from './updates.js'
+import type { UsageOverview } from './usage.js'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
 export const providerSchema = z.enum(['codex', 'claude-code', 'cursor'])
@@ -442,6 +443,8 @@ export interface OwlsAPI {
   unwatchWorkerGitHub(input: WorkerAction): Promise<Reply<void>>
   /** Every pull request agents opened, per project, read from GitHub now. */
   pullRequests(): Promise<Reply<PullRequestOverview>>
+  /** Each worker agent's plan usage; `refresh` skips the answer kept from the last minute. */
+  agentUsage(refresh: boolean): Promise<Reply<UsageOverview>>
   onEvent(listener: (event: AppEvent) => void): () => void
   /** Commands chosen in the native application menu (macOS). */
   onMenuCommand(listener: (command: MenuCommand) => void): () => void

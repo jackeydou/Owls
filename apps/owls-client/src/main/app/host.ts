@@ -49,6 +49,7 @@ import type {
   ThreadItemsRequest,
   WorkerAction
 } from '../../shared/router.js'
+import { type UsageOverview, unavailableUsage } from '../../shared/usage.js'
 import type { CardService } from '../cards/service.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { CodexService } from '../codex/service.js'
@@ -64,6 +65,9 @@ import type { WorkerGitHub } from '../router/worker-github.js'
 import type { AgentRuntime } from './agent-runtime.js'
 import { OwlsError } from './errors.js'
 import { cloneGitHubProject, createQuickProject } from './project-sources.js'
+
+const USAGE_TTL_MS = 60_000
+const USAGE_ORDER: AgentProvider[] = ['claude-code', 'codex', 'cursor']
 
 type CardSaveInput = z.infer<typeof cardSaveSchema>
 type CardCaptureInput = z.infer<typeof cardCaptureSchema>
@@ -88,6 +92,7 @@ export class OwlsHost {
   } | null = null
   private cards: CardService | null = null
   private readonly runtimes: Record<AgentProvider, AgentRuntime>
+  private usageCache: { at: number; value: Promise<UsageOverview>; pending: boolean } | null = null
   constructor(
     private readonly codex: CodexService,
     private readonly claude: ClaudeService,
@@ -263,6 +268,31 @@ export class OwlsHost {
   }
   unwatchWorkerGitHub(input: WorkerAction): void {
     this.requireGitHub().workers.unwatch(input)
+  }
+  /**
+   * Every worker agent's plan usage. Answers are kept for a minute so opening
+   * the panel again does not restart the Claude Code CLI; `refresh` reads again.
+   */
+  usage(refresh: boolean): Promise<UsageOverview> {
+    const cached = this.usageCache
+    if (cached && (cached.pending || (!refresh && Date.now() - cached.at < USAGE_TTL_MS)))
+      return cached.value
+    const value = Promise.all(
+      USAGE_ORDER.map(async (provider) => {
+        try {
+          return await this.runtimes[provider].usage()
+        } catch {
+          return unavailableUsage(provider, 'failed')
+        }
+      })
+    ).then((agents) => ({ agents }))
+    const entry = { at: Date.now(), value, pending: true }
+    this.usageCache = entry
+    void value.finally(() => {
+      entry.pending = false
+      entry.at = Date.now()
+    })
+    return value
   }
   pullRequests(): Promise<PullRequestOverview> {
     return this.requireGitHub().pullRequests.read()

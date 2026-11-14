@@ -153,6 +153,7 @@ export function registerIpc(
     host.unwatchWorkerGitHub(workerActionSchema.parse(input))
   )
   handle('github-pull-requests', () => host.pullRequests())
+  handle('agent-usage', (input) => host.usage(z.boolean().parse(input)))
   handle('memory-list', (input) => host.memoryList(memoryListSchema.parse(input)))
   handle('memory-overview', () => host.memoryOverview())
   handle('memory-save', (input) => host.memorySave(memorySaveSchema.parse(input)))

@@ -7,6 +7,7 @@ import type {
   SendMessage,
   Session
 } from '../../shared/app.js'
+import type { AgentUsage } from '../../shared/usage.js'
 import type { TurnProfiles } from '../router/service.js'
 import { OwlsError } from './errors.js'
 
@@ -43,6 +44,8 @@ export interface AgentRuntime {
   connectionState(): AgentConnection
   hasActiveTasks(): boolean
   setTurnProfiles(profiles: TurnProfiles): void
+  /** The account's plan usage, in the agent's own terms, or why it cannot report any. */
+  usage(): AgentUsage | Promise<AgentUsage>
   /** `place` marks a session outside a project's own folder; see `SessionPlace`. */
   createSession(input: CreateSession, place?: SessionPlace): Session
   send(input: SendMessage): Promise<void>

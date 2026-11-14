@@ -279,7 +279,7 @@ html[data-platform="darwin"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.router-sidebar-settings {
+.router-sidebar-usage {
   margin-top: 8px;
 }
 /* The right-hand Projects sidebar, opened from the title bar; its width is set inline. */
