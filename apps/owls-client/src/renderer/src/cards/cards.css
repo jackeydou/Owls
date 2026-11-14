@@ -296,10 +296,12 @@
 
 /* Editor panel: a page, not a form */
 .card-editor {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  width: min(460px, 44%);
+  /* Dragged wider by its left edge; the card list always keeps some room. */
+  width: min(var(--owl-card-width), 70%);
   border-left: 1px solid var(--color-border);
   background: var(--color-card);
 }

@@ -414,15 +414,20 @@ html.pane-resizing * {
   padding-left: calc(var(--owl-toggle-left) + var(--owl-toggle-size) + 12px);
 }
 /* With the Projects sidebar closed, whatever reaches the window's right edge makes room for its
-   toggle: the view's title bar, or the details panel's head when the panel is open. */
+   toggle: the view's title bar, or the details panel's or card editor's head when one is open. */
 .router-stage.projects-hidden {
   --owl-projects-toggle-room: calc(var(--owl-toggle-right) + var(--owl-toggle-size) + 8px);
 }
 .router-stage.projects-hidden .owls-topbar,
 .router-stage.projects-hidden .map-hud,
 .router-stage.projects-hidden .cards-hud,
+.router-stage.projects-hidden .card-editor > header,
 .router-stage.projects-hidden .router-panel > header {
   padding-right: var(--owl-projects-toggle-room);
+}
+/* An open card editor takes the window's right edge, so the card list's bar keeps its own. */
+.router-stage.projects-hidden .cards-view:has(> .card-editor) .cards-hud {
+  padding-right: 12px;
 }
 .router-stage {
   position: relative;
