@@ -11,6 +11,24 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1300-beta.4
+
+### Highlights
+
+- A new Usage entry in the sidebar shows how much of each coding agent's plan is left.
+- Cards are organized by tag, with tags, boards, and search in top-bar menus.
+- The Router's instructions can be edited in Settings.
+
+### Changes
+
+- Cards: organize cards by tag instead of project, and replace the Cards sidebar with top-bar menus for tags, boards, and search. (#105)
+- Settings: the Router's instructions can be edited under Router & Workers, with a button to restore the default. (#107)
+- Usage: a sidebar entry shows each coding agent's remaining plan quota (Claude Code and Codex 5-hour and weekly windows, extra usage, credits) in its own colors, and says why when an agent cannot report it. (#108)
+
+### Fixes
+
+- Projects sidebar: its open/close button now sits on the sidebar and stays available in every view, including Cards. (#106)
+
 ## 2026.11.1300-beta.3
 
 ### Highlights
