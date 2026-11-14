@@ -1,15 +1,18 @@
 import {
   CardsIcon,
+  GaugeIcon,
   GitPullRequestIcon,
   NetworkIcon,
   PlusIcon,
   SettingsIcon
 } from '@renderer/components/ui/icons'
+import { AnchoredPopover } from '@renderer/components/ui/popover'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
 import { agentConnection, useAppStore } from '../app/store'
+import { UsagePanel } from '../usage/UsagePanel'
 import { byRecent, isWaitingOnUser, isWorking, threadTitle, useThreadTitle } from './activity'
 import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
@@ -36,6 +39,37 @@ function ThreadEntry({ thread }: { thread: Router }) {
       <span>{title}</span>
       {state ? <i className={state} aria-hidden /> : null}
     </button>
+  )
+}
+/** Opens the Usage popover beside the sidebar: each agent's plan limits. */
+function UsageEntry() {
+  const { t } = useTranslation()
+  const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null)
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        ref={setAnchor}
+        type="button"
+        className="router-sidebar-item router-sidebar-action router-sidebar-usage"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-current={open || undefined}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <GaugeIcon size={17} />
+        <span>{t('usage.title')}</span>
+      </button>
+      <AnchoredPopover
+        anchor={anchor}
+        open={open}
+        onClose={() => setOpen(false)}
+        label={t('usage.title')}
+        placement="right-end"
+      >
+        <UsagePanel />
+      </AnchoredPopover>
+    </>
   )
 }
 export function Sidebar() {
@@ -110,6 +144,7 @@ export function Sidebar() {
           <p>{t('thread.none')}</p>
         )}
       </section>
+      <UsageEntry />
       <button
         type="button"
         className={`router-sidebar-item router-sidebar-action router-sidebar-settings ${connection.status}`}

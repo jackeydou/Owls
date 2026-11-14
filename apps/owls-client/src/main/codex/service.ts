@@ -18,6 +18,7 @@ import type {
 } from '../../shared/app.js'
 import { questionSchema } from '../../shared/app.js'
 import { defaultProjectSettings, type SaveProject } from '../../shared/projects.js'
+import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
 import { type SessionPlace, sessionCwd } from '../app/agent-runtime.js'
 import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
@@ -37,6 +38,7 @@ import {
   safeText,
   string
 } from './protocol.js'
+import { parseCodexRateLimits } from './usage.js'
 
 const execFileAsync = promisify(execFile)
 const active = (s: Session): boolean => ['starting', 'running', 'waiting'].includes(s.status)
@@ -415,6 +417,26 @@ export class CodexService {
     if (this.loginId)
       await this.readyClient().request('account/login/cancel', { loginId: this.loginId })
     this.loginId = null
+  }
+  /**
+   * The ChatGPT plan's rate-limit windows and credits from the app-server.
+   * API-key accounts bill per request and have no windows.
+   */
+  async usage(): Promise<AgentUsage> {
+    const { status, account } = this.connection
+    if (status !== 'ready' || !this.client) return unavailableUsage('codex', 'not-connected')
+    if (account.kind === 'signed-out') return unavailableUsage('codex', 'signed-out')
+    if (account.kind === 'api-key') return unavailableUsage('codex', 'api-key')
+    if (account.kind === 'external') return unavailableUsage('codex', 'no-plan-limits')
+    try {
+      return parseCodexRateLimits(
+        // The method takes no params; the app-server rejects `{}` for a unit request.
+        await this.client.request('account/rateLimits/read', null),
+        account.plan
+      )
+    } catch {
+      return unavailableUsage('codex', 'failed', account.plan)
+    }
   }
   private async refreshAccount(): Promise<void> {
     const client = this.client

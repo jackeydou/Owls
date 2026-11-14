@@ -257,6 +257,16 @@ export const ForwardIcon = createIcon(
     <path d="M9.75 3.5 L13.25 7 L9.75 10.5" />
   </g>
 )
+// A half-dial meter with its needle, drawn on the same 16-unit grid and stroke as the library.
+export const GaugeIcon = createIcon(
+  'Gauge',
+  'outline',
+  <g>
+    <path d="M2.25 11.75 A5.75 5.75 0 1 1 13.75 11.75" />
+    <path d="M8 11.75 L10.75 7" />
+    <circle cx="8" cy="11.75" r="0.825" fill="currentColor" stroke="none" />
+  </g>
+)
 export const GitBranchIcon = createIcon(
   'GitBranch',
   'outline',

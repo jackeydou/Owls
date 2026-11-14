@@ -11,6 +11,7 @@ import type {
   SendMessage,
   Session
 } from '../../shared/app.js'
+import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
 import { type SessionPlace, sessionCwd } from '../app/agent-runtime.js'
 import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
@@ -217,6 +218,17 @@ export class CursorService {
     }
     this.emitConnection()
     return this.connection
+  }
+  /**
+   * Cursor CLI shows plan usage only in its interactive `/usage` screen; it has
+   * no command, JSON output, or ACP method that reports it, so Owls says so
+   * instead of scraping the terminal UI.
+   */
+  usage(): AgentUsage {
+    const { status, account } = this.connection
+    if (status !== 'ready') return unavailableUsage('cursor', 'not-connected')
+    if (account.kind === 'signed-out') return unavailableUsage('cursor', 'signed-out')
+    return unavailableUsage('cursor', 'not-supported')
   }
   private async run(executable: string, args: string[], timeout: number): Promise<string> {
     const { stdout } = await execFileAsync(executable, args, {
