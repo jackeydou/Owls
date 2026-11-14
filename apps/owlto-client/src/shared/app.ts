@@ -91,7 +91,8 @@ export const failureSchema = z.object({
     'project_url_invalid',
     'project_exists',
     'project_clone_failed',
-    'avatar_unavailable'
+    'avatar_unavailable',
+    'thread_busy'
   ]),
   message: z.string()
 })
@@ -385,6 +386,8 @@ export type AppEvent =
   | { type: 'session'; session: Session }
   | { type: 'removed'; sessionId: string }
   | { type: 'router'; router: Router }
+  /** A thread the user deleted, with the workers that went with it. */
+  | { type: 'thread-removed'; routerId: string; workerIds: string[] }
   /** Items that changed, in position order. Streaming items carry `rev: null`. */
   | { type: 'thread-items'; routerId: string; items: ThreadItem[] }
   | { type: 'worker'; worker: RouterWorker }
@@ -448,6 +451,8 @@ export interface OwltoAPI {
   forward(input: ForwardMessage): Promise<Reply<Router>>
   interruptRouter(routerId: string): Promise<Reply<void>>
   archiveThread(input: ArchiveThread): Promise<Reply<void>>
+  /** Asks the user to confirm, then deletes the thread; resolves true once it is gone. */
+  deleteThread(routerId: string): Promise<Reply<boolean>>
   resolveBatch(input: ResolveBatch): Promise<Reply<void>>
   discardWorktree(input: WorkerAction): Promise<Reply<void>>
   stopWorker(input: WorkerAction): Promise<Reply<void>>

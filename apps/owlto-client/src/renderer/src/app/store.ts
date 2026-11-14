@@ -355,6 +355,11 @@ export const useAppStore = create<State>((set, get) => {
         useRouterStore.getState().router(event.router)
         return
       }
+      if (event.type === 'thread-removed') {
+        useRouterStore.getState().removeThread(event.routerId, event.workerIds)
+        if (get().threadId === event.routerId) set({ threadId: null })
+        return
+      }
       if (event.type === 'thread-items') {
         useRouterStore.getState().threadItems(event.routerId, event.items)
         return

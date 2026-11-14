@@ -40,6 +40,7 @@ import { ThreadLog } from './thread-log.js'
 import { RouterToolError, routerTools } from './tools.js'
 import { LocalWorkers, type WorkerTarget } from './worker-target.js'
 import {
+  activeWorker,
   type TurnOutcome,
   type TurnProfile,
   type TurnProfiles,
@@ -441,6 +442,27 @@ export class RouterService implements TurnProfiles {
     if (archivedAt === router.archivedAt) return
     router.archivedAt = archivedAt
     this.changed(router)
+  }
+
+  /**
+   * Deletes a thread for good: its items, Router transcript, Inbox, and workers. Refused
+   * while the Router or one of its workers is busy, so nothing is cut off mid-turn.
+   */
+  deleteThread(routerId: string): void {
+    const router = this.ownRouter(routerId)
+    const busy = this.pool.list(router.id).some((w) => w.status === 'queued' || activeWorker(w))
+    if (router.status === 'running' || this.active.has(router.id) || busy)
+      throw new OwltoError('thread_busy', 'This thread is still working.')
+    const workerIds = this.pool.dropThread(router.id)
+    this.engines.get(router.id)?.engine.abort()
+    this.engines.delete(router.id)
+    this.routers.delete(router.id)
+    this.logs.delete(router.id)
+    this.dispatched.delete(router.id)
+    this.dirty.delete(router.id)
+    this.dirtyItems.delete(router.id)
+    this.store.deleteThread(router.id, workerIds)
+    this.emit({ type: 'thread-removed', routerId: router.id, workerIds })
   }
 
   /** Resends or dismisses a batch whose delivery is unknown after a restart. */

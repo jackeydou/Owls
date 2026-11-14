@@ -548,3 +548,61 @@
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
 }
+/* Archived threads: one compact line each, title and date together, icon actions at the end. */
+.owlto-archived-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+.owlto-archived-thread {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 4px 0 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.owlto-archived-open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 8px;
+  border-radius: var(--owl-radius-xs);
+  text-align: left;
+  transition: background-color 120ms ease;
+}
+.owlto-archived-open:hover {
+  background: var(--color-sidebar-hover);
+}
+.owlto-archived-open:active {
+  background: var(--color-sidebar-active);
+}
+.owlto-archived-open > span {
+  overflow: hidden;
+  flex-shrink: 1;
+  min-width: 0;
+  font-size: var(--owl-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.owlto-archived-open > small {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  white-space: nowrap;
+}
+.owlto-archived-action {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-muted-foreground);
+}
+.owlto-archived-action:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-foreground);
+}

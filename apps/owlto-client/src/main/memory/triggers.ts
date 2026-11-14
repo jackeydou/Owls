@@ -39,6 +39,7 @@ export class DreamingTriggers {
   observe(event: AppEvent): void {
     if (event.type === 'router') this.restart(event.router.id)
     else if (event.type === 'worker') this.restart(event.worker.routerId)
+    else if (event.type === 'thread-removed') this.forget(event.routerId)
   }
 
   close(): void {
@@ -46,6 +47,12 @@ export class DreamingTriggers {
     this.startup = null
     for (const timer of this.timers.values()) this.clearTimer(timer)
     this.timers.clear()
+  }
+
+  private forget(threadId: string): void {
+    const timer = this.timers.get(threadId)
+    if (timer) this.clearTimer(timer)
+    this.timers.delete(threadId)
   }
 
   private restart(threadId: string): void {

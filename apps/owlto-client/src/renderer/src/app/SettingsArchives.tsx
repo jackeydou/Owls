@@ -1,5 +1,5 @@
-import { ActionButton } from '@renderer/components/ui/action-button'
-import { Button } from '@renderer/components/ui/button'
+import { ActionIconButton } from '@renderer/components/ui/action-button'
+import { TrashXIcon, UnarchiveIcon } from '@renderer/components/ui/icons'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
@@ -11,6 +11,7 @@ import { useAppStore } from './store'
 const byArchived = (a: Router, b: Router) =>
   (b.archivedAt ?? '').localeCompare(a.archivedAt ?? '') || a.id.localeCompare(b.id)
 
+/** One compact row: the title opens the thread; icon buttons unarchive or delete it. */
 function ArchivedThread({ thread }: { thread: Router }) {
   const { t, i18n } = useTranslation()
   const untitled = useThreadTitle()
@@ -19,30 +20,41 @@ function ArchivedThread({ thread }: { thread: Router }) {
     (s) => s.projects.find((p) => p.id === thread.projectId)?.name ?? null
   )
   const archive = useRouterStore((s) => s.archive)
+  const deleteThread = useRouterStore((s) => s.deleteThread)
+  const title = threadTitle(thread, untitled)
   const date = new Intl.DateTimeFormat(i18n.language === 'zh-CN' ? 'zh-CN' : 'en', {
     dateStyle: 'medium'
   }).format(new Date(thread.archivedAt ?? thread.updatedAt))
   const meta = [t('archives.archivedOn', { date }), projectName].filter(Boolean).join(' · ')
   return (
-    <div className="owlto-setting-row owlto-archived-thread">
-      <div className="owlto-setting-text">
-        <h3>{threadTitle(thread, untitled)}</h3>
+    <li className="owlto-archived-thread">
+      <button
+        type="button"
+        className="owlto-archived-open"
+        aria-label={t('archives.open', { title })}
+        onClick={() => showThread(thread.id)}
+      >
+        <span>{title}</span>
         <small>{meta}</small>
-      </div>
-      <div className="owlto-settings-actions">
-        <Button size="sm" variant="ghost" onClick={() => showThread(thread.id)}>
-          {t('archives.open')}
-        </Button>
-        {/* The row leaves the list on success; a failure shows as a toast. */}
-        <ActionButton
-          size="sm"
-          variant="outline"
-          onAction={async () => void (await archive(thread.id, false))}
-        >
-          {t('archives.unarchive')}
-        </ActionButton>
-      </div>
-    </div>
+      </button>
+      {/* The row leaves the list on success; a failure shows as a toast. */}
+      <ActionIconButton
+        size="custom"
+        className="owlto-archived-action"
+        label={t('archives.unarchive')}
+        tooltip={t('archives.unarchive')}
+        icon={<UnarchiveIcon size={16} />}
+        onAction={async () => void (await archive(thread.id, false))}
+      />
+      <ActionIconButton
+        size="custom"
+        className="owlto-archived-action"
+        label={t('archives.delete')}
+        tooltip={t('archives.delete')}
+        icon={<TrashXIcon size={16} />}
+        onAction={async () => void (await deleteThread(thread.id))}
+      />
+    </li>
   )
 }
 
@@ -58,7 +70,11 @@ export function ArchivesSettingsPane() {
       <h2>{t('archives.title')}</h2>
       <p>{t('archives.body')}</p>
       {archived.length ? (
-        archived.map((thread) => <ArchivedThread key={thread.id} thread={thread} />)
+        <ul className="owlto-archived-list">
+          {archived.map((thread) => (
+            <ArchivedThread key={thread.id} thread={thread} />
+          ))}
+        </ul>
       ) : (
         <p className="owlto-note owlto-archives-empty">{t('archives.none')}</p>
       )}

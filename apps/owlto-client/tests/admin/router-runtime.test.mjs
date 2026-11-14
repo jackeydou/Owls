@@ -283,6 +283,52 @@ test('archiving keeps a thread and a new message brings it back', async () => {
   service.close()
 })
 
+test('deleting a thread removes it, its items, and its workers', async () => {
+  const { service, router, current, store, events, created } = harness([
+    fauxAssistantMessage([fauxToolCall('dispatch_task', { goal: 'Look around' })], {
+      stopReason: 'toolUse'
+    }),
+    fauxAssistantMessage(fauxText('Started.')),
+    fauxAssistantMessage(fauxText('Done.'))
+  ])
+  service.send({ routerId: router.id, commandId: crypto.randomUUID(), text: 'Go' })
+  await waitFor(() => current().status === 'idle' && current().items.length >= 3, 'dispatch')
+  const worker = service.snapshot().workers.find((w) => w.routerId === router.id)
+  assert.equal(worker.status, 'running')
+  assert.throws(() => service.deleteThread(router.id), /still working/)
+  service.settled(created[0].id, {
+    status: 'completed',
+    structured: { status: 'done', summary: 'Looked.', artifacts: [] },
+    text: ''
+  })
+  await waitFor(() => current().items.length >= 5, 'report batch')
+  await waitFor(() => current().status === 'idle', 'router idle')
+  service.deleteThread(router.id)
+  assert.equal(
+    service.snapshot().routers.some((r) => r.id === router.id),
+    false
+  )
+  assert.equal(
+    service.snapshot().workers.some((w) => w.routerId === router.id),
+    false
+  )
+  assert.equal(
+    store.routers().some((r) => r.id === router.id),
+    false
+  )
+  assert.deepEqual(store.items(router.id), [])
+  assert.equal(
+    store.workers().some((w) => w.id === worker.id),
+    false
+  )
+  assert.deepEqual(events.at(-1), {
+    type: 'thread-removed',
+    routerId: router.id,
+    workerIds: [worker.id]
+  })
+  service.close()
+})
+
 test('invalid tool arguments and permission limits come back as tool errors', async () => {
   const results = []
   const { service, router, current, created } = harness([

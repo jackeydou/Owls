@@ -642,6 +642,26 @@ export class WorkerPool implements TurnProfiles {
     }
   }
 
+  /**
+   * Forgets a deleted thread's workers and returns their ids. Their sessions are removed
+   * and their worktrees released the same way as a removed worker's: commits on a branch
+   * and uncommitted changes are kept.
+   */
+  dropThread(routerId: string): string[] {
+    const own = this.list(routerId).sort((a, b) => a.id.localeCompare(b.id))
+    for (const worker of own) {
+      // Gone from the map first, so the `removed` event below finds no worker to update.
+      this.workers.delete(worker.id)
+      this.stopping.delete(worker.id)
+      this.turnReports.delete(worker.id)
+    }
+    for (const worker of own) {
+      if (worker.status !== 'removed') this.host.remove(worker.sessionId)
+      void this.release(worker, false)
+    }
+    return own.map((w) => w.id)
+  }
+
   close(): void {
     this.closed = true
   }
@@ -666,13 +686,13 @@ export class WorkerPool implements TurnProfiles {
    * changes is kept until the user discards it; a failed cleanup stays
    * `active` and runs again on the next start.
    */
-  private async release(worker: RouterWorker): Promise<string | null> {
+  private async release(worker: RouterWorker, persist = true): Promise<string | null> {
     const tree = worktreeOf(worker)
     if (!tree || tree.state !== 'active') return null
     try {
       const result = await this.workspaces.release(tree, false, this.projectSettings(worker).git)
       tree.state = result.worktree === 'kept' ? 'kept' : 'released'
-      this.save(worker)
+      if (persist) this.save(worker)
       return result.branch === 'kept' ? tree.branch : null
     } catch {
       return null

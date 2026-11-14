@@ -256,6 +256,9 @@ export class OwltoHost {
   interruptRouter(routerId: string): void {
     this.requireRouter().interrupt(routerId)
   }
+  deleteThread(routerId: string): void {
+    this.requireRouter().deleteThread(routerId)
+  }
   archiveThread(input: ArchiveThread): void {
     this.requireRouter().archive(input)
   }

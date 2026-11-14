@@ -53,6 +53,8 @@ type State = {
   foldedProjects: ReadonlySet<string>
   hydrate(routers: Router[], workers: RouterWorker[]): void
   router(router: Router): void
+  /** Drops a deleted thread, its items, and its workers. */
+  removeThread(routerId: string, workerIds: string[]): void
   worker(worker: RouterWorker): void
   threadItems(routerId: string, items: ThreadItem[]): void
   loadItems(routerId: string): Promise<void>
@@ -71,6 +73,8 @@ type State = {
   interrupt(routerId: string): Promise<void>
   /** Resolves true once the thread is archived or back in the sidebar. */
   archive(routerId: string, archived: boolean): Promise<boolean>
+  /** Resolves true once the user confirmed and the thread is deleted. */
+  deleteThread(routerId: string): Promise<boolean>
   resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
   stopWorker(routerId: string, workerId: string): Promise<void>
   loadOpenInApps(): Promise<void>
@@ -151,6 +155,22 @@ export const useRouterStore = create<State>((set, get) => {
         workers: workers.reduce(newer, state.workers)
       })),
     router: (router) => set((state) => ({ routers: newerThread(state.routers, router) })),
+    removeThread: (routerId, workerIds) =>
+      set((state) => {
+        const { [routerId]: _items, ...items } = state.items
+        const { [routerId]: _loaded, ...itemsLoaded } = state.itemsLoaded
+        const panel = state.panel
+        const closing =
+          (panel?.kind === 'router' && panel.routerId === routerId) ||
+          (panel?.kind === 'worker' && workerIds.includes(panel.workerId))
+        return {
+          routers: state.routers.filter((r) => r.id !== routerId),
+          workers: state.workers.filter((w) => !workerIds.includes(w.id)),
+          items,
+          itemsLoaded,
+          panel: closing ? null : panel
+        }
+      }),
     worker: (worker) =>
       set((state) => {
         const closing =
@@ -236,6 +256,15 @@ export const useRouterStore = create<State>((set, get) => {
         set({ error: null })
         unwrap(await window.owlto.archiveThread({ routerId, archived }))
         return true
+      } catch (error) {
+        set({ error: uiFailure(error) })
+        return false
+      }
+    },
+    deleteThread: async (routerId) => {
+      try {
+        set({ error: null })
+        return unwrap(await window.owlto.deleteThread(routerId))
       } catch (error) {
         set({ error: uiFailure(error) })
         return false
