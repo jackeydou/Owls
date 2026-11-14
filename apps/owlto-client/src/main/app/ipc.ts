@@ -98,6 +98,8 @@ export function registerIpc(
     settingsSaved(saved, previous)
     return saved
   })
+  handle('profile', (input) => host.saveProfile(input))
+  handle('profile-github-avatar', () => host.applyGitHubAvatar())
   handle('respond', (input) => host.respond(respondSchema.parse(input)))
   handle('router-create', (input) => host.createThread(createThreadSchema.parse(input)))
   handle('router-items', (input) => host.threadItems(threadItemsSchema.parse(input)))

@@ -12,6 +12,7 @@ import {
   settingsSchema
 } from '../../shared/app.js'
 import { defaultMemorySettings } from '../../shared/memory.js'
+import { defaultProfile } from '../../shared/profile.js'
 import { defaultRouterSettings } from '../../shared/router.js'
 import { loadDeviceIdentity } from '../sync/device-identity.js'
 import { logChange } from '../sync/sync-log.js'
@@ -57,7 +58,8 @@ export class OwltoStore {
           updateChannel: null,
           pullRequestsVisible: true,
           workspacePath: null,
-          openInApp: null
+          openInApp: null,
+          profile: defaultProfile
         }
   }
   saveSettings(value: AppSettings): AppSettings {

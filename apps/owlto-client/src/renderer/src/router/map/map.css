@@ -185,14 +185,20 @@
     var(--owl-map-node-shadow);
   color: var(--color-foreground);
 }
-.map-node.root img {
-  width: 46px;
-  height: 34px;
-  border-radius: var(--owl-radius-sm);
-  object-fit: contain;
+.map-node.root .owlto-user-avatar {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 2px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 .map-node.root strong {
+  overflow: hidden;
+  max-width: 100%;
+  padding: 0 10px;
   font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 600;
   line-height: 1.3;
 }

@@ -23,6 +23,7 @@ import {
 } from './memory.js'
 import type { MenuCommand } from './menu.js'
 import { type OpenInApp, type OpenWorkerIn, openInAppIdSchema } from './open-in.js'
+import { defaultProfile, type Profile, type ProfileUpdate, profileSchema } from './profile.js'
 import {
   type CloneProject,
   type CreateProject,
@@ -88,7 +89,8 @@ export const failureSchema = z.object({
     'worktree_failed',
     'project_url_invalid',
     'project_exists',
-    'project_clone_failed'
+    'project_clone_failed',
+    'avatar_unavailable'
   ]),
   message: z.string()
 })
@@ -252,7 +254,9 @@ export const settingsSchema = z.object({
    */
   workspacePath: z.string().nullable().default(null),
   /** The app "Open in" uses; null picks the first installed editor. Added later. */
-  openInApp: openInAppIdSchema.nullable().catch(null).default(null)
+  openInApp: openInAppIdSchema.nullable().catch(null).default(null),
+  /** The user's name and avatar; added later, and saved only through `saveProfile`. */
+  profile: profileSchema.catch(defaultProfile)
 })
 export const projectSchema = z.object({
   id: z.string(),
@@ -266,7 +270,8 @@ export const settingsUpdateSchema = settingsSchema
     executablePath: true,
     claudeExecutablePath: true,
     cursorExecutablePath: true,
-    workspacePath: true
+    workspacePath: true,
+    profile: true
   })
   .strict()
 export const modelSchema = z.object({
@@ -382,6 +387,8 @@ export type AppEvent =
   | { type: 'worker'; worker: RouterWorker }
   | { type: 'github-account'; account: GitHubAccount }
   | { type: 'worker-github'; workerId: string; status: WorkerGitHubStatus }
+  /** The profile changed outside the settings page, e.g. to the GitHub avatar. */
+  | { type: 'profile'; profile: Profile }
 export type Reply<T> = { ok: true; value: T } | { ok: false; error: Failure }
 export const respondSchema = z.object({
   sessionId: z.string().uuid(),
@@ -409,6 +416,10 @@ export interface OwltoAPI {
   signIn(): Promise<Reply<void>>
   cancelSignIn(): Promise<Reply<void>>
   saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<Reply<AppSettings>>
+  /** Saves the user's name or avatar choice. */
+  saveProfile(update: ProfileUpdate): Promise<Reply<AppSettings>>
+  /** Replaces the avatar with the connected GitHub account's avatar. */
+  applyGitHubAvatar(): Promise<Reply<AppSettings>>
   pickProject(): Promise<Reply<Project | null>>
   /** The folder new projects go into unless the user picks another. */
   projectsFolder(): Promise<Reply<string>>

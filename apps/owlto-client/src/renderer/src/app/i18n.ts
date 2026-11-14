@@ -7,6 +7,7 @@ import { routerEn, routerZh } from '../router/i18n'
 import { updatesEn, updatesZh } from '../updates/i18n'
 import { usageEn, usageZh } from '../usage/i18n'
 import { usageStatsEn, usageStatsZh } from '../usage/stats-i18n'
+import { profileEn, profileZh } from './i18n-profile'
 import { projectSettingsEn, projectSettingsZh } from './i18n-project-settings'
 
 const en = {
@@ -366,6 +367,7 @@ void i18next.use(initReactI18next).init({
         ...pullsEn,
         ...memoryEn,
         ...projectSettingsEn,
+        ...profileEn,
         ...updatesEn,
         ...usageEn,
         ...usageStatsEn
@@ -379,6 +381,7 @@ void i18next.use(initReactI18next).init({
         ...pullsZh,
         ...memoryZh,
         ...projectSettingsZh,
+        ...profileZh,
         ...updatesZh,
         ...usageZh,
         ...usageStatsZh

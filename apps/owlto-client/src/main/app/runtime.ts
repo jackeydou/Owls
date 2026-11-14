@@ -22,6 +22,7 @@ export { AcpConnection } from '../cursor/acp.js'
 export * as cursorNormalize from '../cursor/normalize.js'
 export { CursorService } from '../cursor/service.js'
 export { GitHubAuth } from '../github/auth.js'
+export { fetchGitHubAvatar } from '../github/avatar.js'
 export {
   lookupPullRequest,
   lookupPullRequests,
@@ -80,5 +81,6 @@ export { UsageLedger } from '../usage/ledger.js'
 export { claudeResultUsage, codexCallUsage } from '../usage/turn-usage.js'
 export { OwltoHost } from './host.js'
 export { bundleIconFile, OPEN_IN_CATALOG, OpenInApps } from './open-in.js'
+export { UserProfile } from './profile.js'
 export { cloneGitHubProject, createQuickProject } from './project-sources.js'
 export { OwltoStore } from './store.js'

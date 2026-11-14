@@ -14,6 +14,7 @@ import { CodexService } from '../codex/service.js'
 import { CursorService } from '../cursor/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { GitHubAuth } from '../github/auth.js'
+import { fetchGitHubAvatar } from '../github/avatar.js'
 import { DreamingRunner } from '../memory/dreaming.js'
 import { MemoryService } from '../memory/service.js'
 import { MemoryStore } from '../memory/store.js'
@@ -46,6 +47,7 @@ import { OwltoError } from './errors.js'
 import { OwltoHost } from './host.js'
 import { registerIpc } from './ipc.js'
 import { applyAppMenu, type MenuDeps } from './menu.js'
+import { UserProfile } from './profile.js'
 import { OwltoStore } from './store.js'
 
 const profile = configureDevAppInstanceProfile()
@@ -253,9 +255,19 @@ void app
         changed: cardsChanged
       })
     )
+    const host = service
+    const profile = new UserProfile({
+      settings: () => host.snapshot().settings,
+      save: (settings) => host.saveSettings(settings),
+      gitHubToken: () => github.token(),
+      fetchAvatar: (token) => fetchGitHubAvatar(token),
+      changed: (value) => emit({ type: 'profile', profile: value })
+    })
+    service.attachProfile(profile)
     const github: GitHubAuth = new GitHubAuth(routerStore, safeStorageCipher, (account) => {
       emit({ type: 'github-account', account })
       if (account.status !== 'pending') workerGitHub.refresh()
+      if (account.status === 'signed-in') void profile.gitHubConnected()
     })
     const workerGitHub: WorkerGitHub = new WorkerGitHub(router, github, (workerId, status) =>
       emit({ type: 'worker-github', workerId, status })

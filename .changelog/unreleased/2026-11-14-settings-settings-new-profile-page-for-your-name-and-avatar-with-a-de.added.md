@@ -1,0 +1,1 @@
+- Settings: new Profile page for your name and avatar, with a default user owl; connecting GitHub uses your GitHub avatar until you pick one, and the Overview and Router chat show it.

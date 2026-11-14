@@ -524,6 +524,15 @@ export const TrashIcon = createIcon(
     <line x1="9.25" y1="7" x2="9.25" y2="11" />
   </g>
 )
+export const UploadIcon = createIcon(
+  'Upload',
+  'outline',
+  <g>
+    <line x1="8" y1="9.25" x2="8" y2="2.25" />
+    <path d="M4.75 5.5 L8 2.25 L11.25 5.5" />
+    <path d="M2.5 10.5 L2.5 12 C2.5 12.828 3.172 13.5 4 13.5 L12 13.5 C12.828 13.5 13.5 12.828 13.5 12 L13.5 10.5" />
+  </g>
+)
 export const UserIcon = createIcon(
   'User',
   'outline',
