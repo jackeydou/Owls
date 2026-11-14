@@ -173,38 +173,33 @@
 }
 /* Every card on the canvas shares one surface; a project's hue stays on its icon and branches. */
 .map-node.root {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
   border-radius: 50%;
   background: var(--color-card);
   box-shadow:
     inset 0 0 0 1px var(--owl-map-node-border),
     var(--owl-map-node-shadow);
-  color: var(--color-foreground);
 }
+/* The node is the avatar itself; the name hangs under it, outside the layout box. */
 .map-node.root .owlto-user-avatar {
-  width: 36px;
-  height: 36px;
-  margin-bottom: 2px;
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
 }
 .map-node.root strong {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
   overflow: hidden;
-  max-width: 100%;
-  padding: 0 10px;
+  max-width: 180px;
+  transform: translateX(-50%);
+  color: var(--color-foreground);
   font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-weight: 600;
   line-height: 1.3;
-}
-.map-node.root small {
-  color: var(--color-muted-foreground);
-  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .map-node.project {
   display: flex;

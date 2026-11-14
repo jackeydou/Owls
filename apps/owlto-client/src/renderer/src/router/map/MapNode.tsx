@@ -190,7 +190,6 @@ export const MapNodeView = memo(function MapNodeView({
   hue,
   selected,
   dim,
-  inPlay,
   now
 }: {
   node: MapNode
@@ -198,7 +197,6 @@ export const MapNodeView = memo(function MapNodeView({
   hue: string
   selected: boolean
   dim: boolean
-  inPlay: number
   now: number
 }) {
   const { t } = useTranslation()
@@ -233,7 +231,6 @@ export const MapNodeView = memo(function MapNodeView({
         <>
           <UserAvatar />
           <strong>{name ?? t('map.you')}</strong>
-          <small>{t('map.inPlay', { count: inPlay })}</small>
         </>
       ) : node.kind === 'project' ? (
         <ProjectBody node={node} project={project} />
