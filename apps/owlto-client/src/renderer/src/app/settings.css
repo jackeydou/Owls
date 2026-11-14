@@ -119,6 +119,12 @@
   height: 32px;
   font-size: var(--owl-text-sm);
 }
+/* A choice longer than the column widens its select instead of wrapping onto a second line. */
+.owlto-setting-row select {
+  width: auto;
+  min-width: 200px;
+  max-width: 100%;
+}
 .owlto-setting-row .router-input {
   padding: 0 12px;
   border-radius: var(--owl-radius-sm);

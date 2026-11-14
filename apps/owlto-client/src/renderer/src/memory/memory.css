@@ -36,7 +36,6 @@
 }
 .memory-toolbar .memory-project {
   height: 32px;
-  max-width: 200px;
   font-size: var(--owl-text-xs);
 }
 .memory-search {
