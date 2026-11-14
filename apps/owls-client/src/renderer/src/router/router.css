@@ -318,11 +318,6 @@ html[data-platform="darwin"] {
   border-radius: var(--owl-radius-sm);
   color: var(--color-foreground);
 }
-/* The workers' owl avatar, sized to sit with the line icons beside it. */
-.router-right-tab-owls {
-  width: 20px;
-  height: 20px;
-}
 .router-right-tab[aria-pressed="true"] {
   background: var(--color-sidebar-active);
 }
@@ -349,21 +344,6 @@ html[data-platform="darwin"] {
   padding: 4px 8px;
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
-}
-.router-sidebar-workers.flat {
-  margin-left: 0;
-  padding-left: 0;
-  border-left: 0;
-  overflow-y: auto;
-}
-.router-sidebar-worker > small {
-  flex-shrink: 0;
-  max-width: 40%;
-  overflow: hidden;
-  color: var(--color-muted-foreground);
-  font-size: var(--owl-text-2xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .router-right-cards {
   display: flex;

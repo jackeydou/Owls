@@ -196,7 +196,7 @@ const legacyPaneDefaults = { sidebarWidth: 224, projectsWidth: 260 } as const
 const paneWidthSchema = z.number().int().positive().nullable()
 const followLegacyDefault = (legacy: number) =>
   z.preprocess((value) => (value === legacy ? null : value), paneWidthSchema)
-export const rightPanelSchema = z.enum(['projects', 'workers', 'cards'])
+export const rightPanelSchema = z.enum(['projects', 'cards'])
 export type RightPanel = z.infer<typeof rightPanelSchema>
 export const layoutSettingsSchema = z.object({
   sidebarWidth: followLegacyDefault(legacyPaneDefaults.sidebarWidth),
@@ -205,7 +205,7 @@ export const layoutSettingsSchema = z.object({
   /** Whether the right-hand sidebar is open; named for its first and once only content. */
   projectsOpen: z.boolean(),
   /** Which list the right-hand sidebar shows; added later, so older rows show projects. */
-  rightPanel: rightPanelSchema.default('projects')
+  rightPanel: rightPanelSchema.catch('projects')
 })
 export type LayoutSettings = z.infer<typeof layoutSettingsSchema>
 export const defaultLayoutSettings: LayoutSettings = {

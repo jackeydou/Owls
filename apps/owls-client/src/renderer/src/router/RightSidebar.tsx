@@ -9,17 +9,13 @@ import {
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import workerOwls from '../../../../resources/owl-avatars/workers.svg'
 import type { RightPanel } from '../../../shared/app'
 import type { Card } from '../../../shared/cards'
-import { isInPlay } from '../../../shared/worker-map'
 import { useAppStore } from '../app/store'
 import { NEW_CARD } from '../cards/CardEditor'
 import { useCardsStore } from '../cards/store'
-import { byAge, isWaitingOnUser, isWorking } from './activity'
-import { ProjectsPane, WorkerRow } from './ProjectsSidebar'
+import { ProjectsPane } from './ProjectsSidebar'
 import { usePaneWidth } from './pane-width'
-import { useRouterStore } from './store'
 
 /**
  * Opens and closes the right-hand sidebar from the window's top-right corner, whatever the view:
@@ -40,40 +36,6 @@ export function RightSidebarToggle() {
       icon={<SidebarRightIcon size={18} />}
       onClick={toggleProjects}
     />
-  )
-}
-
-/** Waiting on the user first, then working, then the rest; oldest first within each. */
-function workerRank(worker: Parameters<typeof isWorking>[0]): number {
-  if (isWaitingOnUser(worker)) return 0
-  return isWorking(worker) ? 1 : 2
-}
-
-function WorkersPane() {
-  const { t } = useTranslation()
-  const allWorkers = useRouterStore((s) => s.workers)
-  const projects = useAppStore((s) => s.projects)
-  const workers = useMemo(
-    () => allWorkers.filter(isInPlay).sort((a, b) => workerRank(a) - workerRank(b) || byAge(a, b)),
-    [allWorkers]
-  )
-  const projectName = (projectId: string | null) =>
-    projects.find((p) => p.id === projectId)?.name ?? t('router.panel.noProject')
-  return (
-    <section className="router-right-pane" aria-label={t('router.panel.workers')}>
-      <header>
-        <h2>{t('router.panel.workers')}</h2>
-      </header>
-      {workers.length ? (
-        <ul className="router-sidebar-workers flat" aria-label={t('router.panel.workers')}>
-          {workers.map((worker) => (
-            <WorkerRow key={worker.id} worker={worker} detail={projectName(worker.projectId)} />
-          ))}
-        </ul>
-      ) : (
-        <p>{t('router.panel.noWorkers')}</p>
-      )}
-    </section>
   )
 }
 
@@ -171,15 +133,10 @@ export function RightSidebar() {
               panel === 'projects' ? <FolderOpenTiltIcon size={18} /> : <FolderIcon size={18} />
             }
           />
-          <PanelTab
-            panel="workers"
-            current={panel}
-            icon={<img className="router-right-tab-owls" src={workerOwls} alt="" />}
-          />
           <PanelTab panel="cards" current={panel} icon={<CardsIcon size={18} />} />
         </nav>
       </header>
-      {panel === 'workers' ? <WorkersPane /> : panel === 'cards' ? <CardsPane /> : <ProjectsPane />}
+      {panel === 'cards' ? <CardsPane /> : <ProjectsPane />}
       <ResizeHandle {...handle} />
     </aside>
   )

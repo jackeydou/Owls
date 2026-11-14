@@ -1,1 +1,1 @@
-- Right sidebar: switch between Projects, Workers, and Cards from icons in its head; sidebar toggles match the other icons' color. (#112)
+- Right sidebar: switch between Projects and Cards from icons in its head; sidebar toggles match the other icons' color. (#112)

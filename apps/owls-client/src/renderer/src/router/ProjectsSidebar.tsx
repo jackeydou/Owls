@@ -13,14 +13,7 @@ import { ProjectIcon } from './ProjectIcon'
 import { useRouterStore } from './store'
 import { WorkerAvatar } from './WorkerLink'
 
-export function WorkerRow({
-  worker,
-  detail
-}: {
-  worker: RouterWorker
-  /** A muted note after the title, such as the worker's project. */
-  detail?: string
-}) {
+function WorkerRow({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
   const inChat = useAppStore((s) => s.view === 'chat')
   const focusProject = useAppStore((s) => s.focusProject)
@@ -51,7 +44,6 @@ export function WorkerRow({
           >
             <WorkerAvatar worker={worker} />
             <span>{title}</span>
-            {detail ? <small>{detail}</small> : null}
           </button>
         </TooltipTrigger>
         <TooltipContent side="left">{title}</TooltipContent>
