@@ -12,10 +12,13 @@ import { AnchoredTooltip } from '@renderer/components/ui/tooltip'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
+import { DreamingOwl } from '../app/OwlAvatar'
 import { agentConnection, useAppStore } from '../app/store'
+import { useDreaming } from '../memory/dreaming'
 import { usageSummaryRows, useUsageStore, watchUsage } from '../usage/store'
 import { UsagePanel } from '../usage/UsagePanel'
 import { UsageSummary } from '../usage/UsageSummary'
+import { ArchiveThreadButton } from './ArchiveThreadButton'
 import { byRecent, isWaitingOnUser, isWorking, threadTitle, useThreadTitle } from './activity'
 import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
@@ -30,17 +33,24 @@ function ThreadEntry({ thread }: { thread: Router }) {
     if (workers.some(isWaitingOnUser)) return 'wait'
     return thread.status === 'running' || workers.some(isWorking) ? 'run' : null
   })
+  // Dreaming reads only quiet threads, so it never hides a run or a wait.
+  const dreaming = useDreaming(thread.id) && state === null
   const title = threadTitle(thread, untitled)
+  const label = state
+    ? t(`thread.state.${state}`, { title })
+    : dreaming
+      ? t('thread.state.dream', { title })
+      : title
   return (
     <button
       type="button"
       className="router-thread"
-      aria-label={state ? t(`thread.state.${state}`, { title }) : title}
+      aria-label={label}
       aria-current={current || undefined}
       onClick={() => showThread(thread.id)}
     >
       <span>{title}</span>
-      {state ? <i className={state} aria-hidden /> : null}
+      {state ? <i className={state} aria-hidden /> : dreaming ? <DreamingOwl /> : null}
     </button>
   )
 }
@@ -104,7 +114,11 @@ export function Sidebar() {
   const { showMap, showCards, showPullRequests, showSettings, newThread } = useAppStore()
   const routers = useRouterStore((s) => s.routers)
   // A thread exists once it has its first message; this hides one whose send failed.
-  const threads = useMemo(() => routers.filter((r) => r.itemCount).sort(byRecent), [routers])
+  // Archived threads are listed in Settings instead.
+  const threads = useMemo(
+    () => routers.filter((r) => r.itemCount && !r.archivedAt).sort(byRecent),
+    [routers]
+  )
   const provider = useAppStore((s) => s.settings.provider)
   const connection = useAppStore((s) => agentConnection(s, provider))
   return (
@@ -158,7 +172,10 @@ export function Sidebar() {
         {threads.length ? (
           <div className="router-sidebar-list">
             {threads.map((thread) => (
-              <ThreadEntry key={thread.id} thread={thread} />
+              <div key={thread.id} className="router-sidebar-thread">
+                <ThreadEntry thread={thread} />
+                <ArchiveThreadButton thread={thread} />
+              </div>
             ))}
           </div>
         ) : (

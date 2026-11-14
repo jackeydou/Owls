@@ -240,6 +240,64 @@
 
 @layer components {
   /*
+   * Shared switch (components/ui/switch.tsx) for on/off settings. The track fills with the
+   * foreground color when on, and the thumb slides across.
+   */
+  .owlto-switch {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    width: 32px;
+    height: 18px;
+    padding: 2px;
+    border: none;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-foreground) 16%, transparent);
+    cursor: pointer;
+    transition: background-color 150ms ease;
+  }
+  .owlto-switch:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-foreground) 24%, transparent);
+  }
+  .owlto-switch[aria-checked="true"] {
+    background: var(--color-foreground);
+  }
+  .owlto-switch[aria-checked="true"]:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-foreground) 85%, transparent);
+  }
+  .owlto-switch:active:not(:disabled) .owlto-switch-thumb {
+    width: 17px;
+  }
+  .owlto-switch:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .owlto-switch-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+    transition:
+      transform 150ms ease,
+      width 150ms ease;
+  }
+  .owlto-switch[aria-checked="true"] .owlto-switch-thumb {
+    transform: translateX(14px);
+    background: var(--color-card);
+  }
+  .owlto-switch[aria-checked="true"]:active:not(:disabled) .owlto-switch-thumb {
+    transform: translateX(11px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .owlto-switch,
+    .owlto-switch-thumb {
+      transition: none;
+    }
+  }
+
+  /*
    * Shared select (components/ui/select.tsx). `base-select` keeps the native element and its
    * events but lets the trigger, chevron, popover, and options be styled. The chevron sits in
    * the trigger's right padding instead of hugging the edge, and the popover reuses the menu

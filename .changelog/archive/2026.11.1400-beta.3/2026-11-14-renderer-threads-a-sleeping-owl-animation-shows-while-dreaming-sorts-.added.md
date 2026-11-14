@@ -1,0 +1,1 @@
+- Threads: a sleeping owl animation shows while Dreaming sorts a thread into memory, in the thread, the thread list, and Overview.

@@ -16,7 +16,12 @@ import type {
   Router,
   Session
 } from '../../../shared/app'
-import { defaultAppLogo, defaultLayoutSettings, paneWidthBounds } from '../../../shared/app'
+import {
+  defaultAppLogo,
+  defaultExperimentsSettings,
+  defaultLayoutSettings,
+  paneWidthBounds
+} from '../../../shared/app'
 import type { GitHubAccount } from '../../../shared/github'
 import { defaultMemorySettings } from '../../../shared/memory'
 import { defaultProfile, type ProfileUpdate } from '../../../shared/profile'
@@ -73,6 +78,10 @@ export type SettingsTab =
   | 'memory'
   /** Token usage recorded on this device. */
   | 'usage'
+  /** Threads the user archived out of the sidebar. */
+  | 'archives'
+  /** Switches for experimental features. */
+  | 'experiments'
   | 'github'
   /** The user's name and avatar. */
   | 'profile'
@@ -268,6 +277,7 @@ export const useAppStore = create<State>((set, get) => {
       router: defaultRouterSettings,
       memory: defaultMemorySettings,
       layout: defaultLayoutSettings,
+      experiments: defaultExperimentsSettings,
       updateChannel: null,
       pullRequestsVisible: true,
       workspacePath: null,
@@ -360,6 +370,11 @@ export const useAppStore = create<State>((set, get) => {
       }
       if (event.type === 'router') {
         useRouterStore.getState().router(event.router)
+        return
+      }
+      if (event.type === 'thread-removed') {
+        useRouterStore.getState().removeThread(event.routerId, event.workerIds)
+        if (get().threadId === event.routerId) set({ threadId: null })
         return
       }
       if (event.type === 'thread-items') {
@@ -577,6 +592,7 @@ export const useAppStore = create<State>((set, get) => {
           router: settings.router,
           memory: settings.memory,
           layout: settings.layout,
+          experiments: settings.experiments,
           updateChannel: settings.updateChannel,
           pullRequestsVisible: settings.pullRequestsVisible,
           openInApp: settings.openInApp

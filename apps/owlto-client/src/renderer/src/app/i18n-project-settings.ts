@@ -42,8 +42,6 @@ export const projectSettingsEn = {
   'projectSettings.deletePushedBranches': 'Delete pushed branches',
   'projectSettings.deletePushedBranchesHelp':
     'When you remove a worker, delete its branch if everything is pushed.',
-  'projectSettings.on': 'On',
-  'projectSettings.off': 'Off',
   'projectSettings.instructionsBody': 'Extra instructions for every worker in this project.',
   'projectSettings.instructions.general': 'General instructions',
   'projectSettings.instructions.generalHelp': 'Applies to every task.',
@@ -96,8 +94,6 @@ export const projectSettingsZh: Record<keyof typeof projectSettingsEn, string> =
   'projectSettings.remoteHelp': 'Worker 推送到这里，Owlto 也从这里查找 PR。',
   'projectSettings.deletePushedBranches': '删除已推送的分支',
   'projectSettings.deletePushedBranchesHelp': '移除 Worker 时，若分支已全部推送则一并删除。',
-  'projectSettings.on': '开启',
-  'projectSettings.off': '关闭',
   'projectSettings.instructionsBody': '给这个项目中所有 Worker 的额外指令。',
   'projectSettings.instructions.general': '通用指令',
   'projectSettings.instructions.generalHelp': '适用于所有任务。',

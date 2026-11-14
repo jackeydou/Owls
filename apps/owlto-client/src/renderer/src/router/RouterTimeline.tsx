@@ -8,6 +8,8 @@ import { ConversationItem } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { useAppStore } from '../app/store'
 import { MessageCards, SaveCardAction } from '../cards/CardActions'
+import { useDreaming, useDreamingStore, useDreamLocked } from '../memory/dreaming'
+import { runReason } from '../memory/SettingsMemory'
 import { DispatchGroup } from './DispatchGroup'
 import { isSetupFailure } from './RouterSetup'
 import { useRouterStore } from './store'
@@ -151,6 +153,9 @@ export function RouterTimeline({
   /** Set while a smooth scroll to a just-sent message runs, so following does not cut it off. */
   const pinning = useRef(false)
   const running = router?.status === 'running'
+  const dreaming = useDreaming(router?.id)
+  const locked = useDreamLocked(router?.id)
+  const notice = useDreamingStore((s) => (s.notice?.threadId === router?.id ? s.notice : null))
   const last = entries.at(-1)
   const lastEntrySpeaker = last ? speakerOf(last) : null
   // Watches the size, not the entries: streaming, the tray, and the draft all grow the thread.
@@ -291,6 +296,23 @@ export function RouterTimeline({
                   icon={<StopIcon size={12} />}
                   onAction={() => interrupt(router.id)}
                 />
+              </div>
+            </ThreadRow>
+          ) : null}
+          {router && (dreaming || locked) && !running ? (
+            <ThreadRow speaker="dreaming">
+              <div className="owlto-working router-dreaming" role="status">
+                {t(locked ? 'thread.dreamingLocked' : 'thread.dreaming')}
+              </div>
+            </ThreadRow>
+          ) : notice ? (
+            <ThreadRow speaker="dreaming">
+              <div className="owlto-working router-dreaming" role="status">
+                {notice.kind === 'nothing'
+                  ? t('thread.dreamNothing')
+                  : notice.run
+                    ? t('thread.dreamFailedReason', { reason: runReason(notice.run, t) })
+                    : t('thread.dreamFailed')}
               </div>
             </ThreadRow>
           ) : null}

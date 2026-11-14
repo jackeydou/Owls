@@ -56,6 +56,15 @@ export const AlertCircleIcon = createIcon(
     <circle cx="8" cy="11.15" r="0.825" fill="currentColor" stroke="none" />
   </g>
 )
+export const ArchiveIcon = createIcon(
+  'Archive',
+  'outline',
+  <g>
+    <rect x="1.75" y="2.75" width="12.5" height="3.5" rx="1" />
+    <path d="M2.75 6.25 L2.75 11.25 C2.75 12.355 3.645 13.25 4.75 13.25 L11.25 13.25 C12.355 13.25 13.25 12.355 13.25 11.25 L13.25 6.25" />
+    <line x1="6.5" y1="9" x2="9.5" y2="9" />
+  </g>
+)
 export const ArrowDownIcon = createIcon(
   'ArrowDown',
   'outline',
@@ -241,6 +250,15 @@ export const FileCodeIcon = createIcon(
     <path d="M9.25 7.75 L10.75 9.5 L9.25 11.25" />
   </g>
 )
+export const FlaskIcon = createIcon(
+  'Flask',
+  'outline',
+  <g>
+    <path d="M6.25 2 L6.25 6.264 C6.25 6.419 6.214 6.572 6.144 6.711 L3.474 12.053 C3.141 12.718 3.625 13.5 4.368 13.5 L11.632 13.5 C12.375 13.5 12.859 12.718 12.526 12.053 L9.856 6.711 C9.786 6.572 9.75 6.419 9.75 6.264 L9.75 2" />
+    <line x1="5" y1="2" x2="11" y2="2" />
+    <line x1="4.375" y1="10.25" x2="11.625" y2="10.25" />
+  </g>
+)
 export const FolderIcon = createIcon(
   'Folder',
   'outline',
@@ -344,6 +362,14 @@ export const LoaderIcon = createIcon(
   'outline',
   <g>
     <path d="M14 8 A6 6 0 1 1 8 2" />
+  </g>
+)
+export const MoonZIcon = createIcon(
+  'MoonZ',
+  'outline',
+  <g>
+    <path d="M11.92 9.87 A5 5 0 1 1 6.13 4.08 A4.25 4.25 0 0 0 11.92 9.87 Z" />
+    <path d="M10.25 2.25 L13.25 2.25 L10.25 5.25 L13.25 5.25" />
   </g>
 )
 export const NetworkIcon = createIcon(
@@ -521,6 +547,17 @@ export const TerminalIcon = createIcon(
     <line x1="8" y1="10" x2="11" y2="10" />
   </g>
 )
+export const TrashXIcon = createIcon(
+  'TrashX',
+  'outline',
+  <g>
+    <path d="M12.263 7.25 L12.5 4.25 L3.5 4.25 L4.132 12.255 C4.199 13.099 4.903 13.75 5.75 13.75 L7.25 13.75" />
+    <line x1="2.25" y1="4.25" x2="13.75" y2="4.25" />
+    <path d="M6 4.25 L6 3.25 C6 2.698 6.448 2.25 7 2.25 L9 2.25 C9.552 2.25 10 2.698 10 3.25 L10 4.25" />
+    <line x1="10.5" y1="10.5" x2="14" y2="14" />
+    <line x1="14" y1="10.5" x2="10.5" y2="14" />
+  </g>
+)
 export const TrashIcon = createIcon(
   'Trash',
   'outline',
@@ -530,6 +567,16 @@ export const TrashIcon = createIcon(
     <path d="M6 4.25 L6 3.25 C6 2.698 6.448 2.25 7 2.25 L9 2.25 C9.552 2.25 10 2.698 10 3.25 L10 4.25" />
     <line x1="6.75" y1="7" x2="6.75" y2="11" />
     <line x1="9.25" y1="7" x2="9.25" y2="11" />
+  </g>
+)
+export const UnarchiveIcon = createIcon(
+  'Unarchive',
+  'outline',
+  <g>
+    <rect x="1.75" y="2.75" width="12.5" height="3.5" rx="1" />
+    <path d="M2.75 6.25 L2.75 11.25 C2.75 12.355 3.645 13.25 4.75 13.25 L11.25 13.25 C12.355 13.25 13.25 12.355 13.25 11.25 L13.25 6.25" />
+    <line x1="8" y1="11.5" x2="8" y2="8.25" />
+    <path d="M6.25 10 L8 8.25 L9.75 10" />
   </g>
 )
 export const UploadIcon = createIcon(

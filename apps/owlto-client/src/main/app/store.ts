@@ -6,6 +6,7 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import type { AppSettings, Project, Session } from '../../shared/app.js'
 import {
   defaultAppLogo,
+  defaultExperimentsSettings,
   defaultLayoutSettings,
   projectSchema,
   sessionSchema,
@@ -55,6 +56,7 @@ export class OwltoStore {
           router: defaultRouterSettings,
           memory: defaultMemorySettings,
           layout: defaultLayoutSettings,
+          experiments: defaultExperimentsSettings,
           updateChannel: null,
           pullRequestsVisible: true,
           workspacePath: null,

@@ -9,9 +9,10 @@ import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapNode } from '../../../../shared/worker-map'
 import { WORKSPACE_ID } from '../../../../shared/workspace'
-import { OwlAvatar } from '../../app/OwlAvatar'
+import { DreamingOwl, OwlAvatar } from '../../app/OwlAvatar'
 import { useAppStore } from '../../app/store'
 import { UserAvatar } from '../../app/UserAvatar'
+import { useDreaming } from '../../memory/dreaming'
 import {
   elapsed,
   isWaitingOnUser,
@@ -38,6 +39,7 @@ function routerLine(project: WorkerProject | undefined): string | null {
 }
 function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerProject }) {
   const { t } = useTranslation()
+  const dreaming = useDreaming(project?.router?.id)
   const showChat = useAppStore((s) => s.showChat)
   const record = useAppStore((s) => s.projects.find((p) => p.id === node.projectId))
   const enter = (
@@ -83,13 +85,21 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
         ) : null}
       </span>
       {/* The project's Router speaks on this line, so it carries the Router's owl. */}
-      <span className={busy ? 'map-project-line busy' : 'map-project-line'}>
-        <OwlAvatar speaker="router" working={busy} />
-        <span>
-          {busy ? <LoaderIcon size={12} className="animate-spin" aria-hidden /> : null}
-          {busy ? t('router.working') : (routerLine(project) ?? t('map.notStarted'))}
+      {/* While Dreaming reads the thread, its own owl takes the line. */}
+      {dreaming && !busy ? (
+        <span className="map-project-line dreaming">
+          <DreamingOwl />
+          <span>{t('thread.dreamingShort')}</span>
         </span>
-      </span>
+      ) : (
+        <span className={busy ? 'map-project-line busy' : 'map-project-line'}>
+          <OwlAvatar speaker="router" working={busy} />
+          <span>
+            {busy ? <LoaderIcon size={12} className="animate-spin" aria-hidden /> : null}
+            {busy ? t('router.working') : (routerLine(project) ?? t('map.notStarted'))}
+          </span>
+        </span>
+      )}
       {enter}
     </>
   )

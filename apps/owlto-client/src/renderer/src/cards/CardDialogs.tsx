@@ -117,7 +117,7 @@ function SendCardsForm() {
   const threads = useMemo(
     () =>
       routers
-        .filter((r) => r.itemCount)
+        .filter((r) => r.itemCount && !r.archivedAt)
         .sort(byRecent)
         .slice(0, TARGET_LIMIT),
     [routers]

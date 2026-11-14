@@ -29,6 +29,7 @@ import {
   saveProjectSchema
 } from '../../shared/projects.js'
 import {
+  archiveThreadSchema,
   createThreadSchema,
   forwardSchema,
   owltoProviderSchema,
@@ -107,6 +108,24 @@ export function registerIpc(
   handle('router-send', (input) => host.sendRouter(sendRouterSchema.parse(input)))
   handle('router-forward', (input) => host.forward(forwardSchema.parse(input)))
   handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))
+  handle('router-archive', (input) => host.archiveThread(archiveThreadSchema.parse(input)))
+  handle('router-delete', async (input) => {
+    const routerId = z.string().uuid().parse(input)
+    const chinese = host.snapshot().settings.language === 'zh-CN'
+    const result = await dialog.showMessageBox({
+      type: 'warning',
+      message: chinese ? '彻底删除这个 Thread？' : 'Delete this thread for good?',
+      detail: chinese
+        ? '对话和它的 Worker 记录会被删除，无法恢复。已提交到分支的内容会保留。'
+        : 'Its conversation and worker records are deleted and cannot be restored. Commits on branches are kept.',
+      buttons: chinese ? ['取消', '删除'] : ['Cancel', 'Delete'],
+      defaultId: 0,
+      cancelId: 0
+    })
+    if (result.response !== 1) return false
+    host.deleteThread(routerId)
+    return true
+  })
   handle('router-resolve-batch', (input) => host.resolveBatch(resolveBatchSchema.parse(input)))
   handle('router-discard-worktree', async (input) => {
     const request = workerActionSchema.parse(input)
@@ -165,6 +184,7 @@ export function registerIpc(
   handle('memory-remove', (input) => host.memoryRemove(memoryRemoveSchema.parse(input)))
   handle('memory-category', (input) => host.memoryCategory(memoryCategoryActionSchema.parse(input)))
   handle('memory-run', () => host.memoryRunNow())
+  handle('memory-dream-thread', (input) => host.memoryDreamThread(z.string().uuid().parse(input)))
   handle('memory-runs', () => host.memoryRuns())
   handle('cards-library', () => host.cardLibrary())
   handle('cards-save', (input) => host.cardSave(cardSaveSchema.parse(input)))

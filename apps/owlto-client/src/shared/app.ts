@@ -33,6 +33,7 @@ import {
   type SaveProject
 } from './projects.js'
 import {
+  type ArchiveThread,
   type CreateThread,
   type ForwardMessage,
   type ResolveBatch,
@@ -91,7 +92,8 @@ export const failureSchema = z.object({
     'project_url_invalid',
     'project_exists',
     'project_clone_failed',
-    'avatar_unavailable'
+    'avatar_unavailable',
+    'thread_busy'
   ]),
   message: z.string()
 })
@@ -215,6 +217,13 @@ export const layoutSettingsSchema = z.object({
   rightPanel: rightPanelSchema.catch('projects')
 })
 export type LayoutSettings = z.infer<typeof layoutSettingsSchema>
+/** Features still being tried out; each is off until the user turns it on. */
+export const experimentsSettingsSchema = z.object({
+  /** A thread bar button that starts Dreaming on that thread right away. */
+  manualDreaming: z.boolean().catch(false)
+})
+export type ExperimentsSettings = z.infer<typeof experimentsSettingsSchema>
+export const defaultExperimentsSettings: ExperimentsSettings = { manualDreaming: false }
 export const defaultLayoutSettings: LayoutSettings = {
   sidebarWidth: null,
   projectsWidth: null,
@@ -245,6 +254,8 @@ export const settingsSchema = z.object({
   memory: memorySettingsSchema.default(defaultMemorySettings),
   /** Pane widths and the Projects sidebar; also added after the first release. */
   layout: layoutSettingsSchema.default(defaultLayoutSettings),
+  /** Experimental features; added later, so older rows have them all off. */
+  experiments: experimentsSettingsSchema.default(defaultExperimentsSettings),
   /** Null follows the installed build: a beta build gets beta updates, a stable one stable. */
   updateChannel: updateChannelSchema.nullable().default(null),
   /** Shows the Pull requests page in the sidebar; added later, so older rows show it. */
@@ -316,6 +327,8 @@ export const routerSchema = z.object({
   tokens: z.number().nullable(),
   native: routerNativeSchema.nullable(),
   unknownBatches: z.array(unknownBatchSchema),
+  /** When the user archived it, or null. Archived threads leave the sidebar but keep their items. */
+  archivedAt: z.string().nullable().default(null),
   createdAt: z.string(),
   updatedAt: z.string()
 })
@@ -389,6 +402,8 @@ export type AppEvent =
   | { type: 'session'; session: Session }
   | { type: 'removed'; sessionId: string }
   | { type: 'router'; router: Router }
+  /** A thread the user deleted, with the workers that went with it. */
+  | { type: 'thread-removed'; routerId: string; workerIds: string[] }
   /** Items that changed, in position order. Streaming items carry `rev: null`. */
   | { type: 'thread-items'; routerId: string; items: ThreadItem[] }
   | { type: 'worker'; worker: RouterWorker }
@@ -459,6 +474,9 @@ export interface OwltoAPI {
   /** Resolves to the thread that received the content. */
   forward(input: ForwardMessage): Promise<Reply<Router>>
   interruptRouter(routerId: string): Promise<Reply<void>>
+  archiveThread(input: ArchiveThread): Promise<Reply<void>>
+  /** Asks the user to confirm, then deletes the thread; resolves true once it is gone. */
+  deleteThread(routerId: string): Promise<Reply<boolean>>
   resolveBatch(input: ResolveBatch): Promise<Reply<void>>
   discardWorktree(input: WorkerAction): Promise<Reply<void>>
   stopWorker(input: WorkerAction): Promise<Reply<void>>
@@ -519,6 +537,11 @@ export interface MemoryAPI {
   category(input: MemoryCategoryAction): Promise<Reply<void>>
   /** Starts Dreaming over every thread with new content; resolves once it is queued. */
   runNow(): Promise<Reply<void>>
+  /**
+   * Dreams over one thread now and resolves when that run ends: the run, or null when the
+   * thread has nothing Dreaming has not read. Needs the manual Dreaming experiment.
+   */
+  dreamThread(threadId: string): Promise<Reply<MemoryRun | null>>
   runs(): Promise<Reply<MemoryRun[]>>
   /** Opens a save dialog; resolves to false when the user canceled it. */
   export(format: MemoryExportFormat): Promise<Reply<boolean>>

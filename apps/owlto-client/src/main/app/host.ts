@@ -40,6 +40,7 @@ import type {
   SaveProject
 } from '../../shared/projects.js'
 import type {
+  ArchiveThread,
   CreateThread,
   ForwardMessage,
   ResolveBatch,
@@ -270,6 +271,12 @@ export class OwltoHost {
   interruptRouter(routerId: string): void {
     this.requireRouter().interrupt(routerId)
   }
+  deleteThread(routerId: string): void {
+    this.requireRouter().deleteThread(routerId)
+  }
+  archiveThread(input: ArchiveThread): void {
+    this.requireRouter().archive(input)
+  }
   resolveBatch(input: ResolveBatch): void {
     this.requireRouter().resolveBatch(input)
   }
@@ -352,7 +359,7 @@ export class OwltoHost {
   }
   memoryOverview(): MemoryOverview {
     const { service, dreaming } = this.requireMemory()
-    return service.overview(dreaming.running)
+    return service.overview(dreaming.running, dreaming.activeThreadId)
   }
   memorySave(input: MemorySave): MemoryView {
     return this.requireMemory().service.save(input)
@@ -368,6 +375,12 @@ export class OwltoHost {
     void this.requireMemory()
       .dreaming.runNow()
       .catch(() => {})
+  }
+  /** Dreams over one thread now, for the manual Dreaming experiment. */
+  memoryDreamThread(threadId: string): Promise<MemoryRun | null> {
+    if (!this.snapshot().settings.experiments.manualDreaming)
+      throw new OwltoError('request_unavailable', 'Manual Dreaming is turned off.')
+    return this.requireMemory().dreaming.dreamThread(threadId)
   }
   memoryRuns(): MemoryRun[] {
     return this.requireMemory().service.runs()

@@ -11,6 +11,25 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1400-beta.3
+
+### Highlights
+
+- Archive threads from the sidebar, and manage them in Settings > Archives.
+- Cards are now called Notes.
+- New Experiments page in Settings, starting with a manual Dreaming button.
+
+### Changes
+
+- Threads: archive a thread from the sidebar; Settings > Archives lists archived threads to open, unarchive, or delete for good. (#130)
+- Notes: the Cards feature is now called Notes (笔记) in the app, menus, and README. (#126)
+- Settings: new Experiments page; its first switch adds a thread bar button that sorts the thread into memory right away. (#129)
+- Threads: a sleeping owl animation shows while Dreaming sorts a thread into memory, in the thread, the thread list, and Overview. (#129)
+- Settings: on/off settings use a switch instead of a dropdown. (#129)
+- Router: the chat title bar now lines up with the worker panel head, and the worker conversation follows new messages with a jump-to-latest button when scrolled up. (#127)
+
+### Fixes
+
 ## 2026.11.1400-beta.2
 
 ### Highlights
