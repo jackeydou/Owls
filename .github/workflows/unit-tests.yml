@@ -3,9 +3,18 @@ name: Unit tests
 on:
   workflow_dispatch:
   pull_request:
+    # Docs-only changes cannot affect the build or the tests. Markdown under
+    # apps/ and packages/ is runtime content (skills, plugin docs), so only
+    # repo-level docs are ignored here.
+    paths-ignore:
+      - 'docs/**'
+      - '.changelog/**'
+      - 'release-notes/**'
+      - '.agents/**'
+      - '*.md'
+      - '.github/pull_request_template.md'
   push:
     branches:
-      - develop
       - main
 
 permissions:
@@ -16,10 +25,91 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Typecheck, bundle, and the full test suite. None of it needs macOS: the
+  # tests load the built main bundle, not the native mac-* addons.
   test:
     name: Owls client
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Skip install scripts: the owls-client postinstall rebuilds Electron
+      # native modules (better-sqlite3, node-pty) and downloads Electron, and
+      # the tests use neither. Run the two workspace prepare steps the build
+      # does need.
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm --filter @owls/local-rpc-client --filter @owls/browser-use run prepare
+
+      - name: Typecheck
+        run: pnpm --filter owls-client typecheck
+
+      - name: Build
+        run: pnpm --dir apps/owls-client exec electron-vite build
+
+      - name: Run unit tests
+        working-directory: apps/owls-client
+        run: node --experimental-strip-types --test tests/admin/*.test.mjs
+
+  # Decide whether this change needs the macOS job. macOS arm64 runners are
+  # slower to get and the job adds little for most PRs, so PRs only run it
+  # when native code, packaging scripts, or dependencies change. Pushes to
+  # main and manual runs always run it.
+  changes:
+    name: Detect macOS-relevant changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      macos: ${{ steps.filter.outputs.macos }}
+
+    steps:
+      - name: Match changed files
+        id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename' > "$RUNNER_TEMP/files.txt"
+          pattern='^(packages/mac-[^/]+/|apps/owls-client/scripts/|apps/owls-client/package\.json$|apps/owls-client/electron\.vite\.config\.|apps/owls-client/tests/admin/(dmg-size|mac-signing|packaged-runtime)\.test\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|patches/|\.github/workflows/)'
+          if grep -Eq "$pattern" "$RUNNER_TEMP/files.txt"; then
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+            echo "macOS job runs for:" >> "$GITHUB_STEP_SUMMARY"
+            grep -E "$pattern" "$RUNNER_TEMP/files.txt" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "macos=false" >> "$GITHUB_OUTPUT"
+            echo "No macOS-relevant changes; macOS job skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # Compile the native mac-* addons and run the suite on macOS, including
+  # the DMG test that needs the macOS-only dmg-license package.
+  macos:
+    name: Owls client (macOS)
+    needs: changes
+    if: needs.changes.outputs.macos == 'true'
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
 
     steps:
       - name: Check out repository
@@ -37,5 +127,36 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Read Rust toolchain version
+        id: rust
+        run: echo "version=$(rustc --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+
+      # The addons only change when their Rust sources or manifests do, so a
+      # hit skips the four release builds entirely.
+      - name: Restore native addons
+        id: native-cache
+        uses: actions/cache@v4
+        with:
+          path: packages/mac-*/*.node
+          key: mac-native-${{ runner.os }}-${{ runner.arch }}-rust-${{ steps.rust.outputs.version }}-${{ hashFiles('packages/mac-*/src/**', 'packages/mac-*/build.rs', 'packages/mac-*/Cargo.toml', 'packages/mac-*/Cargo.lock', 'packages/mac-*/package.json', 'packages/mac-*/scripts/**') }}
+
+      - name: Cache Rust dependencies
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            packages/mac-window-list -> target
+            packages/mac-input -> target
+            packages/mac-cursor-overlay -> target
+            packages/mac-process-limits -> target
+
+      - name: Build native addons
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: pnpm -r --filter './packages/mac-*' run build
+
+      - name: Build
+        run: pnpm --dir apps/owls-client exec electron-vite build
+
       - name: Run unit tests
-        run: pnpm test
+        working-directory: apps/owls-client
+        run: node --experimental-strip-types --test tests/admin/*.test.mjs
