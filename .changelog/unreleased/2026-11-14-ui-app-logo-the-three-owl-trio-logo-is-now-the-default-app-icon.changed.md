@@ -1,0 +1,1 @@
+- App logo: the three-owl Trio logo is now the default app icon. (#117)
