@@ -93,11 +93,14 @@ function ReportMessage({
 export function WorkerConversation({
   worker,
   session,
-  projectPath
+  projectPath,
+  onToggleFold
 }: {
   worker: RouterWorker
   session: Session | undefined
   projectPath: string
+  /** Opening or closing the earlier messages, which sit above whatever the user is reading. */
+  onToggleFold?: () => void
 }) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
@@ -139,7 +142,10 @@ export function WorkerConversation({
           type="button"
           className="worker-fold"
           aria-expanded={expanded}
-          onClick={() => setExpanded((open) => !open)}
+          onClick={() => {
+            onToggleFold?.()
+            setExpanded((open) => !open)
+          }}
         >
           <ChevronRightIcon size={14} />
           <span>

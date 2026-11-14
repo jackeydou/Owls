@@ -1,6 +1,32 @@
 /* Worker detail panel: a status icon, a change summary, and one conversation. */
+.worker-panel {
+  position: relative;
+}
 .worker-panel > header {
   border-bottom: 1px solid var(--color-border);
+}
+/* Shown once the user scrolls up from the latest message; a click returns and follows again. */
+.worker-jump {
+  position: absolute;
+  z-index: 5;
+  bottom: 16px;
+  left: 50%;
+  translate: -50% 0;
+  color: var(--color-foreground);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+  animation: worker-jump-in 160ms ease-out;
+  -webkit-app-region: no-drag;
+}
+@keyframes worker-jump-in {
+  from {
+    opacity: 0;
+    translate: -50% 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .worker-jump {
+    animation: none;
+  }
 }
 .worker-state {
   display: inline-flex;
@@ -23,11 +49,16 @@
 .worker-state[data-state="failed"] {
   color: var(--owl-bad);
 }
+/* The branch sits under the head, above its pull request, so the head stays one line. */
 .worker-branch {
-  display: inline-flex;
+  display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 4px;
   min-width: 0;
+  padding: 10px 20px 4px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
 }
 .worker-branch > code {
   overflow: hidden;
@@ -52,6 +83,7 @@
 }
 .worker-changes-toggle {
   display: inline-flex;
+  flex: none;
   align-items: center;
   margin-left: -6px;
   padding: 2px 6px;
@@ -238,7 +270,6 @@
   flex: none;
   align-items: stretch;
   height: 28px;
-  margin-top: 2px;
   padding: 0;
   margin-right: 4px;
   border: 1px solid var(--color-border);

@@ -2,6 +2,7 @@ import { ActionIconButton } from '@renderer/components/ui/action-button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import {
   AlertCircleIcon,
+  ArrowDownIcon,
   CircleCheckIcon,
   CircleDashedIcon,
   CircleMinusIcon,
@@ -23,6 +24,7 @@ import { SaveCardAction } from '../cards/CardActions'
 import { canStop, type WorkerState, workerState, workerTitle } from './activity'
 import { DiffCounts, DiffView } from './DiffView'
 import { diffStats, parseDiff } from './diff'
+import { useFollowScroll } from './follow-scroll'
 import { OpenInButton } from './OpenInButton'
 import { useRouterStore } from './store'
 import { WorkerConversation } from './WorkerConversation'
@@ -74,6 +76,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
   const showChanges = view === 'changes' && changed
   const worktree = worker.workspace.kind === 'worktree' ? worker.workspace.branch : null
   const title = workerTitle(worker)
+  const follow = useFollowScroll(!showChanges)
   return (
     <aside className="router-panel worker-panel" aria-label={title}>
       <header>
@@ -82,36 +85,23 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             <WorkerStateIcon worker={worker} />
             <span>{title}</span>
           </h2>
-          {worktree || changed ? (
-            <small>
-              {changed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="worker-changes-toggle"
-                      aria-pressed={showChanges}
-                      aria-label={t(
-                        showChanges ? 'worker.hideChanges' : 'worker.showChanges',
-                        stats
-                      )}
-                      onClick={() => setView(showChanges ? 'conversation' : 'changes')}
-                    >
-                      <DiffCounts stats={stats} />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    {t(showChanges ? 'worker.hideChanges' : 'worker.showChanges', stats)}
-                  </TooltipContent>
-                </Tooltip>
-              ) : null}
-              {worktree ? (
-                <span className="worker-branch">
-                  <GitBranchIcon size={12} aria-hidden />
-                  <code>{worktree}</code>
-                </span>
-              ) : null}
-            </small>
+          {changed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="worker-changes-toggle"
+                  aria-pressed={showChanges}
+                  aria-label={t(showChanges ? 'worker.hideChanges' : 'worker.showChanges', stats)}
+                  onClick={() => setView(showChanges ? 'conversation' : 'changes')}
+                >
+                  <DiffCounts stats={stats} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {t(showChanges ? 'worker.hideChanges' : 'worker.showChanges', stats)}
+              </TooltipContent>
+            </Tooltip>
           ) : null}
         </div>
         <OpenInButton worker={worker} />
@@ -163,14 +153,42 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
           onClick={() => showPanel(null)}
         />
       </header>
+      {worktree ? (
+        <p className="worker-branch">
+          <GitBranchIcon size={12} aria-hidden />
+          <code>{worktree}</code>
+        </p>
+      ) : null}
       <WorkerGitHub worker={worker} />
-      <div className="router-panel-body">
-        {showChanges ? (
-          <DiffView files={files} projectPath={projectPath} />
-        ) : (
-          <WorkerConversation worker={worker} session={session} projectPath={projectPath} />
-        )}
+      <div
+        className="router-panel-body"
+        ref={follow.scroller}
+        onScroll={follow.onScroll}
+        onWheel={follow.onWheel}
+      >
+        <div ref={follow.content}>
+          {showChanges ? (
+            <DiffView files={files} projectPath={projectPath} />
+          ) : (
+            <WorkerConversation
+              worker={worker}
+              session={session}
+              projectPath={projectPath}
+              onToggleFold={follow.release}
+            />
+          )}
+        </div>
       </div>
+      {follow.away ? (
+        <IconButton
+          variant="outline"
+          className="worker-jump"
+          label={t('worker.jumpToLatest')}
+          tooltip={t('worker.jumpToLatest')}
+          icon={<ArrowDownIcon size={16} />}
+          onClick={follow.jumpToBottom}
+        />
+      ) : null}
     </aside>
   )
 }

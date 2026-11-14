@@ -21,6 +21,9 @@
   --owl-hue-4: oklch(0.58 0.14 355);
   --owl-panel-width: 480px;
   --owl-bar-height: 44px;
+  /* The chat's title bar and the details panel's head, side by side, share this height. Their
+     contents stay centered on the top --owl-bar-height, level with the window controls. */
+  --owl-head-height: 52px;
   --owl-toggle-size: 28px;
   --owl-toggle-left: 10px;
   --owl-toggle-right: 10px;
@@ -466,7 +469,9 @@ html.pane-resizing * {
   padding-bottom: 48px;
 }
 .router-topbar {
+  height: var(--owl-head-height);
   padding-left: 32px;
+  padding-bottom: calc(var(--owl-head-height) - var(--owl-bar-height));
 }
 .router-topbar .owlto-task-title {
   font-size: var(--owl-text-sm);
@@ -1209,23 +1214,29 @@ html.pane-resizing * {
 .router-panel > header {
   display: flex;
   flex-shrink: 0;
-  align-items: flex-start;
+  align-items: center;
   gap: 4px;
-  padding: 6px 12px 12px 20px;
+  height: var(--owl-head-height);
+  padding: 0 12px calc(var(--owl-head-height) - var(--owl-bar-height)) 20px;
   -webkit-app-region: drag;
 }
 .router-panel > header button {
   -webkit-app-region: no-drag;
 }
+/* One line, so the head keeps the title bar's height: the title, then its change counts. */
 .router-panel > header > div {
+  display: flex;
   flex: 1;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
-  padding-top: 6px;
 }
 .router-panel h2 {
   display: flex;
+  flex: 0 1 auto;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   font-size: var(--owl-text-base);
   font-weight: 600;
 }
@@ -1233,14 +1244,6 @@ html.pane-resizing * {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.router-panel header small {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  color: var(--color-muted-foreground);
-  font-size: var(--owl-text-xs);
 }
 .router-github {
   flex-shrink: 0;
