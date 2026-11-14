@@ -9,6 +9,7 @@ import type {
 import type { MemoryProvider, MemoryRun } from '../../shared/memory.js'
 import { dreamingProvider, projectMemoryKindSchema } from '../../shared/memory.js'
 import type { RouterWorker } from '../../shared/router.js'
+import { totalTokens, type UsageEntry } from '../../shared/usage-stats.js'
 import { OwlsError } from '../app/errors.js'
 import type { RouterEngine } from '../router/engine.js'
 import type { InboxEvent } from '../router/events.js'
@@ -53,6 +54,8 @@ export type DreamingDeps = {
   engine: DreamingEngineFactory
   /** Called when a run starts or ends, so the memory tab can follow. */
   changed: () => void
+  /** Keeps the token usage of each run, for the usage page. */
+  recordUsage?: (entry: UsageEntry) => void
   now?: () => Date
 }
 
@@ -244,7 +247,13 @@ export class DreamingRunner {
         {
           item: () => {},
           usage: (usage) => {
-            run.tokens += usage.input + usage.output + usage.cacheRead + usage.cacheWrite
+            run.tokens += totalTokens(usage)
+            this.deps.recordUsage?.({
+              ...usage,
+              agent: provider,
+              role: 'dreaming',
+              projectId: null
+            })
           }
         }
       )

@@ -48,6 +48,7 @@ const api: OwlsAPI = {
   unwatchWorkerGitHub: (input) => ipcRenderer.invoke('owls:github-unwatch-worker', input),
   pullRequests: () => ipcRenderer.invoke('owls:github-pull-requests'),
   agentUsage: (refresh: boolean) => ipcRenderer.invoke('owls:agent-usage', refresh),
+  usageStats: (range) => ipcRenderer.invoke('owls:usage-stats', range),
   onEvent: (listener) => {
     const handler = (_: Electron.IpcRendererEvent, event: AppEvent) => listener(event)
     ipcRenderer.on('owls:event', handler)

@@ -1,7 +1,9 @@
 import type { Failure, SessionItem } from '../../shared/app.js'
 import type { RouterNative } from '../../shared/router.js'
+import type { TurnUsage } from '../../shared/usage-stats.js'
 
-export type RouterUsage = { input: number; output: number; cacheRead: number; cacheWrite: number }
+/** Usage of part of a batch for one model, as the engine reported it. */
+export type RouterUsage = TurnUsage
 
 /** Where an engine reports what the Router view shows while a batch runs. */
 export type RouterSink = {

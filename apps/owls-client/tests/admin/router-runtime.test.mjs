@@ -1728,7 +1728,17 @@ test('the Codex engine runs a locked-down thread, answers tool calls, and resume
       ['assistant', 'Started.']
     ]
   )
-  assert.deepEqual(usage, [{ input: 40, output: 5, cacheRead: 60, cacheWrite: 0 }])
+  assert.deepEqual(usage, [
+    {
+      model: 'gpt-test',
+      input: 40,
+      output: 5,
+      cacheRead: 60,
+      cacheWrite: 0,
+      reasoning: 0,
+      costUsd: null
+    }
+  ])
 
   // Same process: the loaded thread is reused without a resume or a config read.
   await engine.run({ batchId: 'b_2', text: 'More', native: first.native }, sink)

@@ -38,6 +38,7 @@ import {
   threadItemsSchema,
   workerActionSchema
 } from '../../shared/router.js'
+import { usageRangeSchema } from '../../shared/usage-stats.js'
 import type { AppUpdater } from '../updates/updater.js'
 import { macAppIcon } from './app-icon.js'
 import { applyAppLogo } from './app-logo.js'
@@ -154,6 +155,7 @@ export function registerIpc(
   )
   handle('github-pull-requests', () => host.pullRequests())
   handle('agent-usage', (input) => host.usage(z.boolean().parse(input)))
+  handle('usage-stats', (input) => host.usageStats(usageRangeSchema.parse(input)))
   handle('memory-list', (input) => host.memoryList(memoryListSchema.parse(input)))
   handle('memory-overview', () => host.memoryOverview())
   handle('memory-save', (input) => host.memorySave(memorySaveSchema.parse(input)))

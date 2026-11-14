@@ -48,6 +48,7 @@ import {
 } from './router.js'
 import { type UpdateSnapshot, updateChannelSchema } from './updates.js'
 import type { UsageOverview } from './usage.js'
+import type { UsageRange, UsageStats } from './usage-stats.js'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
 export const providerSchema = z.enum(['codex', 'claude-code', 'cursor'])
@@ -450,6 +451,8 @@ export interface OwlsAPI {
   pullRequests(): Promise<Reply<PullRequestOverview>>
   /** Each worker agent's plan usage; `refresh` skips the answer kept from the last minute. */
   agentUsage(refresh: boolean): Promise<Reply<UsageOverview>>
+  /** Token usage recorded on this device over a range, summed for the usage page. */
+  usageStats(range: UsageRange): Promise<Reply<UsageStats>>
   onEvent(listener: (event: AppEvent) => void): () => void
   /** Commands chosen in the native application menu (macOS). */
   onMenuCommand(listener: (command: MenuCommand) => void): () => void

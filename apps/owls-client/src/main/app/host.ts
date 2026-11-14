@@ -50,6 +50,7 @@ import type {
   WorkerAction
 } from '../../shared/router.js'
 import { type UsageOverview, unavailableUsage } from '../../shared/usage.js'
+import type { UsageRange, UsageStats } from '../../shared/usage-stats.js'
 import type { CardService } from '../cards/service.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { CodexService } from '../codex/service.js'
@@ -62,6 +63,7 @@ import type { DreamingTriggers } from '../memory/triggers.js'
 import type { ProjectPullRequests } from '../router/project-pull-requests.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
+import type { UsageLedger } from '../usage/ledger.js'
 import type { AgentRuntime } from './agent-runtime.js'
 import { OwlsError } from './errors.js'
 import { cloneGitHubProject, createQuickProject } from './project-sources.js'
@@ -91,6 +93,7 @@ export class OwlsHost {
     sweeper: MemorySweeper
   } | null = null
   private cards: CardService | null = null
+  private ledger: UsageLedger | null = null
   private readonly runtimes: Record<AgentProvider, AgentRuntime>
   private usageCache: { at: number; value: Promise<UsageOverview>; pending: boolean } | null = null
   constructor(
@@ -108,6 +111,27 @@ export class OwlsHost {
   attachRouter(router: RouterService): void {
     this.router = router
     for (const runtime of Object.values(this.runtimes)) runtime.setTurnProfiles(router)
+  }
+  /** Records every worker turn's token usage, with the project its worker runs in. */
+  attachUsage(ledger: UsageLedger): void {
+    this.ledger = ledger
+    for (const [provider, runtime] of Object.entries(this.runtimes) as [
+      AgentProvider,
+      AgentRuntime
+    ][])
+      runtime.setUsageRecorder((sessionId, usage) => {
+        const worker = this.router?.snapshot().workers.find((w) => w.sessionId === sessionId)
+        ledger.record({
+          ...usage,
+          agent: provider,
+          role: 'worker',
+          projectId: worker?.projectId ?? null
+        })
+      })
+  }
+  usageStats(range: UsageRange): UsageStats {
+    if (!this.ledger) throw new OwlsError('request_unavailable', 'Usage stats are not available.')
+    return this.ledger.stats(range)
   }
   attachGitHub(github: NonNullable<OwlsHost['github']>): void {
     this.github = github

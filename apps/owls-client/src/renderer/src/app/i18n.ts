@@ -6,6 +6,7 @@ import { pullsEn, pullsZh } from '../pulls/i18n'
 import { routerEn, routerZh } from '../router/i18n'
 import { updatesEn, updatesZh } from '../updates/i18n'
 import { usageEn, usageZh } from '../usage/i18n'
+import { usageStatsEn, usageStatsZh } from '../usage/stats-i18n'
 import { projectSettingsEn, projectSettingsZh } from './i18n-project-settings'
 
 const en = {
@@ -366,7 +367,8 @@ void i18next.use(initReactI18next).init({
         ...memoryEn,
         ...projectSettingsEn,
         ...updatesEn,
-        ...usageEn
+        ...usageEn,
+        ...usageStatsEn
       }
     },
     'zh-CN': {
@@ -378,7 +380,8 @@ void i18next.use(initReactI18next).init({
         ...memoryZh,
         ...projectSettingsZh,
         ...updatesZh,
-        ...usageZh
+        ...usageZh,
+        ...usageStatsZh
       }
     }
   },

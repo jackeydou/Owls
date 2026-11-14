@@ -5,6 +5,7 @@ import { inputStream } from '../../claude/input.js'
 import { toolResultText } from '../../claude/normalize.js'
 import type { ClaudeSdk } from '../../claude/service.js'
 import { record, recordSchema, safeText, string } from '../../codex/protocol.js'
+import { claudeResultUsage } from '../../usage/turn-usage.js'
 import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
 import { type RouterTool, toolErrorText } from '../tools.js'
 
@@ -96,7 +97,7 @@ export class ClaudeEngine implements RouterEngine {
           // A message steered in after the model finished starts one more turn,
           // so keep reading until the CLI exits; the last result decides.
           run.input.close()
-          usage(sink, message.usage)
+          for (const entry of claudeResultUsage(message)) sink.usage(entry)
           const succeeded = message.subtype === 'success' && !message.is_error
           const detail = message.subtype === 'success' ? message.result : message.errors.join('\n')
           lost = !succeeded && Boolean(resumed) && LOST_SESSION.test(detail)
@@ -258,17 +259,6 @@ function toolItem(id: string, name: string, input: unknown, turnId: string): Ses
     detail: safeText(JSON.stringify(input ?? {})).slice(0, 4000),
     turnId
   }
-}
-
-function usage(sink: RouterSink, raw: unknown): void {
-  const value = recordSchema.catch({}).parse(raw)
-  const number = (key: string) => (typeof value[key] === 'number' ? value[key] : 0)
-  sink.usage({
-    input: number('input_tokens'),
-    output: number('output_tokens'),
-    cacheRead: number('cache_read_input_tokens'),
-    cacheWrite: number('cache_creation_input_tokens')
-  })
 }
 
 function failure(detail: string): Failure {

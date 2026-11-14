@@ -8,6 +8,7 @@ import type {
   Session
 } from '../../shared/app.js'
 import type { AgentUsage } from '../../shared/usage.js'
+import type { TurnUsage } from '../../shared/usage-stats.js'
 import type { TurnProfiles } from '../router/service.js'
 import { OwlsError } from './errors.js'
 
@@ -35,6 +36,9 @@ export function sessionCwd(
   return resolved
 }
 
+/** Receives the token usage a worker session's turn reported, one call per model. */
+export type WorkerUsageRecorder = (sessionId: string, usage: TurnUsage) => void
+
 /**
  * What the host needs from each worker provider's runtime. A session belongs to
  * the runtime that created it for its whole life.
@@ -44,6 +48,8 @@ export interface AgentRuntime {
   connectionState(): AgentConnection
   hasActiveTasks(): boolean
   setTurnProfiles(profiles: TurnProfiles): void
+  /** Where the runtime reports each turn's token usage. */
+  setUsageRecorder(recorder: WorkerUsageRecorder): void
   /** The account's plan usage, in the agent's own terms, or why it cannot report any. */
   usage(): AgentUsage | Promise<AgentUsage>
   /** `place` marks a session outside a project's own folder; see `SessionPlace`. */

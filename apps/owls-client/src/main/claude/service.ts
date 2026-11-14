@@ -22,7 +22,8 @@ import type {
   SessionItem
 } from '../../shared/app.js'
 import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
-import { type SessionPlace, sessionCwd } from '../app/agent-runtime.js'
+import { totalTokens } from '../../shared/usage-stats.js'
+import { type SessionPlace, sessionCwd, type WorkerUsageRecorder } from '../app/agent-runtime.js'
 import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
 import { record, recordSchema, safeText, string } from '../codex/protocol.js'
@@ -33,6 +34,7 @@ import {
   REPORT_TOOL_SCHEMA
 } from '../router/report.js'
 import type { TurnProfile, TurnProfiles } from '../router/service.js'
+import { claudeResultUsage } from '../usage/turn-usage.js'
 import { discoverClaudeExecutable } from './discovery.js'
 import { type InputStream, inputStream } from './input.js'
 import {
@@ -106,6 +108,7 @@ export class ClaudeService {
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private connecting: Promise<ClaudeConnection> | null = null
   private profiles: TurnProfiles | null = null
+  private recordUsage: WorkerUsageRecorder = () => {}
   private closed = false
   private connection: ClaudeConnection = {
     status: 'disconnected',
@@ -141,6 +144,9 @@ export class ClaudeService {
   /** Lets the Router give each worker turn its instructions and report format. */
   setTurnProfiles(profiles: TurnProfiles): void {
     this.profiles = profiles
+  }
+  setUsageRecorder(recorder: WorkerUsageRecorder): void {
+    this.recordUsage = recorder
   }
   owns(sessionId: string): boolean {
     return this.sessions.has(sessionId)
@@ -463,16 +469,9 @@ export class ClaudeService {
         if (message.parent_tool_use_id === null) this.applyToolResults(session, message.message)
         return
       case 'result': {
-        const usage = record(message.usage)
-        const tokens = [
-          'input_tokens',
-          'output_tokens',
-          'cache_read_input_tokens',
-          'cache_creation_input_tokens'
-        ]
-          .map((key) => (typeof usage[key] === 'number' ? usage[key] : 0))
-          .reduce((sum, value) => sum + value, 0)
-        session.tokens = (session.tokens ?? 0) + tokens
+        const usage = claudeResultUsage(message)
+        session.tokens = usage.reduce((sum, entry) => sum + totalTokens(entry), session.tokens ?? 0)
+        for (const entry of usage) this.recordUsage(session.id, entry)
         const succeeded = message.subtype === 'success' && !message.is_error
         const status = succeeded ? 'idle' : runtime.cancelled ? 'interrupted' : 'failed'
         if (message.subtype === 'success') {

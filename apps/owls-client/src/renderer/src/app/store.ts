@@ -69,6 +69,8 @@ export type SettingsTab =
   /** The Router and the defaults it gives new workers. */
   | 'router'
   | 'memory'
+  /** Token usage recorded on this device. */
+  | 'usage'
   | 'github'
   | 'appearance'
   | 'updates'

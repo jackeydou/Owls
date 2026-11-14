@@ -12,7 +12,7 @@ import type {
   Session
 } from '../../shared/app.js'
 import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
-import { type SessionPlace, sessionCwd } from '../app/agent-runtime.js'
+import { type SessionPlace, sessionCwd, type WorkerUsageRecorder } from '../app/agent-runtime.js'
 import { OwlsError, toFailure } from '../app/errors.js'
 import type { OwlsStore } from '../app/store.js'
 import { turnDiff } from '../claude/normalize.js'
@@ -80,7 +80,21 @@ const sessionResultSchema = z.object({
   sessionId: z.string().min(1).optional(),
   modes: modesSchema
 })
-const promptResultSchema = z.object({ stopReason: z.string() })
+const count = z.number().nonnegative().catch(0)
+const promptResultSchema = z.object({
+  stopReason: z.string(),
+  // ACP's draft usage field; sent only by agents that support it.
+  usage: z
+    .object({
+      inputTokens: count,
+      outputTokens: count,
+      thoughtTokens: count.nullish(),
+      cachedReadTokens: count.nullish(),
+      cachedWriteTokens: count.nullish()
+    })
+    .nullish()
+    .catch(null)
+})
 const notificationSchema = z.object({
   sessionId: z.string(),
   update: z.object({ sessionUpdate: z.string() }).loose()
@@ -126,6 +140,7 @@ export class CursorService {
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private connecting: Promise<CursorConnection> | null = null
   private profiles: TurnProfiles | null = null
+  private recordUsage: WorkerUsageRecorder = () => {}
   private closed = false
   private connection: CursorConnection = {
     status: 'disconnected',
@@ -160,6 +175,9 @@ export class CursorService {
   /** Lets the Router give each worker turn its instructions and report format. */
   setTurnProfiles(profiles: TurnProfiles): void {
     this.profiles = profiles
+  }
+  setUsageRecorder(recorder: WorkerUsageRecorder): void {
+    this.recordUsage = recorder
   }
   owns(sessionId: string): boolean {
     return this.sessions.has(sessionId)
@@ -375,13 +393,28 @@ export class CursorService {
       if (runtime.cancelled) return
       const prompt =
         instructions && !('systemPrompt' in systemPrompt) ? `${instructions}\n\n${text}` : text
-      stopReason = promptResultSchema.parse(
+      const result = promptResultSchema.parse(
         await connection.request(
           'session/prompt',
           { sessionId: runtime.acpSessionId, prompt: [{ type: 'text', text: prompt }] },
           null
         )
-      ).stopReason
+      )
+      stopReason = result.stopReason
+      if (result.usage) {
+        const cacheRead = result.usage.cachedReadTokens ?? 0
+        const cacheWrite = result.usage.cachedWriteTokens ?? 0
+        this.recordUsage(session.id, {
+          model: session.model,
+          // ACP counts cached tokens inside the input total.
+          input: Math.max(0, result.usage.inputTokens - cacheRead - cacheWrite),
+          output: result.usage.outputTokens,
+          cacheRead,
+          cacheWrite,
+          reasoning: result.usage.thoughtTokens ?? 0,
+          costUsd: null
+        })
+      }
     } catch (error) {
       if (this.runtimes.get(session.id) === runtime && !runtime.cancelled) {
         const failure = this.failure(error, 'cursor_disconnected')
