@@ -1,4 +1,5 @@
 import { flushSync } from 'react-dom'
+import { WORKSPACE_ID } from '../../../shared/workspace'
 
 /** The app's ease-out curve, shared with the map's CSS transitions. */
 export const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)'
@@ -14,11 +15,10 @@ const SMALL_RADIUS = '60px'
 /** The project's node, relative to the stage both views fill. */
 function projectRect(projectId: string | null): Rect | null {
   const stage = document.querySelector('.router-stage')?.getBoundingClientRect()
-  const node =
-    projectId &&
-    document
-      .querySelector(`[data-node="${CSS.escape(`project:${projectId}`)}"]`)
-      ?.getBoundingClientRect()
+  // A thread with no default project is the Workspace's.
+  const node = document
+    .querySelector(`[data-node="${CSS.escape(`project:${projectId ?? WORKSPACE_ID}`)}"]`)
+    ?.getBoundingClientRect()
   if (!stage || !node) return null
   return { x: node.x - stage.x, y: node.y - stage.y, width: node.width, height: node.height }
 }

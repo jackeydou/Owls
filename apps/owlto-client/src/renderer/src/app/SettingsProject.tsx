@@ -1,3 +1,4 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { ChevronDownIcon, ChevronRightIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
@@ -12,10 +13,12 @@ import {
   type ProjectInstructions,
   type ProjectSettings
 } from '../../../shared/projects'
+import { isWithin, normalizePath } from '../../../shared/workspace'
 import { DraftText } from './DraftText'
 import { ProjectIconSetting } from './ProjectIconSetting'
 import { SettingRow } from './SettingRow'
 import { useAppStore } from './store'
+import { useWorkspaceStore } from './workspace'
 
 /** Saves a change to one project, merging it into the project as it is now. */
 function useProjectSaver(project: Project) {
@@ -71,7 +74,32 @@ function GeneralPage({ project }: { project: Project }) {
           />
         }
       />
+      <MergeBackRow project={project} />
     </section>
+  )
+}
+
+/** For a project made from a workspace folder: hands the folder and its work back to the Workspace. */
+function MergeBackRow({ project }: { project: Project }) {
+  const { t } = useTranslation()
+  const root = useWorkspaceStore((s) => s.listing?.root ?? null)
+  const refresh = useWorkspaceStore((s) => s.refresh)
+  const mergeBack = useWorkspaceStore((s) => s.mergeBack)
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+  if (!root || normalizePath(project.path) === normalizePath(root) || !isWithin(project.path, root))
+    return null
+  return (
+    <SettingRow label={t('workspace.mergeBackTitle')} description={t('workspace.mergeBackBody')}>
+      <ActionButton
+        size="sm"
+        variant="outline"
+        onAction={async () => ((await mergeBack(project.id)) ? 'done' : 'quiet')}
+      >
+        {t('workspace.mergeBack')}
+      </ActionButton>
+    </SettingRow>
   )
 }
 

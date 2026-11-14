@@ -35,6 +35,8 @@ export type UsageEntry = TurnUsage & {
   agent: UsageAgent
   role: UsageRole
   projectId: string | null
+  /** The worker whose turn this was; null for the Router and Dreaming. */
+  workerId: string | null
 }
 
 export type UsageTotals = TokenCounts & {

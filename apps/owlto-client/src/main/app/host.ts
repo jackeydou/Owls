@@ -52,6 +52,8 @@ import type {
 } from '../../shared/router.js'
 import { type UsageOverview, unavailableUsage } from '../../shared/usage.js'
 import type { UsageStats, UsageStatsRequest } from '../../shared/usage-stats.js'
+import { isInPlay } from '../../shared/worker-map.js'
+import { type WorkspaceListing, workerHome } from '../../shared/workspace.js'
 import type { CardService } from '../cards/service.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { CodexService } from '../codex/service.js'
@@ -69,6 +71,12 @@ import type { AgentRuntime } from './agent-runtime.js'
 import { OwltoError } from './errors.js'
 import type { UserProfile } from './profile.js'
 import { cloneGitHubProject, createQuickProject } from './project-sources.js'
+import {
+  isWorkspaceProject,
+  listWorkspaceFolders,
+  realWorkspace,
+  workspaceChild
+} from './workspace-folders.js'
 
 const USAGE_TTL_MS = 60_000
 const USAGE_ORDER: AgentProvider[] = ['claude-code', 'codex', 'cursor']
@@ -128,13 +136,20 @@ export class OwltoHost {
           ...usage,
           agent: provider,
           role: 'worker',
-          projectId: worker?.projectId ?? null
+          projectId: worker?.projectId ?? null,
+          workerId: worker?.id ?? null
         })
       })
   }
   usageStats({ range, agent }: UsageStatsRequest): UsageStats {
     if (!this.ledger) throw new OwltoError('request_unavailable', 'Usage stats are not available.')
-    return this.ledger.stats(range, agent)
+    const workers = new Map(this.router?.snapshot().workers.map((w) => [w.id, w]))
+    const { projects } = this.codex.snapshot()
+    const workspace = realWorkspace(this.workspaceFolder())
+    return this.ledger.stats(range, agent, (workerId) => {
+      const worker = workers.get(workerId)
+      return worker ? workerHome(worker, projects, workspace) : null
+    })
   }
   attachGitHub(github: NonNullable<OwltoHost['github']>): void {
     this.github = github
@@ -433,6 +448,43 @@ export class OwltoHost {
   /** Saves the workspace folder; null goes back to the default. */
   setWorkspaceFolder(path: string | null): AppSettings {
     return this.saveSettings({ ...this.codex.snapshot().settings, workspacePath: path })
+  }
+  /** The workspace's top-level folders, for the Workspace page and the promote prompt. */
+  async workspaceListing(): Promise<WorkspaceListing> {
+    const { projects, settings } = this.codex.snapshot()
+    const workspace = this.workspaceFolder()
+    return {
+      root: realWorkspace(workspace),
+      folders: await listWorkspaceFolders(workspace, projects, settings.workspaceDismissed)
+    }
+  }
+  /** Registers a top-level workspace folder as its own project. */
+  async promoteWorkspaceFolder(path: string): Promise<Project> {
+    return this.addProject(await workspaceChild(this.workspaceFolder(), path))
+  }
+  /** Stops offering to make a workspace repository a project. */
+  async dismissWorkspaceFolder(path: string): Promise<AppSettings> {
+    const folder = await workspaceChild(this.workspaceFolder(), path)
+    const settings = this.codex.snapshot().settings
+    const dismissed = [...new Set([...settings.workspaceDismissed, folder])].sort()
+    return this.saveSettings({ ...settings, workspaceDismissed: dismissed })
+  }
+  /**
+   * Forgets a project inside the workspace, so its folder and work count under
+   * the workspace again. Refused while any of its workers is still in play.
+   */
+  mergeIntoWorkspace(projectId: string): void {
+    const project = this.codex.snapshot().projects.find((p) => p.id === projectId)
+    if (!project) throw new OwltoError('project_required', 'This project no longer exists.')
+    if (!isWorkspaceProject(this.workspaceFolder(), project))
+      throw new OwltoError(
+        'project_required',
+        'Only projects inside the workspace can be merged back.'
+      )
+    const workers = this.router?.snapshot().workers ?? []
+    if (workers.some((w) => w.projectId === projectId && isInPlay(w)))
+      throw new OwltoError('busy', 'Wait for the tasks in this project to finish first.')
+    this.codex.removeProject(projectId)
   }
   async cloneProject(input: CloneProject): Promise<Project> {
     return this.addProject(await cloneGitHubProject(input, this.projectsHome))

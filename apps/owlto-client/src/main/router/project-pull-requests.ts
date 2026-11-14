@@ -5,6 +5,7 @@ import type {
   PullRequestOverview
 } from '../../shared/github.js'
 import type { RouterWorker, WorkerPullRequestLink } from '../../shared/router.js'
+import { workerHome } from '../../shared/workspace.js'
 import type { GitHubHttp } from '../github/auth.js'
 import {
   type GitHubRepository,
@@ -20,6 +21,8 @@ import type { WorkerRemoteBranch } from './worktrees.js'
 export type ProjectPullRequestsHost = {
   projects(): Project[]
   workers(): RouterWorker[]
+  /** The workspace folder, for which project a workspace worker counts under (`workerHome`). */
+  workspace(): string
   /** The URL of the remote a project's workers push to; null without one. */
   projectRemoteUrl(project: Project): Promise<string | null>
   remoteBranch(workerId: string): Promise<WorkerRemoteBranch | null>
@@ -67,13 +70,16 @@ export class ProjectPullRequests {
     const token = await this.auth.token()
     if (!token) return { kind: 'signed-out' }
     const workers = this.host.workers()
+    const listed = this.host.projects()
+    const workspace = this.host.workspace()
+    const homes = new Map(workers.map((w) => [w.id, workerHome(w, listed, workspace)]))
     try {
       const projects = await Promise.all(
-        this.host.projects().map(async (project) => ({
+        listed.map(async (project) => ({
           projectId: project.id,
           status: await this.project(
             project,
-            workers.filter((w) => w.projectId === project.id),
+            workers.filter((w) => homes.get(w.id) === project.id),
             token
           )
         }))

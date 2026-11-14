@@ -8,6 +8,13 @@ export {
 } from '../../shared/pull-request-list.js'
 export { ROUTER_INSTRUCTIONS } from '../../shared/router-instructions.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'
+export {
+  isWithin,
+  normalizePath,
+  promotableFolders,
+  WORKSPACE_ID,
+  workerHome
+} from '../../shared/workspace.js'
 export { CardService } from '../cards/service.js'
 export { CardStore } from '../cards/store.js'
 export { discoverClaudeExecutable } from '../claude/discovery.js'
@@ -84,3 +91,8 @@ export { bundleIconFile, OPEN_IN_CATALOG, OpenInApps } from './open-in.js'
 export { UserProfile } from './profile.js'
 export { cloneGitHubProject, createQuickProject } from './project-sources.js'
 export { OwltoStore } from './store.js'
+export {
+  isWorkspaceProject,
+  listWorkspaceFolders,
+  workspaceChild
+} from './workspace-folders.js'

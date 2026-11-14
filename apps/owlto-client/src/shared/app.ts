@@ -51,6 +51,7 @@ import {
 import { type UpdateSnapshot, updateChannelSchema } from './updates.js'
 import type { UsageOverview } from './usage.js'
 import type { UsageStats, UsageStatsRequest } from './usage-stats.js'
+import type { WorkspaceListing } from './workspace.js'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
 export const providerSchema = z.enum(['codex', 'claude-code', 'cursor'])
@@ -264,6 +265,11 @@ export const settingsSchema = z.object({
    * `~/Owlto/Workspace`; added later, so older rows get it.
    */
   workspacePath: z.string().nullable().default(null),
+  /**
+   * Workspace folders whose "make this repository a project" prompt the user
+   * dismissed, by path; added later. Saved only through `dismissWorkspaceFolder`.
+   */
+  workspaceDismissed: z.array(z.string()).catch([]).default([]),
   /** The app "Open in" uses; null picks the first installed editor. Added later. */
   openInApp: openInAppIdSchema.nullable().catch(null).default(null),
   /** The user's name and avatar; added later, and saved only through `saveProfile`. */
@@ -282,6 +288,7 @@ export const settingsUpdateSchema = settingsSchema
     claudeExecutablePath: true,
     cursorExecutablePath: true,
     workspacePath: true,
+    workspaceDismissed: true,
     profile: true
   })
   .strict()
@@ -446,6 +453,14 @@ export interface OwltoAPI {
   selectWorkspaceFolder(): Promise<Reply<AppSettings | null>>
   /** Goes back to the default workspace folder. */
   resetWorkspaceFolder(): Promise<Reply<AppSettings>>
+  /** The workspace's real path and top-level folders. */
+  workspaceListing(): Promise<Reply<WorkspaceListing>>
+  /** Registers a top-level workspace folder as its own project. */
+  promoteWorkspaceFolder(path: string): Promise<Reply<Project>>
+  /** Stops offering to make a workspace repository a project. */
+  dismissWorkspaceFolder(path: string): Promise<Reply<AppSettings>>
+  /** Forgets a project inside the workspace, so its work counts under the workspace again. */
+  mergeIntoWorkspace(projectId: string): Promise<Reply<void>>
   cloneProject(input: CloneProject): Promise<Reply<Project>>
   createProject(input: CreateProject): Promise<Reply<Project>>
   /** Saves a project's name and settings; resolves to the saved project. */

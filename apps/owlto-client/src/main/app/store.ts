@@ -60,6 +60,7 @@ export class OwltoStore {
           updateChannel: null,
           pullRequestsVisible: true,
           workspacePath: null,
+          workspaceDismissed: [],
           openInApp: null,
           profile: defaultProfile
         }
@@ -121,6 +122,13 @@ export class OwltoStore {
         .onConflictDoUpdate({ target: projectsTable.id, set: { value: project } })
         .run()
       logChange(tx, 'project', project.id)
+    })
+  }
+  /** Forgets a project; its folder and the work done there stay. */
+  deleteProject(projectId: string): void {
+    this.db.transaction((tx) => {
+      tx.delete(projectsTable).where(eq(projectsTable.id, projectId)).run()
+      logChange(tx, 'project', projectId)
     })
   }
   acceptCommand(id: string, sessionId: string, text: string): boolean {

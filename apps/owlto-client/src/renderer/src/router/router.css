@@ -1644,3 +1644,41 @@ html.pane-resizing * {
   height: 100%;
   object-fit: cover;
 }
+.owlto-project-icon.workspace {
+  display: inline-grid;
+  place-items: center;
+}
+/* The offer to make a workspace repository its own project: one quiet line under the Workspace. */
+.router-workspace-prompt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px 36px;
+  padding: 4px 4px 4px 8px;
+  border-radius: var(--owl-radius-xs);
+  background: var(--color-sidebar-hover);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.router-workspace-prompt > svg {
+  flex-shrink: 0;
+}
+.router-workspace-prompt > span {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+.router-workspace-promote {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 6px;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-xs);
+}
+.router-workspace-dismiss {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-muted-foreground);
+}

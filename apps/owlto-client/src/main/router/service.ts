@@ -785,7 +785,8 @@ export class RouterService implements TurnProfiles {
           agent: batch.engine,
           role: 'router',
           // Threads are global; only workers belong to a project.
-          projectId: null
+          projectId: null,
+          workerId: null
         })
       }
     }

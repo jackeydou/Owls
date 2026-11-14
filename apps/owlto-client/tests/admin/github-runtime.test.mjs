@@ -615,6 +615,7 @@ function overviewFor({ workers, remotes, branches = {}, http, token = 't', metho
     {
       projects: () => Object.keys(remotes).map((id) => project(id, `/p/${id}`)),
       workers: () => workers,
+      workspace: () => '/workspace',
       projectRemoteUrl: async (p) => remotes[p.id],
       remoteBranch: async (id) => branches[id] ?? null,
       linkPullRequest: (id, link) => links.push({ id, ...link })

@@ -8,6 +8,7 @@ import {
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapNode } from '../../../../shared/worker-map'
+import { WORKSPACE_ID } from '../../../../shared/workspace'
 import { DreamingOwl, OwlAvatar } from '../../app/OwlAvatar'
 import { useAppStore } from '../../app/store'
 import { UserAvatar } from '../../app/UserAvatar'
@@ -26,6 +27,7 @@ import {
 import { ProjectIcon } from '../ProjectIcon'
 import { useRouterStore } from '../store'
 import { WorkerAvatar } from '../WorkerLink'
+import { WorkspaceIcon } from '../WorkspaceIcon'
 import type { WorkerProject } from './projects'
 
 type WorkerNode = Extract<MapNode, { kind: 'worker' }>
@@ -51,7 +53,12 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
       <ArrowRightIcon size={12} aria-hidden />
     </button>
   )
-  const icon = record ? <ProjectIcon project={record} /> : null
+  const icon =
+    node.projectId === WORKSPACE_ID ? (
+      <WorkspaceIcon />
+    ) : record ? (
+      <ProjectIcon project={record} />
+    ) : null
   if (!project || node.quiet)
     return (
       <>

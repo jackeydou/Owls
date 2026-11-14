@@ -204,6 +204,12 @@ export class CodexService {
     this.store.saveProject(project)
     return project
   }
+  /** Forgets a project. Callers check that nothing still runs in it. */
+  removeProject(projectId: string): void {
+    if (!this.store.projects().some((p) => p.id === projectId))
+      throw new OwltoError('project_required', 'This project no longer exists.')
+    this.store.deleteProject(projectId)
+  }
   /**
    * `place` marks a worker session in a worktree of a registered project or in
    * the workspace folder (`SessionPlace`).

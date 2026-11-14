@@ -548,6 +548,91 @@
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
 }
+.owlto-settings-project[aria-current="true"] > b {
+  box-shadow: inset 0 0 0 1.5px var(--owl-c);
+}
+/* The Workspace page's folders: name, tags, and one action per row. */
+.owlto-workspace-folders {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+}
+.owlto-workspace-folder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 8px 6px 12px;
+}
+.owlto-workspace-folder + .owlto-workspace-folder {
+  border-top: 1px solid var(--color-border);
+}
+.owlto-workspace-folder-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 6px;
+  margin-left: -6px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+  text-align: left;
+}
+.owlto-workspace-folder-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.owlto-workspace-folder-name > svg {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+}
+button.owlto-workspace-folder-name:hover {
+  background: var(--color-sidebar-hover);
+}
+.owlto-workspace-folder-name > b {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--owl-radius-xs);
+  background: var(--color-sidebar-active);
+  font-size: var(--owl-text-2xs);
+  font-weight: 600;
+}
+.owlto-workspace-folder-tags {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.owlto-workspace-folder-tags em {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--owl-radius-xs);
+  background: var(--color-sidebar-hover);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-style: normal;
+}
+.owlto-workspace-folder-tags em.project {
+  background: color-mix(in srgb, var(--owl-run) 14%, transparent);
+  color: var(--color-foreground);
+}
+.owlto-workspace-empty {
+  margin-top: 8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
 /* Archived threads: one compact line each, title and date together, icon actions at the end. */
 .owlto-archived-list {
   display: flex;
