@@ -56,6 +56,14 @@ export const AlertCircleIcon = createIcon(
     <circle cx="8" cy="11.15" r="0.825" fill="currentColor" stroke="none" />
   </g>
 )
+export const ArrowDownIcon = createIcon(
+  'ArrowDown',
+  'outline',
+  <g transform="rotate(90 8 8)">
+    <line x1="2.75" y1="8" x2="13.25" y2="8" />
+    <path d="M8.5 3.25 L13.25 8 L8.5 12.75" />
+  </g>
+)
 export const ArrowLeftIcon = createIcon(
   'ArrowLeft',
   'outline',
