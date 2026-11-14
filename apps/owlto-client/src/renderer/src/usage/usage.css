@@ -1,0 +1,184 @@
+/* Each agent's meters use its own brand color: Claude's clay, Codex's graphite, Cursor's periwinkle. */
+.owlto-usage-agent[data-provider="claude-code"],
+.owlto-usage-summary-row[data-provider="claude-code"] {
+  --owlto-usage-brand: #d97757;
+}
+.owlto-usage-agent[data-provider="codex"],
+.owlto-usage-summary-row[data-provider="codex"] {
+  --owlto-usage-brand: #1f2023;
+}
+.owlto-usage-agent[data-provider="cursor"],
+.owlto-usage-summary-row[data-provider="cursor"] {
+  --owlto-usage-brand: #7c8cff;
+}
+html[data-theme="dark"] .owlto-usage-agent[data-provider="codex"],
+html[data-theme="dark"] .owlto-usage-summary-row[data-provider="codex"] {
+  --owlto-usage-brand: #ececec;
+}
+
+.owlto-usage {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  max-height: calc(100vh - 24px);
+}
+.owlto-usage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 10px 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.owlto-usage-head h2 {
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+}
+.owlto-usage-head p {
+  margin-top: 1px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+.owlto-usage-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.owlto-usage-list[aria-busy="true"] {
+  opacity: 0.7;
+  transition: opacity 150ms;
+}
+.owlto-usage-status {
+  padding: 18px 14px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.owlto-usage-agent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px 12px;
+}
+.owlto-usage-agent + .owlto-usage-agent {
+  border-top: 1px solid var(--color-border);
+}
+.owlto-usage-agent > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.owlto-usage-agent > header .owlto-owl-avatar {
+  width: 22px;
+  height: 22px;
+}
+.owlto-usage-agent h3 {
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+}
+.owlto-usage-plan {
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-weight: 500;
+}
+.owlto-usage-meters {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.owlto-usage-meters > p,
+.owlto-usage-unavailable > p {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: 1.45;
+}
+.owlto-usage-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.owlto-usage-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* Nearly spent windows call out the number; the bar keeps the agent's color. */
+.owlto-usage-meter[data-high] .owlto-usage-meter-head > span:last-child {
+  color: var(--color-destructive);
+}
+.owlto-usage-meter-head,
+.owlto-usage-meter-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.owlto-usage-meter-head {
+  font-size: var(--owl-text-xs);
+}
+.owlto-usage-meter-head > span:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.owlto-usage-meter-foot {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+.owlto-usage-bar {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--owlto-usage-brand) 16%, transparent);
+}
+.owlto-usage-bar > span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--owlto-usage-brand);
+  transition: width 300ms ease;
+}
+.owlto-usage-note {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+
+/* The hover card above the sidebar's Usage entry: one compact line per agent. */
+.owlto-usage-peek {
+  width: 220px;
+  padding: 8px 10px 9px;
+}
+.owlto-usage-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.owlto-usage-summary-title {
+  font-weight: 600;
+}
+.owlto-usage-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+.owlto-usage-summary-row .owlto-owl-avatar {
+  width: 14px;
+  height: 14px;
+}
+.owlto-usage-summary-row > .owlto-usage-bar {
+  flex: 1;
+  height: 4px;
+}
+.owlto-usage-summary-row > span:last-child {
+  width: 30px;
+  text-align: right;
+}
+.owlto-usage-summary-row[data-high] > span:last-child {
+  color: var(--color-destructive);
+}

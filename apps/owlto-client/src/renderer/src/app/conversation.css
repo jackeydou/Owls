@@ -1,0 +1,386 @@
+.owlto-user-message {
+  width: fit-content;
+  max-width: 88%;
+  margin: 6px 0 32px auto;
+  padding: 12px 16px;
+  border-radius: var(--owl-radius-xl) var(--owl-radius-xl) 4px var(--owl-radius-xl);
+  background: var(--color-card-muted);
+  white-space: pre-wrap;
+  line-height: var(--owl-leading-relaxed);
+  font-size: var(--owl-text-base);
+  overflow-wrap: anywhere;
+}
+.owlto-assistant-message {
+  margin: 20px 0 28px;
+}
+.owlto-message-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+}
+.owlto-owl-avatar {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+/* One row of frames slides past; OwlSprite sets the size, duration, and step count. */
+.owlto-owl-sprite {
+  display: inline-block;
+  flex: none;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  animation-name: owlto-owl-sprite;
+  animation-iteration-count: infinite;
+}
+@keyframes owlto-owl-sprite {
+  to {
+    background-position-x: var(--owl-shift);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .owlto-owl-sprite {
+    animation: none;
+  }
+}
+.owlto-markdown {
+  line-height: var(--owl-leading-relaxed);
+  font-size: var(--owl-text-base);
+  overflow-wrap: anywhere;
+}
+/* Links read as blue text without an underline; the popover asks before leaving the app. */
+.owlto-markdown .owlto-markdown-link {
+  color: var(--owl-link);
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+.owlto-markdown .owlto-markdown-link:hover,
+.owlto-markdown .owlto-markdown-link[data-open] {
+  color: var(--owl-link-hover);
+}
+.owlto-markdown .owlto-markdown-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--owl-link) 45%, transparent);
+  outline-offset: 1px;
+}
+.owlto-link-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 10px 10px 8px 12px;
+}
+.owlto-link-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.owlto-link-popover-head svg {
+  color: var(--color-muted-foreground);
+}
+.owlto-link-popover-url {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.owlto-link-popover-foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.owlto-link-popover-hint {
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  white-space: nowrap;
+}
+.owlto-markdown pre {
+  font-size: var(--owl-text-sm);
+  max-width: 100%;
+  overflow: auto;
+}
+.owlto-message-actions {
+  margin-top: 8px;
+  opacity: 0.55;
+}
+.owlto-message-actions button {
+  width: 23px;
+  height: 23px;
+  padding: 0;
+}
+/* A tool call: one muted line that opens to the full command, output, and result. */
+.owlto-activity {
+  margin: 2px 0;
+}
+.owlto-activity + :not(.owlto-activity) {
+  margin-top: 16px;
+}
+.owlto-activity summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 0;
+  cursor: pointer;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  list-style: none;
+}
+.owlto-activity summary::-webkit-details-marker {
+  display: none;
+}
+.owlto-activity summary:hover {
+  color: var(--color-foreground);
+}
+.owlto-activity summary > svg {
+  flex-shrink: 0;
+}
+.owlto-activity.failed summary > svg:first-child {
+  color: var(--color-destructive);
+}
+.owlto-activity-line {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.owlto-activity-line > span:first-child {
+  flex-shrink: 0;
+}
+.owlto-activity-line > :last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.owlto-activity-line > code {
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+  line-height: 1.6;
+}
+/* Shows on hover and turns when open, so a closed line stays plain text. */
+.owlto-activity-chevron {
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+.owlto-activity summary:hover > .owlto-activity-chevron,
+.owlto-activity summary:focus-visible > .owlto-activity-chevron,
+.owlto-activity[open] > summary > .owlto-activity-chevron {
+  opacity: 1;
+}
+.owlto-activity[open] > summary > .owlto-activity-chevron {
+  transform: rotate(90deg);
+}
+.owlto-activity-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-md);
+  background: var(--color-sidebar);
+  font-size: var(--owl-text-xs);
+}
+.owlto-activity-heading {
+  color: var(--color-muted-foreground);
+}
+.owlto-activity-body pre,
+.owlto-activity-content {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: var(--owl-leading-relaxed);
+}
+.owlto-activity-body pre {
+  font-family: var(--font-mono);
+}
+.owlto-activity-body pre > span {
+  color: var(--color-muted-foreground);
+  user-select: none;
+}
+.owlto-activity-output {
+  color: var(--color-muted-foreground);
+}
+.owlto-activity-result {
+  display: flex;
+  align-items: center;
+  align-self: flex-end;
+  gap: 4px;
+  color: var(--color-muted-foreground);
+}
+.owlto-activity-result.failed {
+  color: var(--color-destructive);
+}
+.owlto-working {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  padding: 16px 0;
+}
+.owlto-composer {
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  border-radius: var(--owlto-composer-radius);
+  padding: 16px 16px 12px;
+  box-shadow: 0 3px 16px #00000005;
+}
+.owlto-composer:focus-within {
+  border-color: var(--color-muted-foreground);
+}
+.owlto-composer .router-draft-input {
+  min-height: 60px;
+  max-height: 220px;
+  font-size: var(--owl-text-base);
+  line-height: var(--owl-leading-relaxed);
+  padding: 0 2px 8px;
+}
+.owlto-composer .router-draft-input[contenteditable="false"] {
+  opacity: 0.55;
+}
+.owlto-composer-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+.owlto-folder-button {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--color-muted-foreground);
+  padding: 6px 4px;
+  font-size: var(--owl-text-xs);
+  min-width: 0;
+}
+.owlto-folder-button > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 125px;
+}
+.owlto-folder-button:disabled {
+  cursor: default;
+}
+.owlto-existing-options {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  padding: 0 8px;
+}
+.owlto-existing-options > span {
+  opacity: 0.5;
+}
+.owlto-send,
+.owlto-stop {
+  border-radius: var(--owl-radius-md);
+  width: 31px;
+  height: 31px;
+  flex-shrink: 0;
+}
+.owlto-stop {
+  border: 1px solid var(--color-border);
+}
+.owlto-another-task {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px auto 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+.owlto-request {
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, #b8954a 45%, var(--color-border));
+  border-radius: var(--owl-radius-md);
+  margin: 24px 0;
+}
+.owlto-request-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: var(--owl-text-xs);
+}
+.owlto-request > p {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-relaxed);
+  margin: 12px 0;
+}
+.owlto-request > pre {
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-sidebar);
+}
+.owlto-request fieldset {
+  margin-top: 16px;
+}
+.owlto-request legend {
+  font-size: var(--owl-text-xs);
+  margin-bottom: 8px;
+}
+.owlto-answer-option {
+  display: flex;
+  gap: 8px;
+  padding: 12px 0;
+  align-items: start;
+  cursor: pointer;
+}
+.owlto-answer-option input {
+  margin-top: 4px;
+}
+.owlto-answer-option strong,
+.owlto-answer-option small {
+  display: block;
+  font-size: var(--owl-text-xs);
+}
+.owlto-answer-option small {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  margin-top: 4px;
+}
+.owlto-answer-input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  font-size: var(--owl-text-xs);
+  margin-top: 8px;
+}
+.owlto-answer-input:focus-visible {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
+.owlto-request-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}

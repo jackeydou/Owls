@@ -16,7 +16,7 @@ allowBuilds:
   sharp: false
   tos-crc64-js: false
 
-# Owls drives the user's installed Claude Code CLI. Never install the SDK's
+# Owlto drives the user's installed Claude Code CLI. Never install the SDK's
 # bundled platform CLIs, so a missing local executable cannot fall back to one.
 ignoredOptionalDependencies:
   - '@anthropic-ai/claude-agent-sdk-darwin-arm64'

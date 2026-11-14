@@ -204,42 +204,42 @@ export const PLUGIN_ADMIN_RPC_TIMEOUT_MS = 120_000
 
 let nextRequestId = 1
 
-export class OwlsLocalRpcError extends Error {
+export class OwltoLocalRpcError extends Error {
   readonly code: number
   readonly data?: unknown
 
   constructor(error: JsonRpcErrorPayload) {
     super(error.message)
-    this.name = 'OwlsLocalRpcError'
+    this.name = 'OwltoLocalRpcError'
     this.code = error.code
     this.data = error.data
   }
 }
 
-export class OwlsLocalRpcConnectionError extends Error {
+export class OwltoLocalRpcConnectionError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options)
-    this.name = 'OwlsLocalRpcConnectionError'
+    this.name = 'OwltoLocalRpcConnectionError'
   }
 }
 
-export function defaultOwlsDataRoot(): string {
-  return join(homedir(), '.owls')
+export function defaultOwltoDataRoot(): string {
+  return join(homedir(), '.owlto')
 }
 
-export function localRpcMetadataPath(dataRoot = defaultOwlsDataRoot()): string {
+export function localRpcMetadataPath(dataRoot = defaultOwltoDataRoot()): string {
   return join(dataRoot, 'run', 'local-rpc.json')
 }
 
 function createRequestId(): string {
   const id = nextRequestId
   nextRequestId += 1
-  return `owls-local-rpc-${Date.now()}-${id}`
+  return `owlto-local-rpc-${Date.now()}-${id}`
 }
 
 function assertRecord(value: unknown, message: string): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new OwlsLocalRpcConnectionError(message)
+    throw new OwltoLocalRpcConnectionError(message)
   }
   return value as Record<string, unknown>
 }
@@ -252,20 +252,20 @@ export async function readLocalRpcMetadata(
   try {
     parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
   } catch (error) {
-    throw new OwlsLocalRpcConnectionError(
-      `Failed to read Owls local RPC metadata at ${metadataPath}`,
+    throw new OwltoLocalRpcConnectionError(
+      `Failed to read Owlto local RPC metadata at ${metadataPath}`,
       { cause: error }
     )
   }
 
-  const metadata = assertRecord(parsed, 'Invalid Owls local RPC metadata')
+  const metadata = assertRecord(parsed, 'Invalid Owlto local RPC metadata')
   if (metadata.transport !== 'unix') {
-    throw new OwlsLocalRpcConnectionError(
-      `Unsupported Owls local RPC transport: ${String(metadata.transport)}`
+    throw new OwltoLocalRpcConnectionError(
+      `Unsupported Owlto local RPC transport: ${String(metadata.transport)}`
     )
   }
   if (typeof metadata.endpoint !== 'string' || !metadata.endpoint.trim()) {
-    throw new OwlsLocalRpcConnectionError('Owls local RPC metadata is missing endpoint')
+    throw new OwltoLocalRpcConnectionError('Owlto local RPC metadata is missing endpoint')
   }
 
   return {
@@ -284,27 +284,27 @@ function parseJsonRpcResponse(frame: string): unknown {
   try {
     parsed = JSON.parse(frame) as unknown
   } catch (error) {
-    throw new OwlsLocalRpcConnectionError('Invalid JSON-RPC response from Owls Client', {
+    throw new OwltoLocalRpcConnectionError('Invalid JSON-RPC response from Owlto Client', {
       cause: error
     })
   }
 
-  const response = assertRecord(parsed, 'Invalid JSON-RPC response from Owls Client')
+  const response = assertRecord(parsed, 'Invalid JSON-RPC response from Owlto Client')
   if (response.jsonrpc !== '2.0') {
-    throw new OwlsLocalRpcConnectionError('Invalid JSON-RPC version from Owls Client')
+    throw new OwltoLocalRpcConnectionError('Invalid JSON-RPC version from Owlto Client')
   }
   if ('error' in response) {
-    const error = assertRecord(response.error, 'Invalid JSON-RPC error from Owls Client')
-    throw new OwlsLocalRpcError({
+    const error = assertRecord(response.error, 'Invalid JSON-RPC error from Owlto Client')
+    throw new OwltoLocalRpcError({
       code: typeof error.code === 'number' ? error.code : -32603,
-      message: typeof error.message === 'string' ? error.message : 'Owls local RPC error',
+      message: typeof error.message === 'string' ? error.message : 'Owlto local RPC error',
       data: error.data
     })
   }
   return response.result
 }
 
-export class OwlsLocalRpcClient {
+export class OwltoLocalRpcClient {
   private readonly socketPath?: string
   private readonly metadataPath?: string
   private readonly dataRoot?: string
@@ -337,7 +337,7 @@ export class OwlsLocalRpcClient {
     options: LocalRpcCallOptions = {}
   ): Promise<TResult> {
     if (typeof method !== 'string' || !method.trim()) {
-      throw new OwlsLocalRpcConnectionError('Local RPC method is required')
+      throw new OwltoLocalRpcConnectionError('Local RPC method is required')
     }
     const socketPath = await this.endpoint()
     const request: JsonRpcRequest = {
@@ -418,16 +418,18 @@ export class OwlsLocalRpcClient {
   }
 }
 
-export function createOwlsLocalRpcClient(options: LocalRpcClientOptions = {}): OwlsLocalRpcClient {
-  return new OwlsLocalRpcClient(options)
+export function createOwltoLocalRpcClient(
+  options: LocalRpcClientOptions = {}
+): OwltoLocalRpcClient {
+  return new OwltoLocalRpcClient(options)
 }
 
-export function callOwlsLocalRpc<TResult = unknown>(
+export function callOwltoLocalRpc<TResult = unknown>(
   method: string,
   params: unknown = {},
   options: LocalRpcClientOptions & LocalRpcCallOptions = {}
 ): Promise<TResult> {
-  return new OwlsLocalRpcClient(options).call<TResult>(method, params, options)
+  return new OwltoLocalRpcClient(options).call<TResult>(method, params, options)
 }
 
 function sendJsonRpcRequest<TResult>(
@@ -460,7 +462,9 @@ function sendJsonRpcRequest<TResult>(
     }
 
     timer = setTimeout(() => {
-      fail(new OwlsLocalRpcConnectionError(`Owls local RPC timed out after ${options.timeoutMs}ms`))
+      fail(
+        new OwltoLocalRpcConnectionError(`Owlto local RPC timed out after ${options.timeoutMs}ms`)
+      )
     }, options.timeoutMs)
 
     socket.setEncoding('utf8')
@@ -471,7 +475,7 @@ function sendJsonRpcRequest<TResult>(
       const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8')
       responseBytes += Buffer.byteLength(text)
       if (responseBytes > options.maxResponseBytes) {
-        fail(new OwlsLocalRpcConnectionError('Owls local RPC response exceeded maxResponseBytes'))
+        fail(new OwltoLocalRpcConnectionError('Owlto local RPC response exceeded maxResponseBytes'))
         return
       }
 
@@ -493,14 +497,14 @@ function sendJsonRpcRequest<TResult>(
     })
     socket.on('error', (error) => {
       fail(
-        new OwlsLocalRpcConnectionError('Failed to connect to Owls local RPC socket', {
+        new OwltoLocalRpcConnectionError('Failed to connect to Owlto local RPC socket', {
           cause: error
         })
       )
     })
     socket.on('end', () => {
       if (!settled) {
-        fail(new OwlsLocalRpcConnectionError('Owls local RPC socket closed before a response'))
+        fail(new OwltoLocalRpcConnectionError('Owlto local RPC socket closed before a response'))
       }
     })
   })

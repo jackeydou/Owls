@@ -28,7 +28,7 @@ import './styles.css'
 
 const samplePath =
   '/Users/example/.codex/sessions/2026/05/07/rollout-2026-05-07T13-16-02-example.jsonl'
-export const latestOwlsSessionPath = 'owls://latest'
+export const latestOwltoSessionPath = 'owlto://latest'
 const initialVisibleEvents = 320
 const visibleEventBatchSize = 320
 
@@ -46,7 +46,7 @@ const categories = [
 
 type CategoryFilter = (typeof categories)[number]
 type DetailMode = 'event' | 'prompt' | 'raw' | 'compare'
-type SourceFilter = 'all' | 'codex' | 'owls' | 'trajectory'
+type SourceFilter = 'all' | 'codex' | 'owlto' | 'trajectory'
 type CompareSide = 'left' | 'right'
 type CompareSlot = {
   event: NormalizedEvent
@@ -61,16 +61,16 @@ function loadStoredPath() {
   return window.localStorage.getItem('session-inspector:path') || samplePath
 }
 
-function isLegacyLatestOwlsPath(value: string): boolean {
+function isLegacyLatestOwltoPath(value: string): boolean {
   return (
-    value.endsWith('/.owls/owls.db') ||
-    value.endsWith('\\.owls\\owls.db') ||
-    value.endsWith('owls.db')
+    value.endsWith('/.owlto/owlto.db') ||
+    value.endsWith('\\.owlto\\owlto.db') ||
+    value.endsWith('owlto.db')
   )
 }
 
-function isLatestOwlsPath(value: string): boolean {
-  return value === latestOwlsSessionPath || isLegacyLatestOwlsPath(value)
+function isLatestOwltoPath(value: string): boolean {
+  return value === latestOwltoSessionPath || isLegacyLatestOwltoPath(value)
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -140,7 +140,7 @@ export type InspectorAppProps = {
 }
 
 function shortPath(value: string) {
-  if (value.startsWith('owls://')) return value
+  if (value.startsWith('owlto://')) return value
   return value.split(/[\\/]/).filter(Boolean).slice(-3).join('/')
 }
 
@@ -148,12 +148,13 @@ function sessionSourceFor(path: string, view: SessionView | null) {
   const source = (view?.meta.source || '').toLowerCase()
   const originator = (view?.meta.originator || '').toLowerCase()
   if (
-    path.includes('/.owls/model-trajectories/') ||
+    path.includes('/.owlto/model-trajectories/') ||
     source === 'trajectory' ||
     originator.includes('trajectory')
   )
     return 'trajectory'
-  if (path.startsWith('owls://') || source === 'owls' || originator.includes('owls')) return 'owls'
+  if (path.startsWith('owlto://') || source === 'owlto' || originator.includes('owlto'))
+    return 'owlto'
   return 'codex'
 }
 
@@ -222,25 +223,25 @@ export function InspectorApp({
       setLoading(true)
       setError('')
       try {
-        if (isLatestOwlsPath(nextPath)) {
+        if (isLatestOwltoPath(nextPath)) {
           const result = await dataSource.listSessions({ includeOptional: false, limit: 160 })
-          const latestOwls = result.sessions.find(
-            (session) => session.source === 'owls' && session.sessionId
+          const latestOwlto = result.sessions.find(
+            (session) => session.source === 'owlto' && session.sessionId
           )
           if (!isCurrentRequest()) return
           setSessions(result.sessions)
-          if (!latestOwls?.sessionId) {
+          if (!latestOwlto?.sessionId) {
             setText('')
             setView(null)
             setSelectedId('')
             setSelectedPromptId('')
             setDetailMode('event')
             setVisibleEventCount(initialVisibleEvents)
-            setPath(latestOwlsSessionPath)
-            window.localStorage.setItem('session-inspector:path', latestOwlsSessionPath)
+            setPath(latestOwltoSessionPath)
+            window.localStorage.setItem('session-inspector:path', latestOwltoSessionPath)
             return
           }
-          nextPath = `owls://${latestOwls.sessionId}`
+          nextPath = `owlto://${latestOwlto.sessionId}`
         }
         const readStart = performance.now()
         const { body, title } = await dataSource.readSessionText(nextPath)
@@ -279,7 +280,9 @@ export function InspectorApp({
 
   async function loadSession(session: SessionFile) {
     const nextPath =
-      session.source === 'owls' && session.sessionId ? `owls://${session.sessionId}` : session.path
+      session.source === 'owlto' && session.sessionId
+        ? `owlto://${session.sessionId}`
+        : session.path
     await loadPath(nextPath)
   }
 
@@ -701,7 +704,7 @@ function SessionPicker({
       counts[session.source || 'codex'] += 1
       return counts
     },
-    { codex: 0, owls: 0, trajectory: 0 } as Record<'codex' | 'owls' | 'trajectory', number>
+    { codex: 0, owlto: 0, trajectory: 0 } as Record<'codex' | 'owlto' | 'trajectory', number>
   )
 
   return (
@@ -713,7 +716,7 @@ function SessionPicker({
       {open && (
         <>
           <div className="source-filter">
-            {(['all', 'codex', 'owls', 'trajectory'] as const).map((source) => (
+            {(['all', 'codex', 'owlto', 'trajectory'] as const).map((source) => (
               <button
                 type="button"
                 key={source}
@@ -736,7 +739,7 @@ function SessionPicker({
               >
                 <span>{session.name}</span>
                 <small>
-                  {session.source === 'owls'
+                  {session.source === 'owlto'
                     ? `${session.messageCount || 0} msgs`
                     : formatBytes(session.size)}
                 </small>
@@ -943,7 +946,7 @@ function CompareDetail({
           <span className="badge">compare</span>
           <h2>Event comparison</h2>
           <p>
-            Pin one event as A and another as B. They can come from Codex or Owls, same session or
+            Pin one event as A and another as B. They can come from Codex or Owlto, same session or
             different sessions.
           </p>
         </div>
@@ -1086,7 +1089,7 @@ function EmptyState({ loading }: { loading: boolean }) {
     <div className="empty-state">
       <TerminalSquare size={30} />
       <strong>{loading ? 'Loading session...' : 'Load a JSONL session.'}</strong>
-      <span>Use Codex sessions, Owls sessions, model trajectories, or drag a JSONL here.</span>
+      <span>Use Codex sessions, Owlto sessions, model trajectories, or drag a JSONL here.</span>
     </div>
   )
 }

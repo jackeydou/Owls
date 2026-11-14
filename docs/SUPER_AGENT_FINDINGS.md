@@ -1,6 +1,6 @@
 # Router/Worker 实测发现记录
 
-用途：记录接入原生 agent 和推进 Router/Worker（[RFC](RFC_OWLS_SUPER_AGENT.md)）过程中实测得到的
+用途：记录接入原生 agent 和推进 Router/Worker（[RFC](RFC_OWLTO_SUPER_AGENT.md)）过程中实测得到的
 事实和问题，方便事后回顾，以及在 CLI 或 SDK 升级后定位行为变化。
 
 维护规则：
@@ -14,7 +14,7 @@
 实测环境（除非条目另有说明）：macOS arm64，Codex CLI `0.148.0`（ChatGPT `prolite` 账号），
 Claude Code `2.1.316`，Agent SDK `0.3.316`。F12 起的补充实测使用 Codex CLI `0.166.0`；
 F18–F20 使用 pi `1.5.0`。
-回放证据位于 `apps/owls-client/tests/fixtures/providers/`。
+回放证据位于 `apps/owlto-client/tests/fixtures/providers/`。
 
 ## 速查
 
@@ -38,7 +38,7 @@ F18–F20 使用 pi `1.5.0`。
 | F16 | Claude Code Router 首次调用工具后上下文被注入约 40k token，`strictMcpConfig` 可避免 | 已确认 |
 | F17 | Claude Code 每批次一个 query 与常驻 query 的耗时无明显差异 | 已确认 |
 | F18 | pi `Agent` 会把工具参数的标量类型转换成 schema 要求的类型 | 已确认，复查 |
-| F19 | pi `Agent` 的请求上下文只包含 Owls 提供的系统提示、工具和消息 | 已确认 |
+| F19 | pi `Agent` 的请求上下文只包含 Owlto 提供的系统提示、工具和消息 | 已确认 |
 | F20 | pi `Agent` 的 `steer()` 在工具执行期间注入，同一次运行内生效 | 已确认 |
 | R6 | 旧 pi runtime 仍在类型检查范围内，锁定 pi `0.84.1` | 已处理（移入 legacy） |
 | F21 | pi 的 OpenAI 兼容请求在没有 API key 时直接失败，即使本地端点不需要 key | 已确认 |
@@ -50,7 +50,7 @@ F18–F20 使用 pi `1.5.0`。
 | F27 | `-c mcp_servers.<未知名称>.enabled=false` 使 app-server 启动失败；未知 feature 只被忽略 | 已确认 |
 | F28 | Codex Router 每批次约 17.5k token 固定上下文；`tokenUsage/updated` 可能重复发送 | 已确认 |
 | F29 | 受信任项目的 `.codex/config.toml` 中的 MCP server 在 `thread/start` 时启动，不带 `cwd` 的 `config/read` 读不到 | 已确认，已修复 |
-| F30 | Owls 引擎超出上下文预算后每次请求都重新裁剪，提示缓存全部失效，且裁剪本身是平方复杂度 | 已修复（M4） |
+| F30 | Owlto 引擎超出上下文预算后每次请求都重新裁剪，提示缓存全部失效，且裁剪本身是平方复杂度 | 已修复（M4） |
 | F31 | 同一 checkout 中可写 Worker 串行，M4 中完成时间是只读 Worker 的 5.6–6.9 倍 | 已修复（worktree，RFC 11.1） |
 | F32 | 后台子 agent 的单会话完成时间与 Router 相当，但输入 token 是 4.6 倍，上下文持续增长 | 已确认（脚本化模型） |
 | F33 | 追问直通减少 15% 的 Router 请求，追问 p95 从 5.9 分钟降到 3.9 分钟 | 已确认（脚本化模型） |
@@ -89,7 +89,7 @@ F18–F20 使用 pi `1.5.0`。
 
 - 现象：设置 `settingSources: []` 后，init 消息里仍有内联插件、20 个 skills、56 个 slash commands
   和若干内置 agents。同时设置 `tools: []` 后，可用工具列表只剩 SDK MCP 工具
-  `mcp__owls__dispatch_task`。
+  `mcp__owlto__dispatch_task`。
 - 复现：`query()` 时传 `settingSources: []`、`tools: []`、自定义 `systemPrompt` 和一个
   `createSdkMcpServer` 工具，检查 `system/init` 消息里的 `tools`、`plugins`、`skills`。
 - 证据：`claude-code/router-mcp-tool.jsonl`（init 中的插件、skills 等列表已脱敏清空，
@@ -104,20 +104,20 @@ F18–F20 使用 pi `1.5.0`。
   Codex with a ChatGPT account.`（`model_not_found`）。`model/list` 返回的可用模型是
   `gpt-5.6-sol`（默认）、`gpt-5.6-terra`、`gpt-5.6-luna`。
 - 复现：用本机配置启动 app-server，`thread/start` 和 `turn/start` 都不传 `model`。
-- 影响（推断，待验证）：Owls 中把模型设为「Codex 默认」时不会传 `model`，应该会得到同样的
-  失败。这是本机配置问题，但 Owls 可以改进：失败时提示改用账号默认模型，或把「Codex 默认」
+- 影响（推断，待验证）：Owlto 中把模型设为「Codex 默认」时不会传 `model`，应该会得到同样的
+  失败。这是本机配置问题，但 Owlto 可以改进：失败时提示改用账号默认模型，或把「Codex 默认」
   解释为 `model/list` 中 `isDefault` 的模型。
-- 复查：在 Owls 中新建一个 Codex 任务，选「Codex 默认」并发送消息。
+- 复查：在 Owlto 中新建一个 Codex 任务，选「Codex 默认」并发送消息。
 - 0.166.0 复查（2026-11-02）：`model/list` 的默认模型变为 `gpt-6.1-sol`，不指定 `model`
   的探针均正常完成，未复现。`model/list` 的默认值与账号可用模型可能随 CLI 或账号变化，
-  Owls 仍应在 `model_not_found` 时给出可操作的提示。
+  Owlto 仍应在 `model_not_found` 时给出可操作的提示。
 
 ### F5 Codex 在用量很低时也会遇到一次性 429
 
 - 现象：连续快速创建多个 thread 和 turn 时，turn 失败：`exceeded retry limit, last status: 429
   Too Many Requests`。`account/rateLimits/read` 显示周用量 8%，`rateLimitReachedType` 为 null。
   改为逐个运行后恢复正常。
-- 影响：Router 并发分派多个 Codex Worker 时可能触发。目前 Owls 把它显示为通用的
+- 影响：Router 并发分派多个 Codex Worker 时可能触发。目前 Owlto 把它显示为通用的
   `native_error`。
 - 后续：区分限流错误，展示「稍后重试」；Worker 并发启动时错开时间。不使用账号的
   rate-limit reset credit（属于用户自己的额度决策）。
@@ -126,7 +126,7 @@ F18–F20 使用 pi `1.5.0`。
 
 - 现象：`initialize` 中声明 `experimentalApi: false` 时，带 `dynamicTools` 的 `thread/start`
   返回错误：`thread/start.dynamicTools requires experimentalApi capability`。
-- 影响：这个错误便于识别；Codex Router 的 adapter 可以据此判断能力并降级。Owls 现有的
+- 影响：这个错误便于识别；Codex Router 的 adapter 可以据此判断能力并降级。Owlto 现有的
   Codex 客户端写死了 `experimentalApi: false`（`src/main/codex/client.ts`）。
 
 ### F7 Codex 工具定义随 thread 持久化
@@ -141,8 +141,8 @@ F18–F20 使用 pi `1.5.0`。
 ### F8 Claude Code 中 `allowedTools` 里的工具会绕过 `canUseTool`
 
 - 现象：SDK 警告 `[CLAUDE_SDK_CAN_USE_TOOL_SHADOWED] canUseTool will not be invoked for:
-  mcp__owls__dispatch_task`；列入 `allowedTools` 的工具直接自动批准。
-- 影响：Router 的 Owls 工具应该自动批准，这符合预期。如果以后需要逐次审核某个工具，
+  mcp__owlto__dispatch_task`；列入 `allowedTools` 的工具直接自动批准。
+- 影响：Router 的 Owlto 工具应该自动批准，这符合预期。如果以后需要逐次审核某个工具，
   要改用 `PreToolUse` hook，或者不把它放进 `allowedTools`。
 
 ### F9 运行中注入在同一 turn 内生效
@@ -166,7 +166,7 @@ F18–F20 使用 pi `1.5.0`。
 - 现象：「重启后工具保留」探针需要非 ephemeral 会话，因此在 Codex 和 Claude Code 的原生会话
   存储中各留下一个临时会话（对应的临时目录已删除）。其他探针使用 ephemeral thread 或
   `persistSession: false`。
-- 影响：会在原生 CLI 的历史中看到 `owls-m0-resume-*` 目录下的会话，可以手动删除。
+- 影响：会在原生 CLI 的历史中看到 `owlto-m0-resume-*` 目录下的会话，可以手动删除。
 
 ## Router 隔离与进程模型补充实测（2026-11-02）
 
@@ -214,8 +214,8 @@ hook 和插件信息，未入库。
 
 - 现象：Router 设置 `tools: []`、`settingSources: []`、自定义 `systemPrompt` 时，不调用工具的
   一轮上下文约 1.3k token（流式输入、字符串 prompt、是否持久化会话都相同）。调用
-  `mcp__owls__dispatch_task` 后，下一次请求的上下文约 42k token，cache read 为 0。
-  init 消息中的 `mcp_servers` 只有 `owls`，`tools` 只有 Owls 工具。
+  `mcp__owlto__dispatch_task` 后，下一次请求的上下文约 42k token，cache read 为 0。
+  init 消息中的 `mcp_servers` 只有 `owlto`，`tools` 只有 Owlto 工具。
 - 复现：同上配置，prompt 为「Please count the files in the repo.」，读取每条 assistant
   消息的 `usage`。
 - 对照：`skills: []`、`extraArgs: { 'disable-slash-commands': null }` 都无效；
@@ -234,7 +234,7 @@ hook 和插件信息，未入库。
 - 影响：进程开销可以忽略，RFC 8.1 节选择每批次一个 query。
 - 注意：两次运行的模型均为 CLI 默认的 `claude-opus-5-5`；样本量小，只作量级参考。
 
-## Owls 引擎离线实测（2026-11-02）
+## Owlto 引擎离线实测（2026-11-02）
 
 对应 RFC 4.4 节。`@earendil-works/pi-agent-core`、`pi-ai`、`pi-schema` `1.5.0` 安装在仓库外的
 临时目录中，用 pi-ai 的 `fauxProvider` 驱动，没有网络请求和凭据。探针为一个只有
@@ -244,18 +244,18 @@ hook 和插件信息，未入库。
 
 - 现象：`dispatch_task` 的 `parameters` 要求 `goal` 为字符串，模型（faux）传入 `goal: 42`，
   工具的 `execute` 照常执行，返回 `isError: false` 的结果。M1 实现中复测：`execute` 收到的是字符串
-  `"42"`，所以 Owls 的 zod 校验也通过；而多余字段或空白 `goal` 会被 pi 用自己的
+  `"42"`，所以 Owlto 的 zod 校验也通过；而多余字段或空白 `goal` 会被 pi 用自己的
   `Validation…` 错误拒绝，不会到达 `execute`。
-- 影响：Owls 不能依赖引擎的参数校验；工具处理器统一先用 zod 校验（RFC 第 5 节）。被转换的标量
+- 影响：Owlto 不能依赖引擎的参数校验；工具处理器统一先用 zod 校验（RFC 第 5 节）。被转换的标量
   不会造成越权，因为权限、provider 等枚举值仍由 zod 校验。
 - 复查：升级 pi 后重跑；即使 pi 改为拒绝，处理器中的校验也保留。
 
-### F19 pi `Agent` 的请求上下文只包含 Owls 提供的内容
+### F19 pi `Agent` 的请求上下文只包含 Owlto 提供的内容
 
 - 现象：首次请求的上下文是一条 system 消息（`content` 为系统提示，`toolsAdded` 为工具声明）
   加一条用户消息，序列化后 434 字节。设置 `prepareRequest` 后，请求中的消息列表被完全替换，
   `agent.state.messages` 中的完整记录不变。
-- 影响：Owls 引擎的上下文可以确定性地构建和测试，这是选择它作为默认 Router 引擎的主要依据
+- 影响：Owlto 引擎的上下文可以确定性地构建和测试，这是选择它作为默认 Router 引擎的主要依据
   （RFC 4.3 节）。真实 provider 会在此基础上加上自己的请求格式，固定上下文大小需要在 M1 用真实
   模型测量。
 
@@ -263,7 +263,7 @@ hook 和插件信息，未入库。
 
 - 现象：工具执行期间调用 `agent.steer()`，注入的用户消息出现在工具结果之后、下一次请求之前，
   同一次 `prompt()` 内完成；`execute` 抛出的错误成为 `isError: true` 的工具结果。
-- 影响：Owls 引擎与另外两个引擎一样支持运行中注入（RFC 第 8 节）。
+- 影响：Owlto 引擎与另外两个引擎一样支持运行中注入（RFC 第 8 节）。
 
 ### R6 旧 pi runtime 仍在类型检查范围内
 
@@ -273,14 +273,14 @@ hook 和插件信息，未入库。
   npm 上的最新版本是 `1.5.0`，1.x 用 `createModels()` 取代了全局 `getModel()` 等 API。
 - 影响：直接升级会让旧代码无法通过类型检查。
 - 处理：#18 尝试直接删除，后按维护者要求关闭。改为把构建入口不可达的 338 个源文件和覆盖它们的
-  31 个测试与 fixture 移到 `apps/owls-client/legacy/`，保留原目录结构；legacy 不参与构建、类型检查、
+  31 个测试与 fixture 移到 `apps/owlto-client/legacy/`，保留原目录结构；legacy 不参与构建、类型检查、
   lint 和测试。pi 升级到 `1.5.0`，`pi-coding-agent` 和它带来的 photon wasm 复制步骤移除。
 
 ### F21 pi 的 OpenAI 兼容请求在没有 API key 时直接失败
 
-- 现象：Owls 引擎连本机 Ollama（`custom` 端点，`getApiKey` 返回 `undefined`）时，批次立即失败：
+- 现象：Owlto 引擎连本机 Ollama（`custom` 端点，`getApiKey` 返回 `undefined`）时，批次立即失败：
   `No API key for provider: custom`。`createProvider` 的 `auth.apiKey.resolve` 返回空 auth 也一样。
-- 处理：对不需要 key 的 `custom` 端点传入固定占位值 `owls-local`（不是机密）；本地服务器会忽略它。
+- 处理：对不需要 key 的 `custom` 端点传入固定占位值 `owlto-local`（不是机密）；本地服务器会忽略它。
 - 证据：本机实测；faux provider 不经过这条路径，所以单元测试没有发现。
 
 ### F22 失败的模型回复会进入 pi `Agent` 的消息记录
@@ -298,7 +298,7 @@ hook 和插件信息，未入库。
   注入假汇报后，第二批次按汇报回复「There are 42 TypeScript files in this project.」。记录为
   `user, assistant, toolResult, assistant, user, assistant`。
 - `qwen2.5-coder:7b`：约 5 秒内回复「I will start a background worker…」，但没有调用工具。
-- 影响：Owls 引擎的请求、工具调用和持久化路径在真实 provider 上可用；Router 质量取决于模型的工具
+- 影响：Owlto 引擎的请求、工具调用和持久化路径在真实 provider 上可用；Router 质量取决于模型的工具
   调用能力，推荐模型需要在 M4 评估（RFC 开放问题 4）。
 
 ## Claude Code Router 引擎实测（M2，2026-11-03）
@@ -313,8 +313,8 @@ hook 和插件信息，未入库。
 
 ### F24 Claude Code Router 会把自己的工作目录写进分派目标
 
-- 现象：Router 的 `cwd` 设为 Owls 自己的目录时，模型生成的 `goal` 写成「Count the TypeScript files
-  … in the directory /private/var/…/owls-router-live-…」。即使 `systemPrompt` 是自定义字符串，
+- 现象：Router 的 `cwd` 设为 Owlto 自己的目录时，模型生成的 `goal` 写成「Count the TypeScript files
+  … in the directory /private/var/…/owlto-router-live-…」。即使 `systemPrompt` 是自定义字符串，
   Claude Code 仍会告诉模型当前工作目录。
 - 影响：Worker 在项目目录运行，目标里的路径会把它引向错误的位置。
 - 处理：Claude Code Router 以项目路径作为 `cwd`。代价是 Router 的原生会话出现在该项目的
@@ -322,7 +322,7 @@ hook 和插件信息，未入库。
 
 ### F25 `allowedTools` 覆盖 `canUseTool` 时 SDK 打印警告
 
-- 现象：同时设置 `allowedTools: ['mcp__owls__dispatch_task']` 和一个拒绝一切的 `canUseTool` 时，
+- 现象：同时设置 `allowedTools: ['mcp__owlto__dispatch_task']` 和一个拒绝一切的 `canUseTool` 时，
   SDK 每次 query 都发出 `CLAUDE_SDK_CAN_USE_TOOL_SHADOWED` 进程警告（与 F8 是同一行为）。
 - 处理：去掉 `canUseTool`，改用 `permissionMode: 'dontAsk'`：未预先批准的工具直接拒绝，不弹审批。
   `tools: []` 下本来也没有其他工具。
@@ -379,11 +379,11 @@ Codex CLI `0.166.0`。先用独立脚本复现 RFC 4.2 节的锁定进程，再�
 
 ## M4 消融实验（2026-11-03）
 
-`pnpm --filter owls-client bench:router`，设置与完整结果见 RFC 14.1 节。打包后的
-`RouterService`、`WorkerPool` 和 Owls 引擎由脚本化的 pi faux provider 驱动，时间走虚拟时钟；
+`pnpm --filter owlto-client bench:router`，设置与完整结果见 RFC 14.1 节。打包后的
+`RouterService`、`WorkerPool` 和 Owlto 引擎由脚本化的 pi faux provider 驱动，时间走虚拟时钟；
 以下数字是 5 个种子的平均，单种子的数字会标明。
 
-### F30 Owls 引擎超出上下文预算后提示缓存全部失效
+### F30 Owlto 引擎超出上下文预算后提示缓存全部失效
 
 - 现象：Router 的上下文一旦超过 `ROUTER_CONTEXT_BUDGET`，`trimContext` 在每次请求时都从头重新
   计算裁剪位置，并把最新的 Worker 状态摘要拼到第一条保留的消息前面。裁剪位置随每个新批次后移，
@@ -392,7 +392,7 @@ Codex CLI `0.166.0`。先用独立脚本复现 RFC 4.2 节的锁定进程，再�
   位置重新序列化全部消息，是平方复杂度：修复前 7 组基准约 54 秒，修复后 2.9 秒。
 - 影响：长时间运行的 Router 每个请求都按全价付约 12k token 的上下文；main 进程在每次请求前
   同步序列化整段历史。
-- 修复：超出预算时一次裁到预算的 60%，Owls 引擎记住裁剪位置和当时的摘要，直到剩余部分再次
+- 修复：超出预算时一次裁到预算的 60%，Owlto 引擎记住裁剪位置和当时的摘要，直到剩余部分再次
   超出预算才重新裁剪；后缀大小一次累加，线性复杂度。种子 1001 的未缓存输入从约 2659k 降到 327k。
   回归测试：`router-runtime.test.mjs` 中的
   「trimContext keeps its cut and note until the context outgrows the budget again」。
@@ -404,7 +404,7 @@ Codex CLI `0.166.0`。先用独立脚本复现 RFC 4.2 节的锁定进程，再�
   14.5 分钟。
 - 影响：`dispatch_task` 不指定权限时取项目默认权限（通常是 `workspace-write`），所以实际使用中
   Router 分派的改代码任务基本是串行的，双层架构的并行收益只对只读任务成立。
-- 修复：可写 Worker 默认各自使用一个 git worktree，分支 `owls/<workerId>`（RFC 11.1 节）；
+- 修复：可写 Worker 默认各自使用一个 git worktree，分支 `owlto/<workerId>`（RFC 11.1 节）；
   写入者只在共用同一个 checkout 时串行。
 - 复测（`bench:router`，5 个种子，worktree 创建按每个 2 秒计）：「Worker 都可写，各自 worktree」组
   工作 p50 / p95 为 8.52 / 14.53 分钟，只读组为 8.46 / 14.45 分钟，同目录串行组仍为 47.54 / 100.28

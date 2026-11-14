@@ -1,7 +1,7 @@
 {
-  "name": "@owls/mac-process-limits",
+  "name": "@owlto/mac-process-limits",
   "version": "0.1.0",
-  "description": "Raise macOS process resource limits for Owls child processes. Internal Owls package.",
+  "description": "Raise macOS process resource limits for Owlto child processes. Internal Owlto package.",
   "private": true,
   "main": "index.js",
   "types": "index.d.ts",

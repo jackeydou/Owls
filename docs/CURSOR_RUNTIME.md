@@ -1,26 +1,26 @@
-# Owls Cursor Runtime
+# Owlto Cursor Runtime
 
 ## Scope
 
-Owls can run workers with the user's installed Cursor CLI next to the
+Owlto can run workers with the user's installed Cursor CLI next to the
 [Codex runtime](CODEX_APP_SERVER.md) and the
 [Claude Code runtime](CLAUDE_CODE_RUNTIME.md). Cursor runs workers only. The
-Router engine stays on Claude Code, Codex, or the Owls engine, because Cursor's
+Router engine stays on Claude Code, Codex, or the Owlto engine, because Cursor's
 Agent Client Protocol (ACP) mode has no way to take the Router's in-process tools.
 
 ## Entries and ownership
 
-- Host routing: `apps/owls-client/src/main/app/host.ts` (one `AgentRuntime` per
+- Host routing: `apps/owlto-client/src/main/app/host.ts` (one `AgentRuntime` per
   provider, `src/main/app/agent-runtime.ts`).
 - Discovery: `src/main/cursor/discovery.ts`.
 - ACP transport: `src/main/cursor/acp.ts`.
 - Session orchestration: `src/main/cursor/service.ts`.
 - Update, tool, approval, and question normalization: `src/main/cursor/normalize.ts`.
 
-Paths after the first entry are relative to `apps/owls-client/`.
+Paths after the first entry are relative to `apps/owlto-client/`.
 
 Cursor owns its model requests, native tools, context, authentication, MCP
-servers (`.cursor/mcp.json`), and native chat storage. Owls owns project
+servers (`.cursor/mcp.json`), and native chat storage. Owlto owns project
 selection, worker sessions, normalized items, settings, and approval routing.
 
 ## Local executable
@@ -33,7 +33,7 @@ updater replaces their versioned targets.
 Connecting runs `--version`, `status --format json` (plain `status` as a
 fallback), and `models` for the model catalog. Lines that are not `id - Name`
 are skipped, so an unexpected catalog format leaves only the CLI default to pick.
-Sign-in stays in the CLI: users run `cursor-agent login` and reconnect. Owls
+Sign-in stays in the CLI: users run `cursor-agent login` and reconnect. Owlto
 never stores a Cursor API key.
 
 ## Task flow
@@ -53,7 +53,7 @@ been unreliable. The turn then sends:
 The process is stopped when the turn ends. ACP cannot add a message to a running
 turn, so the Router's follow-ups queue for the next turn.
 
-| Owls permission | Cursor |
+| Owlto permission | Cursor |
 | --- | --- |
 | Read only | `ask` mode; edit approvals are refused outright |
 | Workspace access | `agent` mode; reads and edits inside the task folder are approved, everything else asks |
@@ -68,9 +68,9 @@ answered with JSON-RPC "method not found".
 
 ## Worker reports
 
-Workers report through the Owls `report` MCP tool. When the agent advertises
+Workers report through the Owlto `report` MCP tool. When the agent advertises
 `agentCapabilities.mcpCapabilities.http`, `session/new` and `session/load` pass
-one HTTP MCP server named `owls`: a Streamable HTTP endpoint that Owls serves on
+one HTTP MCP server named `owlto`: a Streamable HTTP endpoint that Owlto serves on
 127.0.0.1 with an unguessable per-session path (`WorkerReportServer`). Cursor
 builds since mid-2026 accept editor-provided servers without the file-based MCP
 approval step; older builds may ignore them, which falls back as below.

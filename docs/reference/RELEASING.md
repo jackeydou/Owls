@@ -1,20 +1,20 @@
 ---
 title: "Release Policy"
-summary: "Owls Client release channels, version naming, changelog tracking, and release workflow"
+summary: "Owlto Client release channels, version naming, changelog tracking, and release workflow"
 read_when:
-  - Looking for Owls Client release channel definitions
-  - Looking for Owls Client version naming and cadence
-  - Preparing an Owls Client beta, stable, or correction release
+  - Looking for Owlto Client release channel definitions
+  - Looking for Owlto Client version naming and cadence
+  - Preparing an Owlto Client beta, stable, or correction release
 ---
 
 # Release Policy
 
-Owls Client uses date-based CalVer actual versions without a `v` prefix. Git
+Owlto Client uses date-based CalVer actual versions without a `v` prefix. Git
 release tags use the same string as the actual version.
 
 ## Release Channels
 
-- stable: a production Owls desktop release
+- stable: a production Owlto desktop release
 - beta: a test release for validating upcoming desktop changes
 - dev: the moving head of `main`
 
@@ -45,12 +45,12 @@ release tags use the same string as the actual version.
   release branch to build its exact revision. The workflow reads that branch's
   app version and creates a version tag if needed. Use `publish=false` to validate
   a branch without publishing.
-- `master` is not part of the Owls Client release flow unless the operator
+- `master` is not part of the Owlto Client release flow unless the operator
   explicitly changes this policy.
 
 ## Version Files
 
-`apps/owls-client/package.json` is the Electron app version source. Keep the
+`apps/owlto-client/package.json` is the Electron app version source. Keep the
 root `package.json` version aligned so repo-level tooling and app packaging do
 not disagree.
 
@@ -102,13 +102,13 @@ MR composes unreleased fragments.
   reliability/performance improvements. Do not mirror every changelog entry, and
   do not include purely internal refactors, tests, dependency churn, or
   process-only changes unless they materially affect users or release safety.
-- Owls Client does not use Changesets. It is an Electron CalVer app, not a
+- Owlto Client does not use Changesets. It is an Electron CalVer app, not a
   multi-package npm publishing repo.
 
 ## Electron Packaging
 
-Public app branding is `Owls`. Release artifacts should use official names
-such as `Owls-2026.5.2000.dmg`.
+Public app branding is `Owlto`. Release artifacts should use official names
+such as `Owlto-2026.5.2000.dmg`.
 
 ## GitHub Release Publishing
 
@@ -176,7 +176,7 @@ Every macOS package runs a runtime gate in `afterPack`, before signing. The gate
 walks the packaged production dependency manifests, rejects missing required
 dependencies or links outside the app, then uses the packaged Electron binary to
 load MCP client/server transports and query an in-memory SQLite database.
-It runs in Electron's Node mode without starting Owls or opening user data. Missing
+It runs in Electron's Node mode without starting Owlto or opening user data. Missing
 optional platform packages are allowed; installed optional packages must have their
 required dependencies. This validates dependency packaging and native loading, not
 the full graphical startup or every feature.
@@ -194,8 +194,8 @@ read-only from each DMG before uploading any release assets. Mounted images are
 detached on success or failure. To inspect a built or installed app manually:
 
 ```bash
-pnpm --dir apps/owls-client run verify:packaged /Applications/Owls.app
-pnpm --filter owls-client test:packaging
+pnpm --dir apps/owlto-client run verify:packaged /Applications/Owlto.app
+pnpm --filter owlto-client test:packaging
 ```
 
 The build step raises only its soft open-file limit to 65,536, preserving the
@@ -238,9 +238,9 @@ Installed macOS apps update through Electron's built-in `autoUpdater`
 patch instead of downloading the whole ZIP.
 
 - **Feed.** Each channel and architecture has one JSON file, for example
-  `owls-beta-darwin-arm64.json`, attached to the fixed `update-feed` GitHub
+  `owlto-beta-darwin-arm64.json`, attached to the fixed `update-feed` GitHub
   Release. The file is a Squirrel.Mac update response (`url`, `sha256`, `size`,
-  `name`, `notes`, `pub_date`, optional `delta`) plus Owls' `version`. Do not
+  `name`, `notes`, `pub_date`, optional `delta`) plus Owlto's `version`. Do not
   delete or rename the `update-feed` release or its files.
 - **Channels.** A beta release moves only the beta feed. A stable release moves
   the stable feed, and the beta feed too when it is newer than the beta there.
@@ -248,7 +248,7 @@ patch instead of downloading the whole ZIP.
   Users pick Stable or Beta in Settings > Updates; until they do, a beta build
   follows beta and a stable build follows stable.
 - **Version order.** The app reads its channel's feed, compares versions with
-  `isNewerRelease` in `apps/owls-client/src/shared/updates.ts` (a stable release
+  `isNewerRelease` in `apps/owlto-client/src/shared/updates.ts` (a stable release
   sorts after its betas), and only then hands the feed URL to Squirrel in its
   default server mode. Squirrel's own JSON mode and
   `ElectronSquirrelPreventDowngrades` cannot order `-beta.N` versions.
@@ -286,13 +286,13 @@ at minimum:
 pnpm run changelog:check
 pnpm run release-notes:check --version <version>
 pnpm run release:check --version <version>
-pnpm --dir apps/owls-client run build
+pnpm --dir apps/owlto-client run build
 ```
 
 For macOS artifacts:
 
 ```bash
-pnpm --dir apps/owls-client run build:mac
+pnpm --dir apps/owlto-client run build:mac
 ```
 
 Run Windows and Linux package builds when the release includes those platforms.
