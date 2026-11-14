@@ -1,0 +1,1 @@
+- Settings: new Experiments page; its first switch adds a thread bar button that sorts the thread into memory right away.

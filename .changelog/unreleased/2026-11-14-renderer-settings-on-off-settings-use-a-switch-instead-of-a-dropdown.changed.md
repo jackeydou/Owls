@@ -1,0 +1,1 @@
+- Settings: on/off settings use a switch instead of a dropdown.

@@ -2,6 +2,7 @@ import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { CheckIcon, KeyIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
+import { Switch } from '@renderer/components/ui/switch'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { permissionSchema } from '../../../shared/app'
@@ -144,16 +145,11 @@ export function WorkerLimitRows() {
         htmlFor="router-worktrees"
         description={t('routerSettings.worktreesHelp')}
       >
-        <Select
+        <Switch
           id="router-worktrees"
-          value={settings.router.worktrees ? 'on' : 'off'}
-          onChange={(event) =>
-            void saveRouter({ ...settings.router, worktrees: event.target.value === 'on' })
-          }
-        >
-          <option value="on">{t('routerSettings.worktrees.on')}</option>
-          <option value="off">{t('routerSettings.worktrees.off')}</option>
-        </Select>
+          checked={settings.router.worktrees}
+          onCheckedChange={(worktrees) => void saveRouter({ ...settings.router, worktrees })}
+        />
       </SettingRow>
     </>
   )

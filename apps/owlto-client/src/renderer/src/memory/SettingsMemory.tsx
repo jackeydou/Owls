@@ -2,6 +2,7 @@ import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { BrainIcon, SlidersIcon, SparklesIcon, XIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
+import { Switch } from '@renderer/components/ui/switch'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MemoryRun, MemorySettings } from '../../../shared/memory'
@@ -30,28 +31,6 @@ export function runReason(run: MemoryRun, t: (key: string) => string): string {
     : t('memory.reason.other')
 }
 
-function OnOff({
-  id,
-  value,
-  onChange
-}: {
-  id: string
-  value: boolean
-  onChange: (value: boolean) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <Select
-      id={id}
-      value={value ? 'on' : 'off'}
-      onChange={(event) => onChange(event.target.value === 'on')}
-    >
-      <option value="on">{t('memory.on')}</option>
-      <option value="off">{t('memory.off')}</option>
-    </Select>
-  )
-}
-
 function MemorySettingsRows() {
   const { t } = useTranslation()
   const settings = useAppStore((s) => s.settings)
@@ -70,14 +49,22 @@ function MemorySettingsRows() {
         htmlFor="memory-learn"
         description={t('memory.learnHelp')}
       >
-        <OnOff id="memory-learn" value={memory.learn} onChange={(learn) => save({ learn })} />
+        <Switch
+          id="memory-learn"
+          checked={memory.learn}
+          onCheckedChange={(learn) => save({ learn })}
+        />
       </SettingRow>
       <SettingRow
         label={t('memory.inject')}
         htmlFor="memory-inject"
         description={t('memory.injectHelp')}
       >
-        <OnOff id="memory-inject" value={memory.inject} onChange={(inject) => save({ inject })} />
+        <Switch
+          id="memory-inject"
+          checked={memory.inject}
+          onCheckedChange={(inject) => save({ inject })}
+        />
       </SettingRow>
       <SettingRow label={t('memory.provider')} htmlFor="memory-provider">
         <Select

@@ -203,6 +203,11 @@ html[data-platform="darwin"] {
 .router-project > i.wait {
   background: var(--owl-wait);
 }
+/* Dreaming's sleeping owl stands in for the dot while it sorts a quiet thread into memory. */
+.router-thread > .owlto-owl-avatar {
+  width: 16px;
+  height: 16px;
+}
 /* The toggle sits over its row: one button can't nest inside the other. */
 .router-sidebar-project {
   position: relative;
@@ -490,6 +495,21 @@ html.pane-resizing * {
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.router-dream-button {
+  flex-shrink: 0;
+  color: var(--color-foreground);
+}
+/* Wraps the editor without a box of its own; while a manual Dreaming run holds the thread
+   it is inert and dimmed. */
+.router-editor-lock {
+  display: contents;
+}
+.router-editor-lock:not(:first-child) > .router-row:first-child {
+  margin-top: 20px;
+}
+.router-editor-lock[inert] > * {
+  opacity: 0.5;
 }
 .router-thread-heading span {
   flex-shrink: 0;

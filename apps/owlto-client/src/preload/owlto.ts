@@ -68,6 +68,7 @@ const api: OwltoAPI = {
     remove: (input) => ipcRenderer.invoke('owlto:memory-remove', input),
     category: (input) => ipcRenderer.invoke('owlto:memory-category', input),
     runNow: () => ipcRenderer.invoke('owlto:memory-run'),
+    dreamThread: (threadId) => ipcRenderer.invoke('owlto:memory-dream-thread', threadId),
     runs: () => ipcRenderer.invoke('owlto:memory-runs'),
     export: (format) => ipcRenderer.invoke('owlto:memory-export', format),
     onChanged: (listener) => {

@@ -242,6 +242,8 @@ export type MemoryOverview = {
   /** Active project memories by project and kind. */
   projects: { projectId: string; counts: Record<ProjectMemoryKind, number> }[]
   running: boolean
+  /** The thread Dreaming is reading right now; null while no run is going. */
+  dreamingThreadId: string | null
   lastRun: MemoryRun | null
 }
 /** A memory as the list shows it, with its source thread's title. */
