@@ -146,7 +146,7 @@ html[data-theme="dark"] .owls-usage-summary-row[data-provider="codex"] {
   font-size: var(--owl-text-2xs);
 }
 
-/* The hover card beside the sidebar's Usage entry: one compact line per agent. */
+/* The hover card above the sidebar's Usage entry: one compact line per agent. */
 .owls-usage-peek {
   width: 220px;
   padding: 8px 10px 9px;

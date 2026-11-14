@@ -44,7 +44,7 @@ function ThreadEntry({ thread }: { thread: Router }) {
     </button>
   )
 }
-/** Hovering shows each agent's tightest limit; a click opens the full Usage popover beside it. */
+/** Hovering shows each agent's tightest limit; a click opens the full Usage popover above it. */
 function UsageEntry() {
   const { t } = useTranslation()
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null)
@@ -76,7 +76,7 @@ function UsageEntry() {
       <AnchoredTooltip
         reference={anchor}
         open={peek && !open && hasSummary}
-        placement="right-end"
+        placement="top-start"
         className="owls-usage-peek"
       >
         <UsageSummary />
@@ -86,7 +86,7 @@ function UsageEntry() {
         open={open}
         onClose={() => setOpen(false)}
         label={t('usage.title')}
-        placement="right-end"
+        placement="top-start"
       >
         <UsagePanel />
       </AnchoredPopover>

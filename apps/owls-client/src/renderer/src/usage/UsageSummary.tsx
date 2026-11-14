@@ -4,7 +4,7 @@ import { usageSummaryRows, useUsageStore } from './store'
 import './usage.css'
 
 /**
- * The hover card beside the sidebar's Usage entry: one line per agent that reports plan limits,
+ * The hover card above the sidebar's Usage entry: one line per agent that reports plan limits,
  * with its owl, a bar in its brand color, and the share used of its tightest window.
  */
 export function UsageSummary() {
