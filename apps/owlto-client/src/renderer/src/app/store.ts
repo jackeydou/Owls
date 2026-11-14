@@ -72,6 +72,8 @@ export type SettingsTab =
   | 'memory'
   /** Token usage recorded on this device. */
   | 'usage'
+  /** Threads the user archived out of the sidebar. */
+  | 'archives'
   | 'github'
   /** The user's name and avatar. */
   | 'profile'

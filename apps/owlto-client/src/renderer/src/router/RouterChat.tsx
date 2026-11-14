@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../app/store'
 import { threadTitle, useThreadTitle } from './activity'
 import { RequestTray } from './RequestTray'
@@ -14,6 +15,7 @@ export function RouterChat() {
   const loadItems = useRouterStore((s) => s.loadItems)
   const router = useRouterStore((s) => s.routers.find((r) => r.id === threadId))
   const projectName = useAppStore((s) => s.projects.find((p) => p.id === router?.projectId)?.name)
+  const { t } = useTranslation()
   const untitled = useThreadTitle()
   const setup = useRouterSetup(router)
   const guideSkipped = useRouterStore((s) => s.guideSkipped)
@@ -37,6 +39,7 @@ export function RouterChat() {
           <div className="router-thread-heading">
             <strong>{threadTitle(router, untitled)}</strong>
             {projectName ? <span>{projectName}</span> : null}
+            {router.archivedAt ? <span>{t('archives.archived')}</span> : null}
           </div>
         ) : null}
       </header>

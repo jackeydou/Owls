@@ -8,8 +8,8 @@ export const DREAMING_STARTUP_MS = 60 * 1000
 const BUSY: RouterWorker['status'][] = ['queued', 'starting', 'running', 'waiting']
 
 export type TriggerDeps = {
-  /** Thread ids with their status. */
-  threads: () => { id: string; status: string }[]
+  /** Thread ids with their status. Archived threads (`archivedAt` set) never start Dreaming. */
+  threads: () => { id: string; status: string; archivedAt?: string | null }[]
   workers: () => RouterWorker[]
   schedule: (threadId: string) => void
   setTimer?: (run: () => void, ms: number) => ReturnType<typeof setTimeout>
@@ -19,7 +19,7 @@ export type TriggerDeps = {
 /**
  * Starts Dreaming for a thread once it has been idle for a while with no busy
  * workers, and once after startup for threads left unread. Every change to a
- * thread or one of its workers restarts that thread's wait.
+ * thread or one of its workers restarts that thread's wait. Archived threads are skipped.
  */
 export class DreamingTriggers {
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>()
@@ -62,7 +62,7 @@ export class DreamingTriggers {
 
   private fire(threadId: string): void {
     const thread = this.deps.threads().find((t) => t.id === threadId)
-    if (!thread || thread.status === 'running') return
+    if (!thread || thread.archivedAt || thread.status === 'running') return
     if (this.deps.workers().some((w) => w.routerId === threadId && BUSY.includes(w.status))) return
     this.deps.schedule(threadId)
   }

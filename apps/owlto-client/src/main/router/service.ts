@@ -10,6 +10,7 @@ import type {
 import type { AttachedCard } from '../../shared/cards.js'
 import type { ProjectGitRefs } from '../../shared/projects.js'
 import type {
+  ArchiveThread,
   CreateThread,
   ForwardMessage,
   ResolveBatch,
@@ -204,6 +205,7 @@ export class RouterService implements TurnProfiles {
       tokens: null,
       native: null,
       unknownBatches: [],
+      archivedAt: null,
       createdAt: now,
       updatedAt: now
     }
@@ -230,6 +232,8 @@ export class RouterService implements TurnProfiles {
       cards.length ? JSON.stringify([input.text, cards.map((c) => c.id)]) : input.text
     )
     if (!accepted) return
+    // Writing in an archived thread brings it back to the sidebar.
+    router.archivedAt = null
     if (input.workerId) return this.sendToWorker(router, input, input.workerId, cards)
     router.title ??= titleOf(input.text)
     this.put(router, {
@@ -317,6 +321,7 @@ export class RouterService implements TurnProfiles {
         ? this.ownRouter(targetId)
         : this.createThread({ projectId: input.target.projectId }, targetId)
     target.title ??= titleOf(note ?? content.text)
+    target.archivedAt = null
     const { goal, artifacts, ...origin } = content.origin
     this.put(target, {
       id: input.commandId,
@@ -427,6 +432,15 @@ export class RouterService implements TurnProfiles {
   interrupt(routerId: string): void {
     const router = this.ownRouter(routerId)
     if (router.status === 'running') this.engines.get(router.id)?.engine.abort()
+  }
+
+  /** Hides a thread from the sidebar, or brings it back. Its items and workers stay as they are. */
+  archive(input: ArchiveThread): void {
+    const router = this.ownRouter(input.routerId)
+    const archivedAt = input.archived ? (router.archivedAt ?? new Date().toISOString()) : null
+    if (archivedAt === router.archivedAt) return
+    router.archivedAt = archivedAt
+    this.changed(router)
   }
 
   /** Resends or dismisses a batch whose delivery is unknown after a restart. */

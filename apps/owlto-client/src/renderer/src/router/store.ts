@@ -69,6 +69,8 @@ type State = {
   skipGuide(): void
   send(routerId: string, text: string, workerId?: string, cardIds?: string[]): Promise<boolean>
   interrupt(routerId: string): Promise<void>
+  /** Resolves true once the thread is archived or back in the sidebar. */
+  archive(routerId: string, archived: boolean): Promise<boolean>
   resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
   stopWorker(routerId: string, workerId: string): Promise<void>
   loadOpenInApps(): Promise<void>
@@ -227,6 +229,16 @@ export const useRouterStore = create<State>((set, get) => {
         return false
       } finally {
         set({ sending: false })
+      }
+    },
+    archive: async (routerId, archived) => {
+      try {
+        set({ error: null })
+        unwrap(await window.owlto.archiveThread({ routerId, archived }))
+        return true
+      } catch (error) {
+        set({ error: uiFailure(error) })
+        return false
       }
     },
     interrupt: async (routerId) => {

@@ -29,6 +29,7 @@ import {
   saveProjectSchema
 } from '../../shared/projects.js'
 import {
+  archiveThreadSchema,
   createThreadSchema,
   forwardSchema,
   owltoProviderSchema,
@@ -106,6 +107,7 @@ export function registerIpc(
   handle('router-send', (input) => host.sendRouter(sendRouterSchema.parse(input)))
   handle('router-forward', (input) => host.forward(forwardSchema.parse(input)))
   handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))
+  handle('router-archive', (input) => host.archiveThread(archiveThreadSchema.parse(input)))
   handle('router-resolve-batch', (input) => host.resolveBatch(resolveBatchSchema.parse(input)))
   handle('router-discard-worktree', async (input) => {
     const request = workerActionSchema.parse(input)

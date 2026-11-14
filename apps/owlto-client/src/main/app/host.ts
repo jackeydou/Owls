@@ -40,6 +40,7 @@ import type {
   SaveProject
 } from '../../shared/projects.js'
 import type {
+  ArchiveThread,
   CreateThread,
   ForwardMessage,
   ResolveBatch,
@@ -254,6 +255,9 @@ export class OwltoHost {
   }
   interruptRouter(routerId: string): void {
     this.requireRouter().interrupt(routerId)
+  }
+  archiveThread(input: ArchiveThread): void {
+    this.requireRouter().archive(input)
   }
   resolveBatch(input: ResolveBatch): void {
     this.requireRouter().resolveBatch(input)

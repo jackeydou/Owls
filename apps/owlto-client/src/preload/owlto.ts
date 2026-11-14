@@ -32,6 +32,7 @@ const api: OwltoAPI = {
   sendRouter: (input) => ipcRenderer.invoke('owlto:router-send', input),
   forward: (input) => ipcRenderer.invoke('owlto:router-forward', input),
   interruptRouter: (id) => ipcRenderer.invoke('owlto:router-interrupt', id),
+  archiveThread: (input) => ipcRenderer.invoke('owlto:router-archive', input),
   resolveBatch: (input) => ipcRenderer.invoke('owlto:router-resolve-batch', input),
   discardWorktree: (input) => ipcRenderer.invoke('owlto:router-discard-worktree', input),
   stopWorker: (input) => ipcRenderer.invoke('owlto:router-stop-worker', input),

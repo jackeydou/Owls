@@ -1,0 +1,1 @@
+- Threads: archive a thread from the sidebar; Settings > Archives lists archived threads to open or unarchive.

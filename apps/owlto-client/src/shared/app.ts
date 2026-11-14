@@ -33,6 +33,7 @@ import {
   type SaveProject
 } from './projects.js'
 import {
+  type ArchiveThread,
   type CreateThread,
   type ForwardMessage,
   type ResolveBatch,
@@ -309,6 +310,8 @@ export const routerSchema = z.object({
   tokens: z.number().nullable(),
   native: routerNativeSchema.nullable(),
   unknownBatches: z.array(unknownBatchSchema),
+  /** When the user archived it, or null. Archived threads leave the sidebar but keep their items. */
+  archivedAt: z.string().nullable().default(null),
   createdAt: z.string(),
   updatedAt: z.string()
 })
@@ -444,6 +447,7 @@ export interface OwltoAPI {
   /** Resolves to the thread that received the content. */
   forward(input: ForwardMessage): Promise<Reply<Router>>
   interruptRouter(routerId: string): Promise<Reply<void>>
+  archiveThread(input: ArchiveThread): Promise<Reply<void>>
   resolveBatch(input: ResolveBatch): Promise<Reply<void>>
   discardWorktree(input: WorkerAction): Promise<Reply<void>>
   stopWorker(input: WorkerAction): Promise<Reply<void>>
