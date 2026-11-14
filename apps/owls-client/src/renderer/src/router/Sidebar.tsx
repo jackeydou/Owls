@@ -8,11 +8,14 @@ import {
 } from '@renderer/components/ui/icons'
 import { AnchoredPopover } from '@renderer/components/ui/popover'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
-import { useMemo, useState } from 'react'
+import { AnchoredTooltip } from '@renderer/components/ui/tooltip'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
 import { agentConnection, useAppStore } from '../app/store'
+import { usageSummaryRows, useUsageStore, watchUsage } from '../usage/store'
 import { UsagePanel } from '../usage/UsagePanel'
+import { UsageSummary } from '../usage/UsageSummary'
 import { byRecent, isWaitingOnUser, isWorking, threadTitle, useThreadTitle } from './activity'
 import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
@@ -41,11 +44,14 @@ function ThreadEntry({ thread }: { thread: Router }) {
     </button>
   )
 }
-/** Opens the Usage popover beside the sidebar: each agent's plan limits. */
+/** Hovering shows each agent's tightest limit; a click opens the full Usage popover above it. */
 function UsageEntry() {
   const { t } = useTranslation()
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null)
   const [open, setOpen] = useState(false)
+  const [peek, setPeek] = useState(false)
+  const hasSummary = useUsageStore((s) => usageSummaryRows(s.overview).length > 0)
+  useEffect(() => watchUsage(), [])
   return (
     <>
       <button
@@ -55,17 +61,32 @@ function UsageEntry() {
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-current={open || undefined}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          setPeek(false)
+          setOpen((value) => !value)
+        }}
+        onMouseEnter={() => setPeek(true)}
+        onMouseLeave={() => setPeek(false)}
+        onFocus={(event) => setPeek(event.currentTarget.matches(':focus-visible'))}
+        onBlur={() => setPeek(false)}
       >
         <GaugeIcon size={17} />
         <span>{t('usage.title')}</span>
       </button>
+      <AnchoredTooltip
+        reference={anchor}
+        open={peek && !open && hasSummary}
+        placement="top-start"
+        className="owls-usage-peek"
+      >
+        <UsageSummary />
+      </AnchoredTooltip>
       <AnchoredPopover
         anchor={anchor}
         open={open}
         onClose={() => setOpen(false)}
         label={t('usage.title')}
-        placement="right-end"
+        placement="top-start"
       >
         <UsagePanel />
       </AnchoredPopover>

@@ -14,6 +14,21 @@ import { createPortal } from 'react-dom'
 export type PopoverPoint = { x: number; y: number }
 
 /**
+ * Electron delivers no pointer events from `-webkit-app-region: drag` areas, such as the
+ * sidebars' empty space, so a press there could not close an open card. While any card is open
+ * the root carries `data-popover-open`, which turns drag regions off (main.css) until it closes.
+ */
+let openCards = 0
+function holdDragRegions(): () => void {
+  openCards++
+  document.documentElement.dataset.popoverOpen = 'true'
+  return () => {
+    openCards--
+    if (openCards === 0) delete document.documentElement.dataset.popoverOpen
+  }
+}
+
+/**
  * An opaque card anchored to an element that the caller owns, such as an inline link.
  * It flips and shifts to stay inside the window, and closes on Escape or a press
  * outside both the card and its anchor (the anchor's own click toggles it).
@@ -64,6 +79,10 @@ export function AnchoredPopover({
       ?.querySelector<HTMLElement>('[data-autofocus]')
       ?.focus({ preventScroll: true })
   }, [open, isPositioned])
+
+  useEffect(() => {
+    return open ? holdDragRegions() : undefined
+  }, [open])
 
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { UsageOverview } from '../../../shared/usage'
+import type { AgentUsage, UsageOverview, UsageWindow } from '../../../shared/usage'
 
 type State = {
   /** Null until the first read answers. */
@@ -34,3 +34,40 @@ export const useUsageStore = create<State>((set) => ({
     throw new Error('usage_failed')
   }
 }))
+
+/** How often the sidebar summary asks again; the host keeps answers for a minute. */
+const SUMMARY_REFRESH_MS = 5 * 60_000
+
+/** Reads now and then every few minutes for the sidebar summary; the return stops it. */
+export function watchUsage(): () => void {
+  const read = () => {
+    useUsageStore
+      .getState()
+      .load(false)
+      .catch(() => {
+        /* The summary keeps the last answer; the panel shows the failure. */
+      })
+  }
+  read()
+  const timer = setInterval(read, SUMMARY_REFRESH_MS)
+  return () => clearInterval(timer)
+}
+
+export type UsageSummaryRow = {
+  usage: Extract<AgentUsage, { state: 'ready' }>
+  window: UsageWindow
+}
+
+/** Each reporting agent's most-used window: the one that runs out first. */
+export function usageSummaryRows(overview: UsageOverview | null): UsageSummaryRow[] {
+  const rows: UsageSummaryRow[] = []
+  for (const usage of overview?.agents ?? []) {
+    if (usage.state !== 'ready') continue
+    const window = usage.windows.reduce<UsageWindow | null>(
+      (top, w) => (!top || w.usedPercent > top.usedPercent ? w : top),
+      null
+    )
+    if (window) rows.push({ usage, window })
+  }
+  return rows
+}

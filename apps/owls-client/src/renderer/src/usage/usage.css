@@ -1,14 +1,18 @@
 /* Each agent's meters use its own brand color: Claude's clay, Codex's graphite, Cursor's periwinkle. */
-.owls-usage-agent[data-provider="claude-code"] {
+.owls-usage-agent[data-provider="claude-code"],
+.owls-usage-summary-row[data-provider="claude-code"] {
   --owls-usage-brand: #d97757;
 }
-.owls-usage-agent[data-provider="codex"] {
+.owls-usage-agent[data-provider="codex"],
+.owls-usage-summary-row[data-provider="codex"] {
   --owls-usage-brand: #1f2023;
 }
-.owls-usage-agent[data-provider="cursor"] {
+.owls-usage-agent[data-provider="cursor"],
+.owls-usage-summary-row[data-provider="cursor"] {
   --owls-usage-brand: #7c8cff;
 }
-html[data-theme="dark"] .owls-usage-agent[data-provider="codex"] {
+html[data-theme="dark"] .owls-usage-agent[data-provider="codex"],
+html[data-theme="dark"] .owls-usage-summary-row[data-provider="codex"] {
   --owls-usage-brand: #ececec;
 }
 
@@ -140,4 +144,41 @@ html[data-theme="dark"] .owls-usage-agent[data-provider="codex"] {
 .owls-usage-note {
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-2xs);
+}
+
+/* The hover card above the sidebar's Usage entry: one compact line per agent. */
+.owls-usage-peek {
+  width: 220px;
+  padding: 8px 10px 9px;
+}
+.owls-usage-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.owls-usage-summary-title {
+  font-weight: 600;
+}
+.owls-usage-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+.owls-usage-summary-row .owls-owl-avatar {
+  width: 14px;
+  height: 14px;
+}
+.owls-usage-summary-row > .owls-usage-bar {
+  flex: 1;
+  height: 4px;
+}
+.owls-usage-summary-row > span:last-child {
+  width: 30px;
+  text-align: right;
+}
+.owls-usage-summary-row[data-high] > span:last-child {
+  color: var(--color-destructive);
 }
