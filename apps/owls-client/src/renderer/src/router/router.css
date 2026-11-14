@@ -81,7 +81,7 @@ html[data-platform="darwin"] {
   width: var(--owl-toggle-size);
   height: var(--owl-toggle-size);
   border-radius: var(--owl-radius-sm);
-  color: var(--color-muted-foreground);
+  color: var(--color-foreground);
   -webkit-app-region: no-drag;
 }
 .router-sidebar-item,
@@ -282,7 +282,7 @@ html[data-platform="darwin"] {
 .router-sidebar-usage {
   margin-top: 8px;
 }
-/* The right-hand Projects sidebar, opened from the title bar; its width is set inline. */
+/* The right-hand sidebar (projects, workers, or cards); its width is set inline. */
 .router-projects {
   position: relative;
   display: flex;
@@ -304,12 +304,107 @@ html[data-platform="darwin"] {
   justify-content: space-between;
   flex-shrink: 0;
   height: var(--owl-bar-height);
-  padding: 0 calc(var(--owl-toggle-right) + var(--owl-toggle-size) - 4px) 0 8px;
+  padding: 0 calc(var(--owl-toggle-right) + var(--owl-toggle-size) - 4px) 0 0;
 }
-.router-projects-head h2 {
+/* One icon per list the sidebar can show; the current one keeps the active background. */
+.router-right-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.router-right-tab {
+  width: var(--owl-toggle-size);
+  height: var(--owl-toggle-size);
+  border-radius: var(--owl-radius-sm);
   color: var(--color-foreground);
+}
+/* The workers' owl avatar, sized to sit with the line icons beside it. */
+.router-right-tab-owls {
+  width: 20px;
+  height: 20px;
+}
+.router-right-tab[aria-pressed="true"] {
+  background: var(--color-sidebar-active);
+}
+.router-right-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+}
+.router-right-pane > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 0 0 8px;
+}
+.router-right-pane > header h2 {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+}
+.router-right-pane > p {
+  padding: 4px 8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.router-sidebar-workers.flat {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
+  overflow-y: auto;
+}
+.router-sidebar-worker > small {
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-right-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.router-right-cards button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-foreground);
+  text-align: left;
+  transition: transform 120ms ease;
+}
+.router-right-cards button:hover {
+  background: var(--color-sidebar-hover);
+}
+.router-right-cards button:active {
+  transform: scale(0.98);
+}
+.router-right-cards button[aria-current="true"] {
+  background: var(--color-sidebar-active);
+}
+.router-right-cards strong,
+.router-right-cards span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-right-cards strong {
   font-size: var(--owl-text-sm);
-  font-weight: 600;
+  font-weight: 500;
+}
+.router-right-cards span {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
 }
 /* Fixed like the left sidebar's toggle, so it stays put whichever view the stage shows. */
 .router-projects-toggle {
@@ -320,7 +415,7 @@ html[data-platform="darwin"] {
   width: var(--owl-toggle-size);
   height: var(--owl-toggle-size);
   border-radius: var(--owl-radius-sm);
-  color: var(--color-muted-foreground);
+  color: var(--color-foreground);
   -webkit-app-region: no-drag;
 }
 /* Sits over the details panel's left edge, inside it, and follows its width cap. */

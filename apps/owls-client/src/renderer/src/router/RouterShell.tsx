@@ -12,8 +12,8 @@ import { useCardsStore, watchCards } from '../cards/store'
 import { PullRequestsView } from '../pulls/PullRequestsView'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
-import { ProjectsSidebar, ProjectsToggle } from './ProjectsSidebar'
 import { usePaneWidth } from './pane-width'
+import { RightSidebar, RightSidebarToggle } from './RightSidebar'
 import { RouterChat } from './RouterChat'
 import { RouterDetail } from './RouterDetail'
 import { Sidebar } from './Sidebar'
@@ -164,7 +164,7 @@ export function RouterShell() {
     <>
       {collapsed ? null : <Sidebar />}
       <Stage sidebarHidden={collapsed} projectsHidden={!projectsOpen} />
-      {projectsOpen ? <ProjectsSidebar /> : null}
+      {projectsOpen ? <RightSidebar /> : null}
       {/* The toggles stay after the stage and the sidebars: Chromium applies app regions in
           document order, whatever the z-index, so a title bar later in the DOM would turn them
           back into drag areas. */}
@@ -176,7 +176,7 @@ export function RouterShell() {
         icon={<SidebarLeftIcon size={18} />}
         onClick={toggleSidebar}
       />
-      <ProjectsToggle />
+      <RightSidebarToggle />
       <ForwardDialog />
       <CaptureDialog />
       <SendCardsDialog />
