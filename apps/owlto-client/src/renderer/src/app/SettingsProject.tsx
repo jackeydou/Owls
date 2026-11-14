@@ -1,6 +1,7 @@
 import { Button } from '@renderer/components/ui/button'
 import { ChevronDownIcon, ChevronRightIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
+import { Switch } from '@renderer/components/ui/switch'
 import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Project } from '../../../shared/app'
@@ -185,14 +186,11 @@ function GitPage({ project }: { project: Project }) {
             htmlFor="project-delete-pushed"
             description={t('projectSettings.deletePushedBranchesHelp')}
           >
-            <Select
+            <Switch
               id="project-delete-pushed"
-              value={git.deletePushedBranches ? 'on' : 'off'}
-              onChange={(event) => saveGit({ deletePushedBranches: event.target.value === 'on' })}
-            >
-              <option value="on">{t('projectSettings.on')}</option>
-              <option value="off">{t('projectSettings.off')}</option>
-            </Select>
+              checked={git.deletePushedBranches}
+              onCheckedChange={(deletePushedBranches) => saveGit({ deletePushedBranches })}
+            />
           </SettingRow>
         </>
       )}

@@ -1,5 +1,5 @@
+import { Switch } from '@renderer/components/ui/switch'
 import { useTranslation } from 'react-i18next'
-import { OnOff } from '../memory/SettingsMemory'
 import { SettingRow } from './SettingRow'
 import { useAppStore } from './store'
 
@@ -22,10 +22,10 @@ export function ExperimentsSettingsPane() {
             : t('experiments.manualDreamingHelp')
         }
       >
-        <OnOff
+        <Switch
           id="experiments-manual-dreaming"
-          value={experiments.manualDreaming}
-          onChange={(manualDreaming) =>
+          checked={experiments.manualDreaming}
+          onCheckedChange={(manualDreaming) =>
             void saveSettings({ ...settings, experiments: { ...experiments, manualDreaming } })
           }
         />

@@ -46,9 +46,7 @@ export const pullsEn = {
   'pulls.issue.unavailable': '{{project}}: Owlto could not reach GitHub.',
   'pulls.install': 'Install on GitHub',
   'pulls.setting': 'Pull requests page',
-  'pulls.settingHelp': 'Lists the pull requests your agents open in the sidebar.',
-  'pulls.setting.show': 'Show',
-  'pulls.setting.hide': 'Hide'
+  'pulls.settingHelp': 'Lists the pull requests your agents open in the sidebar.'
 }
 
 export const pullsZh: Record<keyof typeof pullsEn, string> = {
@@ -98,7 +96,5 @@ export const pullsZh: Record<keyof typeof pullsEn, string> = {
   'pulls.issue.unavailable': '{{project}}：Owlto 无法连接 GitHub。',
   'pulls.install': '在 GitHub 上安装',
   'pulls.setting': 'Pull requests 页面',
-  'pulls.settingHelp': '在侧栏列出 agent 开的 PR。',
-  'pulls.setting.show': '显示',
-  'pulls.setting.hide': '隐藏'
+  'pulls.settingHelp': '在侧栏列出 agent 开的 PR。'
 }

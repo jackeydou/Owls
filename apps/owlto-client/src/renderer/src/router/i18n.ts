@@ -260,9 +260,7 @@ export const routerEn = {
   'routerSettings.instructionsCancel': 'Cancel',
   'routerSettings.maxPermission': 'Highest worker permission',
   'routerSettings.maxPermissionHelp': 'The most access the Router can give a worker.',
-  'routerSettings.worktrees': 'Workers that edit code',
-  'routerSettings.worktrees.on': 'Side by side',
-  'routerSettings.worktrees.off': 'One at a time',
+  'routerSettings.worktrees': 'Run code-editing workers side by side',
   'routerSettings.worktreesHelp':
     'Side by side gives each worker its own branch. You choose what to merge.',
   'errors.worktree_failed':
@@ -561,9 +559,7 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'routerSettings.instructionsCancel': '取消',
   'routerSettings.maxPermission': 'Worker 最高权限',
   'routerSettings.maxPermissionHelp': '协调者最多能给 Worker 的权限。',
-  'routerSettings.worktrees': '改代码的 Worker',
-  'routerSettings.worktrees.on': '并行运行',
-  'routerSettings.worktrees.off': '依次运行',
+  'routerSettings.worktrees': '改代码的 Worker 并行运行',
   'routerSettings.worktreesHelp': '并行时每个 Worker 使用独立分支，由你决定合并哪些。',
   'errors.worktree_failed': 'Owlto 无法准备这个 Worker 的 git worktree，请检查仓库和磁盘空间。',
   'errors.router_model_unconfigured': '请在设置中选择协调者模型并保存它的 API key。',

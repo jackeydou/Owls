@@ -1,7 +1,7 @@
 import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { ExternalLinkIcon, LoaderIcon } from '@renderer/components/ui/icons'
-import { Select } from '@renderer/components/ui/select'
+import { Switch } from '@renderer/components/ui/switch'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -187,16 +187,13 @@ function PullRequestsSetting() {
       htmlFor="github-pull-requests"
       description={t('pulls.settingHelp')}
     >
-      <Select
+      <Switch
         id="github-pull-requests"
-        value={settings.pullRequestsVisible ? 'show' : 'hide'}
-        onChange={(event) =>
-          void saveSettings({ ...settings, pullRequestsVisible: event.target.value === 'show' })
+        checked={settings.pullRequestsVisible}
+        onCheckedChange={(pullRequestsVisible) =>
+          void saveSettings({ ...settings, pullRequestsVisible })
         }
-      >
-        <option value="show">{t('pulls.setting.show')}</option>
-        <option value="hide">{t('pulls.setting.hide')}</option>
-      </Select>
+      />
     </SettingRow>
   )
 }
