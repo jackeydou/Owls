@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { createReleaseVersion, releaseVersionPolicyMessage } from './release-version.mjs'
 
-const packagePaths = ['package.json', 'apps/owls-client/package.json']
+const packagePaths = ['package.json', 'apps/owlto-client/package.json']
 
 function readValue(argv, index, name) {
   const value = argv[index + 1]

@@ -261,7 +261,7 @@ pub struct TypeTextOptions {
 
 #[napi(object)]
 pub struct BackgroundClickOptions {
-    /// Target process pid (e.g. `MacWindow.ownerPid` from @owls/mac-window-list).
+    /// Target process pid (e.g. `MacWindow.ownerPid` from @owlto/mac-window-list).
     pub pid: i32,
     /// CoreGraphics window id of the target window (`MacWindow.windowId`).
     pub window_id: u32,

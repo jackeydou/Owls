@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createOwlsLocalRpcClient } from '@owls/local-rpc-client'
+import { createOwltoLocalRpcClient } from '@owlto/local-rpc-client'
 
 const DEFAULT_TIMEOUT_MS = 120_000
 const DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
@@ -76,7 +76,7 @@ function expandHome(path: string): string {
 }
 
 async function defaultDataRoot(): Promise<string> {
-  const bootstrapPath = join(homedir(), '.owls', 'owls-bootstrap.json')
+  const bootstrapPath = join(homedir(), '.owlto', 'owlto-bootstrap.json')
   try {
     const parsed = JSON.parse(await readFile(bootstrapPath, 'utf8')) as { dataRoot?: unknown }
     if (typeof parsed.dataRoot === 'string' && parsed.dataRoot.trim()) {
@@ -86,11 +86,11 @@ async function defaultDataRoot(): Promise<string> {
   } catch {
     // First-run and default-root installs may not have a bootstrap file yet.
   }
-  return join(homedir(), '.owls')
+  return join(homedir(), '.owlto')
 }
 
 function sessionIdFromEnv(): string {
-  const sessionId = process.env.OWLS_SESSION_ID
+  const sessionId = process.env.OWLTO_SESSION_ID
   if (!sessionId?.trim()) {
     throw new Error('Missing required browser session_id')
   }
@@ -99,13 +99,13 @@ function sessionIdFromEnv(): string {
 
 function textMatcherValue(value: TextMatcher): string {
   if (typeof value === 'string') return value
-  throw new Error('RegExp text matchers are not supported by Owls Browser Use yet.')
+  throw new Error('RegExp text matchers are not supported by Owlto Browser Use yet.')
 }
 
 function browserApiDocumentation(): string {
-  return `# Owls Browser Use
+  return `# Owlto Browser Use
 
-This runtime follows the Codex in-app Browser API shape and controls Owls's session browser through local RPC.
+This runtime follows the Codex in-app Browser API shape and controls Owlto's session browser through local RPC.
 
 Bootstrap:
 \`\`\`js
@@ -115,7 +115,7 @@ globalThis.browser = await agent.browsers.get("iab");
 nodeRepl.write(await browser.documentation());
 \`\`\`
 
-Use \`await agent.browsers.get("iab")\` to select Owls's in-app browser. The current implementation exposes one session-scoped tab with id \`${SESSION_TAB_ID}\`.
+Use \`await agent.browsers.get("iab")\` to select Owlto's in-app browser. The current implementation exposes one session-scoped tab with id \`${SESSION_TAB_ID}\`.
 
 Common operations:
 \`\`\`js
@@ -165,7 +165,7 @@ class DocumentationCollection {
 }
 
 class RpcBrowserClient {
-  private clientPromise: ReturnType<typeof createOwlsLocalRpcClient> | null = null
+  private clientPromise: ReturnType<typeof createOwltoLocalRpcClient> | null = null
   private visible = true
 
   isVisible(): boolean {
@@ -178,7 +178,7 @@ class RpcBrowserClient {
 
   async call<TResult>(method: string, params: Record<string, unknown>): Promise<TResult> {
     if (!this.clientPromise) {
-      this.clientPromise = createOwlsLocalRpcClient({
+      this.clientPromise = createOwltoLocalRpcClient({
         dataRoot: await defaultDataRoot(),
         timeoutMs: DEFAULT_TIMEOUT_MS,
         maxResponseBytes: DEFAULT_MAX_RESPONSE_BYTES
@@ -198,7 +198,7 @@ class BrowserCapabilityCollection {
     return [
       {
         id: 'visibility',
-        description: 'Show Owls session browser to the user.'
+        description: 'Show Owlto session browser to the user.'
       }
     ]
   }
@@ -252,7 +252,7 @@ class BrowserCollection {
     return [
       {
         id: BROWSER_ID,
-        name: 'Owls In-App Browser',
+        name: 'Owlto In-App Browser',
         type: 'iab',
         capabilities: {
           browser: await this.browser.capabilities.list(),
@@ -484,12 +484,12 @@ class PlaywrightApi {
 
   async evaluate<TResult, TArg>(_pageFunction: unknown, _arg?: TArg): Promise<TResult> {
     throw new Error(
-      'playwright.evaluate is not exposed by Owls Browser Use because local RPC does not provide arbitrary page JavaScript execution.'
+      'playwright.evaluate is not exposed by Owlto Browser Use because local RPC does not provide arbitrary page JavaScript execution.'
     )
   }
 
   frameLocator(_frameSelector: string): never {
-    throw new Error('playwright.frameLocator is not implemented for Owls Browser Use yet.')
+    throw new Error('playwright.frameLocator is not implemented for Owlto Browser Use yet.')
   }
 }
 
@@ -628,7 +628,7 @@ class BrowserLocator {
   }
 
   async selectOption(_value: unknown, _options: LocatorActionOptions = {}): Promise<void> {
-    throw new Error('locator.selectOption is not implemented for Owls Browser Use yet.')
+    throw new Error('locator.selectOption is not implemented for Owlto Browser Use yet.')
   }
 }
 
@@ -681,12 +681,12 @@ class DomCuaApi {
 
   async click(_options: unknown): Promise<void> {
     throw new Error(
-      'dom_cua.click requires a stable DOM node-id contract, which Owls Browser Use does not expose yet.'
+      'dom_cua.click requires a stable DOM node-id contract, which Owlto Browser Use does not expose yet.'
     )
   }
   async double_click(_options: unknown): Promise<void> {
     throw new Error(
-      'dom_cua.double_click requires a stable DOM node-id contract, which Owls Browser Use does not expose yet.'
+      'dom_cua.double_click requires a stable DOM node-id contract, which Owlto Browser Use does not expose yet.'
     )
   }
   async keypress(options: { keys: string[] }): Promise<void> {
@@ -718,16 +718,16 @@ class TabDevApi {
 
 class TabClipboardApi {
   async read(): Promise<unknown[]> {
-    throw new Error('clipboard.read is not implemented for Owls Browser Use yet.')
+    throw new Error('clipboard.read is not implemented for Owlto Browser Use yet.')
   }
   async readText(): Promise<string> {
-    throw new Error('clipboard.readText is not implemented for Owls Browser Use yet.')
+    throw new Error('clipboard.readText is not implemented for Owlto Browser Use yet.')
   }
   async write(_items: unknown[]): Promise<void> {
-    throw new Error('clipboard.write is not implemented for Owls Browser Use yet.')
+    throw new Error('clipboard.write is not implemented for Owlto Browser Use yet.')
   }
   async writeText(_text: string): Promise<void> {
-    throw new Error('clipboard.writeText is not implemented for Owls Browser Use yet.')
+    throw new Error('clipboard.writeText is not implemented for Owlto Browser Use yet.')
   }
 }
 

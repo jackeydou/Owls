@@ -7,9 +7,9 @@ out/
 *.tsbuildinfo
 .vite/
 .pnpm-store/
-.owls-debug/
-apps/owls-client/build/generated/
-apps/owls-client/resources/plugins/plugins/sites/
+.owlto-debug/
+apps/owlto-client/build/generated/
+apps/owlto-client/resources/plugins/plugins/sites/
 apps/website/
 .env
 .env.*

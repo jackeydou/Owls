@@ -17,8 +17,8 @@
 ### Runtime Config Policy
 
 - **Never** introduce runtime configuration via environment variables.
-- In `apps/owls-client`, prefer persisted settings, bootstrap files, or explicit code constants over `process.env` and `import.meta.env`.
-- If a new runtime knob is needed, route it through the existing persisted settings / bootstrap path flow (`src/main/app/store.ts` settings → `owls-paths.ts`) instead of env-based overrides.
+- In `apps/owlto-client`, prefer persisted settings, bootstrap files, or explicit code constants over `process.env` and `import.meta.env`.
+- If a new runtime knob is needed, route it through the existing persisted settings / bootstrap path flow (`src/main/app/store.ts` settings → `owlto-paths.ts`) instead of env-based overrides.
 
 ### Package Manager
 
@@ -29,23 +29,23 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
 
 - For local Electron development from the repo root, use `pnpm dev` or
   `pnpm run dev`; they are equivalent.
-- Without `--owls-dev-name`, the app shows a default project/worktree name but
+- Without `--owlto-dev-name`, the app shows a default project/worktree name but
   keeps the Electron profile scoped to the current worktree.
 - When a dev app needs stable history across changing worktrees, name the dev
-  profile: `pnpm dev --owls-dev-name "<name>"`. Choose a semantic task name
+  profile: `pnpm dev --owlto-dev-name "<name>"`. Choose a semantic task name
   based on the task, not a worktree id or hash, for example `Search QA`,
   `Plugin Install Debug`, or `Release Notes Review`.
 - A named dev profile reuses its Electron profile across worktrees. By default,
-  dev app data stays in `~/.owls` so existing sessions remain visible.
-- Specify `--owls-data-root <path>` only when a task needs an isolated data
+  dev app data stays in `~/.owlto` so existing sessions remain visible.
+- Specify `--owlto-data-root <path>` only when a task needs an isolated data
   root, for example
-  `pnpm dev --owls-dev-name "Search QA" --owls-data-root ~/.owls-dev/search-qa`.
-  Passing `--owls-data-root` overrides the data root for that launch only; pass
+  `pnpm dev --owlto-dev-name "Search QA" --owlto-data-root ~/.owlto-dev/search-qa`.
+  Passing `--owlto-data-root` overrides the data root for that launch only; pass
   it again on later launches that should use the same isolated data root.
 - Do not use environment variables for dev app profile names or data roots.
 - To run and drive the app yourself, use `pnpm debug:app` instead of `pnpm dev`:
   it launches in the background on an isolated data root and takes one shell
-  command per step. See `.agents/skills/owls-app-debug/SKILL.md`.
+  command per step. See `.agents/skills/owlto-app-debug/SKILL.md`.
 
 ### Code Style
 
@@ -196,8 +196,8 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
 
 ### Version Convention
 
-- Owls uses date-based CalVer actual versions and matching Git release tags. The detailed release/version rules live in `docs/reference/RELEASING.md` and `.agents/skills/owls-release-maintainer/SKILL.md`.
-- The Electron app version source is `apps/owls-client/package.json`. Root
+- Owlto uses date-based CalVer actual versions and matching Git release tags. The detailed release/version rules live in `docs/reference/RELEASING.md` and `.agents/skills/owlto-release-maintainer/SKILL.md`.
+- The Electron app version source is `apps/owlto-client/package.json`. Root
   `package.json` may remain pre-policy until the first CalVer release MR; after
   that release flow starts, update both version files together in release MRs.
 - Do not bump versions in normal development MRs. Bump versions in a release MR unless the user explicitly asks for a different flow.
@@ -220,14 +220,14 @@ Always use **pnpm**. Use the version declared in `packageManager`; never use
   or `--type fixed` to create fragments. Supported fragment types are `added`,
   `changed`, `fixed`, `security`, `removed`, and `internal`. This repo
   intentionally does not
-  use Changesets because Owls Client is an Electron CalVer app, not a
+  use Changesets because Owlto Client is an Electron CalVer app, not a
   multi-package npm publishing repo.
-- Use `.agents/skills/owls-release-maintainer/SKILL.md` and `docs/reference/RELEASING.md` for release branches, version bumps, highlights, release checks, tags, and publishing.
+- Use `.agents/skills/owlto-release-maintainer/SKILL.md` and `docs/reference/RELEASING.md` for release branches, version bumps, highlights, release checks, tags, and publishing.
 - Use `.agents/skills/release-notes-writer/SKILL.md` when writing user-facing release notes.
 
 Release MR flow:
 
-1. Set the release version in `apps/owls-client/package.json`; after the first CalVer release MR, keep root `package.json` on the same version.
+1. Set the release version in `apps/owlto-client/package.json`; after the first CalVer release MR, keep root `package.json` on the same version.
 2. Run `pnpm run changelog:compose --version <version>` to move
    `.changelog/unreleased` fragments and any legacy `CHANGELOG.md`
    `## Unreleased` entries into `## <version>`, leaving only future work in
@@ -237,7 +237,7 @@ Release MR flow:
    release scope.
 4. Review and edit `release-notes/<version>.md` from the matching
    `CHANGELOG.md` `## <version>` section, where `<version>` is exactly
-   `apps/owls-client/package.json`'s version. Do not generate release notes
+   `apps/owlto-client/package.json`'s version. Do not generate release notes
    from `Unreleased` during release prep.
 5. Run `pnpm run release:check --version <version>` before package builds. This validates versions, changelog structure, the versioned changelog section, and `release-notes/<version>.md`.
 
@@ -250,25 +250,26 @@ Release MR flow:
 
 ### Electron Packaging
 
-- Public app/package branding is `Owls`; build artifacts should use names such as `Owls-2026.5.3.dmg` rather than internal workspace names.
-- Check `apps/owls-client/scripts/electron-builder-config.cjs` before changing packaging behavior.
+- Public app/package branding is `Owlto`; build artifacts should use names such as `Owlto-2026.5.3.dmg` rather than internal workspace names.
+- Two external names still use the product's first name, Owls: the `jackeydou/Owls` repository (also the update feed) and the `owls-agents` GitHub App. Do not rename them in code until they are renamed on GitHub.
+- Check `apps/owlto-client/scripts/electron-builder-config.cjs` before changing packaging behavior.
 
 ## Source Map
 
-- App package and scripts: `apps/owls-client/package.json`.
-- Main process: `apps/owls-client/src/main/`.
-- Preload bridge and renderer API types: `apps/owls-client/src/preload/`.
-- Renderer app: `apps/owls-client/src/renderer/src/`.
-- Shared cross-process types: `apps/owls-client/src/shared/`.
-- Database schema and migrations: `apps/owls-client/src/main/app/schema.ts` and
-  `apps/owls-client/migrations/` (`owls.db`).
+- App package and scripts: `apps/owlto-client/package.json`.
+- Main process: `apps/owlto-client/src/main/`.
+- Preload bridge and renderer API types: `apps/owlto-client/src/preload/`.
+- Renderer app: `apps/owlto-client/src/renderer/src/`.
+- Shared cross-process types: `apps/owlto-client/src/shared/`.
+- Database schema and migrations: `apps/owlto-client/src/main/app/schema.ts` and
+  `apps/owlto-client/migrations/` (`owlto.db`).
 - Legacy Pi runtime (kept for reference, not built, type-checked, or tested):
-  `apps/owls-client/legacy/`. Do not import from it or add code to it.
-- Plugin system design and implementation: `docs/PLUGIN_SYSTEM.md` and `apps/owls-client/src/main/plugins/`.
+  `apps/owlto-client/legacy/`. Do not import from it or add code to it.
+- Plugin system design and implementation: `docs/PLUGIN_SYSTEM.md` and `apps/owlto-client/src/main/plugins/`.
 - Release notes: `docs/reference/RELEASING.md` and `release-notes/`.
 - Native mac helpers: `packages/mac-*`.
-- Agent app debugging: `apps/owls-client/scripts/debug-app.mjs` and
-  `.agents/skills/owls-app-debug/SKILL.md`.
+- Agent app debugging: `apps/owlto-client/scripts/debug-app.mjs` and
+  `.agents/skills/owlto-app-debug/SKILL.md`.
 
 ## Implementation Rules
 
@@ -309,15 +310,15 @@ Release MR flow:
   UI messages.
 - Long-running listeners, timers, streams, child processes, and subscriptions
   must have an explicit cleanup path. Renderer effects should return cleanup
-  functions when they subscribe to `window.owls` events.
+  functions when they subscribe to `window.owlto` events.
 - Sort unordered data before showing it to agents, persisting generated output,
   producing prompt text, or comparing in tests.
 
 ### Renderer
 
-- Inspect existing views, stores, components, and `apps/owls-client/src/renderer/src/app/i18n.ts` before adding UI patterns.
+- Inspect existing views, stores, components, and `apps/owlto-client/src/renderer/src/app/i18n.ts` before adding UI patterns.
 - All user-facing renderer copy, including accessibility text, must go through i18next with English and Simplified Chinese entries.
-- Renderer state should follow the existing Zustand store pattern and call main-process behavior through `window.owls`.
+- Renderer state should follow the existing Zustand store pattern and call main-process behavior through `window.owlto`.
 - Keep renderer code presentation-focused. Do not read Node APIs, filesystem
   paths, Electron internals, database state, or plugin internals directly from
   React components.
@@ -378,9 +379,9 @@ Release MR flow:
 
 ### IPC
 
-- Keep IPC changes synchronized across main handlers, `preload/owls.ts`,
-  `preload/owls.d.ts`, shared types, and renderer stores/components.
-- Prefer typed request/response shapes and existing `window.owls` namespaces over
+- Keep IPC changes synchronized across main handlers, `preload/owlto.ts`,
+  `preload/owlto.d.ts`, shared types, and renderer stores/components.
+- Prefer typed request/response shapes and existing `window.owlto` namespaces over
   ad hoc channels.
 - Treat IPC as an untrusted boundary. Validate request payloads in main before
   using them, and return stable response shapes instead of raw exceptions.
@@ -415,7 +416,7 @@ Release MR flow:
 - For schema changes, update `src/main/app/schema.ts`, generate Drizzle migration
   files with `db:generate:app`, and commit generated SQL plus
   `migrations/meta/_journal.json` together.
-- Keep data-root behavior behind `owls-paths.ts` and the persisted settings in
+- Keep data-root behavior behind `owlto-paths.ts` and the persisted settings in
   `src/main/app/store.ts`; do not
   add alternate path/config mechanisms without explicit need.
 - Migrations must be forward-only and deterministic. Do not edit existing
@@ -453,7 +454,7 @@ Release MR flow:
 ### Tests
 
 - The current app tests are built-output Node tests under
-  `apps/owls-client/tests/admin`; do not invent a new test layout casually.
+  `apps/owlto-client/tests/admin`; do not invent a new test layout casually.
 - When adding tests, protect behavior that can regress, such as plugin
   validation, admin-agent helpers, IPC payload shaping, database migrations, or
   release/build helpers.
@@ -475,14 +476,14 @@ Release MR flow:
   docs-only.
 - Tests import from built output, so use the relevant package test script instead
   of invoking test files directly unless you have already built the app.
-- For renderer or preload changes, run `pnpm --filter owls-client typecheck:web`
+- For renderer or preload changes, run `pnpm --filter owlto-client typecheck:web`
   when feasible.
 - For main, database, plugin, packaging, update, or native package changes, run
-  `pnpm --filter owls-client typecheck:node` when feasible.
+  `pnpm --filter owlto-client typecheck:node` when feasible.
 - For cross-process or broad app changes, run
-  `pnpm --filter owls-client typecheck` and the relevant package tests.
-- For plugin manifest validation changes, run `pnpm --filter @owls/sites-plugin test`.
-- For admin-agent changes, run `pnpm --filter owls-client test:admin`.
+  `pnpm --filter owlto-client typecheck` and the relevant package tests.
+- For plugin manifest validation changes, run `pnpm --filter @owlto/sites-plugin test`.
+- For admin-agent changes, run `pnpm --filter owlto-client test:admin`.
 - For packaging changes, run the relevant build/package script or
   explain why it was not feasible.
 - For docs-only changes, at minimum run `git diff --check` and any relevant

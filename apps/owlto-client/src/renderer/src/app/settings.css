@@ -1,0 +1,516 @@
+/* The whole window while open: navigation on the left, one tab's details on the right. */
+.owlto-settings-nav .router-sidebar-head {
+  display: flex;
+  align-items: center;
+  padding-left: calc(var(--owl-toggle-left) - 12px);
+}
+.owlto-settings-back {
+  gap: 6px;
+  height: var(--owl-toggle-size);
+  padding: 0 8px 0 6px;
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  font-weight: 400;
+}
+.owlto-settings-nav h1 {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  margin-bottom: 8px;
+  padding: 0 8px;
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+}
+.owlto-settings-nav hr {
+  flex-shrink: 0;
+  margin: 12px 8px;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+.owlto-settings-nav .router-agent-icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+.owlto-settings-drag {
+  flex-shrink: 0;
+  height: var(--owl-bar-height);
+  -webkit-app-region: drag;
+}
+.owlto-settings-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+/* Left-aligned under the title bar, with a generous measure and one clear page title. */
+.owlto-settings-content {
+  max-width: 852px;
+  padding: 20px 36px 64px;
+}
+.owlto-settings-section h2 {
+  margin-bottom: 4px;
+  font-size: var(--owl-text-2xl);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: var(--owl-leading-tight);
+}
+.owlto-settings-section h2 + p,
+.owlto-section-heading p {
+  margin-top: 6px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owlto-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.owlto-connection {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.owlto-connection i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--owl-queue);
+}
+.owlto-connection.ready i {
+  background: var(--owl-run);
+}
+.owlto-connection.connecting i {
+  background: var(--owl-wait);
+}
+.owlto-connection.error i {
+  background: var(--owl-bad);
+}
+.owlto-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 30px;
+  margin-top: 6px;
+}
+.owlto-setting-row > button,
+.owlto-setting-row > .owlto-settings-actions {
+  flex-shrink: 0;
+}
+.owlto-setting-text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.owlto-setting-row label {
+  font-size: var(--owl-text-sm);
+}
+/* One control column, so every row's right edge and width line up. */
+.owlto-setting-row select,
+.owlto-setting-row .router-input {
+  flex-shrink: 0;
+  width: 200px;
+  min-width: 0;
+  height: 32px;
+  font-size: var(--owl-text-sm);
+}
+.owlto-setting-row .router-input {
+  padding: 0 12px;
+  border-radius: var(--owl-radius-sm);
+}
+/* Rows in a pane run edge to edge, split by a hairline; the guide reuses them without it. */
+.owlto-settings-section .owlto-setting-row {
+  flex-wrap: wrap;
+  row-gap: 0;
+  min-height: 80px;
+  margin: 0;
+  padding: 20px 0;
+  border-top: 1px solid var(--color-border);
+}
+.owlto-settings-section h2 + p + .owlto-setting-row,
+.owlto-settings-section h2 + .owlto-setting-row,
+.owlto-section-heading + .owlto-setting-row {
+  margin-top: 16px;
+  border-top: 0;
+}
+.owlto-setting-text h3,
+.owlto-settings-section .owlto-setting-text label {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: var(--owl-text-sm);
+  font-weight: 500;
+}
+.owlto-setting-text small {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+/* Same size as the name: color alone sets the two apart. */
+.owlto-setting-text p {
+  margin-top: 4px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owlto-setting-detail {
+  flex: 0 0 100%;
+  min-width: 0;
+  margin-top: 12px;
+}
+.owlto-settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.owlto-settings-section > .owlto-settings-actions,
+.owlto-settings-tabpanel > .owlto-settings-actions {
+  justify-content: flex-end;
+  padding-bottom: 12px;
+}
+.owlto-settings-section > .owlto-inline-error,
+.owlto-settings-tabpanel > .owlto-inline-error {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+}
+.owlto-note {
+  margin-top: 6px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owlto-setting-row + .owlto-note {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+.owlto-note a {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  color: var(--color-foreground);
+  margin-left: 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.owlto-logo-options {
+  display: grid;
+  grid-template-columns: repeat(3, max-content);
+  gap: 8px;
+}
+.owlto-logo-option {
+  display: flex;
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-md);
+  cursor: pointer;
+}
+.owlto-logo-option:has(input:checked) {
+  border-color: var(--color-accent);
+}
+.owlto-logo-option:has(input:focus-visible) {
+  outline: 2px solid var(--owl-focus-ring);
+  outline-offset: 2px;
+}
+.owlto-logo-option img {
+  width: 40px;
+  height: 40px;
+}
+/* The Dock artwork keeps Apple's icon margin, which reads as undersized inside the app. */
+.owlto-logo-option img,
+.router-guide > img {
+  transform: scale(1.24);
+}
+.owlto-path {
+  display: block;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-xs);
+  font-size: var(--owl-text-xs);
+  word-break: break-all;
+}
+.owlto-version {
+  margin-top: 4px;
+  font-size: var(--owl-text-xs);
+  color: var(--color-muted-foreground);
+}
+/* Many projects scroll inside the navigation instead of growing the window. */
+.owlto-settings-nav {
+  overflow-y: auto;
+}
+.owlto-settings-group {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  margin-bottom: 2px;
+  padding: 0 8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+}
+.owlto-settings-project > b {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--owl-radius-xs);
+  background: var(--color-sidebar-active);
+  font-size: var(--owl-text-2xs);
+  font-weight: 600;
+}
+.owlto-settings-project[aria-expanded="true"] > b {
+  box-shadow: inset 0 0 0 1.5px var(--owl-c);
+}
+/* The open project's pages hang from a rule under its tile. */
+.owlto-settings-subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 1px 0 4px 16px;
+  padding-left: 8px;
+  border-left: 1px solid var(--color-border);
+}
+.owlto-setting-textarea {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+  resize: vertical;
+  outline: none;
+}
+.owlto-setting-textarea.code {
+  min-height: 140px;
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+}
+.owlto-router-instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.owlto-router-instructions .owlto-setting-textarea {
+  min-height: 240px;
+}
+.owlto-router-instructions-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.owlto-router-instructions-state {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.owlto-settings-dialog h2 {
+  margin-bottom: 12px;
+  font-size: var(--owl-text-lg);
+  font-weight: 600;
+}
+.owlto-settings-dialog p {
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owlto-settings-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.owlto-setting-textarea::placeholder {
+  color: var(--color-muted-foreground);
+}
+.owlto-setting-row > .owlto-setting-disclosure {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+}
+.owlto-inline-link {
+  margin-left: 6px;
+  padding: 0;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+  font-weight: 400;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.owlto-settings-chevron {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+}
+.owlto-project-icon-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+/* The preview is the tile at the size the settings page can show it well. */
+.owlto-project-icon-preview > .owlto-project-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-sidebar-active);
+  font-size: var(--owl-text-lg);
+  font-weight: 600;
+}
+.owlto-project-icon-preview > .owlto-project-icon.colored {
+  background: color-mix(in srgb, var(--owl-c) 18%, transparent);
+}
+.owlto-project-icon-preview > .owlto-project-icon.emoji {
+  font-size: var(--owl-text-lg);
+}
+.owlto-project-icon-preview > .owlto-project-icon.image {
+  background: transparent;
+}
+.owlto-segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card);
+}
+.owlto-segmented > button {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+}
+.owlto-segmented > button[aria-pressed="true"] {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+.owlto-setting-detail .router-input.owlto-project-emoji {
+  width: 72px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  text-align: center;
+}
+.owlto-project-colors {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.owlto-project-colors .swatch {
+  position: relative;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--owl-c);
+}
+/* Automatic: the hashed color, marked with a dashed ring so it reads as "no choice". */
+.owlto-project-colors .swatch.auto {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--owl-c);
+  outline: 1px dashed var(--color-border);
+  outline-offset: 2px;
+}
+.owlto-project-colors .swatch:has(input:checked) {
+  box-shadow:
+    0 0 0 2px var(--color-background),
+    0 0 0 3.5px var(--owl-c);
+}
+.owlto-project-colors .swatch.auto:has(input:checked) {
+  box-shadow:
+    inset 0 0 0 1.5px var(--owl-c),
+    0 0 0 2px var(--color-background),
+    0 0 0 3.5px var(--owl-c);
+  outline: none;
+}
+.owlto-project-icon-error {
+  flex: 0 0 100%;
+  color: var(--owl-bad);
+  font-size: var(--owl-text-sm);
+}
+.owlto-project-colors .swatch:has(input:focus-visible) {
+  outline: 2px solid var(--owl-focus-ring);
+  outline-offset: 3px;
+}
+/* Tabs across a page (Agents, Router & Workers): underlined, the open tab's rows below. */
+.owlto-settings-tabs {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.owlto-settings-section h2 + p + .owlto-settings-tabs {
+  margin-top: 16px;
+}
+.owlto-settings-tabs > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--owl-radius-xs) var(--owl-radius-xs) 0 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  font-weight: 500;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    transform 80ms ease;
+}
+.owlto-settings-tabs > button:hover {
+  color: var(--color-foreground);
+}
+.owlto-settings-tabs > button:active {
+  transform: translateY(1px);
+}
+.owlto-settings-tabs > button[aria-selected="true"] {
+  border-bottom-color: var(--color-foreground);
+  color: var(--color-foreground);
+}
+.owlto-settings-tabs .router-agent-icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+.owlto-settings-tabs > button:not([aria-selected="true"]) .router-agent-icon,
+.owlto-settings-tabs > button:not([aria-selected="true"]) .owlto-settings-tab-owl {
+  opacity: 0.7;
+}
+.owlto-settings-tab-owl {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+.owlto-settings-tabpanel > .owlto-setting-row:first-child,
+.owlto-settings-tab-body + .owlto-setting-row {
+  border-top: 0;
+}
+.owlto-settings-tab-body {
+  padding-top: 20px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owlto-agent-status {
+  display: flex;
+  align-items: center;
+  padding: 20px 0 4px;
+}
+.owlto-agent-status .owlto-connection {
+  font-size: var(--owl-text-sm);
+}
+.owlto-agent-status + .owlto-setting-row {
+  border-top: 0;
+}

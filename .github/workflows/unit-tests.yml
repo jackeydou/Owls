@@ -28,7 +28,7 @@ jobs:
   # Typecheck, bundle, and the full test suite. None of it needs macOS: the
   # tests load the built main bundle, not the native mac-* addons.
   test:
-    name: Owls client
+    name: Owlto client
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -45,23 +45,23 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      # Skip install scripts: the owls-client postinstall rebuilds Electron
+      # Skip install scripts: the owlto-client postinstall rebuilds Electron
       # native modules (better-sqlite3, node-pty) and downloads Electron, and
       # the tests use neither. Run the two workspace prepare steps the build
       # does need.
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile --ignore-scripts
-          pnpm --filter @owls/local-rpc-client --filter @owls/browser-use run prepare
+          pnpm --filter @owlto/local-rpc-client --filter @owlto/browser-use run prepare
 
       - name: Typecheck
-        run: pnpm --filter owls-client typecheck
+        run: pnpm --filter owlto-client typecheck
 
       - name: Build
-        run: pnpm --dir apps/owls-client exec electron-vite build
+        run: pnpm --dir apps/owlto-client exec electron-vite build
 
       - name: Run unit tests
-        working-directory: apps/owls-client
+        working-directory: apps/owlto-client
         run: node --experimental-strip-types --test tests/admin/*.test.mjs
 
   # Decide whether this change needs the macOS job. macOS arm64 runners are
@@ -92,7 +92,7 @@ jobs:
             exit 0
           fi
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename' > "$RUNNER_TEMP/files.txt"
-          pattern='^(packages/mac-[^/]+/|apps/owls-client/scripts/|apps/owls-client/package\.json$|apps/owls-client/electron\.vite\.config\.|apps/owls-client/tests/admin/(dmg-size|mac-signing|packaged-runtime)\.test\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|patches/|\.github/workflows/)'
+          pattern='^(packages/mac-[^/]+/|apps/owlto-client/scripts/|apps/owlto-client/package\.json$|apps/owlto-client/electron\.vite\.config\.|apps/owlto-client/tests/admin/(dmg-size|mac-signing|packaged-runtime)\.test\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|patches/|\.github/workflows/)'
           if grep -Eq "$pattern" "$RUNNER_TEMP/files.txt"; then
             echo "macos=true" >> "$GITHUB_OUTPUT"
             echo "macOS job runs for:" >> "$GITHUB_STEP_SUMMARY"
@@ -105,7 +105,7 @@ jobs:
   # Compile the native mac-* addons and run the suite on macOS, including
   # the DMG test that needs the macOS-only dmg-license package.
   macos:
-    name: Owls client (macOS)
+    name: Owlto client (macOS)
     needs: changes
     if: needs.changes.outputs.macos == 'true'
     runs-on: macos-latest
@@ -155,8 +155,8 @@ jobs:
         run: pnpm -r --filter './packages/mac-*' run build
 
       - name: Build
-        run: pnpm --dir apps/owls-client exec electron-vite build
+        run: pnpm --dir apps/owlto-client exec electron-vite build
 
       - name: Run unit tests
-        working-directory: apps/owls-client
+        working-directory: apps/owlto-client
         run: node --experimental-strip-types --test tests/admin/*.test.mjs

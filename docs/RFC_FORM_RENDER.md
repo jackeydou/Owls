@@ -2,11 +2,11 @@
 
 ## Status
 
-Draft technical design for structured user-input rendering in Owls Client.
+Draft technical design for structured user-input rendering in Owlto Client.
 
 ## Abstract
 
-Form Render 是 Owls Client 中面向人工补充信息的交互式 UI 协议。它和 `json-render` 分工明确：
+Form Render 是 Owlto Client 中面向人工补充信息的交互式 UI 协议。它和 `json-render` 分工明确：
 
 - `json-render`：只读展示，负责把结构化 JSON state 渲染成安全 UI。
 - `form-render`：可编辑输入，负责渲染字段、校验用户输入，并在 submit 时产出结构化 JSON。
@@ -305,10 +305,10 @@ automation runtime stage 类型应拆分为：
 
 模块拆分：
 
-- `apps/owls-client/src/shared/form-render.ts`
+- `apps/owlto-client/src/shared/form-render.ts`
   - 定义 `FormRenderDocument`、`FormRenderField` 和 runtime guards。
   - 校验 document shape、字段类型、options、`initial_state`。
-- `apps/owls-client/src/renderer/src/components/form-render/FormRender.tsx`
+- `apps/owlto-client/src/renderer/src/components/form-render/FormRender.tsx`
   - 使用 `useForm` 初始化动态字段。
   - 用 `register` 处理 text、textarea、number、select、date、datetime、json。
   - 用 `Controller` 处理 boolean、multi_select、file 等非纯文本输入。

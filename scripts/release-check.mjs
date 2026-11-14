@@ -49,17 +49,17 @@ function unreleasedFragments() {
 try {
   const { version: requestedVersion, allowUnreleased } = parseArgs(process.argv.slice(2))
   const rootPackage = readJson('package.json')
-  const appPackage = readJson('apps/owls-client/package.json')
+  const appPackage = readJson('apps/owlto-client/package.json')
   const version = requestedVersion ?? appPackage.version
   const errors = []
 
   if (!validateReleaseVersion(version)) {
-    errors.push(`Invalid Owls release version: ${version}. ${releaseVersionPolicyMessage()}`)
+    errors.push(`Invalid Owlto release version: ${version}. ${releaseVersionPolicyMessage()}`)
   }
 
   if (appPackage.version !== version) {
     errors.push(
-      `apps/owls-client/package.json version is ${appPackage.version}, expected ${version}.`
+      `apps/owlto-client/package.json version is ${appPackage.version}, expected ${version}.`
     )
   }
 

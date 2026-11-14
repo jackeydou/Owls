@@ -1,0 +1,53 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sites",
+  "version": "1.0.10",
+  "description": "Build and locally validate websites and web apps.",
+  "author": {
+    "name": "Owlto"
+  },
+  "keywords": [
+    "sites",
+    "site",
+    "website",
+    "webpage",
+    "web",
+    "web app",
+    "webapp",
+    "landing page",
+    "static site",
+    "frontend",
+    "static",
+    "ssr",
+    "next.js",
+    "nextjs"
+  ],
+  "extensions": {
+    "com.owlto.app": {
+      "runtime": {
+        "node": ">=20"
+      },
+      "permissions": {
+        "filesystem": ["read", "write"],
+        "shell": "prompt",
+        "network": "prompt"
+      },
+      "interface": {
+        "displayName": "Sites",
+        "shortDescription": "Build and validate websites and web apps.",
+        "longDescription": "Helps create, modify, and locally validate static, CSR, and SSR websites and web apps.",
+        "developerName": "Owlto",
+        "category": "Developer Tools",
+        "capabilities": ["Build", "Validate"],
+        "defaultPrompt": [
+          "Build a revenue dashboard",
+          "Create a product launch page",
+          "Validate this website locally"
+        ],
+        "brandColor": "#2563EB",
+        "icon": "./assets/icon.svg",
+        "logo": "./assets/logo.svg"
+      }
+    }
+  }
+}

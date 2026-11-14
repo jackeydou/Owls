@@ -42,8 +42,8 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('node:fs')
-          const pkg = require('./apps/owls-client/package.json')
-          if (!pkg.scripts?.['verify:packaged'] || !fs.existsSync('apps/owls-client/scripts/verify-packaged-runtime.cjs')) {
+          const pkg = require('./apps/owlto-client/package.json')
+          if (!pkg.scripts?.['verify:packaged'] || !fs.existsSync('apps/owlto-client/scripts/verify-packaged-runtime.cjs')) {
             console.error('::error::The selected source is missing the packaged runtime gate. Include both the verify:packaged package script and scripts/verify-packaged-runtime.cjs before running this workflow.')
             process.exit(1)
           }
@@ -54,7 +54,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          package_version="$(node -p "require('./apps/owls-client/package.json').version")"
+          package_version="$(node -p "require('./apps/owlto-client/package.json').version")"
           if [[ ! "$package_version" =~ ^[0-9]{4}\.[0-9]{1,2}\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
             echo "Unsupported package version: $package_version"
             exit 1
@@ -67,8 +67,8 @@ jobs:
             exit 1
           fi
           echo "RELEASE_COMMIT=$release_commit" >> "$GITHUB_ENV"
-          echo "Building Owls $package_version from $GITHUB_REF at $release_commit"
-          echo "Building Owls $package_version from $GITHUB_REF at $release_commit" >> "$GITHUB_STEP_SUMMARY"
+          echo "Building Owlto $package_version from $GITHUB_REF at $release_commit"
+          echo "Building Owlto $package_version from $GITHUB_REF at $release_commit" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -114,7 +114,7 @@ jobs:
           # Preserve the hard limit so the packaging hook can size the soft limit to the bundle.
           ulimit -S -n 65536
           echo "Open-file limit: $(ulimit -n)"
-          pnpm --dir apps/owls-client run build:mac
+          pnpm --dir apps/owlto-client run build:mac
         env:
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
@@ -125,11 +125,11 @@ jobs:
 
       - name: Verify packaged runtime, signature, and notarization ticket
         shell: bash
-        working-directory: apps/owls-client
+        working-directory: apps/owlto-client
         run: |
           set -euo pipefail
-          app_path="$(find dist -maxdepth 3 -type d -name 'Owls.app' -print -quit)"
-          : "${app_path:?Could not find packaged Owls.app}"
+          app_path="$(find dist -maxdepth 3 -type d -name 'Owlto.app' -print -quit)"
+          : "${app_path:?Could not find packaged Owlto.app}"
           # spctl and stapler ask Apple's servers (api.apple-cloudkit.com) about the ticket.
           # A dropped connection there fails the job after a ~20 minute build, so retry
           # these online checks with backoff instead of failing on the first network error.
@@ -155,7 +155,7 @@ jobs:
 
       - name: Verify the app inside each DMG
         shell: bash
-        working-directory: apps/owls-client
+        working-directory: apps/owlto-client
         run: |
           set -euo pipefail
           for disk_image in dist/*.dmg; do
@@ -170,7 +170,7 @@ jobs:
             trap cleanup EXIT
             hdiutil attach "$disk_image" -readonly -nobrowse -noautoopen -mountpoint "$mount_dir"
             mounted=true
-            pnpm run verify:packaged "$mount_dir/Owls.app"
+            pnpm run verify:packaged "$mount_dir/Owlto.app"
             hdiutil detach "$mount_dir"
             mounted=false
             rmdir "$mount_dir"
@@ -195,7 +195,7 @@ jobs:
       - name: Build the update feed and binary delta patches
         # `shell: bash` runs with pipefail, so a script failure is not hidden by tee.
         shell: bash
-        working-directory: apps/owls-client
+        working-directory: apps/owlto-client
         run: |
           node --experimental-strip-types scripts/release-update-feed.mjs \
             --version "$RELEASE_VERSION" \
@@ -206,7 +206,7 @@ jobs:
 
       - name: Create checksums
         shell: bash
-        working-directory: apps/owls-client
+        working-directory: apps/owlto-client
         run: |
           shopt -s nullglob
           shasum -a 256 dist/*.dmg dist/*.zip dist/*.delta > dist/SHA256SUMS.txt
@@ -237,11 +237,11 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          assets=(apps/owls-client/dist/*.dmg apps/owls-client/dist/*.zip apps/owls-client/dist/*.delta apps/owls-client/dist/SHA256SUMS.txt)
+          assets=(apps/owlto-client/dist/*.dmg apps/owlto-client/dist/*.zip apps/owlto-client/dist/*.delta apps/owlto-client/dist/SHA256SUMS.txt)
           gh release create "$RELEASE_VERSION" "${assets[@]}" \
             --target "$RELEASE_COMMIT" \
             --draft \
-            --title "Owls $RELEASE_VERSION" \
+            --title "Owlto $RELEASE_VERSION" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
           gh release edit "$RELEASE_VERSION" --draft=false --latest
 
@@ -253,12 +253,12 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          assets=(apps/owls-client/dist/*.dmg apps/owls-client/dist/*.zip apps/owls-client/dist/*.delta apps/owls-client/dist/SHA256SUMS.txt)
+          assets=(apps/owlto-client/dist/*.dmg apps/owlto-client/dist/*.zip apps/owlto-client/dist/*.delta apps/owlto-client/dist/SHA256SUMS.txt)
           gh release create "$RELEASE_VERSION" "${assets[@]}" \
             --target "$RELEASE_COMMIT" \
             --draft \
             --prerelease \
-            --title "Owls $RELEASE_VERSION" \
+            --title "Owlto $RELEASE_VERSION" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
           gh release edit "$RELEASE_VERSION" --draft=false --prerelease
 
@@ -275,6 +275,6 @@ jobs:
               --target "$RELEASE_COMMIT" \
               --prerelease \
               --title "Update feed" \
-              --notes "Update metadata read by installed Owls apps. Do not delete or rename this release."
+              --notes "Update metadata read by installed Owlto apps. Do not delete or rename this release."
           fi
-          gh release upload update-feed apps/owls-client/dist/update-feed/*.json --clobber
+          gh release upload update-feed apps/owlto-client/dist/update-feed/*.json --clobber

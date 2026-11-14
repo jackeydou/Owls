@@ -1,6 +1,6 @@
 # Playwright Guidance
 
-Owls exposes a bounded Playwright-style API through `tab.playwright`. Only call
+Owlto exposes a bounded Playwright-style API through `tab.playwright`. Only call
 methods documented in `api.md`.
 
 ## Basic Flow
@@ -43,11 +43,11 @@ when it resolves to exactly one target.
 
 ## Constraints
 
-- Do not pass RegExp matchers. Owls currently accepts string matchers only.
+- Do not pass RegExp matchers. Owlto currently accepts string matchers only.
 - Do not assume upstream Playwright methods exist unless they are listed in
   `api.md`.
 - `evaluate` and `frameLocator` are intentionally unavailable in the current
-  Owls backend.
+  Owlto backend.
 - `selectOption` is not implemented yet.
 
 ## Recovery

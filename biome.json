@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!!apps/owls-client/legacy"]
+    "includes": ["**", "!!apps/owlto-client/legacy"]
   },
   "formatter": {
     "enabled": true,

@@ -271,7 +271,7 @@ function archiveFragments(files, version) {
 try {
   const { version, skipReleaseNotes, includeInternal, force } = parseArgs(process.argv.slice(2))
   if (!validateReleaseVersion(version)) {
-    throw new Error(`Invalid Owls release version: ${version}. ${releaseVersionPolicyMessage()}`)
+    throw new Error(`Invalid Owlto release version: ${version}. ${releaseVersionPolicyMessage()}`)
   }
 
   const changelog = readFileSync('CHANGELOG.md', 'utf8')

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "in-app-browser-use",
+  "version": "0.1.1",
+  "description": "Guidance for operating Owlto's session browser.",
+  "author": {
+    "name": "Owlto"
+  },
+  "keywords": ["browser", "embedded-browser", "in-app-browser", "sidebar"],
+  "extensions": {
+    "com.owlto.app": {
+      "runtime": {
+        "node": ">=20"
+      },
+      "permissions": {
+        "filesystem": ["read", "write"],
+        "shell": "prompt",
+        "network": "deny"
+      },
+      "interface": {
+        "displayName": "In-App Browser Use",
+        "shortDescription": "Operate Owlto's session browser.",
+        "developerName": "Owlto",
+        "category": "Browser",
+        "icon": "./assets/icon.png",
+        "logo": "./assets/logo.png",
+        "capabilities": ["Skill", "Browser"],
+        "defaultPrompt": [
+          "Use the session browser to open this URL.",
+          "Use Browser Use to inspect the current page."
+        ]
+      }
+    }
+  }
+}

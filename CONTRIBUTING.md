@@ -1,6 +1,6 @@
-# Contributing to Owls
+# Contributing to Owlto
 
-Thank you for helping improve Owls. Contributions can include bug reports,
+Thank you for helping improve Owlto. Contributions can include bug reports,
 documentation, design feedback, tests, fixes, and new features.
 
 ## Before you start
@@ -14,26 +14,26 @@ documentation, design feedback, tests, fixes, and new features.
 
 ## Development setup
 
-Owls is a pnpm workspace. Use the pnpm version declared in the root
+Owlto is a pnpm workspace. Use the pnpm version declared in the root
 `packageManager` field; do not use npm or Yarn.
 
 ```bash
 git clone <your-fork-or-repository-url>
-cd Owls
+cd Owlto
 pnpm install
 pnpm dev
 ```
 
-Normal app data is stored under `~/.owls`. Use an isolated profile when a
+Normal app data is stored under `~/.owlto`. Use an isolated profile when a
 development task should not touch your regular sessions:
 
 ```bash
-pnpm dev --owls-dev-name "Contribution" \
-  --owls-data-root ~/.owls-dev/contribution
+pnpm dev --owlto-dev-name "Contribution" \
+  --owlto-data-root ~/.owlto-dev/contribution
 ```
 
 Do not add environment-variable runtime configuration. New runtime settings
-must use Owls's existing settings and bootstrap paths.
+must use Owlto's existing settings and bootstrap paths.
 
 ## Making changes
 
@@ -75,19 +75,19 @@ Run the checks that match the changed surface:
 
 ```bash
 # Main process, database, plugins, packaging, and Node-side code
-pnpm --filter owls-client typecheck:node
+pnpm --filter owlto-client typecheck:node
 
 # Renderer and preload code
-pnpm --filter owls-client typecheck:web
+pnpm --filter owlto-client typecheck:web
 
 # Broad or cross-process changes
-pnpm --filter owls-client typecheck
+pnpm --filter owlto-client typecheck
 
 # Plugin manifest validation
-pnpm --filter @owls/sites-plugin test
+pnpm --filter @owlto/sites-plugin test
 
 # Agent, tool, and admin behavior
-pnpm --filter owls-client test:admin
+pnpm --filter owlto-client test:admin
 
 ```
 

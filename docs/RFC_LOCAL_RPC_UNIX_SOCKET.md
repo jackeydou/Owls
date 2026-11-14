@@ -3,11 +3,11 @@
 ## Status
 
 Draft technical design for adding a local Unix domain socket control plane to
-Owls Client.
+Owlto Client.
 
 ## Abstract
 
-Owls Client can expose a local, same-machine control plane from the Electron
+Owlto Client can expose a local, same-machine control plane from the Electron
 main process by listening on a Unix domain socket at startup. External local
 processes, such as CLI tools, helper daemons, automation scripts, or second
 app instances, can call allowlisted App capabilities through JSON-RPC 2.0 over
@@ -21,7 +21,7 @@ callers outside the running App process.
 
 ## Motivation
 
-External local processes currently have only a few coarse ways to trigger Owls
+External local processes currently have only a few coarse ways to trigger Owlto
 Client behavior:
 
 - Deep links.
@@ -31,12 +31,12 @@ Client behavior:
   inside a compatible process and package context.
 
 These paths are not a complete local automation interface. A Unix socket
-control plane gives Owls a stable local integration point without opening a TCP
+control plane gives Owlto a stable local integration point without opening a TCP
 port or exposing generic internal APIs.
 
 Useful callers include:
 
-- A future `owls` CLI that opens sessions, sends prompts, or focuses the app.
+- A future `owlto` CLI that opens sessions, sends prompts, or focuses the app.
 - Local helper processes that notify the App when work is ready.
 - Test or automation scripts that need a narrow, stable App control surface.
 - A secondary App launch that forwards structured requests to the primary
@@ -73,11 +73,11 @@ Relevant existing implementation:
 
 | Area | Current implementation | Notes |
 | --- | --- | --- |
-| Main startup | `apps/owls-client/src/main/index.ts` | `app.whenReady()` initializes settings, IPC handlers, plugins, windows, auth, auto update, and shutdown handlers. |
-| Data root | `apps/owls-client/src/main/owls-paths.ts` | `getDataRoot()` resolves the persisted data root through the bootstrap path flow. |
-| Renderer IPC | `apps/owls-client/src/preload/index.ts` | Exposes narrow `window.api.*` methods backed by `ipcMain` handlers. |
-| Agent IPC | `apps/owls-client/src/main/agent/index.ts` | Registers agent, settings, sessions, messages, artifacts, and tool approval IPC handlers. |
-| Local daemon precedent | `apps/owls-client/src/main/browser/daemon.ts` | Existing HTTP and WebSocket local bridge for the browser extension, currently disabled at startup. |
+| Main startup | `apps/owlto-client/src/main/index.ts` | `app.whenReady()` initializes settings, IPC handlers, plugins, windows, auth, auto update, and shutdown handlers. |
+| Data root | `apps/owlto-client/src/main/owlto-paths.ts` | `getDataRoot()` resolves the persisted data root through the bootstrap path flow. |
+| Renderer IPC | `apps/owlto-client/src/preload/index.ts` | Exposes narrow `window.api.*` methods backed by `ipcMain` handlers. |
+| Agent IPC | `apps/owlto-client/src/main/agent/index.ts` | Registers agent, settings, sessions, messages, artifacts, and tool approval IPC handlers. |
+| Local daemon precedent | `apps/owlto-client/src/main/browser/daemon.ts` | Existing HTTP and WebSocket local bridge for the browser extension, currently disabled at startup. |
 
 The local RPC control plane should follow the same ownership boundaries:
 
@@ -92,7 +92,7 @@ The local RPC control plane should follow the same ownership boundaries:
 Add a new main-process module group:
 
 ```text
-apps/owls-client/src/main/local-rpc/
+apps/owlto-client/src/main/local-rpc/
   index.ts
   transport.ts
   unix-socket-transport.ts
@@ -186,10 +186,10 @@ This keeps future Windows support contained to a new transport implementation:
 
 ```text
 macOS/Linux:
-  {getDataRoot()}/run/owls.sock
+  {getDataRoot()}/run/owlto.sock
 
 Windows:
-  \\.\pipe\owls-{stable-user-or-install-id}
+  \\.\pipe\owlto-{stable-user-or-install-id}
 ```
 
 Node's `net.createServer()` supports both Unix sockets and Windows named pipes,
@@ -208,13 +208,13 @@ configuration should follow the existing data-root policy.
 Recommended path:
 
 ```text
-{getDataRoot()}/run/owls.sock
+{getDataRoot()}/run/owlto.sock
 ```
 
 Example:
 
 ```text
-/Users/alice/.owls/run/owls.sock
+/Users/alice/.owlto/run/owlto.sock
 ```
 
 The server should also write a metadata file next to the socket so external
@@ -230,7 +230,7 @@ Example metadata:
 {
   "version": 1,
   "transport": "unix",
-  "endpoint": "/Users/alice/.owls/run/owls.sock",
+  "endpoint": "/Users/alice/.owlto/run/owlto.sock",
   "protocol": "jsonrpc-2.0",
   "framing": "ndjson",
   "pid": 12345,
@@ -520,7 +520,7 @@ Returns protocol and method metadata:
 ```json
 {
   "protocolVersion": 1,
-  "appName": "Owls",
+  "appName": "Owlto",
   "methods": [
     "rpc.discover",
     "rpc.diagnostics",
@@ -546,7 +546,7 @@ Returns local RPC server state:
 ```json
 {
   "enabled": true,
-  "endpoint": "/Users/alice/.owls/run/owls.sock",
+  "endpoint": "/Users/alice/.owlto/run/owlto.sock",
   "clientCount": 1,
   "pendingRequests": 0,
   "startedAt": "2026-05-29T17:00:00.000Z"
@@ -1069,13 +1069,13 @@ Command tests:
 For implementation changes touching the main process, run:
 
 ```bash
-pnpm --filter owls-client typecheck:node
+pnpm --filter owlto-client typecheck:node
 ```
 
 If shared types or renderer diagnostics are added, also run:
 
 ```bash
-pnpm --filter owls-client typecheck:web
+pnpm --filter owlto-client typecheck:web
 ```
 
 For docs-only changes to this RFC, `git diff --check` is sufficient.

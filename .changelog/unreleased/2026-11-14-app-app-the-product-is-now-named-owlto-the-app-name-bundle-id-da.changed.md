@@ -1,0 +1,1 @@
+- App: the product is now named Owlto. The app name, bundle id, data folder (~/.owlto), and visible folders (~/Owlto) all changed with no migration, so earlier installs do not update in place and start with empty data. (#119)

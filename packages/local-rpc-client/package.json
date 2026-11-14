@@ -1,7 +1,7 @@
 {
-  "name": "@owls/local-rpc-client",
+  "name": "@owlto/local-rpc-client",
   "version": "0.1.0",
-  "description": "Node.js client for Owls Client local JSON-RPC control plane.",
+  "description": "Node.js client for Owlto Client local JSON-RPC control plane.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

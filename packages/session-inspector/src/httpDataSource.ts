@@ -24,12 +24,12 @@ export const httpSessionInspectorDataSource: SessionInspectorDataSource = {
   },
 
   async readSessionText(path: string): Promise<SessionText> {
-    if (path.startsWith('owls://')) {
-      const sessionId = path.slice('owls://'.length)
-      const response = await fetch(`/api/owls/session?id=${encodeURIComponent(sessionId)}`)
+    if (path.startsWith('owlto://')) {
+      const sessionId = path.slice('owlto://'.length)
+      const response = await fetch(`/api/owlto/session?id=${encodeURIComponent(sessionId)}`)
       if (!response.ok) {
         const body = await response.json().catch(() => null)
-        throw new Error(body?.error || `Failed to read Owls session ${sessionId}`)
+        throw new Error(body?.error || `Failed to read Owlto session ${sessionId}`)
       }
       return {
         body: await response.text(),

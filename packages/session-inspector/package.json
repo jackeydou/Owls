@@ -1,7 +1,7 @@
 {
-  "name": "@owls/session-inspector",
+  "name": "@owlto/session-inspector",
   "version": "0.1.0",
-  "description": "Local Codex and Owls session trace inspector.",
+  "description": "Local Codex and Owlto session trace inspector.",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",

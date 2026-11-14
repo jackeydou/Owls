@@ -48,7 +48,7 @@ export type PromptBlock = {
 }
 
 export type SessionFile = {
-  source?: 'codex' | 'owls' | 'trajectory'
+  source?: 'codex' | 'owlto' | 'trajectory'
   key?: string
   path: string
   name: string
@@ -852,7 +852,7 @@ function extractMeta(records: RawRecord[]) {
       model_id: asString(metaPayload.model) || asString(trajectoryPayload.model),
       model_api: asString(metaPayload.model_api) || asString(trajectoryPayload.model_api),
       originator:
-        asString(metaPayload.originator) || (trajectoryStart ? 'Owls model trajectory' : ''),
+        asString(metaPayload.originator) || (trajectoryStart ? 'Owlto model trajectory' : ''),
       cli: asString(metaPayload.cli_version),
       timestamp:
         asString(metaPayload.timestamp) || (trajectoryStart ? timestampFor(trajectoryStart) : '')

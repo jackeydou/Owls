@@ -1,8 +1,8 @@
-# Owls Human-In-The-Loop Tool Execution Design
+# Owlto Human-In-The-Loop Tool Execution Design
 
 ## Background
 
-Owls currently stores a tool call and its tool result in one `messages` row:
+Owlto currently stores a tool call and its tool result in one `messages` row:
 
 - `role = 'tool'`
 - `content` stores the serialized tool call name and arguments.
@@ -12,7 +12,7 @@ Owls currently stores a tool call and its tool result in one `messages` row:
 
 When a session is restored, `rowsToAgentMessages(...)` expands one persisted
 tool row back into an assistant `toolCall` message and, when
-`tool_call_result` is not null, a `toolResult` message. This gives Owls a
+`tool_call_result` is not null, a `toolResult` message. This gives Owlto a
 natural persistence point for deferred human input: the pending state can be
 stored while `tool_call_result` is null. The user response is first written to
 `human_input_requests.response_json`; the resumed tool execution later returns
@@ -53,7 +53,7 @@ Phase 1 must resolve these items before the feature can be considered safe to
 ship:
 
 - **Continuation after restore:** do not rely on pi-agent continuing from a
-  restored assistant `toolCall` that has no matching `toolResult`. Owls needs a
+  restored assistant `toolCall` that has no matching `toolResult`. Owlto needs a
   named continuation helper that finds the unresolved tool call, executes that
   tool through the normal wrapper, appends the produced `toolResult`, and only
   then calls normal agent continuation.
@@ -62,7 +62,7 @@ ship:
   `human_input_requests` row `resolved` must happen in one transaction. A split
   write can leave the one-open-interrupt guard permanently blocked after a
   completed tool result.
-- **Suspension filtering:** an internal `OWLS_HUMAN_INPUT_REQUIRED` suspension
+- **Suspension filtering:** an internal `OWLTO_HUMAN_INPUT_REQUIRED` suspension
   must not be persisted or rendered as a normal failed tool result. Filtering
   only the SQLite write is insufficient; the in-memory runtime transcript and
   renderer completion path must also treat it as a waiting state.
@@ -292,9 +292,9 @@ pi-agent tools use the fourth argument for `onUpdate`:
 execute(toolCallId, params, signal, onUpdate)
 ```
 
-Owls must inject the helper with an adapter that preserves the existing
+Owlto must inject the helper with an adapter that preserves the existing
 signature. The preferred shape is to close over the helper when creating
-Owls-owned tools:
+Owlto-owned tools:
 
 ```ts
 function createAskUserInputTool(runtimeContext: ToolRuntimeContext): AgentTool {
@@ -315,7 +315,7 @@ function createAskUserInputTool(runtimeContext: ToolRuntimeContext): AgentTool {
 ```
 
 If future tools need this helper, wrap or construct those tools in the same
-Owls tool factory boundary. Do not replace or repurpose the `onUpdate`
+Owlto tool factory boundary. Do not replace or repurpose the `onUpdate`
 argument.
 
 Phase 1 only exposes one agent-visible tool:
@@ -353,7 +353,7 @@ inside their own implementation, as long as they provide stable
 
 The helper is similar in spirit to LangGraph `interrupt`. On the first
 execution, it creates a pending request and suspends with
-`OWLS_HUMAN_INPUT_REQUIRED`. After the user submits or cancels, the agent
+`OWLTO_HUMAN_INPUT_REQUIRED`. After the user submits or cancels, the agent
 resume path re-enters the same tool call. The helper then reads the stored
 request state by `interruptKey` and returns the submitted value, so tool code
 after the interrupt can continue.
@@ -436,7 +436,7 @@ waits.
 
 Phase 1 should enforce at most one pending human input request per session. This
 matches the current suspension mechanism, where the first
-`OWLS_HUMAN_INPUT_REQUIRED` stops the run before sibling parallel tool calls can
+`OWLTO_HUMAN_INPUT_REQUIRED` stops the run before sibling parallel tool calls can
 reliably create their own requests. If a second interrupt is attempted while the
 session already has a pending request, return a stable tool error that tells the
 model to wait for the existing user input.
@@ -475,13 +475,13 @@ When `ask_user` or a future business tool calls
 
 Use a typed internal error or explicit runtime result. Phase 1 uses the explicit
 runtime result because pi-agent may convert thrown tool errors into normal
-error tool results before Owls can catch the original exception. Keep the
+error tool results before Owlto can catch the original exception. Keep the
 stable marker shape shared by both paths, for example:
 
 ```ts
 class HumanInputRequiredError extends Error {
   readonly name = 'HumanInputRequiredError'
-  readonly code = 'OWLS_HUMAN_INPUT_REQUIRED'
+  readonly code = 'OWLTO_HUMAN_INPUT_REQUIRED'
   constructor(
     readonly sessionId: string,
     readonly requestId: string,
@@ -498,7 +498,7 @@ treat it as `waiting_for_user`, not as a normal failure.
 
 ### 3. Agent Run Suspends
 
-On the `OWLS_HUMAN_INPUT_REQUIRED` marker:
+On the `OWLTO_HUMAN_INPUT_REQUIRED` marker:
 
 - Flush any assistant draft.
 - Set run state to `waiting_for_user`.
@@ -517,7 +517,7 @@ normal tool-result handling. The discriminator must be stable and explicit:
 
 ```ts
 type HumanInputSuspensionMarker = {
-  code: 'OWLS_HUMAN_INPUT_REQUIRED'
+  code: 'OWLTO_HUMAN_INPUT_REQUIRED'
   requestId: string
   sessionId: string
   toolCallId: string
@@ -530,7 +530,7 @@ error result contains this marker, so it does not overwrite the pending
 map the matching tool widget to `waiting_for_user`, not `complete` or `error`.
 The wrapper must prevent any `toolResult` message, synthetic message end,
 turn-end completion, or agent-end completion from being appended to the in-memory
-runtime transcript for `OWLS_HUMAN_INPUT_REQUIRED`. Filtering only the database
+runtime transcript for `OWLTO_HUMAN_INPUT_REQUIRED`. Filtering only the database
 write is not enough; manual continuation depends on the restored tool row still
 being unresolved.
 The initial `tool_execution_start` for the suspending tool is allowed to remain;
@@ -539,7 +539,7 @@ tool_execution_update or partial-result events from the wrapper should be
 suppressed unless they carry the human-input request state. Generic progress
 updates after suspension would make the renderer drift back toward `running`.
 If pi-agent strips custom error properties from tool errors, Phase 1 must first
-add a controlled Owls wrapper path that emits this marker before any generic
+add a controlled Owlto wrapper path that emits this marker before any generic
 tool error event is forwarded.
 
 ### 4. User Submits Input
@@ -633,7 +633,7 @@ verified otherwise. The installed `@earendil-works/pi-agent-core` documentation
 describes `continue()` as requiring the last context message to be a user or
 toolResult message, while the HITL resume transcript ends with an assistant
 `toolCall` without a matching `toolResult`. Therefore Phase 1 must implement a
-named Owls continuation helper unless pi-agent is upgraded or proven to support
+named Owlto continuation helper unless pi-agent is upgraded or proven to support
 unresolved restored tool calls.
 
 The helper must use this exact transcript contract:
@@ -643,7 +643,7 @@ The helper must use this exact transcript contract:
   `messages.tool_call_result` has been written.
 - No synthetic user message is added.
 - No hidden assistant "continue" message is persisted.
-- Owls locates the unresolved assistant `toolCall` without a matching
+- Owlto locates the unresolved assistant `toolCall` without a matching
   `toolResult`, resolves its `toolName` in the current tool registry, and
   executes that tool manually through the same wrapper used during normal agent
   runs.
@@ -663,7 +663,7 @@ The helper must use this exact transcript contract:
 - `tool_execution_end` persistence must call the atomic
   `completeHumanInputToolResult(...)` helper for interrupted requests, so the
   tool result and `resolved` status are committed together.
-- After the transcript tail is a valid `toolResult`, Owls can call normal
+- After the transcript tail is a valid `toolResult`, Owlto can call normal
   agent continuation to generate the next assistant response.
 - Any assistant output after the tool result is persisted through the normal
   assistant streaming path.
@@ -940,10 +940,10 @@ Run state, suspension, and continuation:
 - [x] Replace the boolean-only run state with
   `idle | running | waiting_for_user`, while keeping `runningSessionIds` for
   compatibility.
-- [x] Detect `OWLS_HUMAN_INPUT_REQUIRED` in chat and detached run handling,
+- [x] Detect `OWLTO_HUMAN_INPUT_REQUIRED` in chat and detached run handling,
   flush drafts, clean up runtime state without broadcasting idle, and emit
   `waiting_for_user`.
-- [x] Filter `OWLS_HUMAN_INPUT_REQUIRED` events before tool-result
+- [x] Filter `OWLTO_HUMAN_INPUT_REQUIRED` events before tool-result
   persistence, renderer completion handling, in-memory transcript mutation, and
   generic error UI.
 - [x] Rebuild runtime state from persisted messages before continuation without
@@ -978,8 +978,8 @@ Compaction, import/export, and verification:
   suspension filtering, automation cancellation, compaction safety, IPC
   validation, and renderer reload recovery.
 - [x] Run scoped final checks:
-  `pnpm --filter owls-client typecheck:node`,
-  `pnpm --filter owls-client typecheck:web`, and relevant package tests.
+  `pnpm --filter owlto-client typecheck:node`,
+  `pnpm --filter owlto-client typecheck:web`, and relevant package tests.
   Local store tests currently skip when the installed `better-sqlite3` native
   module targets Electron's ABI instead of the host Node ABI.
 
@@ -1020,9 +1020,9 @@ Main-process tests:
   or already have a tool result.
 - Missing tool row marks the request expired.
 - Automation runs receive a non-interactive cancellation result.
-- Internal `OWLS_HUMAN_INPUT_REQUIRED` suspension events do not write an error
+- Internal `OWLTO_HUMAN_INPUT_REQUIRED` suspension events do not write an error
   `tool_call_result`.
-- Internal `OWLS_HUMAN_INPUT_REQUIRED` suspension does not append a synthetic
+- Internal `OWLTO_HUMAN_INPUT_REQUIRED` suspension does not append a synthetic
   `toolResult`, message end, turn end, or agent end to the runtime transcript.
 - Context compaction does not compact across an unresolved interrupted tool row.
 
@@ -1038,9 +1038,9 @@ Renderer tests:
 Verification commands should be scoped to touched surfaces:
 
 ```bash
-pnpm --filter owls-client typecheck:node
-pnpm --filter owls-client typecheck:web
-pnpm --filter owls-client test:plugins
+pnpm --filter owlto-client typecheck:node
+pnpm --filter owlto-client typecheck:web
+pnpm --filter owlto-client test:plugins
 ```
 
 Run database migration checks if the final implementation adds the schema above.
@@ -1048,7 +1048,7 @@ Run database migration checks if the final implementation adds the schema above.
 ## Open Questions
 
 - Does pi-agent provide a supported continue API after restoring a transcript
-  with a newly available `toolResult`, or does Owls need a named continuation
+  with a newly available `toolResult`, or does Owlto need a named continuation
   helper?
 - Should a submitted request immediately resume in the background, or should
   the user explicitly click continue when reopening an old pending session?

@@ -2,8 +2,8 @@
 
 This directory stores user-facing release notes for Electron auto-update metadata.
 
-Each release file must be named after the exact Owls release version from
-`apps/owls-client/package.json`:
+Each release file must be named after the exact Owlto release version from
+`apps/owlto-client/package.json`:
 
 ```text
 release-notes/<version>.md

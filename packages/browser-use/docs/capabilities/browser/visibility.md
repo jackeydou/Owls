@@ -1,6 +1,6 @@
 # Browser Capability: Visibility
 
-The `visibility` browser capability controls whether Owls presents the
+The `visibility` browser capability controls whether Owlto presents the
 session browser visually to the user.
 
 ```ts
