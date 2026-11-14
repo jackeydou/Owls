@@ -96,6 +96,15 @@ export function memoryRouterStore() {
       [...(threadItems.get(id)?.values() ?? [])]
         .sort((a, b) => a.position - b.position)
         .map((entry) => structuredClone(entry)),
+    deleteThread(routerId, workerIds) {
+      routers.delete(routerId)
+      threadItems.delete(routerId)
+      messages.delete(routerId)
+      for (const id of workerIds) workers.delete(id)
+      for (let i = events.length - 1; i >= 0; i--)
+        if (events[i].routerId === routerId) events.splice(i, 1)
+      for (const [id, batch] of batches) if (batch.routerId === routerId) batches.delete(id)
+    },
     workers: () => [...workers.values()].map((w) => structuredClone(w)),
     saveWorker: (w) => workers.set(w.id, structuredClone(w)),
     messages: (id) => structuredClone(messages.get(id) ?? []),

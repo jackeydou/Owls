@@ -137,6 +137,29 @@ export class RouterStore {
       logChange(tx, 'worker', worker.id)
     })
   }
+  /**
+   * Deletes a thread with its items, Router transcript, Inbox, batches, and the given
+   * workers. Each record goes into the sync log, where a missing record reads as deleted.
+   */
+  deleteThread(routerId: string, workerIds: string[]): void {
+    this.db.transaction((tx) => {
+      const items = tx
+        .select({ itemId: threadItemsTable.itemId })
+        .from(threadItemsTable)
+        .where(eq(threadItemsTable.threadId, routerId))
+        .all()
+      tx.delete(threadItemsTable).where(eq(threadItemsTable.threadId, routerId)).run()
+      tx.delete(threadsTable).where(eq(threadsTable.id, routerId)).run()
+      tx.delete(routerMessagesTable).where(eq(routerMessagesTable.routerId, routerId)).run()
+      tx.delete(inboxEventsTable).where(eq(inboxEventsTable.routerId, routerId)).run()
+      tx.delete(routerBatchesTable).where(eq(routerBatchesTable.routerId, routerId)).run()
+      if (workerIds.length) tx.delete(workersTable).where(inArray(workersTable.id, workerIds)).run()
+      logChange(tx, 'thread', routerId)
+      for (const { itemId } of [...items].sort((a, b) => a.itemId.localeCompare(b.itemId)))
+        logChange(tx, 'item', itemRecordId(routerId, itemId))
+      for (const id of [...workerIds].sort()) logChange(tx, 'worker', id)
+    })
+  }
   messages(routerId: string): unknown[] {
     return this.db
       .select()

@@ -18,6 +18,7 @@ import { useDreaming } from '../memory/dreaming'
 import { usageSummaryRows, useUsageStore, watchUsage } from '../usage/store'
 import { UsagePanel } from '../usage/UsagePanel'
 import { UsageSummary } from '../usage/UsageSummary'
+import { ArchiveThreadButton } from './ArchiveThreadButton'
 import { byRecent, isWaitingOnUser, isWorking, threadTitle, useThreadTitle } from './activity'
 import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
@@ -113,7 +114,11 @@ export function Sidebar() {
   const { showMap, showCards, showPullRequests, showSettings, newThread } = useAppStore()
   const routers = useRouterStore((s) => s.routers)
   // A thread exists once it has its first message; this hides one whose send failed.
-  const threads = useMemo(() => routers.filter((r) => r.itemCount).sort(byRecent), [routers])
+  // Archived threads are listed in Settings instead.
+  const threads = useMemo(
+    () => routers.filter((r) => r.itemCount && !r.archivedAt).sort(byRecent),
+    [routers]
+  )
   const provider = useAppStore((s) => s.settings.provider)
   const connection = useAppStore((s) => agentConnection(s, provider))
   return (
@@ -167,7 +172,10 @@ export function Sidebar() {
         {threads.length ? (
           <div className="router-sidebar-list">
             {threads.map((thread) => (
-              <ThreadEntry key={thread.id} thread={thread} />
+              <div key={thread.id} className="router-sidebar-thread">
+                <ThreadEntry thread={thread} />
+                <ArchiveThreadButton thread={thread} />
+              </div>
             ))}
           </div>
         ) : (

@@ -77,6 +77,8 @@ export type SettingsTab =
   | 'memory'
   /** Token usage recorded on this device. */
   | 'usage'
+  /** Threads the user archived out of the sidebar. */
+  | 'archives'
   /** Switches for experimental features. */
   | 'experiments'
   | 'github'
@@ -359,6 +361,11 @@ export const useAppStore = create<State>((set, get) => {
       }
       if (event.type === 'router') {
         useRouterStore.getState().router(event.router)
+        return
+      }
+      if (event.type === 'thread-removed') {
+        useRouterStore.getState().removeThread(event.routerId, event.workerIds)
+        if (get().threadId === event.routerId) set({ threadId: null })
         return
       }
       if (event.type === 'thread-items') {

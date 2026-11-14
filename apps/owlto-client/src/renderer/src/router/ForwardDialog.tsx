@@ -31,7 +31,7 @@ function ForwardForm({ forwarding }: { forwarding: Forwarding }) {
   const threads = useMemo(
     () =>
       routers
-        .filter((r) => r.itemCount && r.id !== forwarding.source.routerId)
+        .filter((r) => r.itemCount && !r.archivedAt && r.id !== forwarding.source.routerId)
         .sort(byRecent)
         .slice(0, TARGET_LIMIT),
     [routers, forwarding]

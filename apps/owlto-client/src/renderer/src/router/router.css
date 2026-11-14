@@ -203,6 +203,33 @@ html[data-platform="darwin"] {
 .router-project > i.wait {
   background: var(--owl-wait);
 }
+/* Archive sits over its thread row, out of sight until the row is pointed at or focused. */
+.router-sidebar-thread {
+  position: relative;
+  flex-shrink: 0;
+}
+.router-thread-archive {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-muted-foreground);
+  opacity: 0;
+}
+.router-thread-archive:hover {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+.router-sidebar-thread:hover > .router-thread-archive,
+.router-thread-archive:focus-visible,
+.router-thread-archive:disabled {
+  opacity: 1;
+}
+.router-sidebar-thread:hover > .router-thread {
+  padding-right: 32px;
+}
 /* Dreaming's sleeping owl stands in for the dot while it sorts a quiet thread into memory. */
 .router-thread > .owlto-owl-avatar {
   width: 16px;

@@ -215,6 +215,10 @@ export const resolveBatchSchema = z.object({
   batchId: z.string().min(1).max(64),
   decision: z.enum(['retry', 'ignore'])
 })
+export const archiveThreadSchema = z.object({
+  routerId: z.string().uuid(),
+  archived: z.boolean()
+})
 export const workerActionSchema = z.object({
   routerId: z.string().uuid(),
   workerId: z.string().min(1).max(64)
@@ -240,6 +244,7 @@ export type RouterStatus = z.infer<typeof routerStatusSchema>
 export type RouterNative = z.infer<typeof routerNativeSchema>
 export type UnknownBatch = z.infer<typeof unknownBatchSchema>
 export type ResolveBatch = z.infer<typeof resolveBatchSchema>
+export type ArchiveThread = z.infer<typeof archiveThreadSchema>
 export type SendRouterMessage = z.infer<typeof sendRouterSchema>
 export type CreateThread = z.infer<typeof createThreadSchema>
 export type ThreadItemsRequest = z.input<typeof threadItemsSchema>

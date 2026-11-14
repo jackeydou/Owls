@@ -711,7 +711,8 @@ test('idle and startup triggers schedule threads without busy workers', () => {
   const threads = [
     { id: 't1', status: 'idle' },
     { id: 't2', status: 'running' },
-    { id: 't3', status: 'idle' }
+    { id: 't3', status: 'idle' },
+    { id: 't4', status: 'idle', archivedAt: '2026-11-14T00:00:00.000Z' }
   ]
   const workers = [{ routerId: 't3', status: 'running' }]
   const triggers = new DreamingTriggers({
@@ -734,6 +735,9 @@ test('idle and startup triggers schedule threads without busy workers', () => {
   assert.equal(timers[1].cleared, true)
   assert.equal(timers[2].ms, 10 * 60 * 1000)
   timers[2].run()
+  assert.deepEqual(scheduled, ['t1', 't1'])
+  triggers.observe({ type: 'router', router: { id: 't4' } })
+  timers.at(-1).run()
   assert.deepEqual(scheduled, ['t1', 't1'])
   triggers.observe({ type: 'worker', worker: { routerId: 't3' } })
   triggers.close()
