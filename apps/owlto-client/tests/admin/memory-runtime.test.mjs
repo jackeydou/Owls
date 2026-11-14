@@ -524,6 +524,20 @@ test('a Dreaming run reads new content, commits staged changes with its cursor, 
   assert.equal(engine.runs.length, 1)
 })
 
+test('the runner names the thread it is dreaming over only while the run goes', async () => {
+  const seen = []
+  let runner
+  const engine = scriptedEngine(async () => {
+    seen.push(runner.activeThreadId)
+  })
+  const items = { t1: [item('u1', 'user', 'I like tea', 3, 0)] }
+  ;({ runner } = dreamingSetup({ engine: engine.factory, items }))
+  assert.equal(runner.activeThreadId, null)
+  await runner.runNow()
+  assert.deepEqual(seen, ['t1'])
+  assert.equal(runner.activeThreadId, null)
+})
+
 test('a failed or disconnected run keeps the cursor and discards what it staged', async () => {
   const items = { t1: [item('u1', 'user', 'I like tea', 3, 0)] }
   const failing = scriptedEngine(

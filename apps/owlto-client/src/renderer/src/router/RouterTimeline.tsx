@@ -8,6 +8,7 @@ import { ConversationItem } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { useAppStore } from '../app/store'
 import { MessageCards, SaveCardAction } from '../cards/CardActions'
+import { useDreaming } from '../memory/dreaming'
 import { DispatchGroup } from './DispatchGroup'
 import { isSetupFailure } from './RouterSetup'
 import { useRouterStore } from './store'
@@ -151,6 +152,7 @@ export function RouterTimeline({
   /** Set while a smooth scroll to a just-sent message runs, so following does not cut it off. */
   const pinning = useRef(false)
   const running = router?.status === 'running'
+  const dreaming = useDreaming(router?.id)
   const last = entries.at(-1)
   const lastEntrySpeaker = last ? speakerOf(last) : null
   // Watches the size, not the entries: streaming, the tray, and the draft all grow the thread.
@@ -291,6 +293,13 @@ export function RouterTimeline({
                   icon={<StopIcon size={12} />}
                   onAction={() => interrupt(router.id)}
                 />
+              </div>
+            </ThreadRow>
+          ) : null}
+          {router && dreaming && !running ? (
+            <ThreadRow speaker="dreaming">
+              <div className="owlto-working router-dreaming" role="status">
+                {t('thread.dreaming')}
               </div>
             </ThreadRow>
           ) : null}

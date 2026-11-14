@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><clipPath id="c"><circle cx="256" cy="256" r="256"/></clipPath><style>
+.breathe{transform-box:view-box;transform-origin:212px 512px;animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,.965)}}
+.z{transform-box:fill-box;transform-origin:center;animation:drift 3.6s ease-out infinite both}
+.z.b{animation-delay:1.2s}
+.z.c{animation-delay:2.4s}
+@keyframes drift{0%{opacity:0;transform:translate(-70px,80px) scale(.4)}20%{opacity:1}75%{opacity:1}100%{opacity:0;transform:translate(0,0) scale(1)}}
+.star{transform-box:fill-box;transform-origin:center;animation:twinkle 2.4s ease-in-out infinite}
+.star.b{animation-delay:-1.2s}
+@keyframes twinkle{0%,100%{opacity:.25;transform:scale(.6)}50%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style></defs>
+<g clip-path="url(#c)">
+<rect width="512" height="512" fill="#1F2A44"/>
+<path class="star" d="M92 92 L102 122 L132 132 L102 142 L92 172 L82 142 L52 132 L82 122 Z" fill="#FFD66B"/>
+<path class="star b" d="M178 40 L184 58 L202 64 L184 70 L178 88 L172 70 L154 64 L172 58 Z" fill="#FFD66B"/>
+<g class="breathe"><g transform="translate(212 368) rotate(-6) scale(.92) translate(-256 -270)"><path d="M72 620 L72 290 C72 160 156 100 256 100 C356 100 440 160 440 290 L440 620 Z" fill="#CFC8F2" stroke="#151515" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M72 404 C112 424 134 476 134 620" fill="none" stroke="#151515" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M440 404 C400 424 378 476 378 620" fill="none" stroke="#151515" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M203 440 q15 16 30 0" fill="none" stroke="#151515" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M279 440 q15 16 30 0" fill="none" stroke="#151515" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M241 480 q15 16 30 0" fill="none" stroke="#151515" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="180" cy="270" r="72" fill="#fff" stroke="#151515" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M136 266 Q180 312 224 266" fill="none" stroke="#151515" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="332" cy="270" r="72" fill="#fff" stroke="#151515" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M288 266 Q332 312 376 266" fill="none" stroke="#151515" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M234 330 Q256 318 278 330 Q274 364 256 376 Q238 364 234 330 Z" fill="#FFB000" stroke="#151515" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+<path class="z" d="M372 206 H408 L372 242 H408" fill="none" stroke="#fff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="z b" d="M402 126 H450 L402 174 H450" fill="none" stroke="#fff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="z c" d="M326 50 H386 L326 110 H386" fill="none" stroke="#fff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

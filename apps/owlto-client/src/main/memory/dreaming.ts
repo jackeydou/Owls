@@ -102,6 +102,11 @@ export class DreamingRunner {
     return this.active !== null || this.queue.length > 0
   }
 
+  /** The thread a run is reading right now, so the app can show it dreaming. */
+  get activeThreadId(): string | null {
+    return this.active?.threadId ?? null
+  }
+
   /** Queues every idle thread with content after its cursor; resolves once the queue drains. */
   runNow(): Promise<void> {
     if (!this.deps.settings().memory.learn)

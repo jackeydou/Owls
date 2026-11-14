@@ -100,7 +100,7 @@ export class MemoryService implements RouterMemory {
       .map((m) => this.view(m))
   }
 
-  overview(running: boolean): MemoryOverview {
+  overview(running: boolean, dreamingThreadId: string | null = null): MemoryOverview {
     const memories = this.deps.records.memories().filter((m) => m.status === 'active')
     const categories = this.deps.records
       .categories()
@@ -124,7 +124,13 @@ export class MemoryService implements RouterMemory {
       ) as Record<ProjectMemoryKind, number>
       return { projectId, counts }
     })
-    return { categories, projects, running, lastRun: this.deps.records.runs(1)[0] ?? null }
+    return {
+      categories,
+      projects,
+      running,
+      dreamingThreadId,
+      lastRun: this.deps.records.runs(1)[0] ?? null
+    }
   }
 
   runs(): MemoryRun[] {

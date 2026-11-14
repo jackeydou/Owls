@@ -337,7 +337,7 @@ export class OwltoHost {
   }
   memoryOverview(): MemoryOverview {
     const { service, dreaming } = this.requireMemory()
-    return service.overview(dreaming.running)
+    return service.overview(dreaming.running, dreaming.activeThreadId)
   }
   memorySave(input: MemorySave): MemoryView {
     return this.requireMemory().service.save(input)

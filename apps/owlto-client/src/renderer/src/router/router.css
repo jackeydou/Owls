@@ -203,6 +203,11 @@ html[data-platform="darwin"] {
 .router-project > i.wait {
   background: var(--owl-wait);
 }
+/* Dreaming's sleeping owl stands in for the dot while it sorts a quiet thread into memory. */
+.router-thread > .owlto-owl-avatar {
+  width: 16px;
+  height: 16px;
+}
 /* The toggle sits over its row: one button can't nest inside the other. */
 .router-sidebar-project {
   position: relative;
