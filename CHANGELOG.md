@@ -1,6 +1,6 @@
 # Changelog
 
-Owls' public release history starts with the current codebase. Earlier
+Owlto's public release history starts with the current codebase. Earlier
 development history is intentionally not carried forward.
 
 ## Unreleased
@@ -10,6 +10,22 @@ development history is intentionally not carried forward.
 ### Changes
 
 ### Fixes
+
+## 2026.11.1400-beta.1
+
+### Highlights
+
+- The app is now named Owlto. It installs as a new app with its own data, so earlier Owls installs do not update in place.
+- The three-owl Trio logo is the default app icon.
+
+### Changes
+
+- App: the product is now named Owlto. The app name, bundle id, data folder (~/.owlto), and visible folders (~/Owlto) all changed with no migration, so earlier installs do not update in place and start with empty data. (#119)
+- App logo: the three-owl Trio logo is now the default app icon. (#117)
+
+### Fixes
+
+- Cards: the open card's close button no longer sits under the right sidebar toggle, and the card panel can be dragged wider or narrower by its left edge.
 
 ## 2026.11.1300-beta.5
 
