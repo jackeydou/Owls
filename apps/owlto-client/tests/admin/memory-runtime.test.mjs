@@ -538,6 +538,23 @@ test('the runner names the thread it is dreaming over only while the run goes', 
   assert.equal(runner.activeThreadId, null)
 })
 
+test('dreaming over one thread on request waits for its run and skips a read thread', async () => {
+  const engine = scriptedEngine(async () => {})
+  const items = {
+    t1: [item('u1', 'user', 'I like tea', 3, 0)],
+    t2: [item('u2', 'user', 'still running', 4, 0)]
+  }
+  const { runner } = dreamingSetup({ engine: engine.factory, items })
+  const run = await runner.dreamThread('t1')
+  assert.equal(run?.threadId, 't1')
+  assert.equal(run?.status, 'completed')
+  assert.equal(engine.runs.length, 1)
+  assert.equal(await runner.dreamThread('t1'), null)
+  assert.equal(engine.runs.length, 1)
+  await assert.rejects(runner.dreamThread('t2'), /still working/)
+  await assert.rejects(runner.dreamThread('missing'), /does not exist/)
+})
+
 test('a failed or disconnected run keeps the cursor and discards what it staged', async () => {
   const items = { t1: [item('u1', 'user', 'I like tea', 3, 0)] }
   const failing = scriptedEngine(

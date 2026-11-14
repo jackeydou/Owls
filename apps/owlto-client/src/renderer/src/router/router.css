@@ -496,6 +496,21 @@ html.pane-resizing * {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.router-dream-button {
+  flex-shrink: 0;
+  color: var(--color-foreground);
+}
+/* Wraps the editor without a box of its own; while a manual Dreaming run holds the thread
+   it is inert and dimmed. */
+.router-editor-lock {
+  display: contents;
+}
+.router-editor-lock:not(:first-child) > .router-row:first-child {
+  margin-top: 20px;
+}
+.router-editor-lock[inert] > * {
+  opacity: 0.5;
+}
 .router-thread-heading span {
   flex-shrink: 0;
   color: var(--color-muted-foreground);

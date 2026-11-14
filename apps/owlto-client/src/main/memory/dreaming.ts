@@ -116,6 +116,32 @@ export class DreamingRunner {
     return this.drain()
   }
 
+  /**
+   * Dreams over one thread at the user's request, ahead of its idle trigger, and resolves
+   * with the run once it ends; null when the thread has nothing Dreaming has not read.
+   */
+  async dreamThread(threadId: string): Promise<MemoryRun | null> {
+    if (!this.deps.settings().memory.learn)
+      throw new OwltoError('request_unavailable', 'Learning from threads is turned off.')
+    const thread = this.deps.threads().find((t) => t.id === threadId)
+    if (!thread) throw new OwltoError('invalid_request', 'The thread does not exist.')
+    if (thread.status === 'running')
+      throw new OwltoError('request_unavailable', 'The thread is still working.')
+    if (this.active?.threadId !== threadId && !this.pending(threadId)) return null
+    const startedAt = this.now().toISOString()
+    this.enqueue(threadId)
+    // A drain can end and restart while this thread waits, so wait until it is done with it.
+    while (this.active?.threadId === threadId || this.queue.includes(threadId)) {
+      await this.drain()
+      if (this.closed) break
+    }
+    return (
+      this.deps.memory.records
+        .runs(50)
+        .find((run) => run.threadId === threadId && run.createdAt >= startedAt) ?? null
+    )
+  }
+
   /** Queues one thread, as the idle and startup triggers do. */
   schedule(threadId: string): void {
     if (!this.deps.settings().memory.learn || !this.pending(threadId)) return

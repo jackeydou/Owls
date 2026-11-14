@@ -30,7 +30,7 @@ export function runReason(run: MemoryRun, t: (key: string) => string): string {
     : t('memory.reason.other')
 }
 
-function OnOff({
+export function OnOff({
   id,
   value,
   onChange

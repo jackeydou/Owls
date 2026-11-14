@@ -241,6 +241,15 @@ export const FileCodeIcon = createIcon(
     <path d="M9.25 7.75 L10.75 9.5 L9.25 11.25" />
   </g>
 )
+export const FlaskIcon = createIcon(
+  'Flask',
+  'outline',
+  <g>
+    <path d="M6.25 2 L6.25 6.264 C6.25 6.419 6.214 6.572 6.144 6.711 L3.474 12.053 C3.141 12.718 3.625 13.5 4.368 13.5 L11.632 13.5 C12.375 13.5 12.859 12.718 12.526 12.053 L9.856 6.711 C9.786 6.572 9.75 6.419 9.75 6.264 L9.75 2" />
+    <line x1="5" y1="2" x2="11" y2="2" />
+    <line x1="4.375" y1="10.25" x2="11.625" y2="10.25" />
+  </g>
+)
 export const FolderIcon = createIcon(
   'Folder',
   'outline',
@@ -344,6 +353,14 @@ export const LoaderIcon = createIcon(
   'outline',
   <g>
     <path d="M14 8 A6 6 0 1 1 8 2" />
+  </g>
+)
+export const MoonZIcon = createIcon(
+  'MoonZ',
+  'outline',
+  <g>
+    <path d="M11.92 9.87 A5 5 0 1 1 6.13 4.08 A4.25 4.25 0 0 0 11.92 9.87 Z" />
+    <path d="M10.25 2.25 L13.25 2.25 L10.25 5.25 L13.25 5.25" />
   </g>
 )
 export const NetworkIcon = createIcon(

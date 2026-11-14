@@ -164,6 +164,7 @@ export function registerIpc(
   handle('memory-remove', (input) => host.memoryRemove(memoryRemoveSchema.parse(input)))
   handle('memory-category', (input) => host.memoryCategory(memoryCategoryActionSchema.parse(input)))
   handle('memory-run', () => host.memoryRunNow())
+  handle('memory-dream-thread', (input) => host.memoryDreamThread(z.string().uuid().parse(input)))
   handle('memory-runs', () => host.memoryRuns())
   handle('cards-library', () => host.cardLibrary())
   handle('cards-save', (input) => host.cardSave(cardSaveSchema.parse(input)))
