@@ -146,13 +146,18 @@ html[data-theme="dark"] .owls-usage-summary-row[data-provider="codex"] {
   font-size: var(--owl-text-2xs);
 }
 
-/* The sidebar entry's compact lines, under its label. */
+/* The hover card beside the sidebar's Usage entry: one compact line per agent. */
+.owls-usage-peek {
+  width: 220px;
+  padding: 8px 10px 9px;
+}
 .owls-usage-summary {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  width: 100%;
-  padding: 0 0 2px 25px;
+  gap: 6px;
+}
+.owls-usage-summary-title {
+  font-weight: 600;
 }
 .owls-usage-summary-row {
   display: flex;

@@ -1,1 +1,1 @@
-- Usage: the sidebar entry shows each agent's tightest limit as a small brand-color bar, and the Usage popover now closes when you click the sidebar. (#111)
+- Usage: hovering the sidebar entry shows each agent's tightest limit as a small brand-color bar, a click opens the full panel, and the Usage popover now closes when you click the sidebar. (#111)
