@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1300-beta.5
+
+### Highlights
+
+- A new Usage stats page in Settings shows the tokens each agent used per day, cache hit rate, and estimated cost.
+- The right sidebar switches between Projects and Cards from icons in its head.
+
+### Changes
+
+- Right sidebar: switch between Projects and Cards from icons in its head; sidebar toggles match the other icons' color. (#112)
+- Settings: new Usage stats page shows the tokens each agent used per day, cache hit rate, estimated cost, and a breakdown by agent, model, project, and role. (#114)
+- Usage: hovering the sidebar entry shows each agent's tightest limit as a small brand-color bar, a click opens the full panel, and the Usage popover now closes when you click the sidebar. (#111)
+
+### Fixes
+
+- Updates: the update popup's buttons respond to clicks again. (#110)
+
 ## 2026.11.1300-beta.4
 
 ### Highlights
