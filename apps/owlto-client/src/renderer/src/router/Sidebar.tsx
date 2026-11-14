@@ -12,7 +12,9 @@ import { AnchoredTooltip } from '@renderer/components/ui/tooltip'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
+import { DreamingOwl } from '../app/OwlAvatar'
 import { agentConnection, useAppStore } from '../app/store'
+import { useDreaming } from '../memory/dreaming'
 import { usageSummaryRows, useUsageStore, watchUsage } from '../usage/store'
 import { UsagePanel } from '../usage/UsagePanel'
 import { UsageSummary } from '../usage/UsageSummary'
@@ -31,17 +33,24 @@ function ThreadEntry({ thread }: { thread: Router }) {
     if (workers.some(isWaitingOnUser)) return 'wait'
     return thread.status === 'running' || workers.some(isWorking) ? 'run' : null
   })
+  // Dreaming reads only quiet threads, so it never hides a run or a wait.
+  const dreaming = useDreaming(thread.id) && state === null
   const title = threadTitle(thread, untitled)
+  const label = state
+    ? t(`thread.state.${state}`, { title })
+    : dreaming
+      ? t('thread.state.dream', { title })
+      : title
   return (
     <button
       type="button"
       className="router-thread"
-      aria-label={state ? t(`thread.state.${state}`, { title }) : title}
+      aria-label={label}
       aria-current={current || undefined}
       onClick={() => showThread(thread.id)}
     >
       <span>{title}</span>
-      {state ? <i className={state} aria-hidden /> : null}
+      {state ? <i className={state} aria-hidden /> : dreaming ? <DreamingOwl /> : null}
     </button>
   )
 }

@@ -6,6 +6,7 @@ import {
   ChartIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  FlaskIcon,
   GitBranchIcon,
   GitPullRequestIcon,
   type IconComponent,
@@ -32,6 +33,7 @@ import { appLogoIcons } from './AppLogo'
 import { SettingRow } from './SettingRow'
 import { AgentsSettingsPane } from './SettingsAgents'
 import { ArchivesSettingsPane } from './SettingsArchives'
+import { ExperimentsSettingsPane } from './SettingsExperiments'
 import { GitHubSettingsPane } from './SettingsGitHub'
 import { ProfileSettingsPane } from './SettingsProfile'
 import { ProjectSettingsPane } from './SettingsProject'
@@ -57,7 +59,8 @@ const TAB_GROUPS: TabEntry[][] = [
     { id: 'github', label: 'github.title', icon: GitPullRequestIcon },
     { id: 'profile', label: 'profile.title', icon: UserIcon },
     { id: 'appearance', label: 'appearance', icon: PaletteIcon },
-    { id: 'updates', label: 'updates.title', icon: RefreshIcon }
+    { id: 'updates', label: 'updates.title', icon: RefreshIcon },
+    { id: 'experiments', label: 'experiments.title', icon: FlaskIcon }
   ]
 ]
 
@@ -259,6 +262,7 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   memory: SettingsMemoryPane,
   usage: UsageStatsPane,
   archives: ArchivesSettingsPane,
+  experiments: ExperimentsSettingsPane,
   github: GitHubSettingsPane,
   profile: ProfileSettingsPane,
   appearance: AppearancePane,

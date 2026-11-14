@@ -9,6 +9,7 @@ import { useAppStore } from '../app/store'
 import { CaptureDialog, SendCardsDialog } from '../cards/CardDialogs'
 import { CardsView } from '../cards/CardsView'
 import { useCardsStore, watchCards } from '../cards/store'
+import { watchDreaming } from '../memory/dreaming'
 import { PullRequestsView } from '../pulls/PullRequestsView'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
@@ -118,6 +119,7 @@ export function RouterShell() {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
   const sidebarLabel = t(collapsed ? 'router.showSidebar' : 'router.hideSidebar')
   useEffect(() => watchCards(), [])
+  useEffect(() => watchDreaming(), [])
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()

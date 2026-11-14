@@ -1,6 +1,7 @@
 import claudeCode from '../../../../resources/owl-avatars/claude-code.svg'
 import codex from '../../../../resources/owl-avatars/codex.svg'
 import cursor from '../../../../resources/owl-avatars/cursor.svg'
+import dreaming from '../../../../resources/owl-avatars/dreaming.svg'
 import router from '../../../../resources/owl-avatars/router.svg'
 import claudeCodeWorking from '../../../../resources/owl-avatars/working/claude-code.svg'
 import codexWorking from '../../../../resources/owl-avatars/working/codex.svg'
@@ -37,4 +38,9 @@ export function OwlAvatar({
       alt=""
     />
   )
+}
+
+/** Dreaming's own owl, asleep with drifting Zs. The motion lives in the SVG and stops for reduced motion. */
+export function DreamingOwl() {
+  return <img className="owlto-owl-avatar" src={dreaming} data-speaker="dreaming" alt="" />
 }

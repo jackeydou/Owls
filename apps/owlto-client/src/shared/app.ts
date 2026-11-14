@@ -216,6 +216,13 @@ export const layoutSettingsSchema = z.object({
   rightPanel: rightPanelSchema.catch('projects')
 })
 export type LayoutSettings = z.infer<typeof layoutSettingsSchema>
+/** Features still being tried out; each is off until the user turns it on. */
+export const experimentsSettingsSchema = z.object({
+  /** A thread bar button that starts Dreaming on that thread right away. */
+  manualDreaming: z.boolean().catch(false)
+})
+export type ExperimentsSettings = z.infer<typeof experimentsSettingsSchema>
+export const defaultExperimentsSettings: ExperimentsSettings = { manualDreaming: false }
 export const defaultLayoutSettings: LayoutSettings = {
   sidebarWidth: null,
   projectsWidth: null,
@@ -246,6 +253,8 @@ export const settingsSchema = z.object({
   memory: memorySettingsSchema.default(defaultMemorySettings),
   /** Pane widths and the Projects sidebar; also added after the first release. */
   layout: layoutSettingsSchema.default(defaultLayoutSettings),
+  /** Experimental features; added later, so older rows have them all off. */
+  experiments: experimentsSettingsSchema.default(defaultExperimentsSettings),
   /** Null follows the installed build: a beta build gets beta updates, a stable one stable. */
   updateChannel: updateChannelSchema.nullable().default(null),
   /** Shows the Pull requests page in the sidebar; added later, so older rows show it. */
@@ -513,6 +522,11 @@ export interface MemoryAPI {
   category(input: MemoryCategoryAction): Promise<Reply<void>>
   /** Starts Dreaming over every thread with new content; resolves once it is queued. */
   runNow(): Promise<Reply<void>>
+  /**
+   * Dreams over one thread now and resolves when that run ends: the run, or null when the
+   * thread has nothing Dreaming has not read. Needs the manual Dreaming experiment.
+   */
+  dreamThread(threadId: string): Promise<Reply<MemoryRun | null>>
   runs(): Promise<Reply<MemoryRun[]>>
   /** Opens a save dialog; resolves to false when the user canceled it. */
   export(format: MemoryExportFormat): Promise<Reply<boolean>>
