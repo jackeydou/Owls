@@ -16,8 +16,29 @@ test('saved sidebar widths at the old defaults follow the current defaults', () 
     sidebarWidth: null,
     projectsWidth: null,
     panelWidth: 480,
-    projectsOpen: true
+    projectsOpen: true,
+    rightPanel: 'projects'
   })
+})
+
+test('the right sidebar list is kept, and older or unknown values show projects', () => {
+  const saved = layoutSettingsSchema.parse({
+    sidebarWidth: null,
+    projectsWidth: null,
+    panelWidth: null,
+    projectsOpen: true,
+    rightPanel: 'cards'
+  })
+  assert.equal(saved.rightPanel, 'cards')
+  const older = layoutSettingsSchema.parse({
+    sidebarWidth: null,
+    projectsWidth: null,
+    panelWidth: null,
+    projectsOpen: false
+  })
+  assert.equal(older.rightPanel, 'projects')
+  const unknown = layoutSettingsSchema.parse({ ...older, rightPanel: 'workers' })
+  assert.equal(unknown.rightPanel, 'projects')
 })
 
 test('widths the user dragged to are kept', () => {

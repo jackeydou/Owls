@@ -1,11 +1,5 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import {
-  ChevronDownIcon,
-  ChevronRightIcon,
-  SettingsIcon,
-  SidebarRightIcon
-} from '@renderer/components/ui/icons'
-import { ResizeHandle } from '@renderer/components/ui/resize-handle'
+import { ChevronDownIcon, ChevronRightIcon, SettingsIcon } from '@renderer/components/ui/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -16,11 +10,10 @@ import { useAppStore } from '../app/store'
 import { AddProjectMenu } from './AddProjectMenu'
 import { byAge, isWaitingOnUser, isWorking, projectHue, workerState, workerTitle } from './activity'
 import { ProjectIcon } from './ProjectIcon'
-import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
 import { WorkerAvatar } from './WorkerLink'
 
-function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: string }) {
+function WorkerRow({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
   const inChat = useAppStore((s) => s.view === 'chat')
   const focusProject = useAppStore((s) => s.focusProject)
@@ -45,7 +38,7 @@ function WorkerRow({ worker, projectId }: { worker: RouterWorker; projectId: str
             onClick={() => {
               // The conversation follows the worker; the map stays where it is.
               if (inChat) showThread(worker.routerId)
-              else focusProject(projectId)
+              else if (worker.projectId) focusProject(worker.projectId)
               showPanel({ kind: 'worker', workerId: worker.id })
             }}
           >
@@ -125,42 +118,20 @@ function ProjectRow({ project }: { project: Project }) {
           aria-label={t('router.project.workers', { project: project.name })}
         >
           {workers.map((worker) => (
-            <WorkerRow key={worker.id} worker={worker} projectId={project.id} />
+            <WorkerRow key={worker.id} worker={worker} />
           ))}
         </ul>
       ) : null}
     </div>
   )
 }
-/**
- * Opens and closes the Projects sidebar from the window's top-right corner, whatever the view:
- * over the sidebar's head while it is open, and at the end of the title bar while it is closed.
- */
-export function ProjectsToggle() {
+/** The right-hand sidebar's projects list, each project with its workers in play. */
+export function ProjectsPane() {
   const { t } = useTranslation()
-  const open = useAppStore((s) => s.settings.layout.projectsOpen)
-  const toggleProjects = useAppStore((s) => s.toggleProjects)
-  const label = t(open ? 'router.hideProjects' : 'router.showProjects')
-  return (
-    <IconButton
-      className="router-projects-toggle"
-      label={label}
-      tooltip={label}
-      tooltipSide="bottom"
-      aria-expanded={open}
-      icon={<SidebarRightIcon size={18} />}
-      onClick={toggleProjects}
-    />
-  )
-}
-/** The right-hand sidebar: projects, each with its workers in play. */
-export function ProjectsSidebar() {
-  const { t } = useTranslation()
-  const { width, handle } = usePaneWidth('projects', 'left')
   const projects = useAppStore((s) => s.projects)
   return (
-    <aside className="router-projects" style={{ width }} aria-label={t('router.projectsPanel')}>
-      <header className="router-projects-head">
+    <section className="router-right-pane" aria-label={t('router.projectsPanel')}>
+      <header>
         <h2>{t('router.projectsPanel')}</h2>
         <AddProjectMenu />
       </header>
@@ -173,7 +144,6 @@ export function ProjectsSidebar() {
       ) : (
         <p>{t('router.noProjects')}</p>
       )}
-      <ResizeHandle {...handle} />
-    </aside>
+    </section>
   )
 }

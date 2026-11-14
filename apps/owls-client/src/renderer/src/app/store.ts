@@ -12,6 +12,7 @@ import type {
   Reply,
   ResizablePane,
   RespondRequest,
+  RightPanel,
   Router,
   Session
 } from '../../../shared/app'
@@ -154,7 +155,10 @@ type State = {
   /** The project repository's branches and remotes; null when it has none or cannot be read. */
   projectGitRefs(projectId: string): Promise<ProjectGitRefs | null>
   toggleSidebar(): void
+  /** Opens or closes the right-hand sidebar, keeping the list it last showed. */
   toggleProjects(): void
+  /** Opens the right-hand sidebar on one of its lists. */
+  showRightPanel(panel: RightPanel): void
   /** Clamps and persists one pane's width, typically once a drag ends. */
   setPaneWidth(pane: ResizablePane, width: number): void
   connect(): Promise<void>
@@ -477,6 +481,13 @@ export const useAppStore = create<State>((set, get) => {
       const { settings, saveSettings } = get()
       const layout = { ...settings.layout, projectsOpen: !settings.layout.projectsOpen }
       // Applied before the save resolves, so the title bar button answers at once.
+      set({ settings: { ...settings, layout } })
+      void saveSettings({ ...settings, layout })
+    },
+    showRightPanel: (rightPanel) => {
+      const { settings, saveSettings } = get()
+      if (settings.layout.projectsOpen && settings.layout.rightPanel === rightPanel) return
+      const layout = { ...settings.layout, projectsOpen: true, rightPanel }
       set({ settings: { ...settings, layout } })
       void saveSettings({ ...settings, layout })
     },

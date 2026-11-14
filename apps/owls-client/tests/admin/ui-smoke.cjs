@@ -466,9 +466,9 @@ app
       await evaluate("document.querySelector('.router-sidebar-toggle').click()")
       await waitFor("Boolean(document.querySelector('.router-sidebar'))")
       assert.equal(host.snapshot().settings.sidebarCollapsed, false)
-      // Projects live in a right-hand sidebar that the title bar opens, and it remembers.
+      // Projects live in the right-hand sidebar, opened from its fixed toggle, and it remembers.
       assert.ok(await evaluate("!document.querySelector('.router-sidebar .router-project')"))
-      await evaluate("document.querySelector('.router-chat .router-projects-toggle').click()")
+      await evaluate("document.querySelector('.router-projects-toggle').click()")
       await waitFor("Boolean(document.querySelector('.router-projects .router-project'))")
       await waitFor(() => host.snapshot().settings.layout.projectsOpen === true)
       // Adding a project asks how first: a folder, a GitHub repository, or Quick start.
