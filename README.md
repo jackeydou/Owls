@@ -1,105 +1,166 @@
-# Owls
+<p align="center">
+  <img src="apps/owls-client/resources/app-logos/duo-white.png" width="144" alt="Owls logo">
+</p>
 
-A desktop workspace for your locally installed Codex.
+<h1 align="center">Owls</h1>
 
-Owls runs `codex app-server` on your computer. Codex owns the agent loop,
-models, tools, permissions, and authentication. Owls adds a Router you talk to
-in each project. It splits your request into workers that run in Codex or Claude
-Code, and reports back. An overview map shows every project and worker, with
-each worker's activity, file changes, and report one click away.
+<p align="center">
+  A team of coding owls on your Mac.<br>
+  Tell one owl what you need. It hands the work to the others and tells you how it went.
+</p>
+
+<p align="center">
+  <a href="https://github.com/jackeydou/Owls/releases"><b>Download for macOS</b></a>
+</p>
+
+---
+
+Owls is a desktop app for people who use AI coding agents. Instead of juggling
+several terminal windows, you chat with one **Router** owl. It plans the work,
+sends each part to a **worker** (Claude Code, Codex, or Cursor), keeps an eye on
+them, and comes back with one clear answer.
+
+Several workers can work on the same project at the same time without stepping
+on each other's toes, and you can look in on any of them whenever you like.
+
+## Meet the owls
+
+| | Owl | What it does |
+| :---: | --- | --- |
+| <img src="apps/owls-client/resources/owl-avatars/router.svg" width="64" alt="Router owl"> | **Router** | The one you talk to. Plans the work, picks the right workers, and sums up what they did. |
+| <img src="apps/owls-client/resources/owl-avatars/claude-code.svg" width="64" alt="Claude Code owl"> | **Claude Code** | A worker powered by Claude Code on your Mac. |
+| <img src="apps/owls-client/resources/owl-avatars/codex.svg" width="64" alt="Codex owl"> | **Codex** | A worker powered by Codex on your Mac. |
+| <img src="apps/owls-client/resources/owl-avatars/cursor.svg" width="64" alt="Cursor owl"> | **Cursor** | A worker powered by Cursor on your Mac. |
+| <img src="apps/owls-client/resources/owl-avatars/workers.svg" width="64" alt="A group of owls"> | **The team** | Big jobs get split across several owls working side by side. |
+
+When an owl is busy, you'll see it typing away on its laptop:
+
+<p>
+  <img src="apps/owls-client/resources/owl-avatars/working/router.svg" width="56" alt="Router owl at work">
+  <img src="apps/owls-client/resources/owl-avatars/working/claude-code.svg" width="56" alt="Claude Code owl at work">
+  <img src="apps/owls-client/resources/owl-avatars/working/codex.svg" width="56" alt="Codex owl at work">
+  <img src="apps/owls-client/resources/owl-avatars/working/cursor.svg" width="56" alt="Cursor owl at work">
+</p>
+
+## Features
+
+- **One chat for everything.** Describe what you want in plain words. The Router
+  decides who should do it and reports back when it's done.
+- **Many workers at once.** Each worker gets its own copy of your project, so
+  several can change code at the same time without conflicts.
+- **Mention a worker directly.** Type `@` to pick a project for a conversation
+  or to talk to one worker yourself.
+- **See every worker's story.** Open a worker to read its report first, then
+  everything it did along the way, with a summary of changed files and a
+  side-by-side view of each change.
+- **Open in your favorite app.** Jump from a worker straight into VS Code,
+  Cursor, Zed, Xcode, JetBrains IDEs, Finder, Terminal, Ghostty, and more.
+- **Overview map.** See all your projects and owls on one board and check who is
+  working, waiting, or done. Press `⌘J` to switch between the chat and the map.
+- **Approvals you control.** When an owl wants to do something that needs your
+  OK, the request waits right above the message box.
+- **Projects made easy.** Open a folder, clone a GitHub repository, or start an
+  empty project in one click. Give each project its own icon, color, and notes
+  for the workers.
+- **Pull requests in one place.** See every pull request your owls opened, with
+  merge, review, and check status, and sort by what needs your attention.
+- **Knowledge cards and whiteboards.** Save useful answers as cards, sort them
+  with tags, lay them out on boards, and attach them to new messages. Press `⌘K`
+  to open your cards.
+- **Usage at a glance.** See how much of each agent's plan you have left, and
+  browse daily usage and estimated cost in Settings.
+- **Updates itself.** Owls checks for new versions in the background and offers
+  to restart when one is ready. Choose the stable or beta channel.
+- **Make it yours.** Light and dark themes, English and Simplified Chinese, and
+  nine owl logos for your Dock.
+
+<p>
+  <img src="apps/owls-client/resources/app-logos/duo-white.svg" width="72" alt="Pair logo">
+  <img src="apps/owls-client/resources/app-logos/lean-cream.svg" width="72" alt="Huddle logo">
+  <img src="apps/owls-client/resources/app-logos/trio-night.svg" width="72" alt="Trio logo">
+</p>
+
+## Install
+
+1. Go to the [Releases page](https://github.com/jackeydou/Owls/releases) and
+   download the latest `Owls-<version>.dmg`.
+2. Open the file and drag **Owls** into your **Applications** folder.
+3. Open Owls from Applications or Launchpad.
+
+You need a Mac with Apple silicon (M1 or later) running macOS 13 Ventura or
+later.
 
 ## Get started
 
-Install and sign in to [Codex CLI](https://developers.openai.com/codex/cli)
-on your computer. Then open **Settings → Agents → Codex → Connect local Codex**.
-Owls detects the executable, connects to app-server, and loads your account and
-available models. You can also choose an executable or start Codex's official
-ChatGPT sign-in flow from Settings.
+### 1. Install at least one coding agent
 
-Owls does not copy tokens into its database or expose credentials to the
-renderer. Your native Codex configuration and sign-in remain owned by Codex.
+Owls works with the coding agents you already use. Install one or more of them
+and sign in once in Terminal:
 
-Open a project folder and tell the Router what you need. Approval requests wait
-above the input. Type `@` to send a message straight to one worker, and press
-`⌘J` to switch between the conversation and the overview map.
-
-Only open projects you trust. Codex can load project instructions, hooks,
-plugins, and MCP servers using its native configuration.
-
-## Runtime and data
-
-The active application uses the Codex runtime, not the previous Pi runtime.
-This is a clean break: Owls does not import or resume previous Pi conversations,
-model settings, or tool approvals. New local state uses `owls.db` under
-the configured Owls data root. Native Codex sessions stay in Codex's own store.
-
-Router conversations, workers, and settings survive app restarts. An interrupted
-worker can continue through its native Codex thread. Live approval callbacks
-expire when the owning process disconnects.
-
-Owls can also run workers with your installed Claude Code CLI: connect it in
-**Settings → Agents → Claude Code**, then choose the agent under
-**Settings → Router & Workers**.
-See [Claude Code runtime](docs/CLAUDE_CODE_RUNTIME.md). Workers can run with
-your installed Cursor CLI too, through its Agent Client Protocol mode: connect it
-in **Settings → Agents → Cursor**. See [Cursor runtime](docs/CURSOR_RUNTIME.md).
-
-See [Codex runtime](docs/CODEX_APP_SERVER.md) for ownership, configuration,
-storage, tests, and failure handling. The broader
-[orchestrator proposal](docs/RFC_OWLS_AGENT_ORCHESTRATOR.md) records future
-multi-provider design work.
-
-## Development
-
-Use Node.js 22 or newer and pnpm `10.30.2`, as declared in `packageManager`.
+**Claude Code**
 
 ```bash
-pnpm install
-pnpm dev
+curl -fsSL https://claude.ai/install.sh | bash
+claude
 ```
 
-For an isolated development profile:
+Follow the prompts to sign in, then quit with `/exit`.
+
+**Codex**
 
 ```bash
-pnpm dev --owls-dev-name "Codex Orchestrator" \
-  --owls-data-root ~/.owls-dev/codex-orchestrator
+brew install --cask codex
+codex
 ```
 
-Runtime settings are persisted; there are no Owls environment-variable overrides
-for the agent executable, model, account, or data root.
+Sign in with your ChatGPT account when asked. You can also sign in later from
+Owls.
+
+**Cursor**
 
 ```bash
-pnpm --filter owls-client typecheck
-pnpm --filter owls-client test:codex
-pnpm --filter owls-client test:desktop
-pnpm --filter owls-client test:ui
+curl https://cursor.com/install -fsS | bash
+cursor-agent login
 ```
 
-After a build, verify a real local installation. The first command only reads
-account and model metadata. The other commands use the native account to run
-small, isolated live tests.
+Cursor can work as a worker, but not as the Router.
 
-```bash
-pnpm --filter owls-client verify:codex
-pnpm --filter owls-client verify:codex --prompt
-pnpm --filter owls-client verify:codex --tools
-```
+### 2. Connect it in Owls
 
-Development changes target `main` through pull requests. Read
-[CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) for repository
-guidance.
+Open **Settings** (`⌘,`) → **Agents**, choose the agent's tab, and click
+**Connect local …** (for example, **Connect local Claude Code**). Owls finds
+the agent on your Mac and shows the account you're signed in with.
 
-## Security
+Then open **Settings → Router & Workers** to choose which agent runs the Router
+and which one your workers use by default.
 
-IPC input and native protocol messages are validated. The renderer has no Node
-access or generic shell/IPC capability. Native tools are governed by Codex's
-permissions and sandbox; Owls displays the approval requests Codex exposes.
+### 3. Start a conversation
 
-Please report security issues privately. Do not include credentials, private
-project data, or authentication files in public issues.
+- Press `⌘N` for a new conversation and tell the Router what you need.
+- Type `@` to choose a project. Tasks that don't belong to a project run in a
+  workspace folder (`~/Owls/Workspace` unless you pick another one in Settings).
+- Click a worker to see what it's doing, or press `⌘J` to see everything on the
+  map.
+
+> Only open projects you trust. Your coding agents may follow instructions and
+> settings stored inside a project.
+
+## Privacy
+
+Owls runs on your Mac and uses the agents you installed and signed in to
+yourself. It never copies your passwords or sign-in tokens; it only reads your
+account status to show who you're signed in as.
+
+## Feedback
+
+Found a bug or have an idea? [Open an issue](https://github.com/jackeydou/Owls/issues).
+Please don't include passwords, private code, or other personal data. Report
+security problems privately.
+
+Want to help build Owls? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Owls is licensed under the
-[GNU Affero General Public License v3.0](LICENSE). Codex is separately installed
-and governed by its own license and service terms.
+Owls is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+Claude Code, Codex, and Cursor are installed separately and follow their own
+terms.
