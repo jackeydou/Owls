@@ -513,7 +513,7 @@
   align-items: center;
   gap: 10px;
   height: var(--owl-bar-height);
-  padding: 0 16px 0 30px;
+  padding: 0 16px 0 22px;
   pointer-events: none;
   -webkit-app-region: drag;
 }
@@ -526,44 +526,33 @@
   pointer-events: none;
   -webkit-app-region: drag;
 }
-.map-hud-title {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
+.map-back {
+  gap: 6px;
+  padding: 0 8px 0 6px;
+}
+.map-back-label {
+  /* A tight line box keeps the label's glyphs on the button's center line. */
+  line-height: 1;
+}
+.map-back svg {
+  /* Glyphs sit about a pixel above their box center; lift the arrow to meet them. */
+  translate: 0 -1px;
+}
+.map-back-kbd {
+  margin-left: 8px;
+  opacity: 0.7;
+}
+.map-hud-summary {
   min-width: 0;
   overflow: hidden;
-  white-space: nowrap;
-}
-.map-hud-title strong {
-  font-size: 14px;
-  font-weight: 600;
-}
-.map-hud-title span {
   color: var(--color-muted-foreground);
   font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .map-waiting {
   border-color: var(--owl-wait-border);
   color: var(--owl-wait);
-}
-.map-filter {
-  display: flex;
-  gap: 2px;
-  padding: 2px;
-  border: 0;
-  border-radius: var(--owl-radius-sm);
-  background: var(--color-sidebar-active);
-}
-.map-filter button {
-  height: 26px;
-  padding: 0 10px;
-  border-radius: var(--owl-radius-sm);
-  color: var(--color-muted-foreground);
-  font-size: 11.5px;
-}
-.map-filter button[aria-pressed="true"] {
-  background: var(--color-card);
-  color: var(--color-foreground);
 }
 .map-zoom {
   position: absolute;
@@ -636,10 +625,6 @@
 }
 .router-stage:has(> .router-panel) .map-hud {
   padding-right: calc(var(--owl-panel-width) + 16px);
-}
-.router-stage:has(> .router-panel) .map-filter,
-.router-stage:has(> .router-panel) .map-back {
-  display: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .map-world.glide,

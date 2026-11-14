@@ -2,7 +2,6 @@ import type { RouterWorker, WorkerStatus } from './router.js'
 
 /** Which side of the center a project branches to. */
 export type MapSide = 1 | -1
-export type MapFilter = 'active' | 'all'
 export type MapProject = {
   id: string
   name: string
@@ -14,8 +13,7 @@ export type WorkerMapInput = {
   projects: MapProject[]
   /** Workers with an approval drawn on their node, which makes the node taller. */
   approvals: ReadonlySet<string>
-  filter: MapFilter
-  /** Projects whose finished workers are expanded while filtering to active work. */
+  /** Projects whose finished workers are expanded. */
   openDone: ReadonlySet<string>
   /** Workers whose children are hidden. */
   collapsed: ReadonlySet<string>
@@ -103,9 +101,7 @@ function projectTree(project: MapProject, input: WorkerMapInput): Tree {
   const workerTree = (worker: RouterWorker): Tree => {
     const all = kids(worker)
     const collapsed = input.collapsed.has(worker.id)
-    const shown = collapsed
-      ? []
-      : all.filter((c) => input.filter === 'all' || isInPlay(worker) || subtreeInPlay(c))
+    const shown = collapsed ? [] : all.filter((c) => isInPlay(worker) || subtreeInPlay(c))
     const twoLines = isInPlay(worker) && worker.status !== 'queued'
     return {
       id: worker.id,
@@ -132,7 +128,7 @@ function projectTree(project: MapProject, input: WorkerMapInput): Tree {
   const done = roots.filter((w) => !subtreeInPlay(w))
   const trees = inPlay.map(workerTree)
   if (done.length) {
-    const open = input.filter === 'all' || input.openDone.has(project.id)
+    const open = input.openDone.has(project.id)
     trees.push({
       id: `done:${project.id}`,
       kind: 'done',

@@ -40,7 +40,6 @@ const map = (projects, options = {}) =>
   buildWorkerMap({
     projects,
     approvals: new Set(),
-    filter: 'active',
     openDone: new Set(),
     collapsed: new Set(),
     sides: new Map(),
@@ -170,10 +169,9 @@ test('a finished parent stays while work continues below it', () => {
   assert.ok(!ids(result).includes('sibling'), 'finished siblings stay out of the active view')
 })
 
-test('the all filter and a per-project toggle show finished work', () => {
+test('a per-project toggle shows finished work', () => {
   const workers = [worker('finished', { status: 'idle', report: done })]
   assert.ok(!ids(map([project('p', workers)])).includes('finished'))
-  assert.ok(ids(map([project('p', workers)], { filter: 'all' })).includes('finished'))
   const open = map([project('p', workers)], { openDone: new Set(['p']) })
   assert.equal(parentOf(open, 'finished'), 'done:p')
 })
