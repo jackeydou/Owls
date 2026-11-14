@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/owls-client/resources/app-logos/duo-white.png" width="144" alt="Owls logo">
+  <img src="apps/owls-client/resources/app-logos/trio-white.png" width="144" alt="Owls logo">
 </p>
 
 <h1 align="center">Owls</h1>

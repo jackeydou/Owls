@@ -134,7 +134,7 @@ test('settings saved with a logo that no longer exists load with the default log
   assert.equal(first.store.settings().appLogo, 'trio-night')
   first.client.prepare("UPDATE settings SET value = json_set(value, '$.appLogo', 'solid')").run()
   first.client.close()
-  assert.equal(openStore(t, path).store.settings().appLogo, 'duo-white')
+  assert.equal(openStore(t, path).store.settings().appLogo, 'trio-white')
 })
 
 test('saves log each record under the next device sequence, apart from the change version', (t) => {
