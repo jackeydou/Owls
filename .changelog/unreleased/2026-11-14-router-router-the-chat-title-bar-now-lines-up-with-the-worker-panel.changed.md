@@ -1,1 +1,1 @@
-- Router: the chat title bar now lines up with the worker panel head, and the worker conversation follows new messages with a jump-to-latest button when scrolled up.
+- Router: the chat title bar now lines up with the worker panel head, and the worker conversation follows new messages with a jump-to-latest button when scrolled up. (#127)
