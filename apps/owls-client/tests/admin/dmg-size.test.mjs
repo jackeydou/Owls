@@ -18,7 +18,13 @@ test('DMG sizing counts sparse logical bytes and empty directories without follo
   assert.equal(measured.allocatedBytes, 512 * 1024 * 1024 + 3 * 4096)
 })
 
-test('DMG capacity grows for metadata-heavy bundles and is recalculated after signing', async (t) => {
+// electron-builder's DMG code loads dmg-license, an optional dependency that only installs on macOS.
+const dmgBuilderUnavailable =
+  process.platform !== 'darwin' && 'needs the macOS-only dmg-license package'
+
+test('DMG capacity grows for metadata-heavy bundles and is recalculated after signing', {
+  skip: dmgBuilderUnavailable
+}, async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'owls-dmg-capacity-'))
   t.after(() => rm(directory, { recursive: true, force: true }))
   const app = join(directory, 'Owls.app')
