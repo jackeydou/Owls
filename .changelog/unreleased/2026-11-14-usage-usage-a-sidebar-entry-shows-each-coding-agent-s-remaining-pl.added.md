@@ -1,0 +1,1 @@
+- Usage: a sidebar entry shows each coding agent's remaining plan quota (Claude Code and Codex 5-hour and weekly windows, extra usage, credits) in its own colors, and says why when an agent cannot report it. (#108)
