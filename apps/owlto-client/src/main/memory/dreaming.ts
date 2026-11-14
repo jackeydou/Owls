@@ -252,7 +252,8 @@ export class DreamingRunner {
               ...usage,
               agent: provider,
               role: 'dreaming',
-              projectId: null
+              projectId: null,
+              workerId: null
             })
           }
         }

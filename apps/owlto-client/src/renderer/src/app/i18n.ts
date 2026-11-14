@@ -9,6 +9,7 @@ import { usageEn, usageZh } from '../usage/i18n'
 import { usageStatsEn, usageStatsZh } from '../usage/stats-i18n'
 import { profileEn, profileZh } from './i18n-profile'
 import { projectSettingsEn, projectSettingsZh } from './i18n-project-settings'
+import { workspaceEn, workspaceZh } from './i18n-workspace'
 
 const en = {
   projects: 'Projects',
@@ -370,7 +371,8 @@ void i18next.use(initReactI18next).init({
         ...profileEn,
         ...updatesEn,
         ...usageEn,
-        ...usageStatsEn
+        ...usageStatsEn,
+        ...workspaceEn
       }
     },
     'zh-CN': {
@@ -384,7 +386,8 @@ void i18next.use(initReactI18next).init({
         ...profileZh,
         ...updatesZh,
         ...usageZh,
-        ...usageStatsZh
+        ...usageStatsZh,
+        ...workspaceZh
       }
     }
   },

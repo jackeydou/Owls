@@ -56,7 +56,7 @@ export function RouterWorkersSettingsPane() {
 }
 
 /** The folder for tasks outside any project, with the default spelled out until the user picks one. */
-function WorkspaceFolderRow() {
+export function WorkspaceFolderRow() {
   const { t } = useTranslation()
   const custom = useAppStore((s) => s.settings.workspacePath)
   const workspaceFolder = useAppStore((s) => s.workspaceFolder)

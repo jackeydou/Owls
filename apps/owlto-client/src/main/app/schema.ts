@@ -238,6 +238,8 @@ export const usageEventsTable = sqliteTable(
     role: text('role').notNull(),
     model: text('model'),
     projectId: text('project_id'),
+    /** Added later; lets a promoted or merged workspace folder take its workers' tokens along. */
+    workerId: text('worker_id'),
     input: integer('input').notNull(),
     output: integer('output').notNull(),
     cacheRead: integer('cache_read').notNull(),

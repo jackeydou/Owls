@@ -1,0 +1,1 @@
+- Workspace: the Workspace now shows under Projects and on the map with its tasks; workspace folders can become their own projects (with a light prompt for new git repositories) and be merged back, and their past tasks, pull requests, and token usage move with them.

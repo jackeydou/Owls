@@ -1,0 +1,1 @@
+ALTER TABLE `usage_events` ADD `worker_id` text;

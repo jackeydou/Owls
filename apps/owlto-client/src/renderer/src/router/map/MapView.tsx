@@ -4,8 +4,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buildWorkerMap, type MapNode, type MapSide } from '../../../../shared/worker-map'
+import { WORKSPACE_ID } from '../../../../shared/workspace'
 import { useAppStore } from '../../app/store'
 import { isWaitingOnUser, isWorking, openRequests, projectHue } from '../activity'
+import { threadHome } from '../homes'
 import { RouterComposer } from '../RouterComposer'
 import { useRouterStore } from '../store'
 import { MapEdges } from './MapEdges'
@@ -54,7 +56,8 @@ export function MapView() {
   const camera = useCamera(stage, world, zoomLabel)
   const projects = useWorkerProjects()
   const now = useMinuteClock()
-  const projectId = useAppStore((s) => s.routerProjectId)
+  // A focus on no project is a focus on the Workspace.
+  const projectId = useAppStore((s) => threadHome(s.routerProjectId))
   const showChat = useAppStore((s) => s.showChat)
   const focusProject = useAppStore((s) => s.focusProject)
   const panel = useRouterStore((s) => s.panel)
@@ -111,10 +114,12 @@ export function MapView() {
     (node: MapNode) =>
       node.kind === 'root'
         ? 'var(--color-muted-foreground)'
-        : projectHue(
-            node.projectId,
-            projectRecords.find((p) => p.id === node.projectId)?.settings.color ?? null
-          ),
+        : node.projectId === WORKSPACE_ID
+          ? 'var(--color-muted-foreground)'
+          : projectHue(
+              node.projectId,
+              projectRecords.find((p) => p.id === node.projectId)?.settings.color ?? null
+            ),
     [projectRecords]
   )
   const select = useCallback(
@@ -282,7 +287,7 @@ export function MapView() {
       <div className="map-bar">
         <RouterComposer
           key={`${targetProject?.id ?? 'none'}:${target?.id ?? 'router'}`}
-          projectId={targetProject?.id ?? null}
+          projectId={targetProject && targetProject.id !== WORKSPACE_ID ? targetProject.id : null}
           router={targetRouter}
           target={target}
           onClearTarget={() => showPanel(null)}

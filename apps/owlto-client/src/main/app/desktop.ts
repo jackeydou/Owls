@@ -49,6 +49,7 @@ import { registerIpc } from './ipc.js'
 import { applyAppMenu, type MenuDeps } from './menu.js'
 import { UserProfile } from './profile.js'
 import { OwltoStore } from './store.js'
+import { realWorkspace } from './workspace-folders.js'
 
 const profile = configureDevAppInstanceProfile()
 app.setName(profile ? `Owlto — ${profile.name}` : 'Owlto')
@@ -276,6 +277,7 @@ void app
       {
         projects,
         workers: () => router?.snapshot().workers ?? [],
+        workspace: () => realWorkspace(host.workspaceFolder()),
         projectRemoteUrl: async (project) => (await router?.projectRemoteUrl(project)) ?? null,
         remoteBranch: async (workerId) => (await router?.remoteBranch(workerId)) ?? null,
         linkPullRequest: (workerId, link) => router?.linkPullRequest(workerId, link)

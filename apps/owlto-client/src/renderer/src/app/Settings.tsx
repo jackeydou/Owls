@@ -25,6 +25,7 @@ import { SettingsMemoryPane } from '../memory/SettingsMemory'
 import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
 import { usePaneWidth } from '../router/pane-width'
+import { WorkspaceIcon } from '../router/WorkspaceIcon'
 import { SettingsUpdatesPane } from '../updates/SettingsUpdates'
 import { UsageStatsPane } from '../usage/UsageStatsPane'
 import { appLogoIcons } from './AppLogo'
@@ -34,6 +35,7 @@ import { GitHubSettingsPane } from './SettingsGitHub'
 import { ProfileSettingsPane } from './SettingsProfile'
 import { ProjectSettingsPane } from './SettingsProject'
 import { RouterWorkersSettingsPane } from './SettingsRouterWorkers'
+import { WorkspaceSettingsPane } from './SettingsWorkspace'
 import {
   type ProjectSettingsPage,
   projectSettingsPages,
@@ -41,7 +43,11 @@ import {
   useAppStore
 } from './store'
 
-type TabEntry = { id: Exclude<SettingsTab, 'project'>; label: string; icon: IconComponent }
+type TabEntry = {
+  id: Exclude<SettingsTab, 'project' | 'workspace'>
+  label: string
+  icon: IconComponent
+}
 
 const TAB_GROUPS: TabEntry[][] = [
   [
@@ -73,16 +79,27 @@ function ProjectsNav() {
   const projects = useAppStore((s) => s.projects)
   const current = useAppStore((s) => (s.settingsTab === 'project' ? s.settingsProject : null))
   const showProjectSettings = useAppStore((s) => s.showProjectSettings)
+  const showSettings = useAppStore((s) => s.showSettings)
+  const workspaceOpen = useAppStore((s) => s.settingsTab === 'workspace')
   const [folded, setFolded] = useState(false)
   // Opening any project page, from here or the Projects sidebar, unfolds it again.
   useEffect(() => {
     if (current) setFolded(false)
   }, [current])
-  if (!projects.length) return null
   return (
     <>
       <hr />
       <h2 className="owlto-settings-group">{t('projectSettings.group')}</h2>
+      <button
+        type="button"
+        className="router-sidebar-item owlto-settings-project"
+        style={{ '--owl-c': 'var(--color-muted-foreground)' } as React.CSSProperties}
+        aria-current={workspaceOpen || undefined}
+        onClick={() => showSettings('workspace')}
+      >
+        <WorkspaceIcon />
+        <span>{t('workspace.name')}</span>
+      </button>
       {projects.map((project) => {
         const selected = current?.projectId === project.id
         const open = selected && !folded
@@ -259,7 +276,8 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   profile: ProfileSettingsPane,
   appearance: AppearancePane,
   updates: SettingsUpdatesPane,
-  project: ProjectSettingsPane
+  project: ProjectSettingsPane,
+  workspace: WorkspaceSettingsPane
 }
 
 export function SettingsPage() {

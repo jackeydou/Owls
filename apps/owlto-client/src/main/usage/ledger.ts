@@ -85,14 +85,24 @@ export class UsageLedger {
         role: entry.role,
         model: entry.model?.slice(0, 200) || null,
         projectId: entry.projectId,
+        workerId: entry.workerId,
         ...counts,
         costUsd: cost !== null && Number.isFinite(cost) && cost >= 0 ? cost : null
       })
       .run()
   }
 
-  /** Sums `range`; `agent` keeps only that agent's rows, null sums every agent. */
-  stats(range: UsageRange, agent: UsageAgent | null = null): UsageStats {
+  /**
+   * Sums `range`; `agent` keeps only that agent's rows, null sums every agent.
+   * `homeOf` names where a worker counts now (`workerHome`), so its tokens
+   * follow it when a workspace folder becomes a project or is merged back;
+   * rows of unknown or unnamed workers keep the project they were recorded with.
+   */
+  stats(
+    range: UsageRange,
+    agent: UsageAgent | null = null,
+    homeOf: (workerId: string) => string | null = () => null
+  ): UsageStats {
     const now = this.now()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     let start: Date | null =
@@ -159,7 +169,28 @@ export class UsageLedger {
       byAgent,
       byRole: group(keys.role),
       byModel: group(keys.model),
-      byProject: group(keys.project)
+      byProject: this.byProject(where, homeOf)
     }
+  }
+
+  private byProject(where: SQL | undefined, homeOf: (workerId: string) => string | null) {
+    const rows = this.store.db
+      .select({ project: keys.project, worker: t.workerId, ...sums, ...priced })
+      .from(t)
+      .where(where)
+      .groupBy(keys.project, t.workerId)
+      .all()
+    const groups = new Map<string | null, UsageGroup>()
+    for (const { project, worker, ...row } of rows) {
+      const key = (worker ? homeOf(worker) : null) ?? project ?? null
+      const sum = groups.get(key) ?? { ...emptyTokenCounts(), costUsd: 0, unpricedTokens: 0, key }
+      for (const name of Object.keys(sums) as (keyof TokenCounts)[]) sum[name] += row[name]
+      sum.costUsd += row.costUsd
+      sum.unpricedTokens += row.unpricedTokens
+      groups.set(key, sum)
+    }
+    return [...groups.values()].sort(
+      (a, b) => totalTokens(b) - totalTokens(a) || (a.key ?? '').localeCompare(b.key ?? '')
+    )
   }
 }

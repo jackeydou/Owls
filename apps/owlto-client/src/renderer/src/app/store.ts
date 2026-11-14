@@ -27,6 +27,7 @@ import type {
   SaveProject
 } from '../../../shared/projects'
 import { defaultRouterSettings } from '../../../shared/router'
+import { WORKSPACE_ID } from '../../../shared/workspace'
 import { byRecent } from '../router/activity'
 import { zoomBetweenViews } from '../router/motion'
 import { useRouterStore } from '../router/store'
@@ -79,6 +80,8 @@ export type SettingsTab =
   | 'updates'
   /** One project's settings; `settingsProject` says which project and page. */
   | 'project'
+  /** The workspace folder and its top-level folders. */
+  | 'workspace'
 export type RouterSettingsTab = 'router' | 'workers'
 export const projectSettingsPages = ['general', 'git', 'instructions'] as const
 export type ProjectSettingsPage = (typeof projectSettingsPages)[number]
@@ -189,9 +192,14 @@ export function clampPaneWidth(pane: ResizablePane, width: number): number {
   const { min, max } = paneWidthBounds[pane]
   return Math.round(Math.min(max, Math.max(min, width)))
 }
-/** The most recently active thread in a project, or across all of them. */
+/** A project id as the Router takes it: the Workspace is a thread with no default project. */
+const routerProject = (projectId: string | null): string | null =>
+  projectId === WORKSPACE_ID ? null : projectId
+/** The most recently active thread in a project or the Workspace, or across all of them. */
 function latestThread(routers: Router[], projectId?: string): Router | null {
-  const threads = projectId ? routers.filter((r) => r.projectId === projectId) : routers
+  const threads = projectId
+    ? routers.filter((r) => r.projectId === routerProject(projectId))
+    : routers
   return [...threads].sort(byRecent)[0] ?? null
 }
 let connectionEvents = 0
@@ -263,6 +271,7 @@ export const useAppStore = create<State>((set, get) => {
       updateChannel: null,
       pullRequestsVisible: true,
       workspacePath: null,
+      workspaceDismissed: [],
       openInApp: null,
       profile: defaultProfile
     },
@@ -420,7 +429,7 @@ export const useAppStore = create<State>((set, get) => {
     leaveSettings: () => set((state) => ({ view: state.lastView, error: null })),
     showChat: (projectId) => {
       const { view, routerProjectId, threadId } = get()
-      const target = projectId ?? routerProjectId
+      const target = projectId === undefined ? routerProjectId : routerProject(projectId)
       const thread = projectId
         ? (latestThread(useRouterStore.getState().routers, projectId)?.id ?? null)
         : threadId
@@ -434,7 +443,7 @@ export const useAppStore = create<State>((set, get) => {
       set((state) => ({
         view: 'chat',
         threadId,
-        routerProjectId: router?.projectId ?? state.routerProjectId,
+        routerProjectId: router ? router.projectId : state.routerProjectId,
         error: null
       }))
     },
@@ -442,7 +451,7 @@ export const useAppStore = create<State>((set, get) => {
       set((state) => ({
         view: 'chat',
         threadId: null,
-        routerProjectId: projectId ?? state.routerProjectId,
+        routerProjectId: projectId === undefined ? state.routerProjectId : routerProject(projectId),
         error: null
       })),
     showMap: () => {
@@ -453,7 +462,7 @@ export const useAppStore = create<State>((set, get) => {
     },
     showCards: () => set({ view: 'cards', error: null }),
     showPullRequests: () => set({ view: 'pulls', error: null }),
-    focusProject: (projectId) => set({ routerProjectId: projectId }),
+    focusProject: (projectId) => set({ routerProjectId: routerProject(projectId) }),
     clearError: () => set({ error: null }),
     pickProject: async () => {
       const project = await action(() => window.owlto.pickProject())

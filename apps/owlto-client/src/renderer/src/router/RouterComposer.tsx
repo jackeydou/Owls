@@ -21,6 +21,7 @@ export function RouterComposer({
   onThread,
   prompt
 }: {
+  /** Where a new thread's workers run by default; null is the Workspace. */
   projectId: string | null
   router: Router | undefined
   target?: RouterWorker | null
@@ -38,7 +39,6 @@ export function RouterComposer({
     router,
     target,
     isSendKey: isEnter,
-    disabled: !projectId,
     linkedCards,
     onSent,
     onThread
@@ -80,7 +80,7 @@ export function RouterComposer({
                 <ArrowUpIcon size={19} />
               )
             }
-            disabled={!projectId || empty || sending}
+            disabled={empty || sending}
             onClick={() => void draft.submit()}
           />
         </div>

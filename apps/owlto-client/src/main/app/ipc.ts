@@ -51,6 +51,7 @@ import { nodeOpenInPlatform, OpenInApps } from './open-in.js'
  * remembers the last folder, so pickers start where the user last was, or in their home folder.
  */
 const executableFolder = (path: string | null) => (path ? dirname(path) : app.getPath('home'))
+const workspacePathSchema = z.string().min(1).max(4096)
 
 export function registerIpc(
   host: OwltoHost,
@@ -224,6 +225,16 @@ export function registerIpc(
     return host.setWorkspaceFolder(result.filePaths[0])
   })
   handle('reset-workspace-folder', () => host.setWorkspaceFolder(null))
+  handle('workspace-listing', () => host.workspaceListing())
+  handle('promote-workspace-folder', (input) =>
+    host.promoteWorkspaceFolder(workspacePathSchema.parse(input))
+  )
+  handle('dismiss-workspace-folder', (input) =>
+    host.dismissWorkspaceFolder(workspacePathSchema.parse(input))
+  )
+  handle('merge-into-workspace', (input) =>
+    host.mergeIntoWorkspace(saveProjectSchema.shape.id.parse(input))
+  )
   handle('clone-project', (input) => host.cloneProject(cloneProjectSchema.parse(input)))
   handle('create-project', (input) => host.createProject(createProjectSchema.parse(input)))
   handle('save-project', (input) => host.saveProject(saveProjectSchema.parse(input)))

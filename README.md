@@ -139,6 +139,8 @@ and which one your workers use by default.
 - Press `⌘N` for a new conversation and tell the Router what you need.
 - Type `@` to choose a project. Tasks that don't belong to a project run in a
   workspace folder (`~/Owlto/Workspace` unless you pick another one in Settings).
+  The Workspace is listed first under Projects and on the map. When a folder in
+  it grows into a git repository, Owlto offers to make it its own project.
 - Click a worker to see what it's doing, or press `⌘J` to see everything on the
   map.
 

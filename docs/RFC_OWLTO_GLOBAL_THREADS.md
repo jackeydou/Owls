@@ -15,6 +15,11 @@
 3. **Worker 属于项目或工作目录。** `RouterWorker.projectId` 为空表示在工作目录运行，不用 worktree，
    彼此也不串行（各自在子目录里写文件）。同一 checkout 的写入者按项目串行，不按 thread，
    否则同一项目的两个 thread 会同时写一个 checkout。
+   界面上 Workspace 作为固定的第一个「项目」（`WORKSPACE_ID`，不是存储的项目 id）显示在 Projects 和全景图里。
+   Worker 归到哪里由 `workerHome` 计算：有 `projectId` 就算该项目（项目已删除则回到 Workspace）；
+   工作目录里的 Worker 按它报告的文件，归到 Workspace 内包含这些文件的最近已注册项目，否则算 Workspace。
+   所以把 Workspace 子目录「设为项目」或「并回 Workspace」时，历史任务、PR 和带 `worker_id` 的 token 用量会跟着走，
+   不用改写任何记录。Workspace 下出现未注册、未忽略的 git 仓库时，Projects 里给出一条轻提示。
 4. **转发存冻结的副本，不存活引用。** 内容复制到目标 thread，同时记录来源，走 Inbox，所以三个引擎都不用改。
 5. **不做向后兼容。** 产品未发布。Drizzle 迁移已重建成一份 `0000_init.sql`，旧数据库不能继续使用，
    也去掉了只为旧数据行存在的 zod 默认值、`workerProvider` 迁移和旧任务过滤。

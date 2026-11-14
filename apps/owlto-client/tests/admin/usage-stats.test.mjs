@@ -46,6 +46,7 @@ const entry = (fields) => ({
   role: 'worker',
   model: null,
   projectId: null,
+  workerId: null,
   input: 0,
   output: 0,
   cacheRead: 0,
@@ -193,4 +194,32 @@ test('an empty ledger answers with an empty range', (t) => {
   assert.deepEqual(all.days, [])
   assert.deepEqual(all.byAgent, [])
   assert.equal(ledger.stats('30d').days.length, 30)
+})
+
+test('worker tokens follow the project the worker counts under now', (t) => {
+  const now = { value: new Date(2026, 10, 14, 15, 0) }
+  const ledger = openLedger(t, now)
+  ledger.record(entry({ workerId: 'w1', input: 100 }))
+  ledger.record(entry({ workerId: 'w2', input: 10 }))
+  ledger.record(entry({ workerId: 'gone', projectId: 'p2', input: 5 }))
+  ledger.record(entry({ role: 'router', input: 1 }))
+  const homes = { w1: 'promoted', w2: 'owlto:workspace' }
+  const stats = ledger.stats('7d', null, (id) => homes[id] ?? null)
+  assert.deepEqual(
+    stats.byProject.map((g) => [g.key, g.input]),
+    [
+      ['promoted', 100],
+      ['owlto:workspace', 10],
+      ['p2', 5],
+      [null, 1]
+    ]
+  )
+  // Without homes every row keeps the project it was recorded with.
+  assert.deepEqual(
+    ledger.stats('7d').byProject.map((g) => [g.key, g.input]),
+    [
+      [null, 111],
+      ['p2', 5]
+    ]
+  )
 })

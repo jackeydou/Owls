@@ -14,8 +14,10 @@ import {
   usageAgentSchema,
   usageRangeSchema
 } from '../../../shared/usage-stats'
+import { WORKSPACE_ID } from '../../../shared/workspace'
 import { OwlAvatar } from '../app/OwlAvatar'
 import { useAppStore } from '../app/store'
+import { WorkspaceIcon } from '../router/WorkspaceIcon'
 import { type UsageGroupBy, useUsageStatsStore } from './stats-store'
 import './usage-stats.css'
 
@@ -289,6 +291,7 @@ function useGroupName(): (groupBy: UsageGroupBy, key: string | null) => string {
         : t('usageStats.unknown')
     if (groupBy === 'model') return key ?? t('usageStats.noModel')
     if (key === null) return t('usageStats.noProject')
+    if (key === WORKSPACE_ID) return t('workspace.name')
     return projects.find((p) => p.id === key)?.name ?? t('usageStats.deletedProject')
   }
 }
@@ -298,6 +301,7 @@ function GroupIcon({ groupBy, row }: { groupBy: UsageGroupBy; row: UsageGroup })
     const agent = usageAgentSchema.safeParse(row.key)
     return agent.success ? <AgentIcon agent={agent.data} /> : null
   }
+  if (groupBy === 'project' && row.key === WORKSPACE_ID) return <WorkspaceIcon />
   return groupBy === 'role' && row.key === 'router' ? <OwlAvatar speaker="router" /> : null
 }
 
