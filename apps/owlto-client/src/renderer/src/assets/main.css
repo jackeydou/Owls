@@ -260,6 +260,8 @@
     font: inherit;
     font-size: var(--owl-text-sm);
     line-height: var(--owl-leading-tight);
+    /* The chosen option stays on one line; the select grows to fit it. */
+    white-space: nowrap;
     text-align: start;
     outline: none;
     cursor: default;
