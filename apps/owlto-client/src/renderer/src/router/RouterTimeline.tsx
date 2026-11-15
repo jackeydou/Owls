@@ -260,6 +260,7 @@ export function RouterTimeline({
                 entryId={entry.id}
                 speaker={speaker}
                 follows={Boolean(previous) && speakerOf(previous) === speaker}
+                foldable={'item' in entry && entry.item.kind === 'assistant'}
               >
                 {'workerIds' in entry ? (
                   <DispatchGroup workerIds={entry.workerIds} />

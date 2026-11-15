@@ -1,0 +1,1 @@
+- Router: long replies fold to their first four lines with a toggle under the Router avatar. (#137)
