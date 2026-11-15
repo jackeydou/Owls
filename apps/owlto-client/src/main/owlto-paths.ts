@@ -61,6 +61,17 @@ export function workspaceHome(dataRoot = getDataRoot()): string {
     : join(dataRoot, 'workspace')
 }
 
+/**
+ * Where notes live, one Markdown file each: next to the workspace for the
+ * default data root, so other editors and git can use them, inside a custom
+ * data root otherwise.
+ */
+export function notesHome(dataRoot = getDataRoot()): string {
+  return resolve(dataRoot) === resolve(defaultDataRoot())
+    ? join(homedir(), 'Owlto', 'Notes')
+    : join(dataRoot, 'notes')
+}
+
 /** The working directory of Router engines in threads with no default project. */
 export function routerThreadHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'router-threads')

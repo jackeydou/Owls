@@ -66,7 +66,8 @@ When an owl is busy, you'll see it typing away on its laptop:
   merge, review, and check status, and sort by what needs your attention.
 - **Notes and whiteboards.** Save useful answers as notes, sort them with tags,
   lay them out on boards, and attach them to new messages. Press `⌘K` to open
-  your notes.
+  your notes. Each note is a Markdown file in `~/Owlto/Notes`, so you can edit
+  it in any editor or keep it in git.
 - **Usage at a glance.** See how much of each agent's plan you have left, and
   browse daily usage and estimated cost in Settings.
 - **Updates itself.** Owlto checks for new versions in the background and offers

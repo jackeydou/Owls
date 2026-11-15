@@ -560,7 +560,7 @@ export interface AutomationsAPI {
   runNow(id: string): Promise<Reply<Automation>>
   onChanged(listener: () => void): () => void
 }
-/** `window.owlto.cards`: the user's knowledge cards and boards. */
+/** `window.owlto.cards`: the user's notes, one Markdown file each, and boards. */
 export interface CardsAPI {
   library(): Promise<Reply<CardLibrary>>
   save(input: CardSave): Promise<Reply<Card>>
@@ -569,6 +569,8 @@ export interface CardsAPI {
   remove(cardId: string): Promise<Reply<void>>
   saveBoard(input: BoardSave): Promise<Reply<Board>>
   removeBoard(boardId: string): Promise<Reply<void>>
+  /** Shows a note's Markdown file in Finder. */
+  reveal(cardId: string): Promise<Reply<void>>
   onChanged(listener: () => void): () => void
 }
 /** `window.owlto.updates`. The channel is a setting, saved through `saveSettings`. */

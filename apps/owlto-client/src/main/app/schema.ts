@@ -9,7 +9,7 @@ import {
 } from 'drizzle-orm/sqlite-core'
 import type { AppSettings, Project, Router, Session, SessionItem } from '../../shared/app.js'
 import type { Automation } from '../../shared/automations.js'
-import type { Board, Card } from '../../shared/cards.js'
+import type { Board } from '../../shared/cards.js'
 import type { Memory, MemoryCategory, MemoryRun } from '../../shared/memory.js'
 import type { RouterWorker } from '../../shared/router.js'
 
@@ -201,18 +201,24 @@ export const memoryRunsTable = sqliteTable(
   },
   (table) => [index('memory_runs_created').on(table.createdAt)]
 )
-/** Knowledge cards. A deleted card is a tombstone with its text cleared. */
-export const cardsTable = sqliteTable(
-  'cards',
+/**
+ * The index of note files. Each note is a Markdown file in the notes folder;
+ * this table maps its id to that file and keeps its change version. A deleted
+ * note keeps its row, with no file, as a tombstone.
+ */
+export const noteFilesTable = sqliteTable(
+  'note_files',
   {
     id: text('id').primaryKey(),
     rev: integer('rev').notNull(),
-    projectId: text('project_id'),
+    /** The file name in the notes folder; null once the note is deleted. */
+    file: text('file'),
     status: text('status').notNull(),
     updatedAt: text('updated_at').notNull(),
-    value: text('value', { mode: 'json' }).$type<Card>().notNull()
+    /** SHA-256 of the file as last read or written, to tell edits made elsewhere. */
+    hash: text('hash')
   },
-  (table) => [index('cards_rev').on(table.rev), index('cards_status').on(table.status)]
+  (table) => [index('note_files_rev').on(table.rev), index('note_files_status').on(table.status)]
 )
 /** Card whiteboards, each holding where its cards sit. */
 export const boardsTable = sqliteTable(

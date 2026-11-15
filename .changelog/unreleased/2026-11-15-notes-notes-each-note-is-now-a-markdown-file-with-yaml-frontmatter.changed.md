@@ -1,0 +1,1 @@
+- Notes: each note is now a Markdown file with YAML frontmatter in ~/Owlto/Notes (or <data root>/notes), and edits made in other apps show up live. Notes saved before this change are not carried over.

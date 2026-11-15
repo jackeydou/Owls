@@ -28,6 +28,7 @@ import {
   attachmentsHome,
   getDataRoot,
   memoryDreamingHome,
+  notesHome,
   projectsHome,
   routerThreadHome,
   workerWorktreesRoot,
@@ -272,17 +273,17 @@ void app
     })
     const sweeper = new MemorySweeper({ sweep: () => memory.sweep() })
     service.attachMemory({ service: memory, dreaming, triggers, sweeper })
-    service.attachCards(
-      new CardService({
-        store: new CardStore(store),
-        projects,
-        content: (source) => {
-          if (!router) throw new OwltoError('router_unavailable', 'Threads are not available.')
-          return router.contentOf(source)
-        },
-        changed: cardsChanged
-      })
-    )
+    const cards = new CardService({
+      store: new CardStore(store, notesHome(root)),
+      projects,
+      content: (source) => {
+        if (!router) throw new OwltoError('router_unavailable', 'Threads are not available.')
+        return router.contentOf(source)
+      },
+      changed: cardsChanged
+    })
+    service.attachCards(cards)
+    cards.watch()
     const host = service
     const profile = new UserProfile({
       settings: () => host.snapshot().settings,

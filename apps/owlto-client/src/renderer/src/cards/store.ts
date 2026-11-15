@@ -55,6 +55,8 @@ type State = {
   setSelected(cardIds: string[]): void
   save(input: CardSave): Promise<Card | null>
   remove(cardId: string): Promise<boolean>
+  /** Shows the card's Markdown file in Finder. */
+  reveal(cardId: string): Promise<void>
   startCapture(capturing: Capturing): void
   cancelCapture(): void
   capture(input: Omit<CardCapture, 'source'>): Promise<Card | null>
@@ -137,6 +139,9 @@ export const useCardsStore = create<State>((set, get) => {
       const done = (await action(() => window.owlto.cards.remove(cardId))) !== null
       if (done) await get().load()
       return done
+    },
+    reveal: async (cardId) => {
+      await action(() => window.owlto.cards.reveal(cardId))
     },
     startCapture: (capturing) => set({ capturing, error: null }),
     cancelCapture: () => set({ capturing: null }),
