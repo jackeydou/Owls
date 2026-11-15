@@ -1,0 +1,12 @@
+{
+  "name": "owlto-website",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Owlto marketing site: a zero-dependency static site generated per locale.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --serve",
+    "og": "node scripts/render-og.mjs"
+  }
+}
