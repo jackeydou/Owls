@@ -35,7 +35,8 @@ import {
   REPORT_TOOL_DESCRIPTION,
   REPORT_TOOL_INPUT_SCHEMA
 } from '../router/report.js'
-import type { TurnOutcome, TurnProfiles } from '../router/service.js'
+import type { TurnOutcome, TurnProfile, TurnProfiles } from '../router/service.js'
+import { codexToolName } from '../router/worker-tools.js'
 import { codexCallUsage } from '../usage/turn-usage.js'
 import { CodexClient, discoverExecutable } from './client.js'
 import {
@@ -78,6 +79,18 @@ const CODEX_REPORT_TOOL = {
   name: CODEX_REPORT_TOOL_NAME,
   description: REPORT_TOOL_DESCRIPTION,
   inputSchema: REPORT_TOOL_INPUT_SCHEMA
+}
+/** A worker's dynamic tools: `owlto_report` and the profile's other tools, prefixed the same way. */
+function codexTools(profile: TurnProfile): Record<string, unknown>[] {
+  return [
+    CODEX_REPORT_TOOL,
+    ...profile.tools.map((tool) => ({
+      type: 'function',
+      name: codexToolName(tool.name),
+      description: tool.description,
+      inputSchema: tool.inputSchema
+    }))
+  ]
 }
 type PendingRequest = {
   wireId: string | number
@@ -346,7 +359,7 @@ export class CodexService {
             ...policy,
             ephemeral: false,
             // Stored with the thread, so later turns and resumes keep the tool (F7, F26).
-            ...(profile ? { dynamicTools: [CODEX_REPORT_TOOL] } : {})
+            ...(profile ? { dynamicTools: codexTools(profile) } : {})
           })
         )
         const thread = record(response.thread)
@@ -743,15 +756,18 @@ export class CodexService {
     }
     this.changed(session)
   }
-  /** Answers a dynamic tool call; the worker report tool is the only one Owlto registers. */
+  /** Answers a dynamic tool call: the worker report tool or another Owlto worker tool. */
   private callTool(session: Session, frame: RpcFrame): void {
     if (frame.id === undefined) return
     const params = frame.params ?? {}
     const profile = this.profiles?.profile(session.id) ?? null
+    const other = profile?.tools.find((tool) => codexToolName(tool.name) === params.tool)
     const result =
       profile && params.tool === CODEX_REPORT_TOOL_NAME
         ? profile.report.call(params.arguments)
-        : { ok: false, text: 'This tool is not available.' }
+        : other
+          ? other.call(params.arguments)
+          : { ok: false, text: 'This tool is not available.' }
     this.client?.respond(frame.id, {
       success: result.ok,
       contentItems: [{ type: 'inputText', text: result.text }]

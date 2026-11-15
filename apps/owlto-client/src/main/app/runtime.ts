@@ -1,4 +1,5 @@
 export { layoutSettingsSchema, settingsSchema } from '../../shared/app.js'
+export { nextAutomationRun, scheduleFromInput } from '../../shared/automations.js'
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
 export * as feedback from '../../shared/feedback.js'
 export { parseGitHubRepo, saveProjectSchema } from '../../shared/projects.js'
@@ -16,6 +17,8 @@ export {
   WORKSPACE_ID,
   workerHome
 } from '../../shared/workspace.js'
+export { AutomationService } from '../automations/service.js'
+export { AutomationStore } from '../automations/store.js'
 export { CardService } from '../cards/service.js'
 export { CardStore } from '../cards/store.js'
 export { discoverClaudeExecutable } from '../claude/discovery.js'

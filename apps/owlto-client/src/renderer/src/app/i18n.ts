@@ -1,5 +1,6 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { automationsEn, automationsZh } from '../automations/i18n'
 import { cardsEn, cardsZh } from '../cards/i18n'
 import { feedbackEn, feedbackZh } from '../feedback/i18n'
 import { memoryEn, memoryZh } from '../memory/i18n'
@@ -352,6 +353,7 @@ void i18next.use(initReactI18next).init({
         ...routerEn,
         ...cardsEn,
         ...pullsEn,
+        ...automationsEn,
         ...memoryEn,
         ...projectSettingsEn,
         ...profileEn,
@@ -371,6 +373,7 @@ void i18next.use(initReactI18next).init({
         ...routerZh,
         ...cardsZh,
         ...pullsZh,
+        ...automationsZh,
         ...memoryZh,
         ...projectSettingsZh,
         ...profileZh,

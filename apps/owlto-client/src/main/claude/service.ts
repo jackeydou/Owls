@@ -58,7 +58,11 @@ import {
 import { parseClaudeUsage } from './usage.js'
 
 const execFileAsync = promisify(execFile)
-const REPORT_TOOL = `mcp__${REPORT_SERVER_NAME}__${REPORT_TOOL_NAME}`
+const owltoTool = (name: string) => `mcp__${REPORT_SERVER_NAME}__${name}`
+/** Owlto's own tools in a worker's turn: `report` and the profile's other tools. */
+const isOwltoTool = (profile: TurnProfile, toolName: string) =>
+  toolName === owltoTool(REPORT_TOOL_NAME) ||
+  profile.tools.some((tool) => toolName === owltoTool(tool.name))
 const active = (s: Session): boolean => ['starting', 'running', 'waiting'].includes(s.status)
 
 /** The subset of the Agent SDK this service uses; injected so tests can replace it. */
@@ -356,10 +360,10 @@ export class ClaudeService {
       session.model ? m.id === session.model : m.isDefault
     )
     const profile = this.profiles?.profile(session.id) ?? null
-    // The report tool is approved here rather than through `allowedTools`, which the SDK
+    // Owlto's tools are approved here rather than through `allowedTools`, which the SDK
     // warns about on every query because it shadows this callback.
     const canUseTool: CanUseTool = (toolName, toolInput, context) =>
-      profile && toolName === REPORT_TOOL
+      profile && isOwltoTool(profile, toolName)
         ? Promise.resolve({ behavior: 'allow', updatedInput: toolInput })
         : this.requestPermission(session.id, runtime, toolName, toolInput, context)
     try {
@@ -759,8 +763,8 @@ export class ClaudeService {
     this.expirePermissions(session)
   }
   /**
-   * The worker's report tool as an in-process MCP server. `canUseTool` approves
-   * it, so calling it never asks the user.
+   * The worker's report tool and Owlto's other worker tools as an in-process MCP
+   * server. `canUseTool` approves them, so calling one never asks the user.
    */
   private reportServer(profile: TurnProfile): McpSdkServerConfigWithInstance {
     return this.sdk.createSdkMcpServer({
@@ -782,7 +786,19 @@ export class ClaudeService {
               ...(result.ok ? {} : { isError: true })
             }
           }
-        }
+        },
+        ...profile.tools.map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.schema as unknown as SdkMcpToolDefinition['inputSchema'],
+          handler: async (args: unknown) => {
+            const result = tool.call(args)
+            return {
+              content: [{ type: 'text' as const, text: result.text }],
+              ...(result.ok ? {} : { isError: true })
+            }
+          }
+        }))
       ]
     })
   }

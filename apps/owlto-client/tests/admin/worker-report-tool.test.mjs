@@ -319,10 +319,15 @@ test('a Claude Code worker reports through its in-process MCP server', async (t)
 
 test('the report server only answers known paths on its own host', async (t) => {
   const calls = []
-  const server = new WorkerReportServer((sessionId, input) => {
-    calls.push({ sessionId, input })
-    return { ok: true, text: 'noted' }
-  })
+  const server = new WorkerReportServer((sessionId) => ({
+    report: {
+      call: (input) => {
+        calls.push({ sessionId, input })
+        return { ok: true, text: 'noted' }
+      }
+    },
+    tools: []
+  }))
   t.after(() => server.close())
   const url = new URL(await server.endpoint('s1'))
   assert.equal(await server.endpoint('s1'), url.href, 'a session keeps its URL')

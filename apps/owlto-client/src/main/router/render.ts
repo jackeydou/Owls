@@ -65,7 +65,20 @@ function eventText(event: InboxEvent): string {
       return `[${event.seq}] worker_removed · ${event.workerId} · ${clock(event.at)}\nGoal: ${escapeBatch(short(event.goal, 200))}\nThe user removed this worker. Do not follow up on it.${event.branch ? ` Its unmerged work stays on branch ${escapeBatch(event.branch)}.` : ''}`
     case 'forwarded':
       return forwardedText(event)
+    case 'automation_run':
+      return automationText(event)
   }
+}
+
+function automationText(event: Extract<InboxEvent, { kind: 'automation_run' }>): string {
+  const by = event.createdBy === 'user' ? 'the user' : `a ${event.createdBy}`
+  const head = `[${event.seq}] automation_run · ${event.automationId} · ${clock(event.at)} · ${escapeBatch(short(event.name, 80))}`
+  if (event.workerId)
+    return `${head} · to ${event.workerId}\nOwlto sent this scheduled run to the worker; it reports back as usual.`
+  const missing = event.missingWorkerId
+    ? `\nIts worker ${event.missingWorkerId} was removed, so this run comes to you.`
+    : ''
+  return `${head}\nA scheduled automation came due. Its instructions, written by ${by} when it was created:${missing}\n${escapeBatch(clip(event.instructions, USER_TEXT_LIMIT, event.seq))}`
 }
 
 function forwardedText(event: Extract<InboxEvent, { kind: 'forwarded' }>): string {

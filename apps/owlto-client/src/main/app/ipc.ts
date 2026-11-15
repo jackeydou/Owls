@@ -11,6 +11,11 @@ import {
 } from '../../shared/app.js'
 import { attachmentSchema, stageAttachmentSchema } from '../../shared/attachments.js'
 import {
+  automationEnableSchema,
+  automationIdSchema,
+  automationSaveSchema
+} from '../../shared/automations.js'
+import {
   boardSaveSchema,
   cardCaptureSchema,
   cardIdSchema,
@@ -204,6 +209,13 @@ export function registerIpc(
   handle('cards-remove', (input) => host.cardRemove(cardIdSchema.parse(input)))
   handle('cards-save-board', (input) => host.boardSave(boardSaveSchema.parse(input)))
   handle('cards-remove-board', (input) => host.boardRemove(cardIdSchema.parse(input)))
+  handle('automations-list', () => host.automationList())
+  handle('automations-save', (input) => host.automationSave(automationSaveSchema.parse(input)))
+  handle('automations-enable', (input) =>
+    host.automationEnable(automationEnableSchema.parse(input))
+  )
+  handle('automations-remove', (input) => host.automationRemove(automationIdSchema.parse(input)))
+  handle('automations-run', (input) => host.automationRun(automationIdSchema.parse(input)))
   handle('updates-snapshot', () => updates.snapshot())
   handle('updates-check', () => updates.check())
   handle('updates-install', () => updates.install())

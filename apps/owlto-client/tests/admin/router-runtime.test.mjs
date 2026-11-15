@@ -3117,7 +3117,7 @@ test('search_memory sits in the fixed tool order only while memory is on', async
   const off = await withTools(async () => [], { memory: fakeMemory(false) })
   assert.ok(!off.engine.tools.some((t) => t.name === 'search_memory'))
   assert.match(off.engine.runs[0].text, firstBatch('go'), 'no memory block without memory')
-  assert.equal(ROUTER_PROMPT_VERSION, 13)
+  assert.equal(ROUTER_PROMPT_VERSION, 14)
   off.service.close()
 })
 

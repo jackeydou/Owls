@@ -1,0 +1,370 @@
+import assert from 'node:assert/strict'
+import { createRequire } from 'node:module'
+import test from 'node:test'
+import { cipher, commands, memoryRouterStore } from '../fixtures/router-store.mjs'
+
+const require = createRequire(import.meta.url)
+const {
+  AutomationService,
+  nextAutomationRun,
+  renderBatch,
+  RouterCredentials,
+  RouterService,
+  scheduleFromInput
+} = require('../../out/main/app/runtime.js')
+
+const local = (...parts) => new Date(...parts)
+
+test('next runs follow the schedule in local time', () => {
+  // 2026-11-13 is a Friday.
+  const friday = local(2026, 10, 13, 10, 30)
+  assert.deepEqual(
+    nextAutomationRun({ frequency: 'hourly', minute: 15 }, friday),
+    local(2026, 10, 13, 11, 15)
+  )
+  assert.deepEqual(
+    nextAutomationRun({ frequency: 'daily', hour: 9, minute: 0 }, friday),
+    local(2026, 10, 14, 9, 0),
+    'a time already past today runs tomorrow'
+  )
+  assert.deepEqual(
+    nextAutomationRun({ frequency: 'daily', hour: 11, minute: 0 }, friday),
+    local(2026, 10, 13, 11, 0)
+  )
+  assert.deepEqual(
+    nextAutomationRun({ frequency: 'weekdays', hour: 9, minute: 0 }, friday),
+    local(2026, 10, 16, 9, 0),
+    'weekdays skip the weekend'
+  )
+  assert.deepEqual(
+    nextAutomationRun({ frequency: 'weekly', weekday: 5, hour: 10, minute: 0 }, friday),
+    local(2026, 10, 20, 10, 0),
+    'this week’s slot has passed, so next Friday'
+  )
+  assert.deepEqual(
+    nextAutomationRun({ frequency: 'monthly', day: 31, hour: 9, minute: 0 }, local(2027, 1, 1)),
+    local(2027, 1, 28, 9, 0),
+    'a short month runs on its last day'
+  )
+  assert.deepEqual(scheduleFromInput({ frequency: 'weekly', time: '07:05' }), {
+    frequency: 'weekly',
+    weekday: 1,
+    hour: 7,
+    minute: 5
+  })
+  assert.deepEqual(scheduleFromInput({ frequency: 'hourly', time: '00:45' }), {
+    frequency: 'hourly',
+    minute: 45
+  })
+})
+
+function memoryRecords() {
+  const rows = new Map()
+  return {
+    rows,
+    list: () => [...rows.values()].map((a) => structuredClone(a)),
+    put: (a) => {
+      rows.set(a.id, structuredClone(a))
+      return structuredClone(a)
+    },
+    remove: (id) => rows.delete(id)
+  }
+}
+
+function scheduler(deliver) {
+  const clock = { now: local(2026, 10, 13, 8, 0) }
+  const records = memoryRecords()
+  const deliveries = []
+  const service = new AutomationService({
+    records,
+    deliver: async (automation) => {
+      deliveries.push(automation.id)
+      return deliver(automation)
+    },
+    changed: () => {},
+    now: () => new Date(clock.now)
+  })
+  return { service, records, deliveries, clock }
+}
+const daily = { frequency: 'daily', hour: 9, minute: 0 }
+const userInput = (overrides = {}) => ({
+  name: 'Briefing',
+  instructions: 'Summarize yesterday.',
+  schedule: daily,
+  projectId: null,
+  enabled: true,
+  ...overrides
+})
+
+test('a due automation runs once per slot and keeps its new thread', async () => {
+  const { service, deliveries, clock } = scheduler(async () => ({
+    threadId: 'thread-1',
+    fellBack: false
+  }))
+  const created = service.save(userInput())
+  assert.equal(created.nextRunAt, local(2026, 10, 13, 9, 0).toISOString())
+  await service.tick()
+  assert.deepEqual(deliveries, [], 'not due yet')
+  clock.now = local(2026, 10, 13, 9, 0, 30)
+  await Promise.all([service.tick(), service.tick()])
+  assert.deepEqual(deliveries, [created.id], 'two ticks for one slot deliver once')
+  const after = service.get(created.id)
+  assert.equal(after.nextRunAt, local(2026, 10, 14, 9, 0).toISOString())
+  assert.deepEqual(after.target, { kind: 'router', threadId: 'thread-1' })
+  assert.equal(after.lastRun.status, 'started')
+  await service.runNow(created.id)
+  assert.equal(deliveries.length, 2)
+  assert.equal(
+    service.get(created.id).nextRunAt,
+    after.nextRunAt,
+    'running now leaves the schedule alone'
+  )
+  service.close()
+})
+
+test('a failed delivery is recorded and paused automations never run', async () => {
+  const { service, deliveries, clock } = scheduler(async () => {
+    throw new Error('Threads are not available.')
+  })
+  const failing = service.save(userInput())
+  const paused = service.save(userInput({ name: 'Paused', enabled: false }))
+  assert.equal(paused.nextRunAt, null)
+  clock.now = local(2026, 10, 13, 9, 5)
+  await service.tick()
+  assert.deepEqual(deliveries, [failing.id])
+  const after = service.get(failing.id)
+  assert.equal(after.lastRun.status, 'failed')
+  assert.equal(after.lastRun.error, 'Threads are not available.')
+  assert.equal(after.nextRunAt, local(2026, 10, 14, 9, 0).toISOString(), 'the next slot stays')
+  service.close()
+})
+
+test('deleting a thread drops agent automations and frees user ones', () => {
+  const { service } = scheduler(async () => ({ threadId: 'x', fellBack: false }))
+  const agent = service.create({
+    name: 'Watch CI',
+    instructions: 'Check CI.',
+    schedule: { frequency: 'hourly', minute: 0 },
+    target: { kind: 'router', threadId: 't1' },
+    projectId: null,
+    createdBy: 'router'
+  })
+  const mine = service.save(userInput())
+  service.threadRemoved('t1')
+  assert.equal(service.get(agent.id), undefined)
+  assert.ok(service.get(mine.id))
+  service.close()
+})
+
+function fakeHost() {
+  const sent = []
+  const turns = { profiles: null }
+  const settings = {
+    permission: 'workspace-write',
+    provider: 'codex',
+    model: 'gpt-test',
+    effort: null,
+    claudeModel: null,
+    claudeEffort: null,
+    router: {
+      engine: 'owlto',
+      owlto: null,
+      claudeModel: null,
+      codexModel: null,
+      maxPermission: 'workspace-write'
+    }
+  }
+  return {
+    sent,
+    turns,
+    host: {
+      projects: () => [],
+      threadHome: () => '/tmp/owlto-thread-home',
+      workspace: () => '/tmp/owlto-workspace',
+      settings: () => settings,
+      providerReady: () => true,
+      createSession: (input, worker) => ({ id: crypto.randomUUID(), ...input, worker }),
+      remove: () => {},
+      send: async (input) => {
+        await turns.profiles?.prepare(input.sessionId)
+        sent.push(input)
+      },
+      steer: async () => 'not_running',
+      interrupt: async () => {}
+    }
+  }
+}
+
+/** A Router with a scripted engine and automations, as the app wires them. */
+function app() {
+  const store = memoryRouterStore()
+  const fake = fakeHost()
+  const runs = []
+  let tools = []
+  const engine = {
+    async run(input, sink) {
+      runs.push(input)
+      sink.item({
+        id: `reply-${runs.length}`,
+        kind: 'assistant',
+        status: 'completed',
+        text: 'ok',
+        detail: '',
+        turnId: input.batchId
+      })
+      return { status: 'completed', error: null, native: { engine: 'owlto' } }
+    },
+    steer: async () => 'not_running',
+    abort() {}
+  }
+  let router = null
+  const automations = new AutomationService({
+    records: memoryRecords(),
+    deliver: (automation) => router.runAutomation(automation),
+    changed: () => {}
+  })
+  router = new RouterService(
+    store,
+    new RouterCredentials(store, cipher),
+    commands(),
+    fake.host,
+    () => {},
+    (request) => {
+      tools = request.tools
+      return engine
+    },
+    undefined,
+    undefined,
+    undefined,
+    automations
+  )
+  fake.turns.profiles = router
+  return { router, store, automations, runs, fake, tools: () => tools }
+}
+
+async function waitFor(check, label) {
+  const deadline = Date.now() + 3000
+  while (Date.now() < deadline) {
+    if (check()) return
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+  assert.fail(`Timed out waiting for ${label}`)
+}
+
+test('the Router creates an automation whose run comes back to its thread', async () => {
+  const { router, store, automations, runs, tools } = app()
+  const thread = router.createThread({ projectId: null })
+  router.send({ routerId: thread.id, commandId: crypto.randomUUID(), text: 'hi' })
+  await waitFor(() => runs.length === 1, 'the first batch')
+  const names = tools().map((t) => t.name)
+  assert.deepEqual(
+    names,
+    [...names].sort((a, b) => a.localeCompare(b)),
+    'tools stay sorted by name'
+  )
+  const create = tools().find((t) => t.name === 'create_automation')
+  const result = JSON.parse(
+    await create.execute({
+      name: 'PR check',
+      instructions: 'Check open pull requests.',
+      schedule: { frequency: 'weekdays', time: '09:00' }
+    })
+  )
+  assert.equal(result.automation.schedule, 'weekdays at 09:00')
+  assert.equal(result.automation.wakes, 'router')
+  const list = JSON.parse(
+    await tools()
+      .find((t) => t.name === 'list_automations')
+      .execute({})
+  )
+  assert.equal(list.automations.length, 1)
+  const [automation] = automations.list()
+  assert.deepEqual(automation.target, { kind: 'router', threadId: thread.id })
+  assert.equal(automation.createdBy, 'router')
+
+  await automations.runNow(automation.id)
+  await waitFor(() => runs.length === 2, 'the automation batch')
+  assert.match(runs[1].text, /automation_run · au_[0-9a-f]+ · .* · PR check/)
+  assert.match(runs[1].text, /written by a router[\s\S]*Check open pull requests\./)
+  const item = router.items(thread.id).find((e) => e.item.automation)
+  assert.equal(item.item.text, 'Check open pull requests.')
+  assert.deepEqual(item.item.automation, { id: automation.id, name: 'PR check' })
+  assert.equal(store.events(thread.id, 'pending').length, 0)
+
+  await assert.rejects(
+    tools()
+      .find((t) => t.name === 'delete_automation')
+      .execute({ automationId: 'au_missing' }),
+    /No automation/
+  )
+  router.close()
+  automations.close()
+})
+
+test('a worker schedules its own follow-up, and a user automation opens its own thread', async () => {
+  const { router, store, automations, runs, fake, tools } = app()
+  const thread = router.createThread({ projectId: null })
+  router.send({ routerId: thread.id, commandId: crypto.randomUUID(), text: 'hi' })
+  await waitFor(() => runs.length === 1, 'the first batch')
+  const dispatched = JSON.parse(
+    await tools()
+      .find((t) => t.name === 'dispatch_task')
+      .execute({ goal: 'Open a PR' })
+  )
+  await waitFor(() => fake.sent.length === 1, 'the worker turn')
+  const worker = router.worker(dispatched.workerId)
+  const profile = router.profile(worker.sessionId)
+  assert.deepEqual(
+    profile.tools.map((t) => t.name),
+    ['create_automation', 'delete_automation', 'list_automations']
+  )
+  const created = profile.tools[0].call({
+    name: 'Watch CI',
+    instructions: 'Check CI on the PR.',
+    schedule: { frequency: 'hourly', time: '00:10' }
+  })
+  assert.equal(created.ok, true, created.text)
+  assert.equal(JSON.parse(created.text).automation.wakes, `worker ${worker.id}`)
+  const bad = profile.tools[0].call({ name: 'x' })
+  assert.equal(bad.ok, false)
+  assert.match(bad.text, /^Invalid create_automation input\./)
+
+  // Let the worker's turn end so the follow-up can start a new one.
+  router.settled(worker.sessionId, { status: 'completed', structured: null, text: '' })
+  const [automation] = automations.list()
+  await automations.runNow(automation.id)
+  await waitFor(() => fake.sent.length === 2, 'the follow-up turn')
+  assert.match(fake.sent[1].text, /Scheduled automation "Watch CI"[\s\S]*Check CI on the PR\./)
+  const quiet = store.allEvents().find((e) => e.kind === 'automation_run')
+  assert.equal(quiet.workerId, worker.id, 'the Router only reads a run sent to a worker')
+
+  const mine = automations.save({
+    name: 'Daily briefing',
+    instructions: 'Summarize yesterday.',
+    schedule: { frequency: 'daily', hour: 9, minute: 0 },
+    projectId: null,
+    enabled: true
+  })
+  await automations.runNow(mine.id)
+  const threadId = automations.get(mine.id).target.threadId
+  assert.ok(threadId && threadId !== thread.id, 'the first run opened a thread')
+  assert.equal(router.title(threadId), 'Daily briefing')
+  router.close()
+  automations.close()
+})
+
+test('a batch renders an automation run for the Router', () => {
+  const text = renderBatch('b_1', [
+    {
+      seq: 3,
+      kind: 'automation_run',
+      at: '2026-11-13T09:00:00.000Z',
+      automationId: 'au_1',
+      name: 'Briefing',
+      instructions: 'Summarize yesterday.',
+      createdBy: 'user'
+    }
+  ])
+  assert.match(text, /\[3\] automation_run · au_1 · 09:00:00 · Briefing/)
+  assert.match(text, /written by the user when it was created:\nSummarize yesterday\./)
+})

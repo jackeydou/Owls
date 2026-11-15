@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../app/failures'
 import { SettingsPage } from '../app/Settings'
 import { useAppStore } from '../app/store'
+import { AutomationsView } from '../automations/AutomationsView'
 import { CaptureDialog, SendCardsDialog } from '../cards/CardDialogs'
 import { CardsView } from '../cards/CardsView'
 import { useCardsStore, watchCards } from '../cards/store'
@@ -66,6 +67,8 @@ function Stage({
         <CardsView />
       ) : view === 'pulls' ? (
         <PullRequestsView />
+      ) : view === 'automations' ? (
+        <AutomationsView />
       ) : (
         <RouterChat key={threadId ?? 'new'} />
       )}

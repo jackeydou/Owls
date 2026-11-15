@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { type Attachment, attachmentSchema, type StageAttachment } from './attachments.js'
+import type { Automation, AutomationEnable, AutomationSave } from './automations.js'
 import {
   type Board,
   type BoardSave,
@@ -133,6 +134,8 @@ export const itemSchema = z.object({
   forward: forwardOriginSchema.optional(),
   /** On a `user` item: the cards the message carried, as they were named when sent. */
   cards: z.array(cardRefSchema).optional(),
+  /** On a `user` item: the automation whose scheduled run it is. */
+  automation: z.object({ id: z.string(), name: z.string() }).optional(),
   /** On a `user` item: the files the message carried. */
   attachments: z.array(attachmentSchema).optional(),
   /**
@@ -535,7 +538,19 @@ export interface OwltoAPI {
   onMenuCommand(listener: (command: MenuCommand) => void): () => void
   memory: MemoryAPI
   cards: CardsAPI
+  automations: AutomationsAPI
   updates: UpdatesAPI
+}
+/** `window.owlto.automations`: tasks that wake the Router or a worker on a schedule. */
+export interface AutomationsAPI {
+  list(): Promise<Reply<Automation[]>>
+  /** Creates an automation (no `id`) or edits one. */
+  save(input: AutomationSave): Promise<Reply<Automation>>
+  setEnabled(input: AutomationEnable): Promise<Reply<Automation>>
+  remove(id: string): Promise<Reply<void>>
+  /** Runs it now, off its schedule; resolves once the run reached its thread. */
+  runNow(id: string): Promise<Reply<Automation>>
+  onChanged(listener: () => void): () => void
 }
 /** `window.owlto.cards`: the user's knowledge cards and boards. */
 export interface CardsAPI {

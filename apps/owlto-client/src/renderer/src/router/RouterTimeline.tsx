@@ -1,6 +1,12 @@
 import { ActionButton, ActionIconButton } from '@renderer/components/ui/action-button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { AlertCircleIcon, ForwardIcon, LoaderIcon, StopIcon } from '@renderer/components/ui/icons'
+import {
+  AlertCircleIcon,
+  AutomationIcon,
+  ForwardIcon,
+  LoaderIcon,
+  StopIcon
+} from '@renderer/components/ui/icons'
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router, SessionItem } from '../../../shared/app'
@@ -95,6 +101,27 @@ function ForwardAction({ item, router }: { item: SessionItem; router: Router }) 
   )
 }
 
+/** A scheduled run: the automation's label, then the instructions it sent. */
+function AutomationRun({ item }: { item: SessionItem }) {
+  const { t } = useTranslation()
+  const worker = useRouterStore((s) => s.workers.find((w) => w.id === item.workerId))
+  return (
+    <>
+      <div className="router-automation-run">
+        <AutomationIcon size={14} />
+        <span>{t('automations.runLabel', { name: item.automation?.name ?? '' })}</span>
+        {worker ? (
+          <>
+            <span>·</span>
+            <span>{t('router.directedTo')}</span>
+            <WorkerLink worker={worker} />
+          </>
+        ) : null}
+      </div>
+      <div className="owlto-user-message">{item.text}</div>
+    </>
+  )
+}
 function DirectedMessage({ item }: { item: SessionItem }) {
   const { t } = useTranslation()
   const worker = useRouterStore((s) => s.workers.find((w) => w.id === item.workerId))
@@ -286,6 +313,8 @@ export function RouterTimeline({
                       <DispatchGroup workerIds={entry.workerIds} />
                     ) : entry.item.kind === 'forward' ? (
                       <ForwardedMessage item={entry.item} />
+                    ) : entry.item.kind === 'user' && entry.item.automation ? (
+                      <AutomationRun item={entry.item} />
                     ) : entry.item.kind === 'user' && entry.item.workerId ? (
                       <DirectedMessage item={entry.item} />
                     ) : (

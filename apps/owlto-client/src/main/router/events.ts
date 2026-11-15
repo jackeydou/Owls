@@ -36,6 +36,22 @@ export const inboxEventBodySchema = z.discriminatedUnion('kind', [
     /** The worker's branch when it still holds work the user's checkout does not have. */
     branch: z.string().nullable()
   }),
+  /**
+   * An automation came due. With `workerId`, Owlto already sent the instructions to
+   * that worker, so the Router only reads it, as it reads a message sent to a worker.
+   */
+  z.object({
+    kind: z.literal('automation_run'),
+    at: z.string(),
+    automationId: z.string(),
+    name: z.string(),
+    instructions: z.string(),
+    /** Who wrote the instructions. */
+    createdBy: z.enum(['user', 'router', 'worker']),
+    workerId: z.string().optional(),
+    /** Set when the automation's worker was removed, so the Router takes the run. */
+    missingWorkerId: z.string().optional()
+  }),
   /** Content the user brought from another thread. Only `note` is the user's own words. */
   z.object({
     kind: z.literal('forwarded'),
@@ -58,7 +74,7 @@ export type InboxEvent = InboxEventBody & { seq: number }
 export const isQuietEvent = (event: InboxEventBody) =>
   event.kind === 'worker_waiting' ||
   event.kind === 'worker_progress' ||
-  (event.kind === 'user_message' && Boolean(event.workerId))
+  ((event.kind === 'user_message' || event.kind === 'automation_run') && Boolean(event.workerId))
 /** `pending` events wait for a batch; the others are settled. */
 export type InboxStatus = 'pending' | 'batched' | 'superseded' | 'dropped'
 

@@ -6,6 +6,8 @@ import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
 import type { UsageEntry } from '../../shared/usage-stats.js'
+import { AutomationService } from '../automations/service.js'
+import { AutomationStore } from '../automations/store.js'
 import { CardService } from '../cards/service.js'
 import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
@@ -89,6 +91,9 @@ function emit(event: AppEvent): void {
 }
 function memoryChanged(): void {
   if (window && !window.isDestroyed()) window.webContents.send('owlto:memory-changed')
+}
+function automationsChanged(): void {
+  if (window && !window.isDestroyed()) window.webContents.send('owlto:automations-changed')
 }
 function cardsChanged(): void {
   if (window && !window.isDestroyed()) window.webContents.send('owlto:cards-changed')
@@ -216,6 +221,14 @@ void app
       threadTitle: (id) => router?.title(id) ?? null,
       changed: memoryChanged
     })
+    const automations = new AutomationService({
+      records: new AutomationStore(store),
+      deliver: (automation) => {
+        if (!router) throw new Error('Threads are not available.')
+        return router.runAutomation(automation)
+      },
+      changed: automationsChanged
+    })
     router = new RouterService(
       routerStore,
       credentials,
@@ -225,9 +238,11 @@ void app
       defaultEngineFactory(engineDeps),
       new GitWorkspaces(workerWorktreesRoot(root)),
       memory,
-      recordUsage
+      recordUsage,
+      automations
     )
     service.attachRouter(router)
+    service.attachAutomations(automations)
     const dreaming = new DreamingRunner({
       memory,
       threads: () => router?.snapshot().routers ?? [],
@@ -339,6 +354,8 @@ void app
     createWindow()
     updater.start()
     service.connectAtStartup()
+    // After startup recovery, so a run missed while the app was closed reaches a ready Router.
+    void router.recovered.then(() => automations.start())
     app.on('activate', () => {
       if (!window) createWindow()
     })
