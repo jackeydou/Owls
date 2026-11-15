@@ -20,6 +20,7 @@ export default function App() {
   }, [initialize, event])
   useEffect(() => {
     void i18next.changeLanguage(settings.language)
+    document.documentElement.lang = settings.language
   }, [settings.language])
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
@@ -33,6 +34,9 @@ export default function App() {
     media.addEventListener('change', apply)
     return () => media.removeEventListener('change', apply)
   }, [settings.theme])
+  useEffect(() => {
+    document.documentElement.dataset.skin = settings.skin
+  }, [settings.skin])
   return (
     <div className="owlto-app">
       {loaded ? (

@@ -1,0 +1,1 @@
+- Appearance: new Ink & Paper style matching the Owlto website, with light and dark modes. Switch it in Settings > Appearance.

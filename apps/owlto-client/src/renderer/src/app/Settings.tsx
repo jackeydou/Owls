@@ -22,7 +22,7 @@ import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Select } from '@renderer/components/ui/select'
 import { Fragment, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { appLogoSchema, settingsSchema } from '../../../shared/app'
+import { appLogoSchema, settingsSchema, skinSchema } from '../../../shared/app'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
 import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
@@ -229,6 +229,24 @@ function AppearancePane() {
           {settingsSchema.shape.theme.options.map((theme) => (
             <option value={theme} key={theme}>
               {t(`theme.${theme}`)}
+            </option>
+          ))}
+        </Select>
+      </SettingRow>
+      <SettingRow label={t('skin')} htmlFor="owlto-skin" description={t('skinHelp')}>
+        <Select
+          id="owlto-skin"
+          value={settings.skin}
+          onChange={(event) =>
+            void saveSettings({
+              ...settings,
+              skin: skinSchema.parse(event.target.value)
+            })
+          }
+        >
+          {skinSchema.options.map((skin) => (
+            <option value={skin} key={skin}>
+              {t(`skin.${skin}`)}
             </option>
           ))}
         </Select>

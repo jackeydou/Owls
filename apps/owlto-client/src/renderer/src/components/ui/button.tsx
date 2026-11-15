@@ -52,6 +52,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || pending}
         aria-busy={pending || undefined}
+        data-variant={variant ?? 'default'}
         {...props}
       >
         {pending ? (

@@ -43,6 +43,7 @@ export class OwltoStore {
           executablePath: null,
           agents: defaultAgentConfigs,
           theme: 'system',
+          skin: 'standard',
           language: 'en',
           appLogo: defaultAppLogo,
           sidebarCollapsed: false,

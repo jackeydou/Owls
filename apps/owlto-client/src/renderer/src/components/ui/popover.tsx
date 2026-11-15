@@ -118,7 +118,7 @@ export function AnchoredPopover({
       aria-label={label}
       style={{ ...floatingStyles, visibility: isPositioned ? 'visible' : 'hidden' }}
       className={cn(
-        'z-[90] [-webkit-app-region:no-drag] rounded-(--owl-radius-md) border border-border/70 bg-card text-(length:--owl-text-sm) text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12 dark:shadow-[0_8px_28px_rgb(0_0_0_/_0.45)]',
+        'owl-floating z-[90] [-webkit-app-region:no-drag] rounded-(--owl-radius-md) border border-border/70 bg-card text-(length:--owl-text-sm) text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12 dark:shadow-[0_8px_28px_rgb(0_0_0_/_0.45)]',
         className
       )}
     >

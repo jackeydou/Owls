@@ -1,0 +1,478 @@
+/*
+ * Ink & Paper skin (settings.skin = 'paper'), the look of the Owlto website: cream paper,
+ * thick ink outlines, hard offset shadows, condensed italic labels, and colored dots.
+ *
+ * A skin only re-colors and re-draws: it must not change layout, so nothing here sets
+ * width, height, margin, padding, gap, or display on existing elements, except the small
+ * inner padding status pills need. Radii keep the shared --owl-radius-* scale, focus keeps
+ * the soft focus tokens (amber here, never black), and icons are untouched.
+ *
+ * Every rule is scoped to html[data-skin="paper"], which App.tsx sets from settings. Rules are
+ * unlayered, so they win over the Tailwind theme, base, and utility layers.
+ */
+
+html[data-skin="paper"] {
+  --paper-ink: #151515;
+  --paper-line: #151515;
+  --paper-bg: #fffaf0;
+  --paper-bg-2: #fff3d9;
+  --paper-card: #ffffff;
+  --paper-tint: #fff3cf;
+  --paper-fg: #151515;
+  --paper-muted: #5f5a4e;
+  --paper-on-ink: #fff9ec;
+  --paper-amber: #ffb000;
+  --paper-coral: #e8785a;
+  --paper-indigo: #7c8cff;
+  --paper-teal: #5fb3a1;
+  --paper-green: #2e9e58;
+  --paper-red: #e0483e;
+  --paper-border: 2px solid var(--paper-line);
+  --paper-border-thin: 1.5px solid var(--paper-line);
+  --paper-shadow-sm: 2px 2px 0 var(--paper-line);
+  --paper-shadow: 3px 3px 0 var(--paper-line);
+  --paper-shadow-lg: 5px 5px 0 var(--paper-line);
+  --paper-lift: translate(-1px, -1px);
+  --paper-press: translate(2px, 2px);
+  --paper-display:
+    "Avenir Next Condensed", "Barlow Condensed", "Roboto Condensed", "Arial Narrow", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+
+  --font-sans:
+    "Avenir Next", Avenir, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    system-ui, sans-serif;
+  --font-display: var(--paper-display);
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --color-background: var(--paper-bg);
+  --color-foreground: var(--paper-fg);
+  --color-muted: var(--paper-muted);
+  --color-muted-foreground: var(--paper-muted);
+  --color-accent: var(--paper-ink);
+  --color-accent-foreground: var(--paper-on-ink);
+  --color-card: var(--paper-card);
+  --color-card-muted: var(--paper-tint);
+  --color-card-elevated: var(--paper-card);
+  --color-card-elevated-hover: var(--paper-tint);
+  --color-border: color-mix(in srgb, var(--paper-line) 18%, transparent);
+  --color-border-strong: color-mix(in srgb, var(--paper-line) 40%, transparent);
+  --color-border-light: color-mix(in srgb, var(--paper-line) 10%, transparent);
+  --color-user: var(--paper-tint);
+  --color-assistant: var(--paper-bg);
+  --color-destructive: var(--paper-red);
+  --color-success: var(--paper-green);
+  --color-warning: #c77700;
+  --color-sidebar: var(--paper-bg-2);
+  --color-sidebar-hover: color-mix(in srgb, var(--paper-amber) 16%, transparent);
+  --color-sidebar-active: color-mix(in srgb, var(--paper-amber) 34%, transparent);
+
+  --owl-focus-ring: color-mix(in srgb, var(--paper-amber) 80%, transparent);
+  --owl-field-focus-border: var(--paper-amber);
+  --owl-field-focus-shadow: 0 0 0 3px color-mix(in srgb, var(--paper-amber) 30%, transparent);
+  --owl-link: #3d4fd6;
+  --owl-link-hover: #2a37a8;
+  --owlto-composer-shadow: var(--paper-shadow);
+
+  --owl-run: var(--paper-green);
+  --owl-wait: #c77700;
+  --owl-bad: var(--paper-red);
+  --owl-tag-done-bg: #dcf2e3;
+  --owl-tag-done-fg: #17603a;
+  --owl-tag-run-bg: #fff0c2;
+  --owl-tag-run-fg: #7a4d00;
+  --owl-tag-wait-bg: #ffe0b8;
+  --owl-tag-wait-fg: #8a4300;
+  --owl-tag-bad-bg: #ffdcd6;
+  --owl-tag-bad-fg: #a3241c;
+  --owl-tag-queue-bg: var(--paper-card);
+  --owl-tag-queue-fg: var(--paper-muted);
+  --owl-hue-1: var(--paper-coral);
+  --owl-hue-2: var(--paper-indigo);
+  --owl-hue-3: var(--paper-teal);
+  --owl-hue-4: var(--paper-amber);
+
+  /* Overview map and Notes: outlines and hard shadows drawn as box-shadows, so no box grows. */
+  --owl-map-bg: var(--paper-bg);
+  --owl-map-dot: color-mix(in srgb, var(--paper-line) 14%, transparent);
+  --owl-map-node-border: var(--paper-line);
+  --owl-map-node-shadow: var(--paper-shadow);
+  --owl-card-shadow: 0 0 0 2px var(--paper-line), var(--paper-shadow);
+  --owl-card-shadow-hover: 0 0 0 2px var(--paper-line), 4px 4px 0 var(--paper-line);
+  --owl-float-shadow: 0 0 0 2px var(--paper-line), var(--paper-shadow-lg);
+  --owl-board-bg: var(--paper-bg);
+  --pele-border: var(--paper-line);
+}
+
+html[data-skin="paper"][data-theme="dark"] {
+  --paper-line: #090c18;
+  --paper-bg: #1b2440;
+  --paper-bg-2: #161e37;
+  --paper-card: #2a365e;
+  --paper-tint: #33416f;
+  --paper-fg: #fff9ec;
+  --paper-muted: #b3bcd6;
+  --paper-on-ink: #fff9ec;
+
+  --color-accent: var(--paper-fg);
+  --color-accent-foreground: var(--paper-bg);
+  --color-border: color-mix(in srgb, var(--paper-fg) 14%, transparent);
+  --color-border-strong: color-mix(in srgb, var(--paper-fg) 28%, transparent);
+  --color-border-light: color-mix(in srgb, var(--paper-fg) 8%, transparent);
+  --color-sidebar-hover: color-mix(in srgb, var(--paper-fg) 7%, transparent);
+  --color-sidebar-active: color-mix(in srgb, var(--paper-amber) 24%, transparent);
+  --owl-link: #a8b3ff;
+  --owl-link-hover: #cdd3ff;
+  --owl-tag-done-bg: #1f5a3a;
+  --owl-tag-done-fg: #c9f2d6;
+  --owl-tag-run-bg: #5c4410;
+  --owl-tag-run-fg: #ffe3a1;
+  --owl-tag-wait-bg: #6b3d12;
+  --owl-tag-wait-fg: #ffd2a3;
+  --owl-tag-bad-bg: #6e2620;
+  --owl-tag-bad-fg: #ffc4bd;
+  --owl-tag-queue-bg: var(--paper-tint);
+  --owl-tag-queue-fg: var(--paper-muted);
+  --owl-map-dot: color-mix(in srgb, var(--paper-fg) 10%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="paper"] {
+    --paper-lift: none;
+    --paper-press: none;
+  }
+}
+
+html[data-skin="paper"] body {
+  font-weight: 500;
+}
+
+html[data-skin="paper"] ::selection {
+  background: color-mix(in srgb, var(--paper-amber) 45%, transparent);
+}
+
+/* Panes: ink rules between the sidebars, the title bar, and the content. */
+html[data-skin="paper"] :is(.router-sidebar, .owlto-settings-nav) {
+  border-right: var(--paper-border);
+}
+html[data-skin="paper"] .router-projects {
+  border-left: var(--paper-border);
+}
+html[data-skin="paper"] :is(.owlto-topbar, .router-panel > header) {
+  border-bottom: var(--paper-border);
+}
+html[data-skin="paper"] .router-panel {
+  border-left: var(--paper-border);
+}
+
+/* Section labels: the website's condensed italic capitals. */
+html[data-skin="paper"]
+:is(
+  .router-sidebar-threads h2,
+  .router-projects-head h2,
+  .router-right-pane > header h2,
+  .owlto-settings-group
+) {
+  color: var(--color-muted-foreground);
+  font-family: var(--paper-display);
+  font-size: var(--owl-text-sm);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+html[data-skin="paper"][lang="zh-CN"]
+  :is(
+    .router-sidebar-threads h2,
+    .router-projects-head h2,
+    .router-right-pane > header h2,
+    .owlto-settings-group
+  ) {
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Project letters and status dots get an ink outline, like the website's dot badges. */
+html[data-skin="paper"] .router-project > b {
+  border: var(--paper-border-thin);
+  background: var(--paper-card);
+  font-family: var(--font-mono);
+}
+html[data-skin="paper"] .router-project[aria-current="true"] > b {
+  box-shadow: var(--paper-shadow-sm);
+}
+html[data-skin="paper"] :is(.router-thread, .router-project) > i,
+html[data-skin="paper"] .router-dot {
+  box-shadow: 0 0 0 1.5px var(--paper-line);
+}
+
+/* Avatars sit in an ink ring. */
+html[data-skin="paper"] .router-row-avatar > :is(.owlto-owl-avatar, .owlto-user-avatar) {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--paper-line);
+}
+
+/* Dispatched workers: the status turns into an outlined pill. */
+html[data-skin="paper"] .router-dispatch-row small {
+  padding: 0 8px;
+  border: var(--paper-border-thin);
+  border-radius: 999px;
+  background: var(--owl-tag-done-bg);
+  color: var(--owl-tag-done-fg);
+  font-size: var(--owl-text-2xs);
+  font-weight: 700;
+  line-height: 18px;
+}
+html[data-skin="paper"] .router-dispatch-row.wait small {
+  background: var(--owl-tag-wait-bg);
+  color: var(--owl-tag-wait-fg);
+}
+html[data-skin="paper"] .router-dispatch-row.bad small {
+  background: var(--owl-tag-bad-bg);
+  color: var(--owl-tag-bad-fg);
+}
+html[data-skin="paper"] .router-dispatch-row.queue small {
+  background: var(--owl-tag-queue-bg);
+  color: var(--owl-tag-queue-fg);
+}
+html[data-skin="paper"] .router-dispatch-connector {
+  stroke: var(--paper-line);
+  stroke-width: 1.5;
+  opacity: 1;
+}
+html[data-theme="dark"][data-skin="paper"] .router-dispatch-connector {
+  stroke: var(--paper-muted);
+}
+html[data-skin="paper"] .router-worker-link {
+  box-shadow: inset 0 0 0 1.5px var(--paper-line);
+}
+
+/* Composers become chunky outlined cards. The thread editor has no box of its own, so its
+   card bleeds out by its own padding and border: the text stays exactly where it was. */
+html[data-skin="paper"] :is(.router-editor, .owlto-composer) {
+  border: var(--paper-border);
+  border-radius: var(--owlto-composer-radius);
+  background: var(--paper-card);
+  box-shadow: var(--paper-shadow);
+}
+html[data-skin="paper"] .router-editor {
+  margin: -10px -14px;
+  padding: 8px 12px;
+}
+html[data-skin="paper"] :is(.router-editor, .owlto-composer):focus-within {
+  border-color: var(--paper-line);
+  box-shadow: var(--paper-shadow), var(--owl-field-focus-shadow);
+}
+
+/* Markdown code. */
+html[data-skin="paper"] .owlto-markdown :not(pre) > code {
+  border: var(--paper-border-thin);
+  border-radius: var(--owl-radius-sm);
+  background: var(--paper-card);
+  font-family: var(--font-mono);
+}
+html[data-skin="paper"] .owlto-markdown pre {
+  border: var(--paper-border);
+  box-shadow: var(--paper-shadow);
+}
+
+/* Shared buttons (components/ui/button.tsx). Pressing pushes the button into its shadow,
+   which keeps the click feedback the UX rule asks for. */
+html[data-skin="paper"]
+:is(
+  [data-variant="default"],
+  [data-variant="outline"],
+  [data-variant="secondary"],
+  [data-variant="danger"],
+  [data-variant="destructive"]
+) {
+  border: var(--paper-border);
+  box-shadow: var(--paper-shadow);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease;
+}
+html[data-skin="paper"]
+  :is(
+    [data-variant="default"],
+    [data-variant="outline"],
+    [data-variant="secondary"],
+    [data-variant="danger"],
+    [data-variant="destructive"]
+  ):hover:not(:disabled) {
+  transform: var(--paper-lift);
+  box-shadow: 4px 4px 0 var(--paper-line);
+}
+html[data-skin="paper"]
+  :is(
+    [data-variant="default"],
+    [data-variant="outline"],
+    [data-variant="secondary"],
+    [data-variant="danger"],
+    [data-variant="destructive"]
+  ):active:not(:disabled) {
+  transform: var(--paper-press);
+  box-shadow: 1px 1px 0 var(--paper-line);
+}
+html[data-skin="paper"] [data-variant="default"] {
+  background: var(--paper-amber);
+  color: var(--paper-ink);
+}
+html[data-skin="paper"] [data-variant="default"]:hover:not(:disabled) {
+  background: #ffbd2e;
+}
+html[data-skin="paper"] :is([data-variant="outline"], [data-variant="secondary"]) {
+  background: var(--paper-card);
+  color: var(--color-foreground);
+}
+html[data-skin="paper"]
+  :is([data-variant="outline"], [data-variant="secondary"]):hover:not(:disabled) {
+  background: var(--paper-tint);
+}
+html[data-skin="paper"] [data-variant="danger"] {
+  background: var(--paper-card);
+}
+html[data-skin="paper"] [data-variant="destructive"] {
+  background: var(--paper-red);
+}
+
+/* Floating surfaces: menus, popovers, dialogs, tooltips, and select pickers. */
+html[data-skin="paper"] .owl-floating {
+  border: var(--paper-border);
+  background: var(--paper-card);
+  box-shadow: var(--paper-shadow-lg);
+}
+html[data-skin="paper"] .owl-floating[role="tooltip"],
+html[data-skin="paper"] [data-slot="tooltip"].owl-floating {
+  box-shadow: var(--paper-shadow-sm);
+}
+html[data-skin="paper"] .owlto-select {
+  border: var(--paper-border);
+  background: var(--paper-card);
+  box-shadow: var(--paper-shadow-sm);
+}
+html[data-skin="paper"] .owlto-select:focus-visible {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
+html[data-skin="paper"] .owlto-select::picker(select),
+html[data-skin="paper"][data-theme="dark"] .owlto-select::picker(select) {
+  border: var(--paper-border);
+  background: var(--paper-card);
+  box-shadow: var(--paper-shadow-lg);
+}
+html[data-skin="paper"] .owlto-select option:checked {
+  background: var(--color-sidebar-active);
+}
+
+/* Switches: an outlined track that fills green when on. */
+html[data-skin="paper"] .owlto-switch {
+  box-shadow: inset 0 0 0 1.5px var(--paper-line);
+  background: var(--paper-card);
+}
+html[data-skin="paper"] .owlto-switch[aria-checked="true"],
+html[data-skin="paper"] .owlto-switch[aria-checked="true"]:hover:not(:disabled) {
+  background: var(--paper-green);
+}
+html[data-skin="paper"] .owlto-switch-thumb {
+  background: var(--paper-card);
+  box-shadow: 0 0 0 1.5px var(--paper-line);
+}
+html[data-skin="paper"] .owlto-switch:not([aria-checked="true"]) .owlto-switch-thumb {
+  background: var(--paper-tint);
+}
+
+/* Page titles take the website's heading face. */
+html[data-skin="paper"] .owlto-settings-section > h2 {
+  font-family: var(--paper-display);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+html[data-skin="paper"][lang="zh-CN"] .owlto-settings-section > h2 {
+  font-style: normal;
+  font-weight: 700;
+}
+html[data-skin="paper"] .router-thread-heading strong {
+  font-weight: 700;
+}
+
+/* Choice tiles in Settings. */
+html[data-skin="paper"] .owlto-logo-option {
+  border: var(--paper-border);
+  background: var(--paper-card);
+}
+html[data-skin="paper"] .owlto-logo-option:has(:checked) {
+  border-color: var(--paper-line);
+  background: var(--color-sidebar-active);
+  box-shadow: var(--paper-shadow);
+}
+
+/* Overview map nodes. */
+html[data-skin="paper"] .map-node.project,
+html[data-skin="paper"] .map-node.project.quiet {
+  box-shadow:
+    inset 0 0 0 2px var(--paper-line),
+    var(--paper-shadow);
+}
+html[data-skin="paper"] .map-node.project:hover {
+  box-shadow:
+    inset 0 0 0 2px var(--paper-line),
+    4px 4px 0 var(--paper-line);
+}
+html[data-skin="paper"] .map-node.project[aria-selected="true"] {
+  background: color-mix(in srgb, var(--paper-amber) 14%, var(--paper-card));
+  box-shadow:
+    inset 0 0 0 2px var(--paper-line),
+    4px 4px 0 var(--paper-line);
+}
+html[data-skin="paper"] .map-node.worker:is(.live, .wait, .bad, [aria-selected="true"]) {
+  border-color: var(--paper-line);
+  box-shadow:
+    inset 0 0 0 1px var(--paper-line),
+    var(--paper-shadow-sm);
+}
+html[data-skin="paper"] .map-node.worker.wait {
+  background: color-mix(in srgb, var(--paper-amber) 18%, var(--paper-card));
+}
+html[data-skin="paper"] .map-node.worker.bad {
+  background: color-mix(in srgb, var(--paper-coral) 18%, var(--paper-card));
+}
+html[data-skin="paper"] .map-node.worker.ended {
+  border-color: color-mix(in srgb, var(--paper-line) 35%, transparent);
+}
+html[data-skin="paper"] .map-zoom {
+  border: var(--paper-border);
+  background: var(--paper-card);
+  box-shadow: var(--paper-shadow-sm);
+}
+html[data-skin="paper"][data-theme="dark"] .map-node.project[aria-selected="true"] {
+  background: var(--paper-tint);
+}
+html[data-skin="paper"] :is(.map-node.done, .map-node.kept) {
+  background: var(--paper-card);
+  box-shadow:
+    inset 0 0 0 1.5px var(--paper-line),
+    var(--paper-shadow-sm);
+}
+
+/* Card and list surfaces across the pages. */
+html[data-skin="paper"]
+:is(.memory-card, .owlto-stats-card, .pulls-list, .automations-list, .owlto-usage-plan) {
+  border: var(--paper-border);
+  box-shadow: var(--paper-shadow);
+}
+html[data-skin="paper"] .card-tile[aria-current="true"] {
+  background: color-mix(in srgb, var(--paper-amber) 14%, var(--paper-card));
+  box-shadow: var(--owl-card-shadow-hover);
+}
+html[data-skin="paper"] :is(.owlto-setting-textarea, .owlto-path, .memory-search, .cards-search) {
+  border-color: var(--paper-line);
+}
+html[data-skin="paper"] :is(.router-forward textarea, .cards-dialog form > label input) {
+  border-color: var(--paper-line);
+}
+html[data-skin="paper"] input:is([type="radio"], [type="checkbox"]) {
+  accent-color: var(--paper-amber);
+}

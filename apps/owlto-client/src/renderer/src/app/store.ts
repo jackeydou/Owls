@@ -251,6 +251,7 @@ export const useAppStore = create<State>((set, get) => {
       executablePath: null,
       agents: defaultAgentConfigs,
       theme: 'system',
+      skin: 'standard',
       language: 'en',
       appLogo: defaultAppLogo,
       sidebarCollapsed: false,
@@ -569,6 +570,7 @@ export const useAppStore = create<State>((set, get) => {
         window.owlto.saveSettings({
           agents: settings.agents,
           theme: settings.theme,
+          skin: settings.skin,
           language: settings.language,
           appLogo: settings.appLogo,
           sidebarCollapsed: settings.sidebarCollapsed,
