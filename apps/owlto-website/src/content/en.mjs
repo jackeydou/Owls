@@ -1,10 +1,10 @@
 // English copy. Keep facts in sync with the repository README.
 export default {
   meta: {
-    title: 'Owlto: run Claude Code, Codex, and Cursor as one team on your Mac',
+    title: 'Owlto: your auto agent team for Claude Code, Codex, and Cursor on Mac',
     description:
-      'Owlto is a free, open-source Mac app that runs Claude Code, Codex, and Cursor as one team. Chat with one Router owl: it plans, dispatches, and reports back.',
-    ogAlt: 'Owlto: a team of coding owls on your Mac',
+      'Owlto (say "auto") is a free, open-source Mac app that runs Claude Code, Codex, and Cursor as one team: one Router owl plans, dispatches, and reports back.',
+    ogAlt: 'Owlto: your Owlto (auto) agent team',
     keywords:
       'Owlto, AI coding agents, multi-agent orchestration, Claude Code, Codex, Cursor, macOS app, parallel coding agents, agent router'
   },
@@ -12,7 +12,6 @@ export default {
     skip: 'Skip to content',
     how: 'How it works',
     features: 'Features',
-    owls: 'The owls',
     start: 'Get started',
     faq: 'FAQ',
     download: 'Download',
@@ -23,34 +22,43 @@ export default {
   },
   hero: {
     kicker: 'Free and open source · macOS',
-    title: ['A team of', 'coding owls', 'on your Mac.'],
-    sub: 'Tell one owl what you need. It plans the work, hands each part to Claude Code, Codex, or Cursor, keeps an eye on them, and comes back with one clear answer.',
+    title: ['Your', 'agent team'],
+    sub: 'A team of coding owls on your Mac. Tell one owl what you need: it plans the work, hands each part to Claude Code, Codex, or Cursor, and comes back with one clear answer.',
     cta: 'Download for macOS',
     ctaNote: 'Apple silicon · macOS 13 or later',
     secondary: 'See it work',
     hoots: ['Hoo!', 'On it.', 'Whooo, me?', 'Shipping…', 'LGTM'],
     owlLabels: {
+      user: 'You, in sunglasses',
       router: 'Router owl',
-      claude: 'Claude Code owl',
+      'claude-code': 'Claude Code owl',
       codex: 'Codex owl',
-      cursor: 'Cursor owl',
-      team: 'Another worker owl'
+      cursor: 'Cursor owl'
     },
-    hint: 'Psst: they are watching your cursor. Click one.'
+    hint: 'Psst: they are watching your cursor. Click one.',
+    auto: 'Auto',
+    say: 'sounds like “auto”.'
   },
   chaos: {
     kicker: 'The problem',
-    title: 'Six terminals. Three agents. One of you.',
-    body: 'Running several coding agents means babysitting several windows: who is stuck, who is waiting for a yes, who just changed the same file. Owlto folds all of it into one conversation.',
-    alerts: ['Waiting for approval', 'Still running…', 'Which tab was this?', 'Needs input'],
+    title: ['Four services.', 'Nine tasks.', 'Three agents.', 'One of you.'],
+    body: 'A real feature never lives in one repo. The API changes, the web app follows, mobile needs the same fix, and the docs go stale. Each piece sits in a different agent, in a different terminal, waiting on you. Owlto folds all of it into one conversation.',
+    alerts: [
+      'Waiting for approval',
+      'Blocked on api-server',
+      'Which tab was this?',
+      'Needs input',
+      'Merge conflict',
+      'Usage limit reached'
+    ],
     after: 'One chat. The Router does the juggling.',
-    you: 'Add dark mode and cover it with tests.',
-    router: 'On it. Three owls are working. I will report back.'
+    you: 'Ship team invites across the API, web, mobile, and docs.',
+    router: 'On it: 6 tasks in 4 projects, 6 owls on the job. I will report back.'
   },
   demo: {
     kicker: 'How it works',
-    title: 'Ask once. The Router does the rest.',
-    body: 'Pick a request and watch the Router plan it, split it across workers, pause for your approval, and sum up the result.',
+    title: 'Ask once. The Router runs the whole team.',
+    body: 'Pick a request that touches several services. Watch the Router plan it, spread it across projects and agents, pause for your approval, pass results from one owl to the next, and sum it all up.',
     note: 'Simulated walkthrough of the Owlto conversation view.',
     try: 'Try a request',
     placeholder: 'Ask the Router to plan, dispatch, or follow up…',
@@ -70,11 +78,11 @@ export default {
       },
       {
         title: 'The Router plans and dispatches',
-        text: 'It splits the job and sends each part to the right worker: Claude Code, Codex, or Cursor.'
+        text: 'It splits the job across projects and sends each part to the right worker: Claude Code, Codex, or Cursor.'
       },
       {
         title: 'Workers run side by side',
-        text: 'Each worker gets its own copy of your project, so several can change code at once without conflicts.'
+        text: 'Each worker gets its own copy of the project, so several can change code at once, across services, without conflicts.'
       },
       {
         title: 'You get one clear answer',
@@ -83,126 +91,202 @@ export default {
     ],
     scenarios: [
       {
-        chip: 'Add dark mode with tests',
-        project: 'bookshelf',
-        prompt: 'Add dark mode to the settings page and cover it with tests.',
-        plan: 'Splitting this into three parts and sending them to the team.',
+        chip: 'Ship team invites',
+        prompt: 'Ship team invites end to end: API, web, mobile, and docs.',
+        plan: 'Six tasks across four projects. The API contract goes first; web, mobile, and docs follow as soon as it lands.',
         workers: [
           {
-            owl: 'claude',
+            owl: 'codex',
+            name: 'Codex',
+            project: 'api-server',
+            task: 'Invites API + migration',
+            log: ['Writing 0042_invites.sql', 'Editing routes/invites.ts', 'Contract published'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
             name: 'Claude Code',
-            task: 'Dark mode toggle',
-            log: ['Reading src/settings', 'Editing ThemeToggle.tsx', 'Running pnpm typecheck']
+            project: 'api-server',
+            task: 'Permission checks',
+            log: ['Reading auth/policies.ts', 'Writing invites.policy.test.ts', '18 tests passing'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
+            name: 'Claude Code',
+            project: 'web-app',
+            task: 'Invite dialog',
+            log: ['Reading the API contract', 'Editing InviteDialog.tsx', 'Typecheck passing'],
+            wave: 2
           },
           {
             owl: 'codex',
             name: 'Codex',
-            task: 'Theme toggle tests',
-            log: ['Writing toggle.test.ts', 'Running pnpm test', '12 tests passing']
+            project: 'web-app',
+            task: 'End-to-end tests',
+            log: ['Writing invites.spec.ts', 'Running playwright', '6 specs passing'],
+            wave: 2
           },
           {
             owl: 'cursor',
             name: 'Cursor',
-            task: 'Color tokens',
-            log: ['Scanning hard-coded colors', 'Editing tokens.css', 'Running build:tokens']
+            project: 'mobile-app',
+            task: 'Invite screen',
+            log: ['Reading the API contract', 'Editing InviteScreen.tsx', 'iOS build passing'],
+            wave: 2
+          },
+          {
+            owl: 'cursor',
+            name: 'Cursor',
+            project: 'docs-site',
+            task: 'API reference',
+            log: ['Reading the API contract', 'Writing docs/invites.md', 'Links checked'],
+            wave: 2
           }
         ],
-        approval: { who: 'Codex', command: 'pnpm add -D @testing-library/react' },
+        approval: {
+          who: 'Codex',
+          command: 'pnpm db:migrate'
+        },
+        handoff: 'The invites contract is in. Handing it to web, mobile, and docs.',
         report:
-          'Done. Dark mode is on the settings page, with a toggle, tokens, and 12 passing tests.',
-        stats: ['3 workers', '9 files changed', 'PR #128 opened', 'Checks passing']
+          'Shipped. Team invites work end to end: API, web dialog, mobile screen, and docs, with 24 new tests.',
+        stats: ['6 workers', '4 projects', '31 files changed', '4 PRs opened', 'Checks passing']
       },
       {
-        chip: 'Fix the flaky checkout test',
-        project: 'billing',
-        prompt: 'The checkout test is flaky. Find out why, fix it, and open a PR.',
-        plan: 'One owl hunts the cause, one writes the fix, one guards against a repeat.',
+        chip: 'Checkout broke after deploy',
+        prompt:
+          'Checkout started failing after last night’s deploy. Find it, fix it everywhere, and add a guard.',
+        plan: 'Three owls investigate in parallel. Once the cause is clear, the fix fans out to every service that shares it.',
         workers: [
           {
-            owl: 'claude',
+            owl: 'claude-code',
             name: 'Claude Code',
-            task: 'Find the race',
-            log: ['Running the test 50 times', 'Reading checkout.ts', 'Found an unawaited call']
+            project: 'billing-api',
+            task: 'Trace failed payments',
+            log: [
+              'Reading error logs',
+              'Replaying a failed request',
+              'Found: amount sent as string'
+            ],
+            wave: 1
           },
           {
             owl: 'codex',
             name: 'Codex',
-            task: 'Fix and verify',
-            log: ['Editing checkout.ts', 'Running pnpm test', '50 of 50 runs green']
-          },
-          {
-            owl: 'claude',
-            name: 'Claude Code',
-            task: 'Regression test',
-            log: ['Writing proration.test.ts', 'Running pnpm test', 'Updating CHANGELOG']
-          }
-        ],
-        approval: { who: 'Claude Code', command: 'git push origin fix/checkout-race' },
-        report: 'Fixed. The test raced an unawaited payment call. It now passes 50 runs in a row.',
-        stats: ['3 workers', '3 files changed', 'PR #131 opened', 'Checks passing']
-      },
-      {
-        chip: 'Upgrade to Node 22',
-        project: 'api-server',
-        prompt: 'Upgrade the project to Node 22 and update the CI image.',
-        plan: 'Dependencies, types, and CI can move in parallel. Dispatching three owls.',
-        workers: [
-          {
-            owl: 'codex',
-            name: 'Codex',
-            task: 'Bump Node and deps',
-            log: ['Editing package.json', 'Running pnpm install', 'Running pnpm test']
-          },
-          {
-            owl: 'claude',
-            name: 'Claude Code',
-            task: 'Fix stream types',
-            log: ['Running pnpm typecheck', 'Editing src/stream.ts', '0 type errors']
+            project: 'web-app',
+            task: 'Check the checkout form',
+            log: ['Reading Checkout.tsx', 'Diffing the last deploy', 'Found the same cast'],
+            wave: 1
           },
           {
             owl: 'cursor',
             name: 'Cursor',
-            task: 'Update CI image',
-            log: ['Reading .github/workflows', 'Editing ci.yml', 'Checking the matrix']
+            project: 'infra',
+            task: 'Compare deploy configs',
+            log: ['Diffing staging and prod', 'Reading deploy.yml', 'No config drift'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
+            name: 'Claude Code',
+            project: 'billing-api',
+            task: 'Validate and fix',
+            log: ['Editing payments.ts', 'Writing a regression test', '42 tests passing'],
+            wave: 2
+          },
+          {
+            owl: 'codex',
+            name: 'Codex',
+            project: 'web-app',
+            task: 'Fix the form',
+            log: ['Editing Checkout.tsx', 'Running pnpm test', 'Checks green'],
+            wave: 2
+          },
+          {
+            owl: 'cursor',
+            name: 'Cursor',
+            project: 'mobile-app',
+            task: 'Same bug on mobile',
+            log: ['Reading CheckoutScreen.tsx', 'Editing currency.ts', 'Tests passing'],
+            wave: 2
           }
         ],
-        approval: { who: 'Codex', command: 'pnpm install' },
-        report: 'Upgraded. The project builds and tests on Node 22, and CI uses the new image.',
-        stats: ['3 workers', '6 files changed', 'PR #134 opened', 'Checks passing']
+        approval: {
+          who: 'Claude Code',
+          command: 'git push origin fix/currency-cast'
+        },
+        handoff:
+          'Cause found: the amount is sent as a string. Sending the fix to billing, web, and mobile.',
+        report:
+          'Fixed in three services. The amount was sent as a string after the deploy; all three now validate it, with a regression test.',
+        stats: ['6 workers', '4 projects', '8 files changed', '3 PRs opened', 'Checks passing']
+      },
+      {
+        chip: 'Roll out new design tokens',
+        prompt: 'Roll the new color tokens out to web, mobile, and docs, and remove the old ones.',
+        plan: 'The design system publishes the tokens first. Then three apps migrate at the same time, and one owl sweeps for leftovers.',
+        workers: [
+          {
+            owl: 'cursor',
+            name: 'Cursor',
+            project: 'design-system',
+            task: 'Publish tokens v2',
+            log: ['Editing tokens.json', 'Running build:tokens', 'Published 2.0.0'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
+            name: 'Claude Code',
+            project: 'design-system',
+            task: 'Write the codemod',
+            log: ['Reading old token usage', 'Writing codemod.ts', 'Dry run: 212 matches'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
+            name: 'Claude Code',
+            project: 'web-app',
+            task: 'Migrate web',
+            log: ['Running the codemod', 'Fixing 9 edge cases', 'Visual tests passing'],
+            wave: 2
+          },
+          {
+            owl: 'cursor',
+            name: 'Cursor',
+            project: 'mobile-app',
+            task: 'Migrate mobile',
+            log: ['Running the codemod', 'Editing theme.ts', 'iOS build passing'],
+            wave: 2
+          },
+          {
+            owl: 'codex',
+            name: 'Codex',
+            project: 'docs-site',
+            task: 'Migrate docs',
+            log: ['Running the codemod', 'Editing tokens.md', 'Links checked'],
+            wave: 2
+          },
+          {
+            owl: 'codex',
+            name: 'Codex',
+            project: 'web-app',
+            task: 'Sweep for old tokens',
+            log: ['Scanning hard-coded colors', 'Removing 14 leftovers', '0 old tokens left'],
+            wave: 2
+          }
+        ],
+        approval: {
+          who: 'Cursor',
+          command: 'pnpm publish --tag next'
+        },
+        handoff: 'Tokens 2.0.0 and the codemod are ready. Three apps start migrating now.',
+        report: 'Rolled out. Web, mobile, and docs use the new tokens, and the old ones are gone.',
+        stats: ['6 workers', '4 projects', '212 replacements', '4 PRs opened', 'Checks passing']
       }
-    ]
-  },
-  owls: {
-    kicker: 'Meet the owls',
-    title: 'One Router. A flock of workers.',
-    body: 'Owlto works with the coding agents you already use. Each one shows up as an owl, and you can see at a glance who is busy.',
-    hover: 'Hover or tap an owl to put it to work.',
-    cards: [
-      {
-        id: 'router',
-        name: 'Router',
-        role: 'The one you talk to',
-        text: 'Plans the work, picks the right workers, and sums up what they did. Runs on Claude Code or Codex.'
-      },
-      {
-        id: 'claude-code',
-        name: 'Claude Code',
-        role: 'Worker',
-        text: 'A worker powered by the Claude Code you installed and signed in to on your Mac.'
-      },
-      {
-        id: 'codex',
-        name: 'Codex',
-        role: 'Worker',
-        text: 'A worker powered by Codex on your Mac, signed in with your ChatGPT account.'
-      },
-      {
-        id: 'cursor',
-        name: 'Cursor',
-        role: 'Worker',
-        text: 'A worker powered by the Cursor agent on your Mac. Cursor can work, but not route.'
-      }
-    ]
+    ],
+    queued: 'queued',
+    owlsWorking: 'owls working'
   },
   features: {
     kicker: 'Features',
@@ -290,17 +374,18 @@ export default {
       }
     ],
     agents: [
-      { name: 'Claude Code', command: 'curl -fsSL https://claude.ai/install.sh | bash' },
-      { name: 'Codex', command: 'brew install --cask codex' },
-      { name: 'Cursor', command: 'curl https://cursor.com/install -fsS | bash' }
-    ],
-    keysTitle: 'Shortcuts worth knowing',
-    keysHint: 'Try them on your keyboard.',
-    keys: [
-      { combo: ['⌘', 'N'], key: 'n', label: 'New conversation' },
-      { combo: ['⌘', 'J'], key: 'j', label: 'Chat ↔ map' },
-      { combo: ['⌘', 'K'], key: 'k', label: 'Notes' },
-      { combo: ['⌘', ','], key: ',', label: 'Settings' }
+      {
+        name: 'Claude Code',
+        command: 'curl -fsSL https://claude.ai/install.sh | bash'
+      },
+      {
+        name: 'Codex',
+        command: 'brew install --cask codex'
+      },
+      {
+        name: 'Cursor',
+        command: 'curl https://cursor.com/install -fsS | bash'
+      }
     ]
   },
   trust: {
@@ -352,6 +437,10 @@ export default {
         a: 'Owlto is a free, open-source macOS desktop app for people who use AI coding agents. Instead of juggling several terminal windows, you chat with one Router owl. It plans the work, sends each part to a worker (Claude Code, Codex, or Cursor), keeps an eye on them, and comes back with one clear answer.'
       },
       {
+        q: 'How do you pronounce Owlto?',
+        a: 'Owlto sounds like "auto". The name joins "owl" and "auto": a team of coding owls that runs your agents for you, while approvals stay in your hands.'
+      },
+      {
         q: 'Which coding agents does Owlto work with?',
         a: 'Owlto works with Claude Code, Codex, and Cursor. You install and sign in to them yourself, then connect them in Settings → Agents. Claude Code and Codex can run the Router or act as workers. Cursor can act as a worker, but not as the Router.'
       },
@@ -396,7 +485,7 @@ export default {
     star: 'Star on GitHub'
   },
   footer: {
-    tagline: 'A team of coding owls on your Mac.',
+    tagline: 'Your Owlto (auto) agent team: coding owls on your Mac.',
     product: 'Product',
     project: 'Project',
     releases: 'Releases',

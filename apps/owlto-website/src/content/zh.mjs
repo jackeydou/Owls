@@ -1,10 +1,10 @@
 // Simplified Chinese copy. Mirrors en.mjs key for key.
 export default {
   meta: {
-    title: 'Owlto：在 Mac 上把 Claude Code、Codex、Cursor 组成一支编程团队',
+    title: 'Owlto：你的 Auto 智能体团队，在 Mac 上调度 Claude Code、Codex、Cursor',
     description:
-      'Owlto 是一款免费开源的 macOS 应用，用来统一调度 AI 编程智能体。你只需和一只 Router 猫头鹰对话，它负责规划任务、并行调度 Claude Code、Codex 和 Cursor，并汇总结果。',
-    ogAlt: 'Owlto：Mac 上的一支猫头鹰编程团队',
+      'Owlto（读作 Auto）是一款免费开源的 macOS 应用，把 Claude Code、Codex 和 Cursor 组成一支团队。你只需和一只 Router 猫头鹰对话，它负责规划、派发并汇总结果。',
+    ogAlt: 'Owlto：你的 Owlto（Auto）智能体团队',
     keywords:
       'Owlto, AI 编程智能体, 多智能体协作, 多 Agent 编排, Claude Code, Codex, Cursor, macOS 应用, 并行编程, Agent 调度'
   },
@@ -12,7 +12,6 @@ export default {
     skip: '跳到正文',
     how: '工作方式',
     features: '功能',
-    owls: '猫头鹰们',
     start: '快速开始',
     faq: '常见问题',
     download: '下载',
@@ -23,34 +22,43 @@ export default {
   },
   hero: {
     kicker: '免费开源 · macOS',
-    title: ['Mac 上的一支', '猫头鹰', '编程团队'],
-    sub: '把需求告诉一只猫头鹰就行。它来规划任务，把每一部分交给 Claude Code、Codex 或 Cursor，全程盯着进度，最后给你一个清楚的答复。',
+    title: ['你的', '智能体团队'],
+    sub: 'Mac 上的一支猫头鹰编程团队。把需求告诉一只猫头鹰：它来规划任务，把每一部分交给 Claude Code、Codex 或 Cursor，最后给你一个清楚的答复。',
     cta: '下载 macOS 版',
     ctaNote: 'Apple 芯片 · macOS 13 及以上',
     secondary: '看看它怎么干活',
     hoots: ['咕咕！', '收到。', '叫我吗？', '正在提交…', 'LGTM'],
     owlLabels: {
+      user: '戴墨镜的你',
       router: 'Router 猫头鹰',
-      claude: 'Claude Code 猫头鹰',
+      'claude-code': 'Claude Code 猫头鹰',
       codex: 'Codex 猫头鹰',
-      cursor: 'Cursor 猫头鹰',
-      team: '另一只干活的猫头鹰'
+      cursor: 'Cursor 猫头鹰'
     },
-    hint: '它们在盯着你的鼠标。点一只试试。'
+    hint: '它们在盯着你的鼠标。点一只试试。',
+    auto: 'Auto',
+    say: '读作“Auto”。'
   },
   chaos: {
     kicker: '问题在哪',
-    title: '六个终端，三个智能体，只有一个你。',
-    body: '同时跑几个编程智能体，就得同时盯着几个窗口：谁卡住了，谁在等你点头，谁又改了同一个文件。Owlto 把这一切收进一段对话里。',
-    alerts: ['等待批准', '还在运行…', '这是哪个标签页？', '需要输入'],
+    title: ['四个服务，', '九个任务，', '三个智能体，', '只有一个你。'],
+    body: '真正的需求从来不只在一个仓库里：API 要改，Web 要跟，移动端要同步，文档也过时了。每一块都在不同的智能体、不同的终端里，等着你去处理。Owlto 把这一切收进一段对话里。',
+    alerts: [
+      '等待批准',
+      '被 api-server 阻塞',
+      '这是哪个标签页？',
+      '需要输入',
+      '合并冲突',
+      '用量已达上限'
+    ],
     after: '一个对话框，杂事交给 Router。',
-    you: '加上深色模式，并补上测试。',
-    router: '收到。三只猫头鹰已经开工，做完向你汇报。'
+    you: '把团队邀请功能做完：API、Web、移动端和文档。',
+    router: '收到：4 个项目里的 6 个任务，6 只猫头鹰已经开工，做完向你汇报。'
   },
   demo: {
     kicker: '工作方式',
-    title: '说一次，剩下的交给 Router。',
-    body: '选一个需求，看 Router 如何规划、拆给多个 worker、停下来等你批准，再把结果汇总给你。',
+    title: '说一次，Router 调度整支团队。',
+    body: '选一个横跨多个服务的需求，看 Router 如何规划、分配到不同项目和智能体、停下来等你批准、把一只猫头鹰的成果交给下一只，再把结果汇总给你。',
     note: 'Owlto 对话界面的模拟演示。',
     try: '试一个需求',
     placeholder: '让 Router 规划、派发或跟进…',
@@ -70,11 +78,11 @@ export default {
       },
       {
         title: 'Router 规划并派发',
-        text: '它把任务拆开，把每一部分交给合适的 worker：Claude Code、Codex 或 Cursor。'
+        text: '它把任务按项目拆开，把每一部分交给合适的 worker：Claude Code、Codex 或 Cursor。'
       },
       {
         title: '多个 worker 并行工作',
-        text: '每个 worker 都有一份独立的项目副本，可以同时改代码，互不冲突。'
+        text: '每个 worker 都有一份独立的项目副本，可以跨服务同时改代码，互不冲突。'
       },
       {
         title: '你只收到一个清楚的答复',
@@ -83,125 +91,195 @@ export default {
     ],
     scenarios: [
       {
-        chip: '加深色模式并补测试',
-        project: 'bookshelf',
-        prompt: '给设置页加上深色模式，并补上测试。',
-        plan: '我把它拆成三部分，分给团队去做。',
+        chip: '上线团队邀请功能',
+        prompt: '把团队邀请功能完整做出来：API、Web、移动端和文档。',
+        plan: '4 个项目里共 6 个任务。先定 API 契约，契约一出，Web、移动端和文档立刻跟上。',
         workers: [
           {
-            owl: 'claude',
+            owl: 'codex',
+            name: 'Codex',
+            project: 'api-server',
+            task: '邀请 API 与迁移',
+            log: ['编写 0042_invites.sql', '编辑 routes/invites.ts', '契约已发布'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
             name: 'Claude Code',
-            task: '深色模式开关',
-            log: ['读取 src/settings', '编辑 ThemeToggle.tsx', '运行 pnpm typecheck']
+            project: 'api-server',
+            task: '权限校验',
+            log: ['读取 auth/policies.ts', '编写 invites.policy.test.ts', '18 个测试通过'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
+            name: 'Claude Code',
+            project: 'web-app',
+            task: '邀请弹窗',
+            log: ['读取 API 契约', '编辑 InviteDialog.tsx', '类型检查通过'],
+            wave: 2
           },
           {
             owl: 'codex',
             name: 'Codex',
-            task: '主题开关测试',
-            log: ['编写 toggle.test.ts', '运行 pnpm test', '12 个测试通过']
+            project: 'web-app',
+            task: '端到端测试',
+            log: ['编写 invites.spec.ts', '运行 playwright', '6 个用例通过'],
+            wave: 2
           },
           {
             owl: 'cursor',
             name: 'Cursor',
-            task: '颜色变量',
-            log: ['扫描写死的颜色', '编辑 tokens.css', '运行 build:tokens']
-          }
-        ],
-        approval: { who: 'Codex', command: 'pnpm add -D @testing-library/react' },
-        report: '完成。设置页已支持深色模式，包含开关、颜色变量和 12 个通过的测试。',
-        stats: ['3 个 worker', '改动 9 个文件', '已创建 PR #128', '检查通过']
-      },
-      {
-        chip: '修复不稳定的结账测试',
-        project: 'billing',
-        prompt: '结账测试时好时坏，找出原因并修复，然后提一个 PR。',
-        plan: '一只找原因，一只写修复，一只防止复发。',
-        workers: [
-          {
-            owl: 'claude',
-            name: 'Claude Code',
-            task: '定位竞态',
-            log: ['把测试跑 50 遍', '读取 checkout.ts', '发现一处漏掉的 await']
-          },
-          {
-            owl: 'codex',
-            name: 'Codex',
-            task: '修复并验证',
-            log: ['编辑 checkout.ts', '运行 pnpm test', '50 次全部通过']
-          },
-          {
-            owl: 'claude',
-            name: 'Claude Code',
-            task: '回归测试',
-            log: ['编写 proration.test.ts', '运行 pnpm test', '更新 CHANGELOG']
-          }
-        ],
-        approval: { who: 'Claude Code', command: 'git push origin fix/checkout-race' },
-        report: '已修复。测试和一个没有 await 的支付调用存在竞态，现在连续 50 次通过。',
-        stats: ['3 个 worker', '改动 3 个文件', '已创建 PR #131', '检查通过']
-      },
-      {
-        chip: '升级到 Node 22',
-        project: 'api-server',
-        prompt: '把项目升级到 Node 22，并更新 CI 镜像。',
-        plan: '依赖、类型和 CI 可以并行推进，派三只猫头鹰去做。',
-        workers: [
-          {
-            owl: 'codex',
-            name: 'Codex',
-            task: '升级 Node 和依赖',
-            log: ['编辑 package.json', '运行 pnpm install', '运行 pnpm test']
-          },
-          {
-            owl: 'claude',
-            name: 'Claude Code',
-            task: '修复 stream 类型',
-            log: ['运行 pnpm typecheck', '编辑 src/stream.ts', '0 个类型错误']
+            project: 'mobile-app',
+            task: '邀请页面',
+            log: ['读取 API 契约', '编辑 InviteScreen.tsx', 'iOS 构建通过'],
+            wave: 2
           },
           {
             owl: 'cursor',
             name: 'Cursor',
-            task: '更新 CI 镜像',
-            log: ['读取 .github/workflows', '编辑 ci.yml', '检查构建矩阵']
+            project: 'docs-site',
+            task: 'API 文档',
+            log: ['读取 API 契约', '编写 docs/invites.md', '链接检查通过'],
+            wave: 2
           }
         ],
-        approval: { who: 'Codex', command: 'pnpm install' },
-        report: '升级完成。项目在 Node 22 上构建和测试通过，CI 已使用新镜像。',
-        stats: ['3 个 worker', '改动 6 个文件', '已创建 PR #134', '检查通过']
+        approval: {
+          who: 'Codex',
+          command: 'pnpm db:migrate'
+        },
+        handoff: '邀请接口的契约已就绪，现在交给 Web、移动端和文档。',
+        report: '已上线。团队邀请全链路可用：API、Web 弹窗、移动端页面和文档，新增 24 个测试。',
+        stats: ['6 个 worker', '4 个项目', '改动 31 个文件', '已创建 4 个 PR', '检查通过']
+      },
+      {
+        chip: '发版后结账挂了',
+        prompt: '昨晚发版后结账开始失败。找出原因，把所有受影响的地方都修好，并加上防护。',
+        plan: '三只猫头鹰并行排查。原因一明确，修复就同步到所有受影响的服务。',
+        workers: [
+          {
+            owl: 'claude-code',
+            name: 'Claude Code',
+            project: 'billing-api',
+            task: '追踪失败的支付',
+            log: ['读取错误日志', '重放一次失败请求', '发现：金额被当成字符串'],
+            wave: 1
+          },
+          {
+            owl: 'codex',
+            name: 'Codex',
+            project: 'web-app',
+            task: '检查结账表单',
+            log: ['读取 Checkout.tsx', '对比上次发版', '发现同样的类型转换'],
+            wave: 1
+          },
+          {
+            owl: 'cursor',
+            name: 'Cursor',
+            project: 'infra',
+            task: '对比部署配置',
+            log: ['对比 staging 与 prod', '读取 deploy.yml', '配置无差异'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
+            name: 'Claude Code',
+            project: 'billing-api',
+            task: '校验并修复',
+            log: ['编辑 payments.ts', '编写回归测试', '42 个测试通过'],
+            wave: 2
+          },
+          {
+            owl: 'codex',
+            name: 'Codex',
+            project: 'web-app',
+            task: '修复表单',
+            log: ['编辑 Checkout.tsx', '运行 pnpm test', '检查通过'],
+            wave: 2
+          },
+          {
+            owl: 'cursor',
+            name: 'Cursor',
+            project: 'mobile-app',
+            task: '移动端同样的问题',
+            log: ['读取 CheckoutScreen.tsx', '编辑 currency.ts', '测试通过'],
+            wave: 2
+          }
+        ],
+        approval: {
+          who: 'Claude Code',
+          command: 'git push origin fix/currency-cast'
+        },
+        handoff: '原因找到了：金额被当成字符串发送。修复正在同步到 billing、Web 和移动端。',
+        report:
+          '三个服务都已修复。发版后金额被当成字符串发送，现在三处都做了校验，并补了回归测试。',
+        stats: ['6 个 worker', '4 个项目', '改动 8 个文件', '已创建 3 个 PR', '检查通过']
+      },
+      {
+        chip: '推广新的设计变量',
+        prompt: '把新的颜色变量推广到 Web、移动端和文档，并移除旧变量。',
+        plan: '设计系统先发布变量，然后三个应用同时迁移，再由一只猫头鹰清理遗留。',
+        workers: [
+          {
+            owl: 'cursor',
+            name: 'Cursor',
+            project: 'design-system',
+            task: '发布 tokens v2',
+            log: ['编辑 tokens.json', '运行 build:tokens', '已发布 2.0.0'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
+            name: 'Claude Code',
+            project: 'design-system',
+            task: '编写 codemod',
+            log: ['读取旧变量用法', '编写 codemod.ts', '试运行：212 处匹配'],
+            wave: 1
+          },
+          {
+            owl: 'claude-code',
+            name: 'Claude Code',
+            project: 'web-app',
+            task: '迁移 Web',
+            log: ['运行 codemod', '修复 9 处特殊情况', '视觉测试通过'],
+            wave: 2
+          },
+          {
+            owl: 'cursor',
+            name: 'Cursor',
+            project: 'mobile-app',
+            task: '迁移移动端',
+            log: ['运行 codemod', '编辑 theme.ts', 'iOS 构建通过'],
+            wave: 2
+          },
+          {
+            owl: 'codex',
+            name: 'Codex',
+            project: 'docs-site',
+            task: '迁移文档',
+            log: ['运行 codemod', '编辑 tokens.md', '链接检查通过'],
+            wave: 2
+          },
+          {
+            owl: 'codex',
+            name: 'Codex',
+            project: 'web-app',
+            task: '清理旧变量',
+            log: ['扫描写死的颜色', '移除 14 处遗留', '旧变量已清零'],
+            wave: 2
+          }
+        ],
+        approval: {
+          who: 'Cursor',
+          command: 'pnpm publish --tag next'
+        },
+        handoff: 'tokens 2.0.0 和 codemod 已就绪，三个应用现在开始迁移。',
+        report: '推广完成。Web、移动端和文档都已使用新变量，旧变量已全部移除。',
+        stats: ['6 个 worker', '4 个项目', '替换 212 处', '已创建 4 个 PR', '检查通过']
       }
-    ]
-  },
-  owls: {
-    kicker: '认识猫头鹰们',
-    title: '一只 Router，一群 worker。',
-    body: 'Owlto 直接使用你已经在用的编程智能体。每个智能体都是一只猫头鹰，谁在忙一眼就能看出来。',
-    hover: '把鼠标移上去或点一下，让它开工。',
-    cards: [
-      {
-        id: 'router',
-        name: 'Router',
-        role: '和你对话的那一只',
-        text: '规划任务、挑选合适的 worker，并汇总它们的成果。可由 Claude Code 或 Codex 驱动。'
-      },
-      {
-        id: 'claude-code',
-        name: 'Claude Code',
-        role: 'Worker',
-        text: '由你在 Mac 上安装并登录的 Claude Code 驱动的 worker。'
-      },
-      {
-        id: 'codex',
-        name: 'Codex',
-        role: 'Worker',
-        text: '由 Mac 上的 Codex 驱动的 worker，使用你的 ChatGPT 账号登录。'
-      },
-      {
-        id: 'cursor',
-        name: 'Cursor',
-        role: 'Worker',
-        text: '由 Mac 上的 Cursor agent 驱动的 worker。Cursor 可以干活，但不能担任 Router。'
-      }
-    ]
+    ],
+    queued: '排队中',
+    owlsWorking: '只猫头鹰在工作'
   },
   features: {
     kicker: '功能',
@@ -289,17 +367,18 @@ export default {
       }
     ],
     agents: [
-      { name: 'Claude Code', command: 'curl -fsSL https://claude.ai/install.sh | bash' },
-      { name: 'Codex', command: 'brew install --cask codex' },
-      { name: 'Cursor', command: 'curl https://cursor.com/install -fsS | bash' }
-    ],
-    keysTitle: '值得记住的快捷键',
-    keysHint: '在键盘上按按看。',
-    keys: [
-      { combo: ['⌘', 'N'], key: 'n', label: '新建对话' },
-      { combo: ['⌘', 'J'], key: 'j', label: '对话 ↔ 地图' },
-      { combo: ['⌘', 'K'], key: 'k', label: '笔记' },
-      { combo: ['⌘', ','], key: ',', label: '设置' }
+      {
+        name: 'Claude Code',
+        command: 'curl -fsSL https://claude.ai/install.sh | bash'
+      },
+      {
+        name: 'Codex',
+        command: 'brew install --cask codex'
+      },
+      {
+        name: 'Cursor',
+        command: 'curl https://cursor.com/install -fsS | bash'
+      }
     ]
   },
   trust: {
@@ -340,6 +419,10 @@ export default {
       {
         q: 'Owlto 是什么？',
         a: 'Owlto 是一款免费开源的 macOS 桌面应用，面向使用 AI 编程智能体的人。你不必再在多个终端窗口之间来回切换，只需和一只 Router 猫头鹰对话：它规划任务，把每一部分交给 worker（Claude Code、Codex 或 Cursor），盯着进度，最后给你一个清楚的答复。'
+      },
+      {
+        q: 'Owlto 怎么读？',
+        a: 'Owlto 读作“Auto”。这个名字把 owl（猫头鹰）和 auto（自动）合在一起：一支猫头鹰编程团队替你调度智能体，而批准权始终在你手里。'
       },
       {
         q: 'Owlto 支持哪些编程智能体？',
@@ -386,7 +469,7 @@ export default {
     star: '在 GitHub 上点个 Star'
   },
   footer: {
-    tagline: 'Mac 上的一支猫头鹰编程团队。',
+    tagline: '你的 Owlto（Auto）智能体团队：Mac 上的猫头鹰编程团队。',
     product: '产品',
     project: '项目',
     releases: '版本发布',

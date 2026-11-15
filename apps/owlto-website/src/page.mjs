@@ -1,4 +1,4 @@
-import { OWLS, owlSvg } from './owl.mjs'
+import { owlSvg } from './owl.mjs'
 import {
   CONTRIBUTING_URL,
   DOWNLOAD_URL,
@@ -33,8 +33,6 @@ const ICONS = {
   sun: '<svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3L7 7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>',
   moon: '<svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>'
 }
-
-const OWL_IMG = { claude: 'claude-code', codex: 'codex', cursor: 'cursor', router: 'router' }
 
 function head({ t, locale, version }) {
   const url = localeUrl(locale)
@@ -162,7 +160,6 @@ function nav({ t, locale }) {
   const otherHref = `${p}${other.path}` || './'
   const links = [
     ['#how', t.nav.how],
-    ['#owls', t.nav.owls],
     ['#features', t.nav.features],
     ['#start', t.nav.start],
     ['#faq', t.nav.faq]
@@ -188,22 +185,22 @@ function nav({ t, locale }) {
 
 function hero({ t }) {
   const flock = [
-    ['cursor', 0.72, 300],
-    ['claude', 0.86, 315],
+    ['user', 0.78, 300],
+    ['claude-code', 0.86, 315],
     ['router', 1, 335],
     ['codex', 0.86, 315],
-    ['team', 0.72, 300]
+    ['cursor', 0.78, 300]
   ]
-  const [lineA, accent, lineB] = t.hero.title
+  const [lineA, lineB] = t.hero.title
   return `<section class="hero" id="top">
   <div class="sky" aria-hidden="true"><i class="moon"></i><i class="stars"></i><i class="stars stars-b"></i></div>
   <div class="hero-copy">
     <p class="kicker rise" style="--i:0">${esc(t.hero.kicker)}</p>
     <h1 class="hero-title">
-      <span class="rise" style="--i:1">${esc(lineA)}</span>
-      <span class="rise accent" style="--i:2"><mark>${esc(accent)}</mark></span>
-      <span class="rise" style="--i:3">${esc(lineB)}</span>
+      <span class="rise" style="--i:1">${esc(lineA)} <mark class="flip"><span class="flip-a">Owlto</span> <span class="flip-b">${esc(t.hero.auto)}</span></mark></span>
+      <span class="rise" style="--i:2">${esc(lineB)}</span>
     </h1>
+    <p class="say rise" style="--i:3"><b>Owlto</b> <span>/ˈɔːtoʊ/</span> ${esc(t.hero.say)}</p>
     <p class="hero-sub rise" style="--i:4">${esc(t.hero.sub)}</p>
     <div class="hero-cta rise" style="--i:5">
       <a class="btn btn-lg" href="${DOWNLOAD_URL}" rel="noopener">${ICONS.apple}<span>${esc(t.hero.cta)}</span></a>
@@ -215,7 +212,7 @@ function hero({ t }) {
     ${flock
       .map(
         ([id, scale, height], index) =>
-          `<button class="owl owl-${id}" type="button" style="--s:${scale};--i:${index}" aria-label="${esc(t.hero.owlLabels[id])}" data-owl>${owlSvg({ ...OWLS[id], height })}</button>`
+          `<button class="owl" type="button" style="--s:${scale};--i:${index}" aria-label="${esc(t.hero.owlLabels[id])}" data-owl>${owlSvg(id, height)}</button>`
       )
       .join('\n    ')}
   </div>
@@ -223,28 +220,44 @@ function hero({ t }) {
 </section>`
 }
 
+// Nine terminals across services: the "before" picture. Decorative.
 const TERMINALS = [
   [
-    'claude · bookshelf',
-    ['$ claude', '● Editing ThemeToggle.tsx', '● Running pnpm typecheck', '  12 files checked']
+    'claude · api-server',
+    ['$ claude', '● Writing 0042_invites.sql', '● pnpm db:migrate', '  allow? (y/n)']
   ],
   [
-    'codex · billing',
-    ['$ codex', '› Writing toggle.test.ts', '› pnpm add -D vitest', '  allow? (y/n)']
+    'codex · web-app',
+    ['$ codex', '› Editing InviteDialog.tsx', '› waiting for POST /invites', '  no contract yet']
   ],
   [
-    'cursor-agent · api',
-    ['$ cursor-agent', '~ Reading ci.yml', '~ Editing tokens.css', '  build:tokens ...']
+    'cursor-agent · mobile-app',
+    ['$ cursor-agent', '~ Editing InviteScreen.tsx', '~ Running the iOS build', '  ...']
   ],
   [
     'claude · docs-site',
-    ['$ claude', '● Fixing broken links', '● Writing docs/api.md', '  3 of 9 done']
+    ['$ claude', '● Writing docs/invites.md', '● Which fields are required?', '  >']
   ],
   [
-    'codex · mobile-app',
-    ['$ codex', '› Running pnpm test', '› 2 failed, 40 passed', '  retrying ...']
+    'codex · billing-api',
+    ['$ codex', '› Editing payments.ts', '› CONFLICT currency.ts', '  both modified']
   ],
-  ['zsh · ~/code', ['$ git status', '  modified: tokens.css', '  modified: tokens.css', '$ _']]
+  [
+    'cursor-agent · design-system',
+    ['$ cursor-agent', '~ Running build:tokens', '~ 212 usages to migrate', '  usage limit reached']
+  ],
+  [
+    'claude · infra',
+    ['$ claude', '● Diffing staging and prod', '● Reading deploy.yml', '  no drift']
+  ],
+  [
+    'codex · web-app (2)',
+    ['$ codex', '› Running playwright', '› 2 failed, 4 passed', '  retrying ...']
+  ],
+  [
+    'zsh · ~/code',
+    ['$ git worktree list', '  api-server   invites', '  web-app      invites-ui', '$ _']
+  ]
 ]
 
 function chaos({ t, locale }) {
@@ -253,7 +266,7 @@ function chaos({ t, locale }) {
   <div class="chaos-sticky">
     <div class="chaos-copy">
       <p class="kicker">${esc(t.chaos.kicker)}</p>
-      <h2>${esc(t.chaos.title)}</h2>
+      <h2>${t.chaos.title.map((line) => `<span>${esc(line)}</span>`).join(' ')}</h2>
       <p>${esc(t.chaos.body)}</p>
     </div>
     <div class="chaos-stage" aria-hidden="true">
@@ -274,22 +287,29 @@ function chaos({ t, locale }) {
 </section>`
 }
 
+// Projects of a scenario in first-appearance order, each with a stable color slot.
+const projectsOf = (scenario) => [...new Set(scenario.workers.map((worker) => worker.project))]
+
 function scene({ t, scenario, index, p }) {
+  const projects = projectsOf(scenario)
   const workers = scenario.workers
     .map(
-      (worker) => `<article class="wk" data-log="${esc(json(worker.log))}">
-            <img src="${p}assets/owls/working/${OWL_IMG[worker.owl]}.svg" width="40" height="40" alt="" loading="lazy">
-            <div class="wk-body"><b>${esc(worker.task)}</b><span>${esc(worker.name)}</span><code>${esc(worker.log.at(-1))}</code></div>
-            <span class="wk-state" data-working="${esc(t.demo.working)}" data-done="${esc(t.demo.done)}">${esc(t.demo.done)}</span>
+      (
+        worker
+      ) => `<article class="wk" data-wave="${worker.wave}" data-project="${esc(worker.project)}" data-log="${esc(json(worker.log))}">
+            <img src="${p}assets/owls/working/${worker.owl}.svg" width="36" height="36" alt="" loading="lazy">
+            <div class="wk-body"><b>${esc(worker.task)}</b><span><i class="dot dot-${projects.indexOf(worker.project)}"></i>${esc(worker.project)} · ${esc(worker.name)}</span><code>${esc(worker.log.at(-1))}</code></div>
+            <span class="wk-state" data-queued="${esc(t.demo.queued)}" data-working="${esc(t.demo.working)}" data-done="${esc(t.demo.done)}">${esc(t.demo.done)}</span>
           </article>`
     )
     .join('\n          ')
+  const routerSays = (step, text, extra = '') => `<div class="msg msg-router" data-step="${step}">
+          <img src="${p}assets/owls/router.svg" width="36" height="36" alt="" loading="lazy">
+          <div><b>Router</b><p>${esc(text)}</p>${extra}</div>
+        </div>`
   return `<div class="scene" data-scene="${index}"${index === 0 ? '' : ' hidden'}>
         <div class="msg msg-user" data-step="user"><p>${esc(scenario.prompt)}</p></div>
-        <div class="msg msg-router" data-step="plan">
-          <img src="${p}assets/owls/router.svg" width="36" height="36" alt="" loading="lazy">
-          <div><b>Router</b><p>${esc(scenario.plan)}</p></div>
-        </div>
+        ${routerSays('plan', scenario.plan)}
         <div class="workers" data-step="workers">
           ${workers}
         </div>
@@ -298,13 +318,24 @@ function scene({ t, scenario, index, p }) {
           <p>${esc(scenario.approval.who)} → <code>${esc(scenario.approval.command)}</code></p>
           <button class="btn btn-sm" type="button" data-approve data-label="${esc(t.demo.approve)}" data-done="${esc(t.demo.approved)}">${ICONS.check}<span>${esc(t.demo.approved)}</span></button>
         </div>
-        <div class="msg msg-router" data-step="report">
-          <img src="${p}assets/owls/router.svg" width="36" height="36" alt="" loading="lazy">
-          <div><b>Router</b><p>${esc(scenario.report)}</p>
-            <ul class="stats">${scenario.stats.map((stat) => `<li>${esc(stat)}</li>`).join('')}</ul>
-          </div>
-        </div>
+        ${routerSays('handoff', scenario.handoff)}
+        ${routerSays(
+          'report',
+          scenario.report,
+          `<ul class="stats">${scenario.stats.map((stat) => `<li>${esc(stat)}</li>`).join('')}</ul>`
+        )}
       </div>`
+}
+
+function sidebar({ t, scenario, index }) {
+  return `<ul class="side-list" data-side="${index}"${index === 0 ? '' : ' hidden'}>
+          ${projectsOf(scenario)
+            .map(
+              (project, slot) =>
+                `<li data-project="${esc(project)}"><i class="dot dot-${slot}"></i><span>${esc(project)}</span><em data-idle="–" data-working="${esc(t.demo.working)}" data-done="${esc(t.demo.done)}">${esc(t.demo.done)}</em></li>`
+            )
+            .join('\n          ')}
+        </ul>`
 }
 
 function demo({ t, locale }) {
@@ -322,18 +353,26 @@ function demo({ t, locale }) {
       ${scenarios
         .map(
           (scenario, index) =>
-            `<button class="chip${index === 0 ? ' is-active' : ''}" type="button" data-play="${index}" data-prompt="${esc(scenario.prompt)}" data-project="${esc(scenario.project)}" aria-pressed="${index === 0}">${esc(scenario.chip)}</button>`
+            `<button class="chip${index === 0 ? ' is-active' : ''}" type="button" data-play="${index}" data-prompt="${esc(scenario.prompt)}" aria-pressed="${index === 0}">${esc(scenario.chip)}</button>`
         )
         .join('\n      ')}
     </div>
     <div class="app">
-      <div class="app-bar"><i></i><i></i><i></i><span class="app-title">Owlto</span><span class="app-project">@<b data-demo-project>${esc(scenarios[0].project)}</b></span></div>
-      <div class="app-chat" data-demo-log>
+      <div class="app-bar"><i></i><i></i><i></i><span class="app-title">Owlto</span><span class="app-count"><b data-demo-count>0</b> ${esc(t.demo.owlsWorking)}</span></div>
+      <div class="app-body">
+        <aside class="app-side" aria-label="${esc(t.demo.projects)}">
+          <p>${esc(t.demo.projects)}</p>
+          ${scenarios.map((scenario, index) => sidebar({ t, scenario, index })).join('\n          ')}
+        </aside>
+        <div class="app-main">
+          <div class="app-chat" data-demo-log>
       ${scenarios.map((scenario, index) => scene({ t, scenario, index, p })).join('\n      ')}
-      </div>
-      <div class="app-composer">
-        <span class="app-input" data-demo-input data-placeholder="${esc(t.demo.placeholder)}">${esc(t.demo.placeholder)}</span>
-        <button class="app-send" type="button" data-replay aria-label="${esc(t.demo.replay)}">${ICONS.up}</button>
+          </div>
+          <div class="app-composer">
+            <span class="app-input" data-demo-input data-placeholder="${esc(t.demo.placeholder)}">${esc(t.demo.placeholder)}</span>
+            <button class="app-send" type="button" data-replay aria-label="${esc(t.demo.replay)}">${ICONS.up}</button>
+          </div>
+        </div>
       </div>
     </div>
     <p class="demo-note">${esc(t.demo.note)}</p>
@@ -346,36 +385,6 @@ function demo({ t, locale }) {
       )
       .join('\n    ')}
   </ol>
-</section>`
-}
-
-function owls({ t, locale }) {
-  const p = locale.prefix
-  return `<section class="section owls-section" id="owls">
-  <div class="section-head reveal">
-    <p class="kicker">${esc(t.owls.kicker)}</p>
-    <h2>${esc(t.owls.title)}</h2>
-    <p>${esc(t.owls.body)}</p>
-  </div>
-  <ul class="owl-cards">
-    ${t.owls.cards
-      .map(
-        (
-          card,
-          index
-        ) => `<li class="owl-card owl-card-${card.id} reveal" style="--i:${index}" tabindex="0" data-tilt>
-      <div class="owl-card-art">
-        <img class="idle" src="${p}assets/owls/${card.id}.svg" width="132" height="132" alt="${esc(card.name)}" loading="lazy">
-        <img class="busy" src="${p}assets/owls/working/${card.id}.svg" width="132" height="132" alt="" loading="lazy">
-      </div>
-      <p class="owl-card-role">${esc(card.role)}</p>
-      <h3>${esc(card.name)}</h3>
-      <p>${esc(card.text)}</p>
-    </li>`
-      )
-      .join('\n    ')}
-  </ul>
-  <p class="owls-hint reveal">${esc(t.owls.hover)}</p>
 </section>`
 }
 
@@ -489,17 +498,6 @@ function start({ t }) {
       </div></div></li>
     <li class="reveal"><span class="step-n">3</span><div><h3>${esc(connect.title)}</h3><p>${esc(connect.text)}</p></div></li>
   </ol>
-  <div class="keys reveal">
-    <div><h3>${esc(t.start.keysTitle)}</h3><p>${esc(t.start.keysHint)}</p></div>
-    <ul>
-      ${t.start.keys
-        .map(
-          (item) =>
-            `<li data-key="${esc(item.key)}">${item.combo.map((key) => `<kbd>${esc(key)}</kbd>`).join('')}<span>${esc(item.label)}</span></li>`
-        )
-        .join('\n      ')}
-    </ul>
-  </div>
 </section>`
 }
 
@@ -613,7 +611,6 @@ ${nav(context)}
 ${hero(context)}
 ${chaos(context)}
 ${demo(context)}
-${owls(context)}
 ${features(context)}
 ${start(context)}
 ${trust(context)}

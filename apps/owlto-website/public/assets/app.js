@@ -157,9 +157,10 @@ function initDemo() {
   const demo = $('[data-demo]')
   if (!demo) return
   const scenes = $$('[data-scene]', demo)
+  const sides = $$('[data-side]', demo)
   const chips = $$('[data-play]', demo)
   const input = $('[data-demo-input]', demo)
-  const project = $('[data-demo-project]', demo)
+  const count = $('[data-demo-count]', demo)
   const send = $('[data-replay]', demo)
   let run = 0
   let current = 0
@@ -171,13 +172,35 @@ function initDemo() {
 
   const show = (scene, step) => $(`[data-step="${step}"]`, scene)?.classList.add('is-in')
 
+  // The sidebar and the title-bar counter are derived from the workers'
+  // states (queued, working, done) so they cannot drift from the cards.
+  function refresh(scene) {
+    const workers = $$('.wk', scene)
+    count.textContent = workers.filter((worker) => worker.dataset.state === 'working').length
+    for (const row of $$('[data-project]', sides[scenes.indexOf(scene)])) {
+      const mine = workers.filter((worker) => worker.dataset.project === row.dataset.project)
+      const working = mine.filter((worker) => worker.dataset.state === 'working').length
+      const allDone = mine.every((worker) => worker.dataset.state === 'done')
+      const state = working > 0 ? 'working' : allDone ? 'done' : 'idle'
+      const label = $('em', row)
+      row.dataset.state = state
+      label.textContent =
+        state === 'working' ? `${working} ${label.dataset.working}` : label.dataset[state]
+    }
+  }
+
+  function setState(worker, state) {
+    worker.dataset.state = state
+    const label = $('.wk-state', worker)
+    label.textContent = label.dataset[state]
+    refresh(worker.closest('[data-scene]'))
+  }
+
   function reset(scene) {
     for (const step of $$('[data-step]', scene)) step.classList.remove('is-in')
     for (const worker of $$('.wk', scene)) {
-      worker.classList.add('is-working')
-      const state = $('.wk-state', worker)
-      state.textContent = state.dataset.working
       $('code', worker).textContent = ''
+      setState(worker, 'queued')
     }
     const approval = $('.approval', scene)
     approval.classList.remove('is-approved', 'is-waiting')
@@ -191,7 +214,8 @@ function initDemo() {
       chip.setAttribute('aria-pressed', String(i === index))
     }
     for (const [i, scene] of scenes.entries()) scene.hidden = i !== index
-    project.textContent = chips[index].dataset.project
+    for (const [i, side] of sides.entries()) side.hidden = i !== index
+    refresh(scenes[index])
   }
 
   async function type(text, token) {
@@ -199,21 +223,37 @@ function initDemo() {
     input.textContent = ''
     for (const char of text) {
       input.textContent += char
-      await pause(char === ' ' ? 34 : 18, token)
+      await pause(char === ' ' ? 30 : 14, token)
     }
     await pause(320, token)
   }
 
-  async function runWorkers(scene, token, from, to) {
-    const workers = $$('.wk', scene)
+  const wave = (scene, number) =>
+    $$('.wk', scene).filter((worker) => worker.dataset.wave === String(number))
+
+  async function start(workers, token) {
+    for (const worker of workers) {
+      setState(worker, 'working')
+      await pause(160, token)
+    }
+  }
+
+  async function log(workers, token, from, to) {
     const logs = workers.map((worker) => JSON.parse(worker.dataset.log))
     for (let line = from; line < to; line++) {
       for (const [index, worker] of workers.entries()) {
         if (logs[index][line] === undefined) continue
         $('code', worker).textContent = logs[index][line]
-        await pause(260, token)
+        await pause(200, token)
       }
-      await pause(620, token)
+      await pause(560, token)
+    }
+  }
+
+  async function finish(workers, token) {
+    for (const worker of workers) {
+      setState(worker, 'done')
+      await pause(200, token)
     }
   }
 
@@ -222,17 +262,17 @@ function initDemo() {
     const button = $('[data-approve]', approval)
     approval.classList.add('is-waiting')
     return new Promise((resolve, reject) => {
-      const finish = () => {
+      const done = () => {
         clearTimeout(timer)
-        button.removeEventListener('click', finish)
+        button.removeEventListener('click', done)
         if (token !== run) return reject(new Error('cancelled'))
         approval.classList.replace('is-waiting', 'is-approved')
         $('span', button).textContent = button.dataset.done
         resolve()
       }
       // Approve on the visitor's behalf if they just watch.
-      const timer = setTimeout(finish, 4200)
-      button.addEventListener('click', finish)
+      const timer = setTimeout(done, 4200)
+      button.addEventListener('click', done)
     })
   }
 
@@ -240,11 +280,12 @@ function initDemo() {
     const token = ++run
     current = index
     const scene = scenes[index]
-    const chip = chips[index]
     select(index)
     reset(scene)
+    const first = wave(scene, 1)
+    const second = wave(scene, 2)
     try {
-      await type(chip.dataset.prompt, token)
+      await type(chips[index].dataset.prompt, token)
       send.classList.add('is-sent')
       input.classList.remove('is-typing')
       input.textContent = input.dataset.placeholder
@@ -253,20 +294,22 @@ function initDemo() {
       send.classList.remove('is-sent')
       await pause(500, token)
       show(scene, 'plan')
-      await pause(1000, token)
+      await pause(1100, token)
       show(scene, 'workers')
       await pause(700, token)
-      await runWorkers(scene, token, 0, 2)
+      await start(first, token)
+      await log(first, token, 0, 2)
       show(scene, 'approval')
       await waitForApproval(scene, token)
-      await pause(500, token)
-      await runWorkers(scene, token, 2, 3)
-      for (const worker of $$('.wk', scene)) {
-        worker.classList.remove('is-working')
-        const state = $('.wk-state', worker)
-        state.textContent = state.dataset.done
-        await pause(240, token)
-      }
+      await pause(400, token)
+      await log(first, token, 2, 3)
+      await finish(first, token)
+      await pause(300, token)
+      show(scene, 'handoff')
+      await pause(900, token)
+      await start(second, token)
+      await log(second, token, 0, 3)
+      await finish(second, token)
       await pause(400, token)
       show(scene, 'report')
     } catch {
@@ -339,33 +382,6 @@ function initTilt() {
   }
 }
 
-// Touch has no hover: tapping an owl card toggles its "working" drawing.
-function initOwlCards() {
-  for (const card of $$('.owl-card')) {
-    card.addEventListener('click', () => card.classList.toggle('is-busy'))
-  }
-}
-
-// The shortcut keycaps press down when the visitor presses the real keys.
-function initKeys() {
-  const keys = new Map($$('[data-key]').map((item) => [item.dataset.key, item]))
-  if (keys.size === 0) return
-  addEventListener('keydown', (event) => {
-    keys.get(event.key.toLowerCase())?.classList.add('is-down')
-  })
-  addEventListener('keyup', (event) => {
-    if (event.key === 'Meta' || event.key === 'Control') {
-      // Releasing the modifier swallows the letter's keyup on macOS.
-      for (const item of keys.values()) item.classList.remove('is-down')
-      return
-    }
-    keys.get(event.key.toLowerCase())?.classList.remove('is-down')
-  })
-  addEventListener('blur', () => {
-    for (const item of keys.values()) item.classList.remove('is-down')
-  })
-}
-
 initTheme()
 initScrollChrome()
 initOwls()
@@ -374,5 +390,3 @@ initChaos()
 initDemo()
 initCopy()
 initTilt()
-initOwlCards()
-initKeys()

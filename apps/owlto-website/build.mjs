@@ -114,9 +114,6 @@ function llmsFull(t) {
     .map((item) => `- **${item.title}.** ${item.text}`)
     .join('\n')
   const more = t.features.more.map((item) => `- ${item}`).join('\n')
-  const owls = t.owls.cards
-    .map((card) => `- **${card.name}** (${card.role}): ${card.text}`)
-    .join('\n')
   const how = t.demo.steps
     .map((step, index) => `${index + 1}. **${step.title}.** ${step.text}`)
     .join('\n')
@@ -124,7 +121,6 @@ function llmsFull(t) {
     .map((step, index) => `${index + 1}. **${step.title}.** ${step.text}`)
     .join('\n')
   const agents = t.start.agents.map((agent) => `- ${agent.name}: \`${agent.command}\``).join('\n')
-  const keys = t.start.keys.map((key) => `- ${key.combo.join('')}: ${key.label}`).join('\n')
   const compare = t.compare.rows
     .map(([label, before, after]) => `| ${label} | ${before} | ${after} |`)
     .join('\n')
@@ -147,12 +143,6 @@ ${t.chaos.body}
 
 ${how}
 
-## ${t.owls.kicker}
-
-${t.owls.body}
-
-${owls}
-
 ## ${t.features.kicker}
 
 ${features}
@@ -168,10 +158,6 @@ ${steps}
 Agent install commands:
 
 ${agents}
-
-${t.start.keysTitle}:
-
-${keys}
 
 ## ${t.trust.kicker}
 
