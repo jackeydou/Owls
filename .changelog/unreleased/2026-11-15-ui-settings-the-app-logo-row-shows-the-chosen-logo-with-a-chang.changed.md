@@ -1,0 +1,1 @@
+- Settings: the app logo row shows the chosen logo with a Change button that opens a picker. (#150)

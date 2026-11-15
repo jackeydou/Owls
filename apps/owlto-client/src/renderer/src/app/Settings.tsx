@@ -20,9 +20,9 @@ import {
 } from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { Select } from '@renderer/components/ui/select'
-import { Fragment, useEffect, useId, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { appLogoSchema, settingsSchema, skinSchema } from '../../../shared/app'
+import { settingsSchema, skinSchema } from '../../../shared/app'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
 import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
@@ -30,7 +30,7 @@ import { usePaneWidth } from '../router/pane-width'
 import { WorkspaceIcon } from '../router/WorkspaceIcon'
 import { SettingsUpdatesPane } from '../updates/SettingsUpdates'
 import { UsageStatsPane } from '../usage/UsageStatsPane'
-import { appLogoIcons } from './AppLogo'
+import { AppLogoSetting } from './AppLogoSetting'
 import { SettingRow } from './SettingRow'
 import { AgentsSettingsPane } from './SettingsAgents'
 import { ArchivesSettingsPane } from './SettingsArchives'
@@ -211,7 +211,6 @@ function AppearancePane() {
   const { t } = useTranslation()
   const settings = useAppStore((s) => s.settings)
   const saveSettings = useAppStore((s) => s.saveSettings)
-  const logoLabel = useId()
   return (
     <section className="owlto-settings-section">
       <h2>{t('appearance')}</h2>
@@ -266,28 +265,7 @@ function AppearancePane() {
           <option value="zh-CN">简体中文</option>
         </Select>
       </SettingRow>
-      <SettingRow
-        label={t('appLogo')}
-        labelId={logoLabel}
-        description={t('appLogoHelp')}
-        detail={
-          <div className="owlto-logo-options" role="radiogroup" aria-labelledby={logoLabel}>
-            {appLogoSchema.options.map((logo) => (
-              <label className="owlto-logo-option" key={logo}>
-                <input
-                  type="radio"
-                  name="owlto-app-logo"
-                  className="sr-only"
-                  aria-label={t(`appLogo.${logo}`)}
-                  checked={settings.appLogo === logo}
-                  onChange={() => void saveSettings({ ...settings, appLogo: logo })}
-                />
-                <img src={appLogoIcons[logo]} alt="" />
-              </label>
-            ))}
-          </div>
-        }
-      />
+      <AppLogoSetting />
     </section>
   )
 }

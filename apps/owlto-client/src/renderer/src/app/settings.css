@@ -179,6 +179,14 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.owlto-logo-current {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.owlto-logo-current .owlto-logo-option {
+  cursor: default;
+}
 .owlto-logo-options {
   display: grid;
   grid-template-columns: repeat(3, max-content);
