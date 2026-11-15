@@ -271,6 +271,8 @@ importers:
         specifier: ^5.0.9
         version: 5.0.12(@types/react@19.2.14)(immer@11.1.8)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
 
+  apps/owlto-website: {}
+
   packages/browser-use:
     dependencies:
       '@owlto/local-rpc-client':
