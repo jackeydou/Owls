@@ -2,8 +2,9 @@ import { code } from '@streamdown/code'
 import { memo } from 'react'
 import { Streamdown } from 'streamdown'
 import { markdownLinkComponents } from '../app/MarkdownLink'
+import { mermaidRenderer } from '../app/MermaidDiagram'
 
-const plugins = { code }
+const plugins = { code, renderers: [mermaidRenderer] }
 
 /** A card's Markdown, rendered. On tiles and boards it is read-only and clipped by CSS. */
 export const CardBody = memo(function CardBody({ body }: { body: string }) {

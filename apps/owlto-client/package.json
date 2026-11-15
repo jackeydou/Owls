@@ -107,6 +107,7 @@
     "node-abi": "^4.40.0",
     "node-cron": "^4.2.1",
     "node-pty": "^1.1.0",
+    "pele": "^1.13.0",
     "playwright-core": "1.64.1",
     "prosemirror-state": "1.4.4",
     "react": "^19.2.1",
