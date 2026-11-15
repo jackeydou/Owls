@@ -1,6 +1,6 @@
 // Site-wide constants. Change SITE_URL when the site moves to its own domain:
 // canonical links, hreflang, the sitemap, Open Graph URLs, and llms.txt all derive from it.
-export const SITE_URL = 'https://jackeydou.github.io/Owls'
+export const SITE_URL = 'https://owlto.dev'
 
 export const REPO_URL = 'https://github.com/jackeydou/Owls'
 export const DOWNLOAD_URL = `${REPO_URL}/releases`
