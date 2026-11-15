@@ -1062,7 +1062,7 @@ html.pane-resizing * {
   z-index: 1;
   gap: 4px;
   height: 26px;
-  margin: 4px 0 0 var(--owl-thread-gutter);
+  margin: 4px 0 0 calc(var(--owl-thread-gutter) - 8px);
   padding: 0 10px 0 8px;
   border-radius: 999px;
   color: var(--color-muted-foreground);

@@ -65,7 +65,7 @@ export function ThreadTurn({
           </div>
           {/* At the turn's foot: over the fade while folded, after the last row once open. */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="custom"
             className="router-fold-bar"
             aria-expanded={!isFolded}
