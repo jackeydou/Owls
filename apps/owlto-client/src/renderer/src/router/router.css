@@ -815,6 +815,7 @@ html.pane-resizing * {
   grid-template-columns: 24px minmax(0, 1fr);
   column-gap: calc(var(--owl-thread-gutter) - 24px);
   margin-top: 20px;
+  scroll-margin-top: 12px;
 }
 .router-row:first-child {
   margin-top: 0;
@@ -962,6 +963,42 @@ html.pane-resizing * {
 }
 .router-row .owlto-assistant-message {
   margin: 0;
+}
+/* The avatar column runs the row's full height, so the fold toggle can stay in view. */
+.router-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.router-row.follows .router-row-avatar {
+  display: none;
+}
+/* Sticks below the view's top while a long reply scrolls past, so folding is always in reach. */
+.router-row-fold.router-row-fold {
+  position: sticky;
+  top: 8px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--color-muted-foreground);
+}
+.router-row-fold:hover {
+  color: var(--color-foreground);
+}
+.router-row-fold svg {
+  transform: rotate(180deg);
+  transition: transform 160ms ease;
+}
+.router-row-fold[aria-expanded="false"] svg {
+  transform: none;
+}
+/* A folded reply shows its first four lines, fading out into the rest. */
+.router-row.folded .owlto-markdown {
+  max-height: 4lh;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5lh), transparent);
 }
 .router-row .owlto-message-label {
   display: none;
