@@ -55,6 +55,8 @@ export type WorkerUsageRecorder = (sessionId: string, usage: TurnUsage) => void
 export interface AgentRuntime {
   owns(sessionId: string): boolean
   connectionState(): AgentConnection
+  /** Ends the connection until the user connects again; throws `busy` while work runs. */
+  disconnect(): AgentConnection
   hasActiveTasks(): boolean
   setTurnProfiles(profiles: TurnProfiles): void
   /** Where the runtime reports each turn's token usage. */

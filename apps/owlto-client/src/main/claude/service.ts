@@ -176,6 +176,20 @@ export class ClaudeService {
     })
     return this.connecting
   }
+  /** Forgets the account until the user connects again; nothing runs between turns. */
+  disconnect(): ClaudeConnection {
+    if (this.connecting || this.hasActiveTasks())
+      throw new OwltoError('busy', 'Stop active tasks before disconnecting Claude Code.')
+    this.connection = {
+      ...this.connection,
+      status: 'disconnected',
+      account: { kind: 'unknown' },
+      models: [],
+      error: null
+    }
+    this.emitConnection()
+    return this.connection
+  }
   private async openConnection(): Promise<ClaudeConnection> {
     this.connection = { ...this.connection, status: 'connecting', error: null }
     this.emitConnection()

@@ -61,6 +61,7 @@ export class OwltoStore {
           pullRequestsVisible: true,
           workspacePath: null,
           workspaceDismissed: [],
+          disconnectedAgents: [],
           openInApp: null,
           profile: defaultProfile
         }

@@ -68,29 +68,6 @@
   justify-content: space-between;
   gap: 20px;
 }
-.owlto-connection {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-muted-foreground);
-  font-size: var(--owl-text-xs);
-}
-.owlto-connection i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--owl-queue);
-}
-.owlto-connection.ready i {
-  background: var(--owl-run);
-}
-.owlto-connection.connecting i {
-  background: var(--owl-wait);
-}
-.owlto-connection.error i {
-  background: var(--owl-bad);
-}
 .owlto-setting-row {
   display: flex;
   align-items: center;
@@ -509,18 +486,6 @@
   font-size: var(--owl-text-sm);
   line-height: var(--owl-leading-normal);
 }
-.owlto-agent-status {
-  display: flex;
-  align-items: center;
-  padding: 20px 0 4px;
-}
-.owlto-agent-status .owlto-connection {
-  font-size: var(--owl-text-sm);
-}
-.owlto-agent-status + .owlto-setting-row {
-  border-top: 0;
-}
-
 .owlto-profile-avatar {
   display: flex;
   flex-wrap: wrap;

@@ -1,6 +1,7 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
-import { ExternalLinkIcon, FolderOpenIcon, RefreshIcon } from '@renderer/components/ui/icons'
-import { type ReactNode, useEffect, useState } from 'react'
+import { ExternalLinkIcon, FolderOpenIcon } from '@renderer/components/ui/icons'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider, CodexConnection, Failure } from '../../../shared/app'
 import { AgentIcon } from '../router/AgentIcon'
@@ -9,26 +10,45 @@ import { SettingRow } from './SettingRow'
 import { SettingsTabs } from './SettingsTabs'
 import { useAppStore } from './store'
 
-/** One agent's tab: its connection state first, then its rows. */
-function AgentPane({
+/**
+ * The account row's button carries the connection state: a primary Connect while
+ * disconnected, and a red Disconnect once connected.
+ */
+function ConnectionButton({
+  provider,
   status,
-  children
+  running,
+  onConnect
 }: {
+  provider: AgentProvider
   status: CodexConnection['status']
-  children: ReactNode
+  running: boolean
+  onConnect(): void
 }) {
   const { t } = useTranslation()
+  const disconnectAgent = useAppStore((s) => s.disconnectAgent)
+  if (status === 'ready')
+    return (
+      <ActionButton
+        size="sm"
+        variant="danger"
+        disabled={running}
+        onAction={() => disconnectAgent(provider)}
+      >
+        {t('agentDisconnect')}
+      </ActionButton>
+    )
+  const busy = status === 'connecting'
   return (
-    <>
-      <div className="owlto-agent-status">
-        <span className={`owlto-connection ${status}`}>
-          <i />
-          {t(`connection.${status}`)}
-        </span>
-      </div>
-      {children}
-    </>
+    <Button size="sm" disabled={running} pending={busy} onClick={onConnect}>
+      {busy ? t('agentConnecting') : status === 'error' ? t('agentReconnect') : t('agentConnect')}
+    </Button>
   )
+}
+
+/** "Plan · Max" under the account, when the agent reports a plan. */
+function planText(plan: string | null | undefined, label: string): string | null {
+  return plan ? `${label} · ${plan.charAt(0).toUpperCase()}${plan.slice(1)}` : null
 }
 
 const AGENT_TABS: AgentProvider[] = ['claude-code', 'codex', 'cursor']
@@ -64,15 +84,11 @@ export function AgentsSettingsPane() {
 }
 
 function ExecutableRow({
-  label,
-  body,
   path,
   version,
   disabled,
   onBrowse
 }: {
-  label: string
-  body: string
   path: string
   version: string | null
   disabled: boolean
@@ -81,8 +97,7 @@ function ExecutableRow({
   const { t } = useTranslation()
   return (
     <SettingRow
-      label={label}
-      description={body}
+      label={t('agentLocation')}
       detail={
         <>
           <code className="owlto-path">{path}</code>
@@ -112,35 +127,31 @@ function ClaudeSettingsPane() {
   const connectClaude = useAppStore((s) => s.connectClaude)
   const selectClaudeExecutable = useAppStore((s) => s.selectClaudeExecutable)
   const account = claude.account
-  const busy = claude.status === 'connecting'
+  const ready = claude.status === 'ready'
   return (
-    <AgentPane status={claude.status}>
+    <>
       <SettingRow
         label={
-          account.kind === 'claude'
-            ? (account.email ?? t('claudeAccount'))
-            : account.kind === 'api-key'
-              ? t('apiKey')
-              : account.kind === 'external'
-                ? t('external')
-                : t('claudeAccountUnknown')
+          !ready
+            ? t('notConnected')
+            : account.kind === 'claude'
+              ? (account.email ?? t('claudeAccount'))
+              : account.kind === 'api-key'
+                ? t('apiKey')
+                : account.kind === 'external'
+                  ? t('external')
+                  : t('claudeAccount')
         }
         description={
-          account.kind === 'claude' && account.plan
-            ? `${t('subscription')} · ${account.plan}`
-            : null
+          ready && account.kind === 'claude' ? planText(account.plan, t('subscription')) : null
         }
       >
-        <Button
-          size="sm"
-          variant={claude.status === 'ready' ? 'outline' : 'default'}
-          disabled={running}
-          pending={busy}
-          onClick={() => void connectClaude()}
-        >
-          <RefreshIcon size={16} />
-          {busy ? t('connectingClaude') : t('useLocalClaude')}
-        </Button>
+        <ConnectionButton
+          provider="claude-code"
+          status={claude.status}
+          running={running}
+          onConnect={() => void connectClaude()}
+        />
       </SettingRow>
       {claude.error ? (
         <div role="alert" className="owlto-inline-error">
@@ -148,22 +159,18 @@ function ClaudeSettingsPane() {
         </div>
       ) : null}
       <ExecutableRow
-        label={t('claudeExecutable')}
-        body={t('claudeExecutableBody')}
         path={claude.executablePath ?? settings.claudeExecutablePath ?? t('autoDetect')}
         version={claude.version}
-        disabled={busy || running}
+        disabled={claude.status === 'connecting' || running}
         onBrowse={() => void selectClaudeExecutable()}
       />
-      <p className="owlto-note">{t('claudeSignInHelp')}</p>
-      <p className="owlto-note">{t('claudeAuthPrivacy')}</p>
       <p className="owlto-note">
-        {t('claudeInstallHelp')}{' '}
+        {t('claudeSignInHelp')}{' '}
         <a href="https://code.claude.com/docs/en/setup" target="_blank" rel="noreferrer">
           {t('installLink')} <ExternalLinkIcon size={12} />
         </a>
       </p>
-    </AgentPane>
+    </>
   )
 }
 
@@ -180,28 +187,27 @@ function CursorSettingsPane() {
   const connectCursor = useAppStore((s) => s.connectCursor)
   const selectCursorExecutable = useAppStore((s) => s.selectCursorExecutable)
   const account = cursor.account
-  const busy = cursor.status === 'connecting'
+  const ready = cursor.status === 'ready'
   return (
-    <AgentPane status={cursor.status}>
+    <>
       <SettingRow
         label={
-          account.kind === 'cursor'
-            ? (account.email ?? t('cursorAccount'))
-            : account.kind === 'signed-out'
-              ? t('signedOut')
-              : t('cursorAccountUnknown')
+          !ready
+            ? t('notConnected')
+            : account.kind === 'cursor'
+              ? (account.email ?? t('cursorAccount'))
+              : account.kind === 'signed-out'
+                ? t('signedOut')
+                : t('cursorAccount')
         }
+        description={t('cursorWorkerOnly')}
       >
-        <Button
-          size="sm"
-          variant={cursor.status === 'ready' ? 'outline' : 'default'}
-          disabled={running}
-          pending={busy}
-          onClick={() => void connectCursor()}
-        >
-          <RefreshIcon size={16} />
-          {busy ? t('connectingCursor') : t('useLocalCursor')}
-        </Button>
+        <ConnectionButton
+          provider="cursor"
+          status={cursor.status}
+          running={running}
+          onConnect={() => void connectCursor()}
+        />
       </SettingRow>
       {cursor.error ? (
         <div role="alert" className="owlto-inline-error">
@@ -209,22 +215,18 @@ function CursorSettingsPane() {
         </div>
       ) : null}
       <ExecutableRow
-        label={t('cursorExecutable')}
-        body={t('cursorExecutableBody')}
         path={cursor.executablePath ?? settings.cursorExecutablePath ?? t('autoDetect')}
         version={cursor.version}
-        disabled={busy || running}
+        disabled={cursor.status === 'connecting' || running}
         onBrowse={() => void selectCursorExecutable()}
       />
-      <p className="owlto-note">{t('cursorSignInHelp')}</p>
-      <p className="owlto-note">{t('cursorWorkerOnly')}</p>
       <p className="owlto-note">
-        {t('cursorInstallHelp')}{' '}
+        {t('cursorSignInHelp')}{' '}
         <a href="https://cursor.com/cli" target="_blank" rel="noreferrer">
           {t('installLink')} <ExternalLinkIcon size={12} />
         </a>
       </p>
-    </AgentPane>
+    </>
   )
 }
 
@@ -243,8 +245,7 @@ function CodexSettingsPane() {
   const [signingIn, setSigningIn] = useState(false)
   const [loginError, setLoginError] = useState<Failure | null>(null)
   const account = connection.account
-  const connected = connection.status === 'ready'
-  const busy = connection.status === 'connecting'
+  const ready = connection.status === 'ready'
   useEffect(() => {
     if (account.kind !== 'signed-out') setSigningIn(false)
   }, [account.kind])
@@ -263,21 +264,21 @@ function CodexSettingsPane() {
     }
   }
   return (
-    <AgentPane status={connection.status}>
+    <>
       <SettingRow
         label={
-          account.kind === 'chatgpt'
-            ? (account.email ?? 'ChatGPT')
-            : account.kind === 'api-key'
-              ? t('apiKey')
-              : account.kind === 'external'
-                ? t('external')
-                : t('signedOut')
+          !ready
+            ? t('notConnected')
+            : account.kind === 'chatgpt'
+              ? (account.email ?? 'ChatGPT')
+              : account.kind === 'api-key'
+                ? t('apiKey')
+                : account.kind === 'external'
+                  ? t('external')
+                  : t('signedOut')
         }
         description={
-          account.kind === 'chatgpt' && account.plan
-            ? `${t('subscription')} · ${account.plan}`
-            : null
+          ready && account.kind === 'chatgpt' ? planText(account.plan, t('subscription')) : null
         }
       >
         <div className="owlto-settings-actions">
@@ -295,21 +296,17 @@ function CodexSettingsPane() {
               {t('cancelSignIn')}
             </Button>
           ) : null}
-          {connected && account.kind === 'signed-out' ? (
-            <Button size="sm" variant="outline" pending={signingIn} onClick={() => void signIn()}>
+          {ready && account.kind === 'signed-out' ? (
+            <Button size="sm" pending={signingIn} onClick={() => void signIn()}>
               {signingIn ? t('signingIn') : t('signIn')}
             </Button>
           ) : null}
-          <Button
-            size="sm"
-            variant={connected ? 'outline' : 'default'}
-            disabled={running}
-            pending={busy}
-            onClick={() => void connect()}
-          >
-            <RefreshIcon size={16} />
-            {busy ? t('importing') : t('useLocal')}
-          </Button>
+          <ConnectionButton
+            provider="codex"
+            status={connection.status}
+            running={running}
+            onConnect={() => void connect()}
+          />
         </div>
       </SettingRow>
       {connection.error || loginError ? (
@@ -318,20 +315,17 @@ function CodexSettingsPane() {
         </div>
       ) : null}
       <ExecutableRow
-        label={t('executable')}
-        body={t('executableBody')}
         path={connection.executablePath ?? settings.executablePath ?? t('autoDetect')}
         version={connection.version}
-        disabled={busy || running}
+        disabled={connection.status === 'connecting' || running}
         onBrowse={() => void selectExecutable()}
       />
-      <p className="owlto-note">{t('authPrivacy')}</p>
       <p className="owlto-note">
         {t('installHelp')}{' '}
         <a href="https://developers.openai.com/codex/cli" target="_blank" rel="noreferrer">
           {t('installLink')} <ExternalLinkIcon size={12} />
         </a>
       </p>
-    </AgentPane>
+    </>
   )
 }

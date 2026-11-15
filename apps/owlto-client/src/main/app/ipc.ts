@@ -4,6 +4,7 @@ import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shel
 import { z } from 'zod'
 import {
   type AppSettings,
+  providerSchema,
   type Reply,
   respondSchema,
   settingsUpdateSchema
@@ -93,6 +94,7 @@ export function registerIpc(
   handle('connect', () => host.connect())
   handle('connect-claude', () => host.connectClaude())
   handle('connect-cursor', () => host.connectCursor())
+  handle('disconnect-agent', (input) => host.disconnectAgent(providerSchema.parse(input)))
   handle('settings', (input) => {
     const previous = host.snapshot().settings
     const saved = host.saveSettings({ ...previous, ...settingsUpdateSchema.parse(input) })

@@ -278,6 +278,11 @@ export const settingsSchema = z.object({
    * dismissed, by path; added later. Saved only through `dismissWorkspaceFolder`.
    */
   workspaceDismissed: z.array(z.string()).catch([]).default([]),
+  /**
+   * Agents the user disconnected, which stay disconnected at startup until they
+   * connect again; added later. Saved only through connecting and disconnecting.
+   */
+  disconnectedAgents: z.array(providerSchema).catch([]).default([]),
   /** The app "Open in" uses; null picks the first installed editor. Added later. */
   openInApp: openInAppIdSchema.nullable().catch(null).default(null),
   /** The user's name and avatar; added later, and saved only through `saveProfile`. */
@@ -297,6 +302,7 @@ export const settingsUpdateSchema = settingsSchema
     cursorExecutablePath: true,
     workspacePath: true,
     workspaceDismissed: true,
+    disconnectedAgents: true,
     profile: true
   })
   .strict()
@@ -445,6 +451,8 @@ export interface OwltoAPI {
   selectClaudeExecutable(): Promise<Reply<ClaudeConnection | null>>
   connectCursor(): Promise<Reply<CursorConnection>>
   selectCursorExecutable(): Promise<Reply<CursorConnection | null>>
+  /** Disconnects one agent; it stays disconnected, across restarts, until connected again. */
+  disconnectAgent(provider: AgentProvider): Promise<Reply<AgentConnection>>
   signIn(): Promise<Reply<void>>
   cancelSignIn(): Promise<Reply<void>>
   saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<Reply<AppSettings>>

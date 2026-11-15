@@ -10,6 +10,9 @@ const buttonVariants = cva(
       variant: {
         default: 'bg-accent text-accent-foreground shadow-sm hover:bg-accent/90',
         destructive: 'bg-destructive text-white shadow-sm hover:bg-destructive/90',
+        /** A quieter destructive action, such as Disconnect: red text on the outline style. */
+        danger:
+          'border border-destructive/35 bg-card text-destructive shadow-sm hover:border-destructive/60 hover:bg-destructive/10',
         outline: 'border border-border bg-card shadow-sm hover:bg-card-muted hover:text-foreground',
         secondary: 'bg-card-muted text-foreground shadow-sm hover:bg-card-muted/80',
         ghost: 'hover:bg-card-muted hover:text-foreground',

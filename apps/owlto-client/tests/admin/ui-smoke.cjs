@@ -418,7 +418,7 @@ app
       await waitFor(() => host.snapshot().settings.appLogo === 'duo-night')
       await capture('settings')
       await agentTab('Codex')
-      await waitFor("document.body.textContent.includes('连接本机 Codex')")
+      await waitFor("document.body.textContent.includes('尚未安装 Codex')")
       await press('Escape')
       await waitFor("Boolean(document.querySelector('.router-chat'))")
 
@@ -1002,7 +1002,7 @@ app
       await evaluate("document.querySelector('.router-sidebar-settings').click()")
       await waitFor("Boolean(document.querySelector('.owlto-settings-content'))")
       await agentTab('Claude Code')
-      await waitFor("document.body.textContent.includes('连接本机 Claude Code')")
+      await waitFor("document.body.textContent.includes('断开连接')")
       assert.ok(await evaluate("document.body.textContent.includes('claude@example.com')"))
       await capture('claude-settings')
       console.log(

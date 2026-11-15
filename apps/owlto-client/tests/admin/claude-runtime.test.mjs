@@ -409,6 +409,25 @@ test('Claude service steers a message into the running turn', async () => {
   }
 })
 
+test('Claude service disconnects until connected again', async () => {
+  const project = realpathSync(mkdtempSync(join(tmpdir(), 'owlto-claude-disconnect-')))
+  const events = []
+  const service = new ClaudeService(memoryStore(project), (event) => events.push(event), fakeSdk())
+  try {
+    assert.equal((await service.connect()).status, 'ready')
+    const connection = service.disconnect()
+    assert.equal(connection.status, 'disconnected')
+    assert.deepEqual(connection.account, { kind: 'unknown' })
+    assert.deepEqual(connection.models, [])
+    assert.equal(connection.error, null)
+    assert.equal(events.at(-1).connection.status, 'disconnected')
+    assert.equal((await service.connect()).status, 'ready')
+  } finally {
+    service.close()
+    rmSync(project, { recursive: true, force: true })
+  }
+})
+
 test('Claude service lets a worker task stop, not be removed, while its worktree is prepared', async () => {
   const project = realpathSync(mkdtempSync(join(tmpdir(), 'owlto-claude-prepare-')))
   const sdk = fakeSdk()
