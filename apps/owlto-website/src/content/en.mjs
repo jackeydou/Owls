@@ -36,8 +36,7 @@ export default {
       cursor: 'Cursor owl'
     },
     hint: 'Psst: they are watching your cursor. Click one.',
-    auto: 'Auto',
-    say: 'sounds like “auto”.'
+    auto: 'Auto'
   },
   chaos: {
     kicker: 'The problem',

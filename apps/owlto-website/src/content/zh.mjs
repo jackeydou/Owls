@@ -36,8 +36,7 @@ export default {
       cursor: 'Cursor 猫头鹰'
     },
     hint: '它们在盯着你的鼠标。点一只试试。',
-    auto: 'Auto',
-    say: '读作“Auto”。'
+    auto: 'Auto'
   },
   chaos: {
     kicker: '问题在哪',

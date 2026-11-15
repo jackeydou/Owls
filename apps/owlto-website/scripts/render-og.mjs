@@ -34,8 +34,6 @@ const html = `<!doctype html>
   .brand { position: relative; margin-top: 34px; font: italic 900 46px/1 'Avenir Next Condensed'; }
   h1 { position: relative; margin-top: 8px; font: italic 900 118px/0.9 'Avenir Next Condensed'; letter-spacing: -3px; text-transform: uppercase; }
   mark { display: inline-block; padding: 0 22px 6px; background: #FFB000; border: 5px solid #151515; border-radius: 18px; box-shadow: 8px 8px 0 #151515; transform: rotate(-2deg); }
-  .say { position: relative; margin-top: 26px; font: 500 30px/1 'Avenir Next'; }
-  .say b { font-weight: 800; }
   .flock { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-end; justify-content: center; border-bottom: 10px solid #151515; }
   .flock div { margin: 0 -14px; }
   .flock svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -43,7 +41,6 @@ const html = `<!doctype html>
 <div class="orb"></div>
 <p class="brand">Owlto</p>
 <h1>${lineA} <mark>Owlto</mark><br>${lineB}</h1>
-<p class="say"><b>Owlto</b> /ˈɔːtoʊ/ ${en.hero.say}</p>
 <div class="flock">${flock
   .map(
     ([id, width], index) =>

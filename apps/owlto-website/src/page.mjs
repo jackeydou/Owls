@@ -200,13 +200,12 @@ function hero({ t }) {
       <span class="rise" style="--i:1">${esc(lineA)} <mark class="flip"><span class="flip-a">Owlto</span> <span class="flip-b">${esc(t.hero.auto)}</span></mark></span>
       <span class="rise" style="--i:2">${esc(lineB)}</span>
     </h1>
-    <p class="say rise" style="--i:3"><b>Owlto</b> <span>/ˈɔːtoʊ/</span> ${esc(t.hero.say)}</p>
-    <p class="hero-sub rise" style="--i:4">${esc(t.hero.sub)}</p>
-    <div class="hero-cta rise" style="--i:5">
+    <p class="hero-sub rise" style="--i:3">${esc(t.hero.sub)}</p>
+    <div class="hero-cta rise" style="--i:4">
       <a class="btn btn-lg" href="${DOWNLOAD_URL}" rel="noopener">${ICONS.apple}<span>${esc(t.hero.cta)}</span></a>
       <a class="btn btn-lg btn-ghost" href="#how"><span>${esc(t.hero.secondary)}</span>${ICONS.arrow}</a>
     </div>
-    <p class="hero-note rise" style="--i:6">${esc(t.hero.ctaNote)}</p>
+    <p class="hero-note rise" style="--i:5">${esc(t.hero.ctaNote)}</p>
   </div>
   <div class="flock" data-hoots="${esc(json(t.hero.hoots))}">
     ${flock

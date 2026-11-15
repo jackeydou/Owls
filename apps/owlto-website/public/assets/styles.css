@@ -880,32 +880,6 @@ pre {
   }
 }
 
-.say {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: center;
-  gap: 4px 10px;
-  margin-bottom: 14px;
-  padding: 5px 18px;
-  background: var(--card);
-  border: 2.5px dashed var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.say b {
-  color: var(--fg);
-  font: italic 900 1.3rem / 1 var(--display);
-}
-
-.say span {
-  color: var(--fg);
-  font-family: var(--mono);
-  font-size: 0.92rem;
-}
-
 /* Chaos: nine terminals in a loose 3x3 grid */
 .chaos-copy h2 {
   font-size: clamp(2.1rem, 4.7vw, 3.9rem);
