@@ -21,10 +21,11 @@ import { useTranslation } from 'react-i18next'
 import { Streamdown, type StreamdownProps } from 'streamdown'
 import type { AgentRequest, SessionItem } from '../../../shared/app'
 import { markdownLinkComponents } from './MarkdownLink'
+import { mermaidRenderer } from './MermaidDiagram'
 import { type AgentSpeaker, OwlAvatar } from './OwlAvatar'
 import { useAppStore } from './store'
 
-const plugins = { code }
+const plugins = { code, renderers: [mermaidRenderer] }
 /** How a caller extends assistant Markdown, such as the Router's worker references. */
 export type MarkdownExtension = Pick<
   StreamdownProps,

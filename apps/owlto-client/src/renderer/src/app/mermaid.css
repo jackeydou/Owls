@@ -1,0 +1,107 @@
+/* Mermaid diagrams drawn by Pele inside agent Markdown. Colors come from the app tokens,
+   so a theme switch recolors drawn diagrams without redrawing them. */
+.owlto-mermaid {
+  --pele-bg: transparent;
+  --pele-fg: var(--color-foreground);
+  --pele-fg-on-light: var(--color-owlto-light-foreground);
+  --pele-fg-on-dark: var(--color-owlto-dark-foreground);
+  --pele-muted: var(--color-muted-foreground);
+  --pele-line: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+  --pele-surface: var(--color-card);
+  --pele-surface-alt: color-mix(in srgb, var(--color-foreground) 4%, transparent);
+  --pele-border: var(--color-border-strong);
+  --pele-accent: var(--color-owlto-blue-400);
+  --pele-critical: var(--color-destructive);
+  --pele-error: var(--color-destructive);
+  --pele-radius: var(--owl-radius-sm);
+  --pele-zoom-top: 0.25rem;
+  --pele-zoom-right: 0.25rem;
+
+  position: relative;
+  margin: 0.65em 0 0.8em;
+  border-radius: var(--owl-radius-md);
+  background-color: rgb(247 247 247);
+  padding: 0.6rem 0.75rem 0.75rem;
+}
+
+html[data-theme="dark"] .owlto-mermaid {
+  --pele-surface: var(--color-owlto-gray-800);
+  --pele-surface-alt: rgb(255 255 255 / 0.04);
+  --pele-accent: var(--color-owlto-blue-300);
+  background-color: var(--color-card-muted);
+}
+
+.owlto-mermaid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 1.5rem;
+  color: color-mix(in srgb, var(--color-foreground) 46%, transparent);
+  font-size: var(--owl-text-xs);
+  letter-spacing: 0.01em;
+}
+
+.owlto-mermaid-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.owlto-mermaid-status {
+  color: color-mix(in srgb, var(--color-foreground) 36%, transparent);
+}
+
+.owlto-mermaid-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  color: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+}
+
+.owlto-mermaid-canvas {
+  margin-top: 0.5rem;
+  min-height: 2rem;
+  font-family: var(--font-sans);
+}
+
+.owlto-mermaid-canvas[hidden] {
+  display: none;
+}
+
+.owlto-mermaid-canvas svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.owlto-mermaid-source {
+  margin: 0.5rem 0 0;
+  overflow-x: auto;
+  padding: 0.3rem 0.15rem 0.1rem;
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.owlto-mermaid-error {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+
+.owlto-mermaid-error p {
+  margin: 0;
+}
+
+.owlto-mermaid-error pre {
+  margin: 0.35rem 0 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-2xs);
+  line-height: 1.5;
+  white-space: pre;
+}

@@ -1,0 +1,1 @@
+- Messages: Mermaid code blocks in Router, worker, and note Markdown now render as diagrams, with a code view, copy, and a code fallback when a diagram cannot be drawn.
