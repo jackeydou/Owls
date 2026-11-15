@@ -1,6 +1,17 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { CollapseAllIcon, ExpandAllIcon } from '@renderer/components/ui/icons'
-import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { DreamingOwl, OwlAvatar } from '../app/OwlAvatar'
 import { UserAvatar } from '../app/UserAvatar'
@@ -10,6 +21,70 @@ export type ThreadSpeaker = 'router' | 'user' | 'dreaming'
 
 /** A folded reply keeps this many lines; the toggle appears only past it. */
 const FOLDED_LINES = 4
+
+type TurnFold = {
+  folded: boolean
+  /** A row reports whether its reply runs past the folded height. */
+  setLong(rowId: string, long: boolean): void
+}
+const TurnFoldContext = createContext<TurnFold | null>(null)
+
+/**
+ * A run of rows by one speaker, under one avatar. When any reply in it is long, a fold toggle
+ * sits right under the avatar and folds every long reply in the turn.
+ */
+export function ThreadTurn({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
+  const turn = useRef<HTMLDivElement>(null)
+  const [longRows, setLongRows] = useState<ReadonlySet<string>>(new Set())
+  const [folded, setFolded] = useState(false)
+  const setLong = useCallback((rowId: string, long: boolean) => {
+    setLongRows((rows) => {
+      if (rows.has(rowId) === long) return rows
+      const next = new Set(rows)
+      if (long) next.add(rowId)
+      else next.delete(rowId)
+      return next
+    })
+  }, [])
+  const hasLong = longRows.size > 0
+  const isFolded = hasLong && folded
+  const fold = useMemo(() => ({ folded: isFolded, setLong }), [isFolded, setLong])
+  function toggle() {
+    setFolded(!isFolded)
+    if (isFolded) return
+    // Folding from deep inside a long turn would leave the view below it; bring its top back.
+    requestAnimationFrame(() => {
+      const el = turn.current
+      const scroller = el?.closest<HTMLElement>('.owlto-conversation-scroll')
+      if (el && scroller && el.getBoundingClientRect().top < scroller.getBoundingClientRect().top)
+        el.scrollIntoView({ block: 'start' })
+    })
+  }
+  return (
+    <TurnFoldContext.Provider value={fold}>
+      <div ref={turn} className="router-turn">
+        {children}
+        {hasLong ? (
+          // Pinned under the avatar, along the turn's avatar column, so it stays in view.
+          <div className="router-turn-rail">
+            <div className="router-row-tools" role="toolbar" aria-label={t('router.messageTools')}>
+              <IconButton
+                size="sm"
+                label={t(isFolded ? 'router.expandMessage' : 'router.collapseMessage')}
+                tooltip={t(isFolded ? 'router.expandMessage' : 'router.collapseMessage')}
+                tooltipSide="right"
+                aria-expanded={!isFolded}
+                icon={isFolded ? <ExpandAllIcon size={16} /> : <CollapseAllIcon size={16} />}
+                onClick={toggle}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </TurnFoldContext.Provider>
+  )
+}
 
 /** One line of the thread. `follows` hides the avatar under the same speaker's last row. */
 export function ThreadRow({
@@ -23,26 +98,21 @@ export function ThreadRow({
   follows?: boolean
   /** Lets the timeline find a row, e.g. to bring a just-sent message to the top. */
   entryId?: string
-  /** A reply that can fold to its first lines, with a toggle under the avatar. */
+  /** A reply that can fold to its first lines, by its turn's toggle under the avatar. */
   foldable?: boolean
   children: ReactNode
 }) {
-  const { t } = useTranslation()
   const row = useRef<HTMLDivElement>(null)
-  const long = useLongReply(row, foldable)
-  const [folded, setFolded] = useState(false)
-  const isFolded = long && folded
-  function toggle() {
-    setFolded(!isFolded)
-    if (isFolded) return
-    // Folding from deep inside a long reply would leave the view below it; bring its top back.
-    requestAnimationFrame(() => {
-      const el = row.current
-      const scroller = el?.closest<HTMLElement>('.owlto-conversation-scroll')
-      if (el && scroller && el.getBoundingClientRect().top < scroller.getBoundingClientRect().top)
-        el.scrollIntoView({ block: 'start' })
-    })
-  }
+  const fold = useContext(TurnFoldContext)
+  const long = useLongReply(row, foldable && fold !== null)
+  const rowId = useId()
+  const setLong = fold?.setLong
+  useEffect(() => {
+    if (!setLong) return
+    setLong(rowId, long)
+    return () => setLong(rowId, false)
+  }, [setLong, rowId, long])
+  const isFolded = long && Boolean(fold?.folded)
   return (
     <div
       ref={row}
@@ -59,20 +129,6 @@ export function ThreadRow({
             <UserAvatar />
           )}
         </div>
-        {long ? (
-          // Floats under the avatar on hover; one group so more row tools can join the toggle.
-          <div className="router-row-tools" role="toolbar" aria-label={t('router.messageTools')}>
-            <IconButton
-              size="sm"
-              label={t(isFolded ? 'router.expandMessage' : 'router.collapseMessage')}
-              tooltip={t(isFolded ? 'router.expandMessage' : 'router.collapseMessage')}
-              tooltipSide="right"
-              aria-expanded={!isFolded}
-              icon={isFolded ? <ExpandAllIcon size={16} /> : <CollapseAllIcon size={16} />}
-              onClick={toggle}
-            />
-          </div>
-        ) : null}
       </div>
       <div className="router-row-body">{children}</div>
     </div>

@@ -828,6 +828,7 @@ html.pane-resizing * {
 }
 /* A run of rows by one speaker, under one avatar. Its rows space themselves as above. */
 .router-turn {
+  position: relative;
   margin-top: 20px;
 }
 .router-turn:first-child {
@@ -977,7 +978,6 @@ html.pane-resizing * {
 .router-row .owlto-assistant-message {
   margin: 0;
 }
-/* The avatar column runs the row's full height, so the fold toggle can stay in view. */
 .router-row-side {
   display: flex;
   flex-direction: column;
@@ -988,15 +988,17 @@ html.pane-resizing * {
 .router-row.follows .router-row-avatar {
   display: none;
 }
-/* A turn's avatar column reads as one strip: each later row's column reaches up over the gap
-   above it, so moving from the avatar down to a row's tools never leaves the strip. */
-.router-turn > .router-row.follows > .router-row-side {
-  margin-top: -8px;
-  padding-top: 8px;
+/* The turn's tools hang right under its avatar, on a rail down the avatar column, so they are
+   tied to the avatar rather than to whichever row holds the long reply. The group sticks below
+   the view's top, so a long turn can be folded from anywhere along it. */
+.router-turn-rail {
+  position: absolute;
+  top: 28px;
+  bottom: 0;
+  left: 0;
+  width: 24px;
+  -webkit-app-region: no-drag;
 }
-/* Row tools float in the avatar column while any part of the turn's strip is hovered, the
-   avatar included, so the tools of a reply further down the turn show from its avatar. The
-   group sticks below the view's top, so a long reply can be folded from anywhere along it. */
 .router-row-tools {
   position: sticky;
   top: 8px;
@@ -1015,8 +1017,8 @@ html.pane-resizing * {
   transition: opacity 120ms ease;
   -webkit-app-region: no-drag;
 }
-.router-turn:has(> .router-row > .router-row-side:hover) .router-row-tools,
-.router-row-side:hover .router-row-tools,
+.router-turn:has(> .router-row:first-child > .router-row-side:hover) .router-row-tools,
+.router-turn-rail:hover .router-row-tools,
 .router-row-tools:focus-within {
   opacity: 1;
   pointer-events: auto;

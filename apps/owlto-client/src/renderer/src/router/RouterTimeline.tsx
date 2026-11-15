@@ -15,7 +15,7 @@ import { MessageAttachments } from './DraftAttachments'
 import { isSetupFailure } from './RouterSetup'
 import { SelectionActions } from './SelectionActions'
 import { useRouterStore } from './store'
-import { ThreadRow } from './ThreadRow'
+import { ThreadRow, ThreadTurn } from './ThreadRow'
 import { RouterIdContext, WorkerLink, workerMarkdown } from './WorkerLink'
 
 type Entry = { id: string; item: SessionItem } | { id: string; workerIds: string[] }
@@ -260,8 +260,8 @@ export function RouterTimeline({
             </div>
           ) : null}
           {turns.map((turn) => (
-            // One avatar leads the turn; hovering it shows the row tools of every row under it.
-            <div className="router-turn" key={turn[0].id}>
+            // One avatar leads the turn; its fold toggle sits right under it.
+            <ThreadTurn key={turn[0].id}>
               {turn.map((entry, index) => {
                 const speaker = speakerOf(entry)
                 const forward =
@@ -310,7 +310,7 @@ export function RouterTimeline({
                   </ThreadRow>
                 )
               })}
-            </div>
+            </ThreadTurn>
           ))}
           {router && running ? (
             <ThreadRow speaker="router" follows={lastEntrySpeaker === 'router'}>
