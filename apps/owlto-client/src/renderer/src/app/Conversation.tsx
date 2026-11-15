@@ -60,7 +60,7 @@ export function ConversationItem({
           <OwlAvatar speaker={speaker} />
           {agent}
         </div>
-        <div className="owlto-markdown">
+        <div className="owlto-markdown markdown-body">
           <Streamdown
             plugins={plugins}
             controls={false}

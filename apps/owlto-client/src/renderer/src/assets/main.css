@@ -1073,6 +1073,8 @@
 
   .markdown-body [data-streamdown="code-block"] {
     position: relative;
+    display: flex;
+    flex-direction: column;
     gap: 0;
     margin-top: 0.65em;
     margin-bottom: 0.8em;

@@ -109,6 +109,24 @@
   font-size: var(--owl-text-2xs);
   white-space: nowrap;
 }
+/* Streamdown wraps each table in two boxes whose Tailwind border utilities are generated
+   by the app's own classes. Unlayered here so they beat those utilities; the table draws
+   its own thin row lines (main.css). */
+.owlto-markdown [data-streamdown="table-wrapper"] {
+  display: block;
+  margin: 0.55em 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+.owlto-markdown [data-streamdown="table-wrapper"] > div:has(> [data-streamdown="table"]) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
 .owlto-markdown pre {
   font-size: var(--owl-text-sm);
   max-width: 100%;
