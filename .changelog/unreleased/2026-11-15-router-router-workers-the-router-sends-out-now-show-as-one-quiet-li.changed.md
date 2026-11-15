@@ -1,0 +1,1 @@
+- Router: workers the Router sends out now show as one quiet line each, with animated dots while running, instead of a bordered card. (#133)
