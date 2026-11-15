@@ -1,0 +1,1 @@
+- Messages: Markdown tables show thin row lines again, and code blocks put the language label above highlighted code.
