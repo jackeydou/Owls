@@ -1,5 +1,5 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { ChevronDownIcon } from '@renderer/components/ui/icons'
+import { CollapseAllIcon, ExpandAllIcon } from '@renderer/components/ui/icons'
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DreamingOwl, OwlAvatar } from '../app/OwlAvatar'
@@ -60,16 +60,18 @@ export function ThreadRow({
           )}
         </div>
         {long ? (
-          <IconButton
-            size="sm"
-            className="router-row-fold"
-            label={t(isFolded ? 'router.expandMessage' : 'router.collapseMessage')}
-            tooltip={t(isFolded ? 'router.expandMessage' : 'router.collapseMessage')}
-            tooltipSide="right"
-            aria-expanded={!isFolded}
-            icon={<ChevronDownIcon size={16} />}
-            onClick={toggle}
-          />
+          // Floats under the avatar on hover; one group so more row tools can join the toggle.
+          <div className="router-row-tools" role="toolbar" aria-label={t('router.messageTools')}>
+            <IconButton
+              size="sm"
+              label={t(isFolded ? 'router.expandMessage' : 'router.collapseMessage')}
+              tooltip={t(isFolded ? 'router.expandMessage' : 'router.collapseMessage')}
+              tooltipSide="right"
+              aria-expanded={!isFolded}
+              icon={isFolded ? <ExpandAllIcon size={16} /> : <CollapseAllIcon size={16} />}
+              onClick={toggle}
+            />
+          </div>
         ) : null}
       </div>
       <div className="router-row-body">{children}</div>

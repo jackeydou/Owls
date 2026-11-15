@@ -205,6 +205,17 @@ export const CircleXIcon = createIcon(
     <line x1="10.25" y1="5.75" x2="5.75" y2="10.25" />
   </g>
 )
+export const CollapseAllIcon = createIcon(
+  'CollapseAll',
+  'outline',
+  <g>
+    <line x1="2.75" y1="8" x2="13.25" y2="8" />
+    <line x1="8" y1="2" x2="8" y2="5.75" />
+    <path d="M6 3.75 L8 5.75 L10 3.75" />
+    <line x1="8" y1="14" x2="8" y2="10.25" />
+    <path d="M6 12.25 L8 10.25 L10 12.25" />
+  </g>
+)
 export const CopyIcon = createIcon(
   'Copy',
   'outline',
@@ -229,6 +240,17 @@ export const EllipsisIcon = createIcon(
     <circle cx="3.25" cy="8" r="0.825" fill="currentColor" stroke="none" />
     <circle cx="8" cy="8" r="0.825" fill="currentColor" stroke="none" />
     <circle cx="12.75" cy="8" r="0.825" fill="currentColor" stroke="none" />
+  </g>
+)
+export const ExpandAllIcon = createIcon(
+  'ExpandAll',
+  'outline',
+  <g>
+    <line x1="2.75" y1="8" x2="13.25" y2="8" />
+    <line x1="8" y1="5.75" x2="8" y2="2" />
+    <path d="M6 4 L8 2 L10 4" />
+    <line x1="8" y1="10.25" x2="8" y2="14" />
+    <path d="M6 12 L8 14 L10 12" />
   </g>
 )
 export const ExternalLinkIcon = createIcon(

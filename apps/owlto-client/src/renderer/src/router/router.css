@@ -975,24 +975,39 @@ html.pane-resizing * {
 .router-row.follows .router-row-avatar {
   display: none;
 }
-/* Sticks below the view's top while a long reply scrolls past, so folding is always in reach. */
-.router-row-fold.router-row-fold {
+/* Row tools float under the avatar while the avatar column is hovered. The group sticks below
+   the view's top, so a long reply can be folded from anywhere along it. */
+.router-row-tools {
   position: sticky;
   top: 8px;
-  width: 24px;
-  height: 24px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-card-elevated);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.06);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  -webkit-app-region: no-drag;
+}
+.router-row-side:hover .router-row-tools,
+.router-row-tools:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+.router-row-tools button {
+  width: 23px;
+  height: 23px;
   padding: 0;
   color: var(--color-muted-foreground);
 }
-.router-row-fold:hover {
+.router-row-tools button:hover {
   color: var(--color-foreground);
-}
-.router-row-fold svg {
-  transform: rotate(180deg);
-  transition: transform 160ms ease;
-}
-.router-row-fold[aria-expanded="false"] svg {
-  transform: none;
 }
 /* A folded reply shows its first four lines, fading out into the rest. */
 .router-row.folded .owlto-markdown {
