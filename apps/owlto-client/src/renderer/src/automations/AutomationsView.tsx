@@ -5,7 +5,6 @@ import {
   AutomationIcon,
   EllipsisIcon,
   ExternalLinkIcon,
-  GitPullRequestIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon
@@ -161,40 +160,6 @@ function Row({ automation }: { automation: Automation }) {
   )
 }
 
-/** The event trigger: GitHub changes on agent pull requests go to the worker that opened them. */
-function FollowUpsRow() {
-  const { t } = useTranslation()
-  const settings = useAppStore((s) => s.settings)
-  const saveSettings = useAppStore((s) => s.saveSettings)
-  const signedIn = useAppStore((s) => s.github.status === 'signed-in')
-  const on = settings.pullRequestFollowUps
-  return (
-    <ul className="automations-list">
-      <li className={`automations-row${on && signedIn ? '' : ' paused'}`}>
-        <span className="automations-glyph" aria-hidden>
-          <GitPullRequestIcon size={16} />
-        </span>
-        <div className="automations-main static">
-          <strong>{t('automations.followUps.title')}</strong>
-          <span className="automations-body-text">{t('automations.followUps.body')}</span>
-          {signedIn ? null : (
-            <span className="automations-meta">{t('automations.followUps.signedOut')}</span>
-          )}
-        </div>
-        <div className="automations-side">
-          <Switch
-            checked={on}
-            aria-label={t('automations.followUps.toggle')}
-            onCheckedChange={(value) =>
-              void saveSettings({ ...settings, pullRequestFollowUps: value })
-            }
-          />
-        </div>
-      </li>
-    </ul>
-  )
-}
-
 export function AutomationsView() {
   const { t } = useTranslation()
   const { automations, failed, editing, edit } = useAutomationsStore()
@@ -218,9 +183,6 @@ export function AutomationsView() {
         </div>
       </header>
       <div className="automations-body">
-        <h2 className="automations-heading">{t('automations.events')}</h2>
-        <FollowUpsRow />
-        <h2 className="automations-heading">{t('automations.scheduled')}</h2>
         {failed ? <p className="automations-note bad">{t('automations.failed')}</p> : null}
         {!automations ? (
           failed ? null : (

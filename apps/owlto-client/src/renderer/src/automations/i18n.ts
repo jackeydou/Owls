@@ -60,14 +60,7 @@ export const automationsEn = {
   'automations.every.weekly': 'Every {{weekday}} at {{time}}',
   'automations.every.monthly': 'Monthly on day {{day}} at {{time}}',
   'automations.runLabel': 'Automation · {{name}}',
-  'automations.githubLabel': 'GitHub activity on',
-  'automations.scheduled': 'Scheduled',
-  'automations.events': 'Events',
-  'automations.followUps.title': 'Pull request follow-ups',
-  'automations.followUps.body':
-    'When a pull request a worker opened gets failing checks, a change request, a merge conflict, or a new comment from a collaborator, Owlto sends it to that worker to handle. Merges and approvals are only noted in the thread. Checked every 2 minutes, at most 8 follow-ups per pull request a day.',
-  'automations.followUps.signedOut': 'Sign in to GitHub in Settings to use this.',
-  'automations.followUps.toggle': 'Turn on pull request follow-ups'
+  'automations.githubLabel': 'GitHub activity on'
 }
 
 export const automationsZh: Record<keyof typeof automationsEn, string> = {
@@ -131,12 +124,5 @@ export const automationsZh: Record<keyof typeof automationsEn, string> = {
   'automations.every.weekly': '每{{weekday}} {{time}}',
   'automations.every.monthly': '每月 {{day}} 号 {{time}}',
   'automations.runLabel': '自动任务 · {{name}}',
-  'automations.githubLabel': 'GitHub 动态',
-  'automations.scheduled': '定时',
-  'automations.events': '事件',
-  'automations.followUps.title': '跟进 Pull Request',
-  'automations.followUps.body':
-    'Worker 开的 PR 出现 CI 失败、要求修改、合并冲突或协作者的新评论时，交给这个 worker 接着处理。合并和批准只记在线程里。每 2 分钟检查一次，每个 PR 每天最多跟进 8 次。',
-  'automations.followUps.signedOut': '先在设置里登录 GitHub 才能使用。',
-  'automations.followUps.toggle': '开启 Pull Request 跟进'
+  'automations.githubLabel': 'GitHub 动态'
 }

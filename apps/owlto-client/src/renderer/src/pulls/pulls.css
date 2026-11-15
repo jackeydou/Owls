@@ -10,6 +10,20 @@
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
 }
+.pulls-follow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-end: 8px;
+  font-size: var(--owl-text-xs);
+}
+.pulls-follow-label {
+  cursor: default;
+}
+.pulls-follow-help {
+  max-width: 280px;
+  white-space: normal;
+}
 .pulls-body {
   flex: 1;
   min-height: 0;
