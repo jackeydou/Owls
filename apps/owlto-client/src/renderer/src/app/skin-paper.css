@@ -247,21 +247,20 @@ html[data-skin="paper"] .router-worker-link {
   box-shadow: inset 0 0 0 1.5px var(--paper-line);
 }
 
-/* Composers become chunky outlined cards. The thread editor has no box of its own, so its
-   card bleeds out by its own padding and border: the text stays exactly where it was. */
-html[data-skin="paper"] :is(.router-editor, .owlto-composer) {
+/* Composers: the worker and map composers become chunky outlined cards. The thread editor
+   stays the page itself, with no box, as in the standard skin. Every editor's caret is amber. */
+html[data-skin="paper"] .owlto-composer {
   border: var(--paper-border);
   border-radius: var(--owlto-composer-radius);
   background: var(--paper-card);
   box-shadow: var(--paper-shadow);
 }
-html[data-skin="paper"] .router-editor {
-  margin: -10px -14px;
-  padding: 8px 12px;
-}
-html[data-skin="paper"] :is(.router-editor, .owlto-composer):focus-within {
+html[data-skin="paper"] .owlto-composer:focus-within {
   border-color: var(--paper-line);
   box-shadow: var(--paper-shadow), var(--owl-field-focus-shadow);
+}
+html[data-skin="paper"] :is(.ProseMirror, textarea, input) {
+  caret-color: var(--paper-amber);
 }
 
 /* Markdown code. */
