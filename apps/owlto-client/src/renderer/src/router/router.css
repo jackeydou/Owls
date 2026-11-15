@@ -1115,16 +1115,22 @@ html[data-theme="dark"] .router-automation-run a {
 /* A row's actions (Copy, Forward, Save as note) stand in the gutter right of the text, so they
    cover none of it: a rail the row's height, holding one small toolbar that sticks below the
    view's top while a long reply scrolls by. The conversation's side padding holds the rail. */
+/* The rail starts flush with the text column and pads its toolbar out, so the pointer never
+   crosses a gap on its way over. Hiding waits a moment and keeps the rail hit-testable until it
+   fades, so a pointer that slips off the row on the way still reaches the toolbar. */
 .router-row .owlto-message-actions {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: calc(100% + 4px);
+  left: 100%;
   z-index: 1;
   margin: 0;
+  padding-left: 4px;
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms ease;
+  visibility: hidden;
+  transition:
+    opacity 120ms ease 250ms,
+    visibility 0s linear 370ms;
   -webkit-app-region: no-drag;
 }
 .router-row .owlto-message-actions-group,
@@ -1144,9 +1150,12 @@ html[data-theme="dark"] .router-automation-run a {
   flex-direction: column;
 }
 .router-row:hover .owlto-message-actions,
-.router-row .owlto-message-actions:focus-within {
+.router-row .owlto-message-actions:has(:focus-visible) {
   opacity: 1;
-  pointer-events: auto;
+  visibility: visible;
+  transition:
+    opacity 120ms ease,
+    visibility 0s;
 }
 .router-row .owlto-message-actions button,
 .owlto-selection-actions button {
