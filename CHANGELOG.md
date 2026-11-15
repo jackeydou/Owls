@@ -11,6 +11,20 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1500-beta.2
+
+### Highlights
+
+- Give each coding agent its own worker settings, and pick which agents and models each project uses, in order.
+
+### Changes
+
+- Coding agents: each connected agent has its own worker settings; projects can pick and order agents and models, and the Router sees connected agents and project choices. (#146)
+
+### Fixes
+
+- Router thread: the message actions beside a reply stay up while the pointer moves over to them, so they can be clicked. (#145)
+
 ## 2026.11.1500-beta.1
 
 ### Highlights
