@@ -7,6 +7,7 @@
   "scripts": {
     "build": "node build.mjs",
     "dev": "node build.mjs --serve",
-    "og": "node scripts/render-og.mjs"
+    "og": "node scripts/render-og.mjs",
+    "deploy:cf": "node build.mjs && pnpm dlx wrangler@4.162.0 deploy"
   }
 }

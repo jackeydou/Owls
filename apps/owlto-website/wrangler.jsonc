@@ -1,0 +1,15 @@
+// Cloudflare Workers static assets: serves dist/ as-is, with no Worker script.
+// Deploy with `pnpm --filter owlto-website deploy:cf` (builds first).
+{
+  "name": "owlto",
+  "compatibility_date": "2026-11-01",
+  // The public origin. Keep SITE_URL in src/site.mjs equal to it.
+  "routes": [{ "pattern": "owlto.dev", "custom_domain": true }],
+  // Also reachable at owlto.<account>.workers.dev; pages point their canonical at owlto.dev.
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}
