@@ -32,6 +32,7 @@ import type { AutomationDelivery, AutomationService } from '../automations/servi
 import {
   describeAutomation,
   routerAutomationTools,
+  type UpdateAutomationInput,
   workerAutomationTools
 } from '../automations/tools.js'
 import type { CapturedContent } from '../cards/service.js'
@@ -91,6 +92,14 @@ function titleOf(text: string): string {
   const line = text.split('\n').find((l) => l.trim()) ?? text
   return line.trim().replace(/\s+/g, ' ').slice(0, TITLE_LIMIT)
 }
+
+/** An update_automation call as a change to the stored automation. */
+const changeOf = (input: UpdateAutomationInput) => ({
+  name: input.name,
+  instructions: input.instructions,
+  schedule: input.schedule ? scheduleFromInput(input.schedule) : undefined,
+  enabled: input.enabled
+})
 
 /**
  * Global threads, each with its own Router: their conversations, the persisted
@@ -642,6 +651,11 @@ export class RouterService implements TurnProfiles {
       list: () => ({
         automations: automations.forThread(worker.routerId).map(describeAutomation)
       }),
+      update: (input) => ({
+        automation: describeAutomation(
+          automations.update(owned(input.automationId).id, changeOf(input))
+        )
+      }),
       remove: (id) => {
         automations.remove(owned(id).id)
         return { deleted: id }
@@ -685,6 +699,15 @@ export class RouterService implements TurnProfiles {
         }
       },
       list: () => ({ automations: automations.forThread(router.id).map(describeAutomation) }),
+      update: (input) => {
+        const found = automations.get(input.automationId)
+        if (!found || found.target.threadId !== router.id)
+          throw new RouterToolError(
+            'not_found',
+            `No automation ${input.automationId} in this thread.`
+          )
+        return { automation: describeAutomation(automations.update(found.id, changeOf(input))) }
+      },
       remove: (id) => {
         const found = automations.get(id)
         if (!found || found.target.threadId !== router.id)

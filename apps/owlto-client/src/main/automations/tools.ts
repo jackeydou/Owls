@@ -55,6 +55,31 @@ export const workerCreateAutomationInput = z
   })
   .strict()
 export const deleteAutomationInput = z.object({ automationId }).strict()
+export const updateAutomationInput = z
+  .object({
+    automationId,
+    name: name.optional(),
+    instructions: instructions
+      .optional()
+      .describe('The full new instructions, replacing the old ones. Leave out to keep them.'),
+    schedule: automationScheduleInput
+      .optional()
+      .describe('The new schedule. Leave out to keep it.'),
+    enabled: z
+      .boolean()
+      .optional()
+      .describe('false pauses the automation, true resumes it. Leave out to keep it as it is.')
+  })
+  .strict()
+  .refine(
+    (input) =>
+      input.name !== undefined ||
+      input.instructions !== undefined ||
+      input.schedule !== undefined ||
+      input.enabled !== undefined,
+    { message: 'Change at least one of name, instructions, schedule, or enabled.' }
+  )
+export type UpdateAutomationInput = z.infer<typeof updateAutomationInput>
 const listAutomationsInput = z.object({}).strict()
 export type RouterCreateAutomationInput = z.infer<typeof routerCreateAutomationInput>
 export type WorkerCreateAutomationInput = z.infer<typeof workerCreateAutomationInput>
@@ -80,6 +105,8 @@ export function describeAutomation(automation: Automation) {
 
 const CREATE_DESCRIPTION =
   "Create an automation: a task Owlto starts again on a schedule (hourly, daily, weekdays, weekly, or monthly, in the user's local time) while the app is open. Create one only when the user asks for recurring or later work, and tell them the schedule you chose. Runs missed while the app was closed run once at the next start."
+const UPDATE_DESCRIPTION =
+  "Change one of this thread's automations: its name, instructions, schedule, or whether it is paused. Fields you leave out stay as they are; who each run wakes cannot change. Use it when the user asks to change, pause, or resume recurring work instead of deleting and recreating it."
 const LIST_DESCRIPTION = "List this thread's automations with their schedule and next run."
 const DELETE_DESCRIPTION =
   "Delete one of this thread's automations. Use it when the user asks, or when the recurring work is clearly finished."
@@ -87,6 +114,7 @@ const DELETE_DESCRIPTION =
 export type AutomationToolHandlers<Create> = {
   create(input: Create): unknown
   list(): unknown
+  update(input: UpdateAutomationInput): unknown
   remove(automationId: string): unknown
 }
 
@@ -111,6 +139,13 @@ export function routerAutomationTools(
     ),
     defineTool('list_automations', 'List automations', LIST_DESCRIPTION, listAutomationsInput, () =>
       handlers.list()
+    ),
+    defineTool(
+      'update_automation',
+      'Update automation',
+      UPDATE_DESCRIPTION,
+      updateAutomationInput,
+      (input) => handlers.update(input)
     )
   ]
 }
@@ -129,6 +164,9 @@ export function workerAutomationTools(
     workerTool('delete_automation', DELETE_DESCRIPTION, deleteAutomationInput, (input) =>
       handlers.remove(input.automationId)
     ),
-    workerTool('list_automations', LIST_DESCRIPTION, listAutomationsInput, () => handlers.list())
+    workerTool('list_automations', LIST_DESCRIPTION, listAutomationsInput, () => handlers.list()),
+    workerTool('update_automation', UPDATE_DESCRIPTION, updateAutomationInput, (input) =>
+      handlers.update(input)
+    )
   ]
 }

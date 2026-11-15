@@ -46,6 +46,14 @@ export type AgentAutomation = {
  * them. A run that came due while the app was closed runs once at the next start,
  * then the schedule continues from that moment.
  */
+/** What an agent may change on an automation. */
+export type AutomationChange = {
+  name?: string
+  instructions?: string
+  schedule?: AutomationSchedule
+  enabled?: boolean
+}
+
 export class AutomationService {
   private readonly automations = new Map<string, Automation>()
   private readonly running = new Set<string>()
@@ -148,6 +156,32 @@ export class AutomationService {
       nextRunAt: nextAutomationRun(input.schedule, now).toISOString(),
       lastRun: null,
       createdAt: now.toISOString(),
+      updatedAt: now.toISOString()
+    })
+  }
+
+  /**
+   * Changes an automation for a Router or worker tool call. Fields left out keep
+   * their value; who a run wakes never changes. A new schedule or a resume picks
+   * the next run from now.
+   */
+  update(id: string, change: AutomationChange): Automation {
+    const automation = this.require(id)
+    const now = this.now()
+    const schedule = change.schedule ?? automation.schedule
+    const enabled = change.enabled ?? automation.enabled
+    const replan = change.schedule !== undefined || enabled !== automation.enabled
+    return this.write({
+      ...automation,
+      name: change.name ?? automation.name,
+      instructions: change.instructions ?? automation.instructions,
+      schedule,
+      enabled,
+      nextRunAt: !enabled
+        ? null
+        : replan
+          ? nextAutomationRun(schedule, now).toISOString()
+          : automation.nextRunAt,
       updatedAt: now.toISOString()
     })
   }

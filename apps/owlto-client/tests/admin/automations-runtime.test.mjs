@@ -278,6 +278,30 @@ test('the Router creates an automation whose run comes back to its thread', asyn
       .execute({})
   )
   assert.equal(list.automations.length, 1)
+  const update = tools().find((t) => t.name === 'update_automation')
+  const paused = JSON.parse(
+    await update.execute({
+      automationId: result.automation.automationId,
+      schedule: { frequency: 'daily', time: '18:30' },
+      enabled: false
+    })
+  )
+  assert.equal(paused.automation.schedule, 'daily at 18:30')
+  assert.equal(paused.automation.enabled, false)
+  assert.equal(paused.automation.nextRunAt, null)
+  assert.equal(paused.automation.name, 'PR check', 'fields left out stay as they were')
+  const resumed = JSON.parse(
+    await update.execute({ automationId: result.automation.automationId, enabled: true })
+  )
+  assert.ok(resumed.automation.nextRunAt, 'a resumed automation is scheduled again')
+  await assert.rejects(
+    update.execute({ automationId: result.automation.automationId }),
+    /arguments are invalid/
+  )
+  await assert.rejects(
+    update.execute({ automationId: 'au_missing', enabled: false }),
+    /No automation/
+  )
   const [automation] = automations.list()
   assert.deepEqual(automation.target, { kind: 'router', threadId: thread.id })
   assert.equal(automation.createdBy, 'router')
@@ -316,7 +340,7 @@ test('a worker schedules its own follow-up, and a user automation opens its own 
   const profile = router.profile(worker.sessionId)
   assert.deepEqual(
     profile.tools.map((t) => t.name),
-    ['create_automation', 'delete_automation', 'list_automations']
+    ['create_automation', 'delete_automation', 'list_automations', 'update_automation']
   )
   const created = profile.tools[0].call({
     name: 'Watch CI',
@@ -325,6 +349,12 @@ test('a worker schedules its own follow-up, and a user automation opens its own 
   })
   assert.equal(created.ok, true, created.text)
   assert.equal(JSON.parse(created.text).automation.wakes, `worker ${worker.id}`)
+  const renamed = profile.tools[3].call({
+    automationId: JSON.parse(created.text).automation.automationId,
+    name: 'Watch CI on #12'
+  })
+  assert.equal(renamed.ok, true, renamed.text)
+  assert.equal(JSON.parse(renamed.text).automation.wakes, `worker ${worker.id}`)
   const bad = profile.tools[0].call({ name: 'x' })
   assert.equal(bad.ok, false)
   assert.match(bad.text, /^Invalid create_automation input\./)
@@ -334,7 +364,10 @@ test('a worker schedules its own follow-up, and a user automation opens its own 
   const [automation] = automations.list()
   await automations.runNow(automation.id)
   await waitFor(() => fake.sent.length === 2, 'the follow-up turn')
-  assert.match(fake.sent[1].text, /Scheduled automation "Watch CI"[\s\S]*Check CI on the PR\./)
+  assert.match(
+    fake.sent[1].text,
+    /Scheduled automation "Watch CI on #12"[\s\S]*Check CI on the PR\./
+  )
   const quiet = store.allEvents().find((e) => e.kind === 'automation_run')
   assert.equal(quiet.workerId, worker.id, 'the Router only reads a run sent to a worker')
 
