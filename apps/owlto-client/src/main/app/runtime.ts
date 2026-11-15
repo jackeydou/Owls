@@ -1,5 +1,6 @@
 export { layoutSettingsSchema, settingsSchema } from '../../shared/app.js'
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
+export * as feedback from '../../shared/feedback.js'
 export { parseGitHubRepo, saveProjectSchema } from '../../shared/projects.js'
 export {
   countPullRequests,
@@ -30,6 +31,7 @@ export * as cursorNormalize from '../cursor/normalize.js'
 export { CursorService } from '../cursor/service.js'
 export { GitHubAuth } from '../github/auth.js'
 export { fetchGitHubAvatar } from '../github/avatar.js'
+export { FeedbackSender } from '../github/feedback.js'
 export {
   lookupPullRequest,
   lookupPullRequests,

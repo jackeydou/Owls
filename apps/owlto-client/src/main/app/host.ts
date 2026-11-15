@@ -25,6 +25,7 @@ import type {
   cardCaptureSchema,
   cardSaveSchema
 } from '../../shared/cards.js'
+import type { FeedbackDiagnostics, FeedbackInput, FeedbackResult } from '../../shared/feedback.js'
 import type { GitHubAccount, PullRequestOverview } from '../../shared/github.js'
 import type {
   MemoryCategoryAction,
@@ -62,6 +63,7 @@ import type { ClaudeService } from '../claude/service.js'
 import type { CodexService } from '../codex/service.js'
 import type { CursorService } from '../cursor/service.js'
 import type { GitHubAuth } from '../github/auth.js'
+import type { FeedbackSender } from '../github/feedback.js'
 import type { DreamingRunner } from '../memory/dreaming.js'
 import type { MemoryService } from '../memory/service.js'
 import type { MemorySweeper } from '../memory/sweep.js'
@@ -99,6 +101,7 @@ export class OwltoHost {
     auth: GitHubAuth
     workers: WorkerGitHub
     pullRequests: ProjectPullRequests
+    feedback: FeedbackSender
   } | null = null
   private memory: {
     service: MemoryService
@@ -363,6 +366,12 @@ export class OwltoHost {
   }
   pullRequests(): Promise<PullRequestOverview> {
     return this.requireGitHub().pullRequests.read()
+  }
+  feedbackDiagnostics(): FeedbackDiagnostics {
+    return this.requireGitHub().feedback.diagnostics()
+  }
+  sendFeedback(input: FeedbackInput): Promise<FeedbackResult> {
+    return this.requireGitHub().feedback.send(input)
   }
   memoryList(input: MemoryListRequest): MemoryView[] {
     return this.requireMemory().service.list(input)
