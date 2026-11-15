@@ -254,10 +254,10 @@ export const defaultLayoutSettings: LayoutSettings = {
   rightPanel: 'projects'
 }
 /**
- * The app's look: `standard`, or `paper`, the ink-and-paper style of the Owlto website.
+ * The app's look: `standard`, or `doodle`, the hand-drawn style of the Owlto website.
  * A skin changes only colors, borders, shadows, and fonts, never the layout.
  */
-export const skinSchema = z.enum(['standard', 'paper'])
+export const skinSchema = z.enum(['standard', 'doodle'])
 export type Skin = z.infer<typeof skinSchema>
 export const settingsSchema = z.object({
   executablePath: z.string().nullable(),
