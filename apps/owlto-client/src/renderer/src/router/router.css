@@ -27,6 +27,9 @@
   --owl-toggle-size: 28px;
   --owl-toggle-left: 10px;
   --owl-toggle-right: 10px;
+  --owl-toggle-gap: 4px;
+  /* The top-right buttons: Feedback, then the Projects toggle at the window's edge. */
+  --owl-right-toggles-width: calc(var(--owl-toggle-size) * 2 + var(--owl-toggle-gap));
 }
 /* Clears the window controls; desktop.ts centers them on the same bar height. */
 html[data-platform="darwin"] {
@@ -332,14 +335,14 @@ html[data-platform="darwin"] {
 .router-projects button {
   -webkit-app-region: no-drag;
 }
-/* The head clears the toggle, which sits over its right end, past the sidebar's 8px padding. */
+/* The head clears the toggles, which sit over its right end, past the sidebar's 8px padding. */
 .router-projects-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
   height: var(--owl-bar-height);
-  padding: 0 calc(var(--owl-toggle-right) + var(--owl-toggle-size) - 4px) 0 0;
+  padding: 0 calc(var(--owl-toggle-right) + var(--owl-right-toggles-width) - 4px) 0 0;
 }
 /* One icon per list the sidebar can show; the current one keeps the active background. */
 .router-right-tabs {
@@ -451,7 +454,7 @@ html.pane-resizing * {
 /* With the Projects sidebar closed, whatever reaches the window's right edge makes room for its
    toggle: the view's title bar, or the details panel's or card editor's head when one is open. */
 .router-stage.projects-hidden {
-  --owl-projects-toggle-room: calc(var(--owl-toggle-right) + var(--owl-toggle-size) + 8px);
+  --owl-projects-toggle-room: calc(var(--owl-toggle-right) + var(--owl-right-toggles-width) + 8px);
 }
 .router-stage.projects-hidden .owlto-topbar,
 .router-stage.projects-hidden .map-hud,

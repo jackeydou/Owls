@@ -1,0 +1,1 @@
+- Feedback: a title bar button opens a dialog that files bug reports, feedback, and feature requests as GitHub issues, posting as your connected GitHub account or through a prefilled page in the browser.

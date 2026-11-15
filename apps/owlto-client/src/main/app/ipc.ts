@@ -16,6 +16,7 @@ import {
   cardIdSchema,
   cardSaveSchema
 } from '../../shared/cards.js'
+import { feedbackInputSchema } from '../../shared/feedback.js'
 import { gitHubTokenSchema } from '../../shared/github.js'
 import {
   memoryCategoryActionSchema,
@@ -185,6 +186,8 @@ export function registerIpc(
     host.unwatchWorkerGitHub(workerActionSchema.parse(input))
   )
   handle('github-pull-requests', () => host.pullRequests())
+  handle('feedback-diagnostics', () => host.feedbackDiagnostics())
+  handle('feedback-send', (input) => host.sendFeedback(feedbackInputSchema.parse(input)))
   handle('agent-usage', (input) => host.usage(z.boolean().parse(input)))
   handle('usage-stats', (input) => host.usageStats(usageStatsRequestSchema.parse(input)))
   handle('memory-list', (input) => host.memoryList(memoryListSchema.parse(input)))

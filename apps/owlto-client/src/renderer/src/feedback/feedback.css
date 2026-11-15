@@ -1,0 +1,119 @@
+/* Sits left of the Projects toggle, on the same top bar line. */
+.owlto-feedback-toggle {
+  position: fixed;
+  z-index: 30;
+  top: calc((var(--owl-bar-height) - var(--owl-toggle-size)) / 2);
+  right: calc(var(--owl-toggle-right) + var(--owl-toggle-size) + var(--owl-toggle-gap));
+  width: var(--owl-toggle-size);
+  height: var(--owl-toggle-size);
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-foreground);
+  -webkit-app-region: no-drag;
+}
+.owlto-feedback {
+  width: min(520px, calc(100vw - 48px));
+}
+.owlto-feedback h2 {
+  margin-bottom: 6px;
+  font-size: var(--owl-text-lg);
+  font-weight: 600;
+}
+.owlto-feedback-lead {
+  margin-bottom: 14px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owlto-feedback-field {
+  display: block;
+  width: 100%;
+  padding: 7px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  background: transparent;
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+  outline: none;
+}
+.owlto-feedback-field + .owlto-feedback-field {
+  margin-top: 8px;
+}
+textarea.owlto-feedback-field {
+  min-height: 132px;
+  resize: vertical;
+}
+.owlto-feedback-field:focus-visible {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
+.owlto-feedback-diagnostics {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+}
+.owlto-feedback-diagnostics .owlto-switch {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.owlto-feedback-diagnostics label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--owl-text-sm);
+}
+.owlto-feedback-diagnostics small {
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.owlto-feedback-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--color-destructive);
+  font-size: var(--owl-text-sm);
+}
+.owlto-feedback footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+.owlto-feedback-identity {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.owlto-feedback-link {
+  color: var(--owl-link);
+}
+.owlto-feedback-link:hover {
+  color: var(--owl-link-hover);
+}
+.owlto-feedback-sent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+  text-align: center;
+}
+.owlto-feedback-sent > svg {
+  margin-bottom: 10px;
+  color: var(--color-muted-foreground);
+}
+.owlto-feedback-sent p {
+  max-width: 400px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owlto-feedback-sent footer {
+  justify-content: center;
+}

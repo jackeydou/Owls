@@ -15,6 +15,7 @@ import { CursorService } from '../cursor/service.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { GitHubAuth } from '../github/auth.js'
 import { fetchGitHubAvatar } from '../github/avatar.js'
+import { FeedbackSender } from '../github/feedback.js'
 import { DreamingRunner } from '../memory/dreaming.js'
 import { MemoryService } from '../memory/service.js'
 import { MemoryStore } from '../memory/store.js'
@@ -51,6 +52,13 @@ import { applyAppMenu, type MenuDeps } from './menu.js'
 import { UserProfile } from './profile.js'
 import { OwltoStore } from './store.js'
 import { realWorkspace } from './workspace-folders.js'
+
+/** How feedback names the operating system; `process.getSystemVersion()` adds the version. */
+const SYSTEM_NAMES: Partial<Record<NodeJS.Platform, string>> = {
+  darwin: 'macOS',
+  win32: 'Windows',
+  linux: 'Linux'
+}
 
 const profile = configureDevAppInstanceProfile()
 app.setName(profile ? `Owlto — ${profile.name}` : 'Owlto')
@@ -286,7 +294,18 @@ void app
       },
       github
     )
-    service.attachGitHub({ auth: github, workers: workerGitHub, pullRequests })
+    const feedback = new FeedbackSender({
+      token: () => github.token(),
+      invalidate: () => github.invalidate(),
+      diagnostics: () => ({
+        appVersion: app.getVersion(),
+        os: `${SYSTEM_NAMES[process.platform] ?? process.platform} ${process.getSystemVersion()}`,
+        arch: process.arch,
+        electron: process.versions.electron
+      }),
+      openUrl: (url) => shell.openExternal(url)
+    })
+    service.attachGitHub({ auth: github, workers: workerGitHub, pullRequests, feedback })
     void github.load()
     updater = new AppUpdater({
       savedChannel: () => store.settings().updateChannel,

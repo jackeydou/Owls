@@ -9,6 +9,7 @@ import {
   type CardSave,
   cardRefSchema
 } from './cards.js'
+import type { FeedbackDiagnostics, FeedbackInput, FeedbackResult } from './feedback.js'
 import type { GitHubAccount, PullRequestOverview, WorkerGitHubStatus } from './github.js'
 import {
   defaultMemorySettings,
@@ -521,6 +522,10 @@ export interface OwltoAPI {
   unwatchWorkerGitHub(input: WorkerAction): Promise<Reply<void>>
   /** Every pull request agents opened, per project, read from GitHub now. */
   pullRequests(): Promise<Reply<PullRequestOverview>>
+  /** The app and system facts feedback can attach, for the dialog's preview. */
+  feedbackDiagnostics(): Promise<Reply<FeedbackDiagnostics>>
+  /** Files feedback as a GitHub issue, as the user or through their browser. */
+  sendFeedback(input: FeedbackInput): Promise<Reply<FeedbackResult>>
   /** Each worker agent's plan usage; `refresh` skips the answer kept from the last minute. */
   agentUsage(refresh: boolean): Promise<Reply<UsageOverview>>
   /** Token usage recorded on this device over a range, for one agent or all, summed for the usage page. */

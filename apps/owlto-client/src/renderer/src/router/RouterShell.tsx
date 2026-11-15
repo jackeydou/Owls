@@ -9,6 +9,7 @@ import { useAppStore } from '../app/store'
 import { CaptureDialog, SendCardsDialog } from '../cards/CardDialogs'
 import { CardsView } from '../cards/CardsView'
 import { useCardsStore, watchCards } from '../cards/store'
+import { FeedbackButton } from '../feedback/FeedbackButton'
 import { watchDreaming } from '../memory/dreaming'
 import { PullRequestsView } from '../pulls/PullRequestsView'
 import { ForwardDialog } from './ForwardDialog'
@@ -178,6 +179,7 @@ export function RouterShell() {
         icon={<SidebarLeftIcon size={18} />}
         onClick={toggleSidebar}
       />
+      <FeedbackButton />
       <RightSidebarToggle />
       <ForwardDialog />
       <CaptureDialog />
