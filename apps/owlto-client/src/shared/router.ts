@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ATTACHMENT_LIMIT, attachmentSchema } from './attachments.js'
-import { ATTACHED_CARD_LIMIT, cardIdSchema } from './cards.js'
+import { ATTACHED_CARD_LIMIT, cardIdSchema, messageQuoteSchema } from './cards.js'
 import { ROUTER_INSTRUCTIONS_LIMIT } from './router-instructions.js'
 
 const permissionValues = ['read-only', 'workspace-write', 'full-access'] as const
@@ -211,7 +211,9 @@ export const forwardSchema = z.object({
     z.object({
       kind: z.literal('item'),
       routerId: z.string().uuid(),
-      itemId: z.string().min(1).max(200)
+      itemId: z.string().min(1).max(200),
+      /** Text the user selected in the message, sent in place of the whole message. */
+      quote: messageQuoteSchema.optional()
     }),
     z.object({
       kind: z.literal('worker'),

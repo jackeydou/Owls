@@ -136,6 +136,11 @@
   margin-top: 8px;
   opacity: 0.55;
 }
+.owlto-message-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
 .owlto-message-actions button {
   width: 23px;
   height: 23px;

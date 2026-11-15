@@ -75,16 +75,18 @@ export function ConversationItem({
         </div>
         {item.status !== 'running' && item.text ? (
           <div className="owlto-message-actions">
-            <IconButton
-              size="sm"
-              label={t(copied ? 'copied' : 'copy')}
-              tooltip={t(copied ? 'copied' : 'copy')}
-              icon={copied ? <CheckIcon size={15} /> : <CopyIcon size={15} />}
-              onClick={() => {
-                void navigator.clipboard.writeText(item.text).then(() => setCopied(true))
-              }}
-            />
-            {actions}
+            <div className="owlto-message-actions-group">
+              <IconButton
+                size="sm"
+                label={t(copied ? 'copied' : 'copy')}
+                tooltip={t(copied ? 'copied' : 'copy')}
+                icon={copied ? <CheckIcon size={15} /> : <CopyIcon size={15} />}
+                onClick={() => {
+                  void navigator.clipboard.writeText(item.text).then(() => setCopied(true))
+                }}
+              />
+              {actions}
+            </div>
           </div>
         ) : null}
       </article>

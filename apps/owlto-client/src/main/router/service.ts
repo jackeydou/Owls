@@ -393,7 +393,7 @@ export class RouterService implements TurnProfiles {
     if (input.kind === 'item') {
       const item = this.log(source).get(input.itemId)?.item
       if (!item?.text || !['user', 'assistant', 'forward'].includes(item.kind)) throw unavailable()
-      return { text: item.text, origin: { ...base, workerId: null, branch: null } }
+      return { text: input.quote ?? item.text, origin: { ...base, workerId: null, branch: null } }
     }
     const worker = this.pool.get(input.workerId)
     if (worker?.routerId !== source.id || !worker.report) throw unavailable()
