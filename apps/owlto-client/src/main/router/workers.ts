@@ -7,8 +7,10 @@ import type {
   Project,
   RespondRequest,
   SendMessage,
-  Session
+  Session,
+  TurnInput
 } from '../../shared/app.js'
+import type { Attachment } from '../../shared/attachments.js'
 import { defaultProjectSettings, type ProjectSettings } from '../../shared/projects.js'
 import type {
   RouterWorker,
@@ -88,6 +90,26 @@ export interface TurnProfiles {
 }
 
 /** The parts of the task host a Router needs to start and observe workers. */
+/** A follow-up for a worker: the Router's, or the user's own with any files. */
+export type WorkerMessage = MessageWorkerInput & { attachments?: Attachment[]; author?: 'user' }
+
+/** Adds a message to what a worker sends when its next turn starts. */
+function queueTurn(worker: RouterWorker, turn: TurnInput): void {
+  const fromUser = turn.author === 'user'
+  // Mixed with the Router's words, the queued message reads as the Router's.
+  worker.nextFromUser = worker.next === null ? fromUser : Boolean(worker.nextFromUser) && fromUser
+  if (turn.text) worker.next = worker.next ? `${worker.next}\n\n${turn.text}` : turn.text
+  else worker.next ??= ''
+  if (turn.attachments?.length)
+    worker.nextAttachments = [...(worker.nextAttachments ?? []), ...turn.attachments]
+}
+
+function clearQueue(worker: RouterWorker): void {
+  worker.next = null
+  delete worker.nextAttachments
+  delete worker.nextFromUser
+}
+
 export type WorkerHost = {
   projects(): Project[]
   /** The engine's working directory for a thread with no default project. */
@@ -101,7 +123,7 @@ export type WorkerHost = {
   /** Removes a stopped worker's session; the `removed` event does the rest. */
   remove(sessionId: string): void
   send(input: SendMessage): Promise<void>
-  steer(sessionId: string, text: string): Promise<'steered' | 'not_running'>
+  steer(sessionId: string, input: TurnInput): Promise<'steered' | 'not_running'>
   interrupt(sessionId: string): Promise<void>
   /** Answers a pending request; throws `request_unavailable` once it is no longer pending. */
   respond(input: RespondRequest): void
@@ -314,22 +336,26 @@ export class WorkerPool implements TurnProfiles {
    */
   async message(
     routerId: string,
-    input: MessageWorkerInput,
+    input: WorkerMessage,
     mode: WorkerMessageMode = 'steer'
   ): Promise<MessageWorkerResult> {
     const worker = this.owned(routerId, input.workerId)
-    const append = (text: string) => (worker.next ? `${worker.next}\n\n${text}` : text)
+    const turn: TurnInput = {
+      text: input.text,
+      ...(input.attachments?.length ? { attachments: input.attachments } : {}),
+      ...(input.author ? { author: input.author } : {})
+    }
     if (activeWorker(worker)) {
-      if (mode === 'steer' && (await this.host.steer(worker.sessionId, input.text)) === 'steered')
+      if (mode === 'steer' && (await this.host.steer(worker.sessionId, turn)) === 'steered')
         return { delivered: 'steered' }
       // The turn is ending; the message becomes the next turn once it settles.
       if (activeWorker(worker)) {
-        worker.next = append(input.text)
+        queueTurn(worker, turn)
         this.save(worker)
         return { delivered: 'queued' }
       }
     }
-    worker.next = append(input.text)
+    queueTurn(worker, turn)
     if (worker.status !== 'queued') worker.status = 'queued'
     this.save(worker)
     if (!this.canStart(worker)) return { delivered: 'queued' }
@@ -351,12 +377,12 @@ export class WorkerPool implements TurnProfiles {
     const worker = this.owned(routerId, workerId)
     if (worker.status === 'queued') {
       worker.status = worker.report ? 'idle' : 'stopped'
-      worker.next = null
+      clearQueue(worker)
       this.save(worker)
       if (by === 'user') this.inbox.add(routerId, this.event('worker_stopped', worker), false)
       return { status: 'cancelled' }
     }
-    worker.next = null
+    clearQueue(worker)
     if (!activeWorker(worker)) return { status: 'already_idle' }
     this.stopping.add(worker.id)
     await this.host.interrupt(worker.sessionId).catch(() => {})
@@ -723,11 +749,20 @@ export class WorkerPool implements TurnProfiles {
       // Removed while waiting.
       if (this.closed || this.status(worker) !== 'starting') return true
     }
-    const text = worker.next ?? worker.goal
-    worker.next = null
+    const attachments = worker.nextAttachments ?? []
+    // A message of files alone leaves `next` empty; the goal is only the first turn's text.
+    const text = worker.next ?? (attachments.length ? '' : worker.goal)
+    const author = worker.nextFromUser ? 'user' : undefined
+    clearQueue(worker)
     this.turnReports.delete(worker.id)
     try {
-      await this.host.send({ sessionId: worker.sessionId, commandId: crypto.randomUUID(), text })
+      await this.host.send({
+        sessionId: worker.sessionId,
+        commandId: crypto.randomUUID(),
+        text,
+        ...(attachments.length ? { attachments } : {}),
+        ...(author ? { author } : {})
+      })
     } catch {
       // The task service settles turns that got far enough to start.
       if (worker.status === 'starting') {

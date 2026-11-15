@@ -8,6 +8,7 @@ import {
   respondSchema,
   settingsUpdateSchema
 } from '../../shared/app.js'
+import { attachmentSchema, stageAttachmentSchema } from '../../shared/attachments.js'
 import {
   boardSaveSchema,
   cardCaptureSchema,
@@ -43,7 +44,7 @@ import { usageStatsRequestSchema } from '../../shared/usage-stats.js'
 import type { AppUpdater } from '../updates/updater.js'
 import { macAppIcon } from './app-icon.js'
 import { applyAppLogo } from './app-logo.js'
-import { toFailure } from './errors.js'
+import { OwltoError, toFailure } from './errors.js'
 import type { OwltoHost } from './host.js'
 import { nodeOpenInPlatform, OpenInApps } from './open-in.js'
 
@@ -106,6 +107,12 @@ export function registerIpc(
   handle('router-create', (input) => host.createThread(createThreadSchema.parse(input)))
   handle('router-items', (input) => host.threadItems(threadItemsSchema.parse(input)))
   handle('router-send', (input) => host.sendRouter(sendRouterSchema.parse(input)))
+  handle('attachment-stage', (input) => host.stageAttachment(stageAttachmentSchema.parse(input)))
+  handle('attachment-preview', (input) => host.attachmentPreview(attachmentSchema.parse(input)))
+  handle('attachment-open', async (input) => {
+    const failure = await shell.openPath(await host.attachmentPath(attachmentSchema.parse(input)))
+    if (failure) throw new OwltoError('native_error', 'The file could not be opened.')
+  })
   handle('router-forward', (input) => host.forward(forwardSchema.parse(input)))
   handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))
   handle('router-archive', (input) => host.archiveThread(archiveThreadSchema.parse(input)))

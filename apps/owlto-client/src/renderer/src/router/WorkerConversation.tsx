@@ -7,6 +7,7 @@ import { ConversationItem, RequestCard } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { OwlAvatar } from '../app/OwlAvatar'
 import { openRequests } from './activity'
+import { WorkerUserMessage } from './WorkerUserMessage'
 
 /** A worker's final message is its JSON report; this reads it back so it is never shown raw. */
 function itemReport(item: SessionItem): WorkerReport | null {
@@ -119,7 +120,12 @@ export function WorkerConversation({
   const after = settled && reportIndex >= 0 ? session.items.slice(reportIndex + 1) : []
   const folded = settled ? before.filter(isShown).length : 0
   const renderItem = (item: SessionItem) => {
-    if (item.kind === 'user') return <RouterMessage key={item.id} text={item.text} />
+    if (item.kind === 'user')
+      return item.author === 'user' ? (
+        <WorkerUserMessage key={item.id} item={item} />
+      ) : (
+        <RouterMessage key={item.id} text={item.text} />
+      )
     const report = itemReport(item)
     if (report)
       return (

@@ -11,6 +11,7 @@ import { MessageCards, SaveCardAction } from '../cards/CardActions'
 import { useDreaming, useDreamingStore, useDreamLocked } from '../memory/dreaming'
 import { runReason } from '../memory/SettingsMemory'
 import { DispatchGroup } from './DispatchGroup'
+import { MessageAttachments } from './DraftAttachments'
 import { isSetupFailure } from './RouterSetup'
 import { useRouterStore } from './store'
 import { ThreadRow } from './ThreadRow'
@@ -94,7 +95,8 @@ function DirectedMessage({ item }: { item: SessionItem }) {
           <WorkerLink worker={worker} />
         </div>
       ) : null}
-      <div className="owlto-user-message">{item.text}</div>
+      {item.attachments?.length ? <MessageAttachments attachments={item.attachments} /> : null}
+      {item.text ? <div className="owlto-user-message">{item.text}</div> : null}
     </>
   )
 }

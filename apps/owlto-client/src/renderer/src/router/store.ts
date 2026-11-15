@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Failure, Reply, Router, ThreadItem } from '../../../shared/app'
+import type { Attachment } from '../../../shared/attachments'
 import type { WorkerGitHubStatus } from '../../../shared/github'
 import type { OpenInApp, OpenWorkerIn } from '../../../shared/open-in'
 import type {
@@ -69,7 +70,13 @@ type State = {
   /** Lasts until the app restarts: the guide comes back while setup is incomplete. */
   guideSkipped: boolean
   skipGuide(): void
-  send(routerId: string, text: string, workerId?: string, cardIds?: string[]): Promise<boolean>
+  send(
+    routerId: string,
+    text: string,
+    workerId?: string,
+    cardIds?: string[],
+    attachments?: Attachment[]
+  ): Promise<boolean>
   interrupt(routerId: string): Promise<void>
   /** Resolves true once the thread is archived or back in the sidebar. */
   archive(routerId: string, archived: boolean): Promise<boolean>
@@ -230,7 +237,7 @@ export const useRouterStore = create<State>((set, get) => {
     },
     guideSkipped: false,
     skipGuide: () => set({ guideSkipped: true }),
-    send: async (routerId, text, workerId, cardIds = []) => {
+    send: async (routerId, text, workerId, cardIds = [], attachments = []) => {
       if (get().sending) return false
       set({ sending: true, error: null })
       try {
@@ -240,6 +247,7 @@ export const useRouterStore = create<State>((set, get) => {
             commandId: crypto.randomUUID(),
             text,
             cardIds,
+            attachments,
             ...(workerId ? { workerId } : {})
           })
         )

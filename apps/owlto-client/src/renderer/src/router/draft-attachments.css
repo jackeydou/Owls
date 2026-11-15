@@ -1,0 +1,125 @@
+/* Files a draft or a sent message carries: image thumbnails and file chips. */
+.draft-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 10px;
+}
+.draft-attachments > li {
+  position: relative;
+  display: flex;
+}
+.draft-attachment-body {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  max-width: 200px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-md);
+  background: var(--color-card-muted);
+  color: var(--color-foreground);
+  font-size: var(--owl-text-2xs);
+}
+.draft-attachments > li[data-kind="image"] .draft-attachment-body {
+  width: 48px;
+}
+.draft-attachments > li[data-kind="file"] .draft-attachment-body {
+  min-width: 140px;
+  padding: 0 12px 0 6px;
+  text-align: left;
+}
+.draft-attachment-body > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.draft-attachment-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-sidebar-active);
+  color: var(--color-muted-foreground);
+}
+.draft-attachment-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.25;
+}
+.draft-attachment-text > span,
+.draft-attachment-text > small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.draft-attachment-text > span {
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+}
+.draft-attachment-text > small {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+.draft-attachment-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--color-card) 70%, transparent);
+  color: var(--color-muted-foreground);
+}
+.draft-attachments > li[data-state="failed"] .draft-attachment-body {
+  border-color: var(--owl-bad);
+}
+.draft-attachments > li[data-state="failed"] .draft-attachment-overlay {
+  color: var(--owl-bad);
+}
+/* The remove button sits on the chip's corner, as in most chat inputs. */
+.draft-attachment-remove.draft-attachment-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  min-width: 0;
+  padding: 0;
+  background: var(--color-card-elevated);
+  color: var(--color-foreground);
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+.draft-attachments > li:hover .draft-attachment-remove,
+.draft-attachments > li:focus-within .draft-attachment-remove,
+.draft-attachments > li[data-state="failed"] .draft-attachment-remove {
+  opacity: 1;
+}
+/* A sent file opens on click; hover and press show it is a button. */
+.message-attachments {
+  justify-content: flex-end;
+  padding: 0;
+}
+.message-attachments button.draft-attachment-body {
+  cursor: pointer;
+  transition:
+    border-color 120ms ease-out,
+    transform 80ms ease-out;
+}
+.message-attachments button.draft-attachment-body:hover {
+  border-color: var(--color-muted-foreground);
+}
+.message-attachments button.draft-attachment-body:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .draft-attachment-remove.draft-attachment-remove,
+  .message-attachments button.draft-attachment-body {
+    transition: none;
+  }
+}

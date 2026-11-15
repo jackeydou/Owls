@@ -1,0 +1,1 @@
+- Workers: message a worker straight from its panel, with a Markdown input, pasted images, and attached files delivered to Claude Code, Codex, and Cursor.

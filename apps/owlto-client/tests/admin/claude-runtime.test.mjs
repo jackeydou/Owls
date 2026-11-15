@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { chmodSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { chmodSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -70,6 +70,7 @@ const toolResult = (id, content, isError) => ({
 function fakeSdk() {
   const calls = []
   const answers = []
+  const received = []
   const scripts = {
     async *hello() {
       const id = `m1-${calls.length}`
@@ -128,6 +129,10 @@ function fakeSdk() {
       await new Promise((resolve) => setTimeout(resolve, 100))
       yield { type: 'rate_limit_event' }
     },
+    async *attached() {
+      yield init
+      yield success
+    },
     async *steered(_options, _signal, control) {
       yield init
       const next = await control.next()
@@ -150,6 +155,7 @@ function fakeSdk() {
   return {
     calls,
     answers,
+    received,
     query({ prompt, options }) {
       calls.push(options)
       let interrupt
@@ -162,7 +168,9 @@ function fakeSdk() {
       const generator = (async function* () {
         const first = await iterator.next()
         if (first.done) return
-        yield* scripts[first.value.message.content](options, signal, control)
+        received.push(first.value.message)
+        const { content } = first.value.message
+        yield* scripts[typeof content === 'string' ? content : 'attached'](options, signal, control)
       })()
       return Object.assign(generator, {
         initializationResult: async () => ({
@@ -384,7 +392,7 @@ test('Claude service steers a message into the running turn', async () => {
     })
     const state = () => service.sessionList().find((s) => s.id === session.id)
     await service.send({ sessionId: session.id, commandId: crypto.randomUUID(), text: 'steered' })
-    assert.equal(service.steer(session.id, 'also this'), 'steered')
+    assert.equal(await service.steer(session.id, { text: 'also this' }), 'steered')
     await until(() => state().status === 'idle')
     assert.deepEqual(
       state().items.map((i) => [i.kind, i.text]),
@@ -394,7 +402,7 @@ test('Claude service steers a message into the running turn', async () => {
         ['assistant', 'heard: also this']
       ]
     )
-    assert.equal(service.steer(session.id, 'too late'), 'not_running')
+    assert.equal(await service.steer(session.id, { text: 'too late' }), 'not_running')
   } finally {
     service.close()
     rmSync(project, { recursive: true, force: true })
@@ -467,6 +475,59 @@ test('Claude service lets a worker task stop, not be removed, while its worktree
     await until(() => state().status === 'idle')
     assert.equal(state().items.at(-1).text, 'hello world')
     service.archive(session.id)
+  } finally {
+    service.close()
+    rmSync(project, { recursive: true, force: true })
+  }
+})
+
+test('Claude service sends images inline and other files as paths', async () => {
+  const project = realpathSync(mkdtempSync(join(tmpdir(), 'owlto-claude-files-')))
+  const sdk = fakeSdk()
+  const service = new ClaudeService(memoryStore(project), () => {}, sdk)
+  try {
+    await service.connect()
+    const session = service.createSession({
+      provider: 'claude-code',
+      cwd: project,
+      model: null,
+      effort: null,
+      permission: 'workspace-write'
+    })
+    const image = Buffer.from([0x89, 0x50, 0x4e, 0x47])
+    const shot = join(project, 'shot.png')
+    const notes = join(project, 'notes.txt')
+    writeFileSync(shot, image)
+    writeFileSync(notes, 'hello')
+    const attachments = [
+      { id: crypto.randomUUID(), name: 'shot.png', mimeType: 'image/png', size: 4, path: shot },
+      { id: crypto.randomUUID(), name: 'notes.txt', mimeType: 'text/plain', size: 5, path: notes }
+    ]
+    const state = () => service.sessionList().find((s) => s.id === session.id)
+    await service.send({
+      sessionId: session.id,
+      commandId: crypto.randomUUID(),
+      text: 'Look at these',
+      author: 'user',
+      attachments
+    })
+    await until(() => state().status === 'idle')
+    const [message] = sdk.received
+    assert.deepEqual(message.content[0], {
+      type: 'image',
+      source: { type: 'base64', media_type: 'image/png', data: image.toString('base64') }
+    })
+    assert.equal(
+      message.content[1].text,
+      `Look at these\n\nAttached files (open them from these paths):\n- ${notes}`
+    )
+    const item = state().items[0]
+    assert.equal(item.author, 'user')
+    assert.equal(item.text, 'Look at these')
+    assert.deepEqual(
+      item.attachments,
+      attachments.map(({ path: _path, ...rest }) => rest)
+    )
   } finally {
     service.close()
     rmSync(project, { recursive: true, force: true })

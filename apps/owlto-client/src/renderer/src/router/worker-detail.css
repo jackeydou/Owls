@@ -328,3 +328,80 @@
     transform: none;
   }
 }
+
+/* The conversation and its jump button share the space above the input. */
+.worker-body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+/* Writing to the worker: the shared composer, pinned under the conversation. */
+.worker-composer {
+  position: relative;
+  flex-shrink: 0;
+  padding: 0 16px 16px;
+}
+.worker-composer .owlto-composer {
+  min-width: 0;
+  margin: 0;
+  padding: 12px 12px 8px;
+  border-radius: var(--owl-radius-lg);
+}
+.worker-composer .owlto-composer .router-draft-input {
+  min-height: 44px;
+  max-height: 200px;
+  font-size: var(--owl-text-sm);
+}
+.owlto-app .worker-composer .router-draft-input:focus-visible {
+  outline: none;
+}
+.worker-composer .owlto-composer:focus-within {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
+.worker-composer .router-mentions {
+  bottom: calc(100% - 10px);
+  left: 16px;
+}
+.worker-composer .draft-attachments {
+  padding-top: 6px;
+}
+.worker-composer .router-draft-cards {
+  padding: 0 0 8px;
+}
+.worker-composer-attach {
+  color: var(--color-muted-foreground);
+}
+.worker-composer-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 4px 8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  line-height: var(--owl-leading-normal);
+}
+.worker-composer-note > .owlto-icon {
+  flex: none;
+  margin-top: 2px;
+}
+p.worker-composer-removed {
+  padding: 12px 20px 16px;
+  margin: 0;
+  border-top: 1px solid var(--color-border);
+}
+.worker-composer-error {
+  margin: 4px 2px 6px;
+  color: var(--owl-bad);
+  font-size: var(--owl-text-2xs);
+}
+/* The user's own message: their avatar and a bubble a shade apart from the Router's. */
+.worker-user-message .worker-user-avatar {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+}

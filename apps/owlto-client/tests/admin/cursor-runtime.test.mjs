@@ -217,7 +217,7 @@ test('Cursor service connects and runs a turn over ACP with approvals and stream
   const request = waiting.requests.find((r) => r.status === 'pending')
   assert.equal(request.kind, 'command')
   assert.equal(request.title, 'pnpm test')
-  assert.equal(service.steer(created.id, 'more'), 'not_running')
+  assert.equal(service.steer(created.id, { text: 'more' }), 'not_running')
   service.respond({ sessionId: created.id, requestId: request.id, decision: 'accept' })
 
   const settled = await until(() => profiles.settled[0], 'the turn to settle')

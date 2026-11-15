@@ -4,6 +4,7 @@ import { cardsEn, cardsZh } from '../cards/i18n'
 import { memoryEn, memoryZh } from '../memory/i18n'
 import { pullsEn, pullsZh } from '../pulls/i18n'
 import { routerEn, routerZh } from '../router/i18n'
+import { workerComposerEn, workerComposerZh } from '../router/i18n-worker-composer'
 import { updatesEn, updatesZh } from '../updates/i18n'
 import { usageEn, usageZh } from '../usage/i18n'
 import { usageStatsEn, usageStatsZh } from '../usage/stats-i18n'
@@ -376,7 +377,8 @@ void i18next.use(initReactI18next).init({
         ...usageEn,
         ...usageStatsEn,
         ...workspaceEn,
-        ...archivesEn
+        ...archivesEn,
+        ...workerComposerEn
       }
     },
     'zh-CN': {
@@ -393,7 +395,8 @@ void i18next.use(initReactI18next).init({
         ...usageZh,
         ...usageStatsZh,
         ...workspaceZh,
-        ...archivesZh
+        ...archivesZh,
+        ...workerComposerZh
       }
     }
   },
