@@ -172,10 +172,14 @@ export function AutomationsView() {
           <span>{t('automations.subtitle')}</span>
         </div>
         <div className="owlto-topbar-actions">
-          <Button size="sm" onClick={() => edit({ kind: 'new' })}>
-            <PlusIcon size={15} />
-            {t('automations.new')}
-          </Button>
+          <IconButton
+            size="sm"
+            label={t('automations.new')}
+            tooltip={t('automations.new')}
+            tooltipSide="bottom"
+            icon={<PlusIcon size={16} />}
+            onClick={() => edit({ kind: 'new' })}
+          />
         </div>
       </header>
       <div className="automations-body">
