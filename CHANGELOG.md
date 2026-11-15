@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1500-beta.1
+
+### Highlights
+
+- Schedule tasks from a new Automation page, and send pull request follow-ups back to the worker that opened the PR.
+- Fold a whole Router turn between two user messages.
+- Copy, forward, or save just the text you select in a message.
+
+### Changes
+
+- Automation: schedule tasks hourly, daily, on weekdays, weekly, or monthly from a new Automation page, and let the Router and workers create their own scheduled follow-ups. Failing checks, change requests, conflicts, and new comments on a pull request a worker opened now go back to that worker. (#143)
+- Router thread: folding now collapses everything the Router did between two user messages as one block, instead of a single long reply. (#142)
+
+### Fixes
+
+- Router thread: hovering the Router avatar shows the fold toggle, message actions sit right of the text instead of over it, and selecting text in a message shows Copy, Forward, and Save as note for just the selection. (#141)
+
 ## 2026.11.1400-beta.5
 
 ### Highlights
