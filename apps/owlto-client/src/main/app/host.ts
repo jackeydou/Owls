@@ -484,6 +484,9 @@ export class OwltoHost {
   boardRemove(id: string): void {
     this.requireCards().removeBoard(id)
   }
+  cardFilePath(id: string): string {
+    return this.requireCards().filePath(id)
+  }
   private requireCards(): CardService {
     if (!this.cards) throw new OwltoError('router_unavailable', 'Cards are not available.')
     return this.cards
@@ -619,6 +622,7 @@ export class OwltoHost {
     )
   }
   close(): void {
+    this.cards?.close()
     this.automations?.close()
     this.memory?.sweeper.close()
     this.memory?.triggers.close()

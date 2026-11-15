@@ -3,6 +3,7 @@ import {
   BoardIcon,
   EllipsisIcon,
   ExternalLinkIcon,
+  FolderOpenIcon,
   TrashIcon,
   XIcon
 } from '@renderer/components/ui/icons'
@@ -103,7 +104,7 @@ function CardMenu({ card }: { card: Card }) {
     Boolean(source && s.routers.some((r) => r.id === source.threadId))
   )
   const boards = useCardsStore((s) => s.boards)
-  const { place, remove } = useCardsStore()
+  const { place, remove, reveal } = useCardsStore()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const free = boards.filter((board) => !board.placements.some((p) => p.cardId === card.id))
   return (
@@ -129,6 +130,10 @@ function CardMenu({ card }: { card: Card }) {
             {t('cards.openSource')}
           </MenuItem>
         ) : null}
+        <MenuItem onSelect={() => void reveal(card.id)}>
+          <FolderOpenIcon size={14} />
+          {t('cards.reveal')}
+        </MenuItem>
         {free.length ? (
           <>
             <MenuSeparator />

@@ -209,6 +209,9 @@ export function registerIpc(
   handle('cards-remove', (input) => host.cardRemove(cardIdSchema.parse(input)))
   handle('cards-save-board', (input) => host.boardSave(boardSaveSchema.parse(input)))
   handle('cards-remove-board', (input) => host.boardRemove(cardIdSchema.parse(input)))
+  handle('cards-reveal', (input) => {
+    shell.showItemInFolder(host.cardFilePath(cardIdSchema.parse(input)))
+  })
   handle('automations-list', () => host.automationList())
   handle('automations-save', (input) => host.automationSave(automationSaveSchema.parse(input)))
   handle('automations-enable', (input) =>

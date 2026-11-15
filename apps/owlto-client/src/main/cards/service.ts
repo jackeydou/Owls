@@ -26,8 +26,9 @@ const missingCard = () => new OwltoError('request_unavailable', 'This note no lo
 const missingBoard = () => new OwltoError('request_unavailable', 'This board no longer exists.')
 
 /**
- * The user's knowledge cards and boards. Only the user writes them: agents read a
- * card only when the user attaches it to a message, as a frozen copy.
+ * The user's notes (cards internally) and boards. Notes are Markdown files; see
+ * `CardStore`. Agents read a note only when the user attaches it to a message,
+ * as a frozen copy.
  */
 export class CardService {
   constructor(
@@ -40,11 +41,34 @@ export class CardService {
       now?: () => Date
     }
   ) {}
+  private stopWatching: (() => void) | null = null
   private now(): string {
     return (this.deps.now?.() ?? new Date()).toISOString()
   }
+  /** Picks up notes added, edited, or deleted in the notes folder by other apps. */
+  watch(): void {
+    this.stopWatching ??= this.deps.store.watch(() => this.deps.changed())
+  }
+  close(): void {
+    this.stopWatching?.()
+    this.stopWatching = null
+  }
   library(): CardLibrary {
-    return { cards: this.deps.store.cards(), boards: this.deps.store.boards() }
+    const cards = this.deps.store.cards()
+    const live = new Set(cards.map((card) => card.id))
+    // A note deleted while the app was closed may still sit on a board.
+    const boards = this.deps.store.boards().map((board) => ({
+      ...board,
+      placements: board.placements.filter((p) => live.has(p.cardId))
+    }))
+    return { cards, boards }
+  }
+  /** Where a live note's Markdown file is, to show it in Finder. */
+  filePath(id: string): string {
+    this.liveCard(id)
+    const path = this.deps.store.filePath(id)
+    if (!path) throw missingCard()
+    return path
   }
   save(input: CardSaveInput): Card {
     const projectId = this.projectId(input.projectId)
@@ -83,7 +107,7 @@ export class CardService {
     return card
   }
   remove(id: string): void {
-    const card = this.liveCard(id)
+    this.liveCard(id)
     const now = this.now()
     const boards = this.deps.store
       .boards()
@@ -93,10 +117,7 @@ export class CardService {
         placements: board.placements.filter((p) => p.cardId !== id),
         updatedAt: now
       }))
-    this.deps.store.deleteCard(
-      { ...card, title: '', body: '', tags: [], source: null, status: 'deleted', updatedAt: now },
-      boards
-    )
+    this.deps.store.deleteCard(id, boards)
     this.deps.changed()
   }
   saveBoard(input: BoardSaveInput): Board {

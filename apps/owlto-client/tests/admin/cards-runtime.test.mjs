@@ -1,5 +1,15 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+  utimesSync,
+  writeFileSync
+} from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -22,14 +32,26 @@ function setup(t, content = () => assert.fail('no capture expected')) {
     rmSync(dir, { recursive: true, force: true })
   })
   let changes = 0
+  const notes = join(dir, 'notes')
+  const store = new CardStore(new OwltoStore(client, MIGRATIONS), notes, () => NOW)
   const service = new CardService({
-    store: new CardStore(new OwltoStore(client, MIGRATIONS)),
+    store,
     projects: () => PROJECTS,
     content,
     changed: () => changes++,
     now: () => NOW
   })
-  return { service, changes: () => changes }
+  return { service, store, notes, changes: () => changes }
+}
+const files = (notes) =>
+  readdirSync(notes)
+    .filter((name) => !name.startsWith('.'))
+    .sort()
+/** Writes a file as another app would, with a later modified time so a scan sees it. */
+function writeElsewhere(path, content) {
+  writeFileSync(path, content)
+  const later = new Date(Date.now() + 5_000)
+  utimesSync(path, later, later)
 }
 const add = (service, title, body = '', extra = {}) =>
   service.save({ action: 'add', title, body, tags: [], projectId: null, ...extra })
@@ -134,4 +156,119 @@ test('attaching freezes cards in order and refuses missing or oversized ones', (
   const big = add(service, 'Big', 'x'.repeat(16_000))
   const bigger = add(service, 'Bigger', 'y'.repeat(16_000))
   assert.throws(() => service.attach([big.id, bigger.id]), { code: 'invalid_request' })
+})
+
+test('each note is a Markdown file with YAML frontmatter, named after its title', (t) => {
+  const { service, notes } = setup(t)
+  const card = add(service, 'OAuth: refresh?', '# Plan\n\nRotate tokens.\n', {
+    tags: ['a', 'b'],
+    projectId: 'p1'
+  })
+  assert.deepEqual(files(notes), ['OAuth refresh.md'])
+  assert.equal(
+    readFileSync(join(notes, 'OAuth refresh.md'), 'utf8'),
+    [
+      '---',
+      `id: ${card.id}`,
+      'title: "OAuth: refresh?"',
+      'tags: [ a, b ]',
+      'project: p1',
+      `created: ${NOW.toISOString()}`,
+      `updated: ${NOW.toISOString()}`,
+      '---',
+      '# Plan',
+      '',
+      'Rotate tokens.',
+      ''
+    ].join('\n')
+  )
+  const same = add(service, 'OAuth refresh', '')
+  assert.deepEqual(files(notes), ['OAuth refresh 2.md', 'OAuth refresh.md'])
+  service.save({
+    action: 'update',
+    id: same.id,
+    title: 'Tokens',
+    body: 'x',
+    tags: [],
+    projectId: null
+  })
+  assert.deepEqual(files(notes), ['OAuth refresh.md', 'Tokens.md'])
+  service.remove(same.id)
+  assert.deepEqual(files(notes), ['OAuth refresh.md'])
+})
+
+test('edits, renames, copies, and deletions made outside the app are picked up', (t) => {
+  const { service, store, notes } = setup(t)
+  const card = add(service, 'Plan', 'v1')
+  const board = service.saveBoard({ action: 'add', name: 'B', projectId: null })
+  service.saveBoard({
+    action: 'place',
+    id: board.id,
+    placements: [{ cardId: card.id, x: 0, y: 0 }]
+  })
+  assert.equal(store.scan(), false, 'the app’s own writes are not outside changes')
+
+  const path = join(notes, 'Plan.md')
+  writeElsewhere(path, readFileSync(path, 'utf8').replace('v1', 'v2'))
+  assert.equal(store.scan(), true)
+  const edited = service.library().cards[0]
+  assert.equal(edited.body, 'v2')
+  assert.ok(edited.rev > card.rev)
+
+  renameSync(path, join(notes, 'My plan.md'))
+  store.scan()
+  assert.deepEqual(
+    service.library().cards.map((c) => [c.id, c.title]),
+    [[card.id, 'Plan']],
+    'a renamed file keeps its id'
+  )
+  service.save({
+    action: 'update',
+    id: card.id,
+    title: 'Plan',
+    body: 'v3',
+    tags: [],
+    projectId: null
+  })
+  assert.deepEqual(
+    files(notes),
+    ['My plan.md'],
+    'a name the user picked stays until the title changes'
+  )
+
+  writeElsewhere(join(notes, 'Copy.md'), readFileSync(join(notes, 'My plan.md'), 'utf8'))
+  writeElsewhere(join(notes, 'Idea.md'), 'Just a thought.\n')
+  store.scan()
+  const cards = service.library().cards
+  assert.equal(cards.length, 3)
+  assert.equal(new Set(cards.map((c) => c.id)).size, 3, 'a copied file gets its own id')
+  const idea = cards.find((c) => c.title === 'Idea')
+  assert.equal(idea.body, 'Just a thought.\n')
+  assert.match(readFileSync(join(notes, 'Idea.md'), 'utf8'), new RegExp(`^---\nid: ${idea.id}\n`))
+  assert.equal(cards.find((c) => c.id === card.id).body, 'v3', 'the original keeps its id')
+
+  unlinkSync(join(notes, 'My plan.md'))
+  assert.equal(store.scan(), true)
+  assert.ok(!service.library().cards.some((c) => c.id === card.id))
+  assert.deepEqual(service.library().boards[0].placements, [], 'a deleted file leaves every board')
+  assert.throws(() => service.attach([card.id]), { code: 'request_unavailable' })
+})
+
+test('the index is rebuilt from the files alone', (t) => {
+  const { service, notes } = setup(t)
+  const card = add(service, 'Kept', 'body', { tags: ['x'] })
+  const dir = mkdtempSync(join(tmpdir(), 'owlto-cards-index-'))
+  const client = openSqlite(join(dir, 'owlto.db'))
+  t.after(() => {
+    client.close()
+    rmSync(dir, { recursive: true, force: true })
+  })
+  const fresh = new CardStore(new OwltoStore(client, MIGRATIONS), notes)
+  const [read] = fresh.cards()
+  assert.deepEqual(
+    { ...read, rev: card.rev },
+    card,
+    'every field comes back from the Markdown file'
+  )
+  assert.ok(existsSync(join(notes, 'Kept.md')))
 })
