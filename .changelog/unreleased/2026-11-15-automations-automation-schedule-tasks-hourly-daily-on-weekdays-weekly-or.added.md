@@ -1,0 +1,1 @@
+- Automation: schedule tasks hourly, daily, on weekdays, weekly, or monthly from a new Automation page, and let the Router and workers create their own scheduled follow-ups. Failing checks, change requests, conflicts, and new comments on a pull request a worker opened now go back to that worker. (#143)

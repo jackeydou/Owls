@@ -10,6 +10,8 @@ import {
   RefreshIcon
 } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
+import { Switch } from '@renderer/components/ui/switch'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Project } from '../../../shared/app'
@@ -261,6 +263,30 @@ function Issues({ projects }: { projects: Project[] }) {
   )
 }
 
+/** The switch for sending GitHub changes on these pull requests back to their workers. */
+function FollowUpsSwitch() {
+  const { t } = useTranslation()
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
+  return (
+    <div className="pulls-follow">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="pulls-follow-label">{t('pulls.followUps')}</span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="pulls-follow-help">
+          {t('pulls.followUpsHelp')}
+        </TooltipContent>
+      </Tooltip>
+      <Switch
+        checked={settings.pullRequestFollowUps}
+        aria-label={t('pulls.followUpsToggle')}
+        onCheckedChange={(value) => void saveSettings({ ...settings, pullRequestFollowUps: value })}
+      />
+    </div>
+  )
+}
+
 export function PullRequestsView() {
   const { t } = useTranslation()
   const now = useMinuteClock()
@@ -287,6 +313,7 @@ export function PullRequestsView() {
           <span>{t('pulls.subtitle')}</span>
         </div>
         <div className="owlto-topbar-actions">
+          {signedOut ? null : <FollowUpsSwitch />}
           {overview?.kind === 'ready' ? (
             <span className="pulls-updated">
               {t('pulls.updatedAt', { time: relative(overview.fetchedAt, now) })}

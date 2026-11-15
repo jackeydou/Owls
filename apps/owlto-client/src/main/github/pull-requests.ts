@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import type { WorkerCheck, WorkerCheckState, WorkerPullRequest } from '../../shared/github.js'
+import type {
+  PullRequestActivity,
+  WorkerCheck,
+  WorkerCheckState,
+  WorkerPullRequest
+} from '../../shared/github.js'
 import type { GitHubHttp } from './auth.js'
 
 const GRAPHQL_URL = 'https://api.github.com/graphql'
@@ -7,6 +12,8 @@ const REQUEST_TIMEOUT_MS = 15_000
 /** The fields every pull request query reads, so one mapping serves them all. */
 const PULL_REQUEST_FIELDS = `number title url state isDraft isCrossRepository mergeable reviewDecision
   headRefName createdAt updatedAt
+  comments(last: 5) { nodes { id url body createdAt authorAssociation author { login __typename } } }
+  reviews(last: 5) { nodes { id url body state submittedAt authorAssociation author { login __typename } } }
   commits(last: 1) { nodes { commit { statusCheckRollup {
     state
     contexts(first: 100) { nodes {
@@ -64,6 +71,76 @@ const pullRequestSchema = z.object({
   })
 })
 type PullRequestNode = z.infer<typeof pullRequestSchema>
+const author = z.object({ login: z.string(), __typename: z.string().optional() }).nullable()
+const association = z.string().optional()
+/** Whether a comment's author can be trusted to steer a worker: a collaborator, or an installed app. */
+const trustedAuthor = (who: z.infer<typeof author>, role: string | undefined): boolean =>
+  who?.__typename === 'Bot' || role === 'OWNER' || role === 'MEMBER' || role === 'COLLABORATOR'
+const activitySchema = z.object({
+  comments: z
+    .object({
+      nodes: z.array(
+        z.object({
+          id: z.string(),
+          url: z.string(),
+          body: z.string(),
+          createdAt: z.string(),
+          authorAssociation: association,
+          author
+        })
+      )
+    })
+    .optional(),
+  reviews: z
+    .object({
+      nodes: z.array(
+        z.object({
+          id: z.string(),
+          url: z.string(),
+          body: z.string(),
+          state: z.string(),
+          submittedAt: z.string().nullable(),
+          authorAssociation: association,
+          author
+        })
+      )
+    })
+    .optional()
+})
+/** Recent comments and reviews, oldest first; read only for the listed pull requests. */
+function toActivity(raw: unknown): PullRequestActivity[] {
+  const parsed = activitySchema.safeParse(raw)
+  if (!parsed.success) return []
+  const comments = (parsed.data.comments?.nodes ?? []).map((c) => ({
+    id: c.id,
+    kind: 'comment' as const,
+    author: c.author?.login ?? null,
+    body: c.body,
+    url: c.url,
+    at: c.createdAt,
+    state: null,
+    trusted: trustedAuthor(c.author, c.authorAssociation)
+  }))
+  const reviews = (parsed.data.reviews?.nodes ?? []).flatMap((r) =>
+    r.submittedAt
+      ? [
+          {
+            id: r.id,
+            kind: 'review' as const,
+            author: r.author?.login ?? null,
+            body: r.body,
+            url: r.url,
+            at: r.submittedAt,
+            state: r.state,
+            trusted: trustedAuthor(r.author, r.authorAssociation)
+          }
+        ]
+      : []
+  )
+  return [...comments, ...reviews].sort(
+    (a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id)
+  )
+}
 const replySchema = z.object({
   data: z
     .object({
@@ -249,6 +326,7 @@ export type ListedPullRequest = WorkerPullRequest & {
   branch: string
   createdAt: string
   updatedAt: string
+  activity: PullRequestActivity[]
 }
 /** Aliases per request, which keeps one query well under GitHub's node limit. */
 const BATCH_SIZE = 50
@@ -277,12 +355,17 @@ const batchReplySchema = z.object({
     .optional()
 })
 
-function toListed(repository: GitHubRepository, node: PullRequestNode): ListedPullRequest {
+function toListed(
+  repository: GitHubRepository,
+  node: PullRequestNode,
+  raw: unknown
+): ListedPullRequest {
   return {
     ...toPullRequest(repository, node),
     branch: node.headRefName,
     createdAt: node.createdAt,
-    updatedAt: node.updatedAt
+    updatedAt: node.updatedAt,
+    activity: toActivity(raw)
   }
 }
 
@@ -328,13 +411,17 @@ export async function lookupPullRequests(
       throw new GitHubRequestError('unavailable')
     chunkBranches.forEach((branch, i) => {
       // A fork's branch can share this name, but it is not this worker's work.
-      const nodes = listedSchema.parse(found[`b${i}`]).nodes.filter((n) => !n.isCrossRepository)
-      const node = pickPullRequest(nodes)
-      if (node) byBranch.set(branch, toListed(repository, node))
+      const rawNodes = (found[`b${i}`] as { nodes?: unknown[] } | undefined)?.nodes ?? []
+      const nodes = listedSchema
+        .parse(found[`b${i}`])
+        .nodes.map((n, index) => ({ n, raw: rawNodes[index] }))
+        .filter(({ n }) => !n.isCrossRepository)
+      const picked = nodes.find(({ n }) => n.state === 'OPEN') ?? nodes[0]
+      if (picked) byBranch.set(branch, toListed(repository, picked.n, picked.raw))
     })
     chunkNumbers.forEach((number, i) => {
       const value = found[`n${i}`]
-      if (value) byNumber.set(number, toListed(repository, pullRequestSchema.parse(value)))
+      if (value) byNumber.set(number, toListed(repository, pullRequestSchema.parse(value), value))
     })
   }
   return { kind: 'found', byBranch, byNumber }

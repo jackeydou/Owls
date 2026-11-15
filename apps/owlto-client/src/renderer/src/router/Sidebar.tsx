@@ -1,4 +1,5 @@
 import {
+  AutomationIcon,
   CardsIcon,
   GaugeIcon,
   GitPullRequestIcon,
@@ -109,9 +110,11 @@ export function Sidebar() {
   const onMap = useAppStore((s) => s.view === 'map')
   const onCards = useAppStore((s) => s.view === 'cards')
   const onPulls = useAppStore((s) => s.view === 'pulls')
+  const onAutomations = useAppStore((s) => s.view === 'automations')
   const pullsVisible = useAppStore((s) => s.settings.pullRequestsVisible)
   const drafting = useAppStore((s) => s.view === 'chat' && s.threadId === null)
-  const { showMap, showCards, showPullRequests, showSettings, newThread } = useAppStore()
+  const { showMap, showCards, showPullRequests, showAutomations, showSettings, newThread } =
+    useAppStore()
   const routers = useRouterStore((s) => s.routers)
   // A thread exists once it has its first message; this hides one whose send failed.
   // Archived threads are listed in Settings instead.
@@ -153,6 +156,15 @@ export function Sidebar() {
         <CardsIcon size={17} />
         <span>{t('cards.title')}</span>
         <kbd>⌘ K</kbd>
+      </button>
+      <button
+        type="button"
+        className="router-sidebar-item router-sidebar-action"
+        aria-current={onAutomations || undefined}
+        onClick={showAutomations}
+      >
+        <AutomationIcon size={17} />
+        <span>{t('automations.title')}</span>
       </button>
       {pullsVisible ? (
         <button

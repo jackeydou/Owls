@@ -18,6 +18,7 @@ import type {
   TurnInput
 } from '../../shared/app.js'
 import type { Attachment, StageAttachment } from '../../shared/attachments.js'
+import type { Automation, AutomationEnable, AutomationSave } from '../../shared/automations.js'
 import type {
   Board,
   boardSaveSchema,
@@ -59,6 +60,8 @@ import { type UsageOverview, unavailableUsage } from '../../shared/usage.js'
 import type { UsageStats, UsageStatsRequest } from '../../shared/usage-stats.js'
 import { isInPlay } from '../../shared/worker-map.js'
 import { type WorkspaceListing, workerHome } from '../../shared/workspace.js'
+import type { PullRequestWatcher } from '../automations/pull-request-events.js'
+import type { AutomationService } from '../automations/service.js'
 import type { CardService } from '../cards/service.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { CodexService } from '../codex/service.js'
@@ -103,6 +106,8 @@ export class OwltoHost {
     workers: WorkerGitHub
     pullRequests: ProjectPullRequests
     feedback: FeedbackSender
+    /** Turns changes on agent pull requests into follow-ups. */
+    watcher: PullRequestWatcher
   } | null = null
   private memory: {
     service: MemoryService
@@ -111,6 +116,7 @@ export class OwltoHost {
     sweeper: MemorySweeper
   } | null = null
   private cards: CardService | null = null
+  private automations: AutomationService | null = null
   private profile: UserProfile | null = null
   private ledger: UsageLedger | null = null
   private readonly runtimes: Record<AgentProvider, AgentRuntime>
@@ -171,6 +177,32 @@ export class OwltoHost {
   }
   attachCards(cards: CardService): void {
     this.cards = cards
+  }
+  attachAutomations(automations: AutomationService): void {
+    this.automations = automations
+  }
+  automationList(): Automation[] {
+    return this.requireAutomations().list()
+  }
+  automationSave(input: AutomationSave): Automation {
+    const projectId = input.projectId
+    if (projectId && !this.codex.snapshot().projects.some((p) => p.id === projectId))
+      throw new OwltoError('project_required', 'This project no longer exists.')
+    return this.requireAutomations().save(input)
+  }
+  automationEnable(input: AutomationEnable): Automation {
+    return this.requireAutomations().setEnabled(input.id, input.enabled)
+  }
+  automationRemove(id: string): void {
+    this.requireAutomations().remove(id)
+  }
+  automationRun(id: string): Promise<Automation> {
+    return this.requireAutomations().runNow(id)
+  }
+  private requireAutomations(): AutomationService {
+    if (!this.automations)
+      throw new OwltoError('router_unavailable', 'Automations are not available.')
+    return this.automations
   }
   attachProfile(profile: UserProfile): void {
     this.profile = profile
@@ -586,9 +618,11 @@ export class OwltoHost {
     )
   }
   close(): void {
+    this.automations?.close()
     this.memory?.sweeper.close()
     this.memory?.triggers.close()
     this.memory?.dreaming.close()
+    this.github?.watcher.close()
     this.github?.workers.close()
     this.github?.auth.close()
     this.router?.close()

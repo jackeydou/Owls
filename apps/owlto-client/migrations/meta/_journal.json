@@ -29,6 +29,13 @@
       "when": 1794695716990,
       "tag": "0003_usage_worker_id",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1794728994946,
+      "tag": "0004_automations",
+      "breakpoints": true
     }
   ]
 }

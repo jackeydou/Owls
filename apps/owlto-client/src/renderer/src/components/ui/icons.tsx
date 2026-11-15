@@ -126,6 +126,15 @@ export const CardPlusIcon = createIcon(
     <line x1="5.5" y1="7.5" x2="9.5" y2="7.5" />
   </g>
 )
+/** The Automation page's clock; the user picked this glyph. */
+export const AutomationIcon = createIcon(
+  'Automation',
+  'outline',
+  <g>
+    <circle cx="8" cy="8" r="6" />
+    <path d="M8 3.75 L8 8 L9.375 10.382" />
+  </g>
+)
 export const CardsIcon = createIcon(
   'Cards',
   'outline',

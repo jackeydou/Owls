@@ -46,7 +46,11 @@ export const pullsEn = {
   'pulls.issue.unavailable': '{{project}}: Owlto could not reach GitHub.',
   'pulls.install': 'Install on GitHub',
   'pulls.setting': 'Pull requests page',
-  'pulls.settingHelp': 'Lists the pull requests your agents open in the sidebar.'
+  'pulls.settingHelp': 'Lists the pull requests your agents open in the sidebar.',
+  'pulls.followUps': 'Auto follow-up',
+  'pulls.followUpsHelp':
+    'When one of these pull requests gets failing checks, a change request, a merge conflict, or a new comment from a collaborator, Owlto sends it to the worker that opened it. Checked every 2 minutes while Owlto is open, at most 8 follow-ups per pull request a day.',
+  'pulls.followUpsToggle': 'Turn on auto follow-up for pull requests'
 }
 
 export const pullsZh: Record<keyof typeof pullsEn, string> = {
@@ -96,5 +100,9 @@ export const pullsZh: Record<keyof typeof pullsEn, string> = {
   'pulls.issue.unavailable': '{{project}}：Owlto 无法连接 GitHub。',
   'pulls.install': '在 GitHub 上安装',
   'pulls.setting': 'Pull requests 页面',
-  'pulls.settingHelp': '在侧栏列出 agent 开的 PR。'
+  'pulls.settingHelp': '在侧栏列出 agent 开的 PR。',
+  'pulls.followUps': '自动跟进',
+  'pulls.followUpsHelp':
+    '这些 PR 出现 CI 失败、要求修改、合并冲突或协作者的新评论时，交给开 PR 的 worker 接着处理。Owlto 开着时每 2 分钟检查一次，每个 PR 每天最多跟进 8 次。',
+  'pulls.followUpsToggle': '开启 PR 自动跟进'
 }

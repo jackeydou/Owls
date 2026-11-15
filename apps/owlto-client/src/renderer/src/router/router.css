@@ -760,6 +760,28 @@ html.pane-resizing * {
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
 }
+/* A scheduled run in a thread: a label over the message it sent. */
+.router-automation-run {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.router-automation-run a {
+  color: #0b57a3;
+  text-decoration: none;
+}
+html[data-theme="dark"] .router-automation-run a {
+  color: #7ab7ff;
+}
+.router-github-activity {
+  margin-top: 4px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+}
 .router-unknown-batch {
   align-items: center;
 }

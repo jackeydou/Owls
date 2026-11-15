@@ -36,6 +36,40 @@ export const inboxEventBodySchema = z.discriminatedUnion('kind', [
     /** The worker's branch when it still holds work the user's checkout does not have. */
     branch: z.string().nullable()
   }),
+  /**
+   * An automation came due. With `workerId`, Owlto already sent the instructions to
+   * that worker, so the Router only reads it, as it reads a message sent to a worker.
+   */
+  z.object({
+    kind: z.literal('automation_run'),
+    at: z.string(),
+    automationId: z.string(),
+    name: z.string(),
+    instructions: z.string(),
+    /** Who wrote the instructions. */
+    createdBy: z.enum(['user', 'router', 'worker']),
+    workerId: z.string().optional(),
+    /** Set when the automation's worker was removed, so the Router takes the run. */
+    missingWorkerId: z.string().optional()
+  }),
+  /**
+   * Something changed on a pull request a worker opened. `delivered` says who acts:
+   * `worker` means Owlto already sent it to that worker, `router` means the Router
+   * takes it (the worker is gone), `none` means it is only for the record.
+   */
+  z.object({
+    kind: z.literal('github_event'),
+    ...workerEvent,
+    pullRequest: z.object({
+      owner: z.string(),
+      name: z.string(),
+      number: z.number(),
+      url: z.string(),
+      title: z.string()
+    }),
+    events: z.array(z.object({ kind: z.string(), detail: z.string(), url: z.string().nullable() })),
+    delivered: z.enum(['worker', 'router', 'none'])
+  }),
   /** Content the user brought from another thread. Only `note` is the user's own words. */
   z.object({
     kind: z.literal('forwarded'),
@@ -58,7 +92,8 @@ export type InboxEvent = InboxEventBody & { seq: number }
 export const isQuietEvent = (event: InboxEventBody) =>
   event.kind === 'worker_waiting' ||
   event.kind === 'worker_progress' ||
-  (event.kind === 'user_message' && Boolean(event.workerId))
+  (event.kind === 'github_event' && event.delivered !== 'router') ||
+  ((event.kind === 'user_message' || event.kind === 'automation_run') && Boolean(event.workerId))
 /** `pending` events wait for a batch; the others are settled. */
 export type InboxStatus = 'pending' | 'batched' | 'superseded' | 'dropped'
 

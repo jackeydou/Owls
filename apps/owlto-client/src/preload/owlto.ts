@@ -102,6 +102,18 @@ const api: OwltoAPI = {
       return () => ipcRenderer.removeListener('owlto:cards-changed', handler)
     }
   },
+  automations: {
+    list: () => ipcRenderer.invoke('owlto:automations-list'),
+    save: (input) => ipcRenderer.invoke('owlto:automations-save', input),
+    setEnabled: (input) => ipcRenderer.invoke('owlto:automations-enable', input),
+    remove: (id) => ipcRenderer.invoke('owlto:automations-remove', id),
+    runNow: (id) => ipcRenderer.invoke('owlto:automations-run', id),
+    onChanged: (listener) => {
+      const handler = () => listener()
+      ipcRenderer.on('owlto:automations-changed', handler)
+      return () => ipcRenderer.removeListener('owlto:automations-changed', handler)
+    }
+  },
   updates: {
     snapshot: () => ipcRenderer.invoke('owlto:updates-snapshot'),
     check: () => ipcRenderer.invoke('owlto:updates-check'),

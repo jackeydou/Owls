@@ -100,12 +100,13 @@ type State = {
   error: Failure | null
   /**
    * `chat` and `map` are the same space at two distances; `cards` is the user's
-   * knowledge library and boards; `pulls` lists agents' pull requests; `settings`
+   * knowledge library and boards; `pulls` lists agents' pull requests; `automations` lists
+   * scheduled tasks; `settings`
    * replaces the whole window.
    */
-  view: 'chat' | 'map' | 'cards' | 'pulls' | 'settings'
+  view: 'chat' | 'map' | 'cards' | 'pulls' | 'automations' | 'settings'
   /** Where Settings returns to. */
-  lastView: 'chat' | 'map' | 'cards' | 'pulls'
+  lastView: 'chat' | 'map' | 'cards' | 'pulls' | 'automations'
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
   /** The agent tab open on the Agents page; survives leaving Settings like `settingsTab`. */
@@ -148,6 +149,8 @@ type State = {
   showMap(): void
   showCards(): void
   showPullRequests(): void
+  /** Lists the scheduled automations. */
+  showAutomations(): void
   focusProject(projectId: string | null): void
   clearError(): void
   /** Opens the folder picker. Resolves to the project's id, or null when canceled. */
@@ -282,6 +285,7 @@ export const useAppStore = create<State>((set, get) => {
       experiments: defaultExperimentsSettings,
       updateChannel: null,
       pullRequestsVisible: true,
+      pullRequestFollowUps: true,
       workspacePath: null,
       workspaceDismissed: [],
       disconnectedAgents: [],
@@ -480,6 +484,7 @@ export const useAppStore = create<State>((set, get) => {
     },
     showCards: () => set({ view: 'cards', error: null }),
     showPullRequests: () => set({ view: 'pulls', error: null }),
+    showAutomations: () => set({ view: 'automations', error: null }),
     focusProject: (projectId) => set({ routerProjectId: routerProject(projectId) }),
     clearError: () => set({ error: null }),
     pickProject: async () => {
@@ -602,6 +607,7 @@ export const useAppStore = create<State>((set, get) => {
           experiments: settings.experiments,
           updateChannel: settings.updateChannel,
           pullRequestsVisible: settings.pullRequestsVisible,
+          pullRequestFollowUps: settings.pullRequestFollowUps,
           openInApp: settings.openInApp
         })
       )

@@ -12,12 +12,19 @@ import {
   REPORT_TOOL_NAME,
   type ReportToolResult
 } from './report.js'
+import type { WorkerTool } from './worker-tools.js'
+
+/** What one worker session's MCP endpoint serves; null once the session has no worker. */
+export type WorkerToolset = {
+  report: { call(input: unknown): ReportToolResult }
+  tools: WorkerTool[]
+} | null
 
 const HOST = '127.0.0.1'
 const PATH = /^\/workers\/([0-9a-f]{48})\/mcp$/
 
 /**
- * A local Streamable HTTP MCP server that serves the worker report tool to
+ * A local Streamable HTTP MCP server that serves the worker tools to
  * agents that only take MCP servers by URL (Cursor over ACP). It listens on
  * loopback only, starts on first use, and each worker session gets its own
  * unguessable path, so a call always reports for the session it was given to.
@@ -30,7 +37,7 @@ export class WorkerReportServer {
   private readonly sessions = new Map<string, string>()
   private closed = false
 
-  constructor(private readonly call: (sessionId: string, input: unknown) => ReportToolResult) {}
+  constructor(private readonly toolset: (sessionId: string) => WorkerToolset) {}
 
   /** The MCP URL for one worker session; the same session keeps the same URL. */
   async endpoint(sessionId: string): Promise<string> {
@@ -95,14 +102,25 @@ export class WorkerReportServer {
           name: REPORT_TOOL_NAME,
           description: REPORT_TOOL_DESCRIPTION,
           inputSchema: REPORT_TOOL_INPUT_SCHEMA as { type: 'object' }
-        }
+        },
+        ...(this.toolset(sessionId)?.tools ?? []).map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema as { type: 'object' }
+        }))
       ]
     }))
     mcp.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const result =
-        request.params.name === REPORT_TOOL_NAME
-          ? this.call(sessionId, request.params.arguments ?? {})
-          : { ok: false, text: `Unknown tool ${request.params.name}.` }
+      const toolset = this.toolset(sessionId)
+      const input = request.params.arguments ?? {}
+      const other = toolset?.tools.find((tool) => tool.name === request.params.name)
+      const result: ReportToolResult = !toolset
+        ? { ok: false, text: 'Owlto takes tool calls only from a running worker.' }
+        : request.params.name === REPORT_TOOL_NAME
+          ? toolset.report.call(input)
+          : other
+            ? other.call(input)
+            : { ok: false, text: `Unknown tool ${request.params.name}.` }
       return { content: [{ type: 'text', text: result.text }], isError: !result.ok }
     })
     const transport = new StreamableHTTPServerTransport({

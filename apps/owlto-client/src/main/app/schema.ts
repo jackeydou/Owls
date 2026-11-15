@@ -8,6 +8,7 @@ import {
   uniqueIndex
 } from 'drizzle-orm/sqlite-core'
 import type { AppSettings, Project, Router, Session, SessionItem } from '../../shared/app.js'
+import type { Automation } from '../../shared/automations.js'
 import type { Board, Card } from '../../shared/cards.js'
 import type { Memory, MemoryCategory, MemoryRun } from '../../shared/memory.js'
 import type { RouterWorker } from '../../shared/router.js'
@@ -249,3 +250,9 @@ export const usageEventsTable = sqliteTable(
   },
   (table) => [index('usage_events_at').on(table.at)]
 )
+/** Scheduled automations. Local to this device, which is the one that runs them. */
+export const automationsTable = sqliteTable('automations', {
+  id: text('id').primaryKey(),
+  updatedAt: text('updated_at').notNull(),
+  value: text('value', { mode: 'json' }).$type<Automation>().notNull()
+})

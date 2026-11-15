@@ -50,6 +50,7 @@ import type {
   WorkerDispatch,
   WorkerMessageMode
 } from './worker-target.js'
+import type { WorkerTool } from './worker-tools.js'
 import type { WorkerWorkspaces, WorktreeRepo, WorktreeWorkspace } from './worktrees.js'
 
 /**
@@ -69,6 +70,8 @@ export type TurnProfile = {
   /** The final-message format, for a turn that cannot attach the report tool. */
   reportSchema: Record<string, unknown>
   report: ReportTool
+  /** Owlto's other worker tools, such as automations; served next to `report`. */
+  tools: WorkerTool[]
 }
 export type TurnOutcome = {
   status: 'completed' | 'failed' | 'interrupted'
@@ -181,7 +184,9 @@ export class WorkerPool implements TurnProfiles {
     private readonly inbox: WorkerInbox,
     private readonly emit: (worker: RouterWorker) => void,
     private readonly workspaces: WorkerWorkspaces,
-    private readonly reportEndpoint: (sessionId: string) => Promise<string>
+    private readonly reportEndpoint: (sessionId: string) => Promise<string>,
+    /** The tools besides `report` a worker gets in its turns. */
+    private readonly extraTools: (worker: RouterWorker) => WorkerTool[] = () => []
   ) {
     for (const worker of store.workers()) {
       this.workers.set(worker.id, worker)
@@ -531,7 +536,8 @@ export class WorkerPool implements TurnProfiles {
       report: {
         call: (input) => this.toolReport(sessionId, input),
         endpoint: () => this.reportEndpoint(sessionId)
-      }
+      },
+      tools: this.extraTools(worker)
     }
   }
 

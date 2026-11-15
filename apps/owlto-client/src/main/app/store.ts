@@ -59,6 +59,7 @@ export class OwltoStore {
           experiments: defaultExperimentsSettings,
           updateChannel: null,
           pullRequestsVisible: true,
+          pullRequestFollowUps: true,
           workspacePath: null,
           workspaceDismissed: [],
           disconnectedAgents: [],
