@@ -11,6 +11,22 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1400-beta.5
+
+### Highlights
+
+- Send feedback as a GitHub issue from the title bar.
+- Long Router replies fold to four lines.
+- Simpler Agents settings, with disconnect for connected agents.
+
+### Changes
+
+- Feedback: a title bar button opens a dialog that files bug reports, feedback, and feature requests as GitHub issues, posting as your connected GitHub account or through a prefilled page in the browser. (#138)
+- Router: long replies fold to their first four lines with a toggle under the Router avatar. (#137)
+- Agents settings: shorter copy; the account row's button shows the connection, and connected agents can be disconnected (they stay disconnected across restarts until connected again). (#139)
+
+### Fixes
+
 ## 2026.11.1400-beta.4
 
 ### Highlights
