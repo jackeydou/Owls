@@ -11,6 +11,21 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1500-beta.3
+
+### Highlights
+
+- Try the new Doodle style from the Owlto website, and pick the app logo from a compact picker.
+- Notes are now plain Markdown files you can open and edit in any app.
+
+### Changes
+
+- Appearance: new Doodle style matching the Owlto website, with light and dark modes. Switch it in Settings > Appearance. (#150)
+- Settings: the app logo row shows the chosen logo with a Change button that opens a picker. (#150)
+- Notes: each note is now a Markdown file with YAML frontmatter in ~/Owlto/Notes (or <data root>/notes), and edits made in other apps show up live. Notes saved before this change are not carried over. (#151)
+
+### Fixes
+
 ## 2026.11.1500-beta.2
 
 ### Highlights
