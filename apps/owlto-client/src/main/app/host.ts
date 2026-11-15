@@ -60,6 +60,7 @@ import { type UsageOverview, unavailableUsage } from '../../shared/usage.js'
 import type { UsageStats, UsageStatsRequest } from '../../shared/usage-stats.js'
 import { isInPlay } from '../../shared/worker-map.js'
 import { type WorkspaceListing, workerHome } from '../../shared/workspace.js'
+import type { PullRequestWatcher } from '../automations/pull-request-events.js'
 import type { AutomationService } from '../automations/service.js'
 import type { CardService } from '../cards/service.js'
 import type { ClaudeService } from '../claude/service.js'
@@ -105,6 +106,8 @@ export class OwltoHost {
     workers: WorkerGitHub
     pullRequests: ProjectPullRequests
     feedback: FeedbackSender
+    /** Turns changes on agent pull requests into follow-ups. */
+    watcher: PullRequestWatcher
   } | null = null
   private memory: {
     service: MemoryService
@@ -619,6 +622,7 @@ export class OwltoHost {
     this.memory?.sweeper.close()
     this.memory?.triggers.close()
     this.memory?.dreaming.close()
+    this.github?.watcher.close()
     this.github?.workers.close()
     this.github?.auth.close()
     this.router?.close()

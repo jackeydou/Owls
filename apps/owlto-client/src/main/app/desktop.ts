@@ -6,6 +6,7 @@ import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
 import type { UsageEntry } from '../../shared/usage-stats.js'
+import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
 import { AutomationStore } from '../automations/store.js'
 import { CardService } from '../cards/service.js'
@@ -43,6 +44,7 @@ import { ProjectPullRequests } from '../router/project-pull-requests.js'
 import { RouterService } from '../router/service.js'
 import { RouterStore } from '../router/store.js'
 import { WorkerGitHub } from '../router/worker-github.js'
+import { activeWorker } from '../router/workers.js'
 import { GitWorkspaces } from '../router/worktrees.js'
 import { AppUpdater } from '../updates/updater.js'
 import { UsageLedger } from '../usage/ledger.js'
@@ -320,7 +322,27 @@ void app
       }),
       openUrl: (url) => shell.openExternal(url)
     })
-    service.attachGitHub({ auth: github, workers: workerGitHub, pullRequests, feedback })
+    const watcher = new PullRequestWatcher({
+      read: () => pullRequests.read(),
+      enabled: () => store.settings().pullRequestFollowUps,
+      viewer: () => {
+        const account = github.account()
+        return account.status === 'signed-in' ? account.login : null
+      },
+      workerActive: (workerId) => {
+        const worker = router?.worker(workerId)
+        return worker ? activeWorker(worker) : false
+      },
+      deliver: (pr, events, followUp) =>
+        router?.pullRequestEvents(pr, events, followUp) ?? Promise.resolve()
+    })
+    service.attachGitHub({
+      auth: github,
+      workers: workerGitHub,
+      pullRequests,
+      feedback,
+      watcher
+    })
     void github.load()
     updater = new AppUpdater({
       savedChannel: () => store.settings().updateChannel,
@@ -355,7 +377,10 @@ void app
     updater.start()
     service.connectAtStartup()
     // After startup recovery, so a run missed while the app was closed reaches a ready Router.
-    void router.recovered.then(() => automations.start())
+    void router.recovered.then(() => {
+      automations.start()
+      watcher.start()
+    })
     app.on('activate', () => {
       if (!window) createWindow()
     })

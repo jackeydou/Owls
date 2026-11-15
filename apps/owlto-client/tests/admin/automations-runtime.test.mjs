@@ -353,6 +353,64 @@ test('a worker schedules its own follow-up, and a user automation opens its own 
   automations.close()
 })
 
+test('pull request changes go to the worker that opened it, or the Router once it is gone', async () => {
+  const { router, store, automations, runs, fake, tools } = app()
+  const thread = router.createThread({ projectId: null })
+  router.send({ routerId: thread.id, commandId: crypto.randomUUID(), text: 'hi' })
+  await waitFor(() => runs.length === 1, 'the first batch')
+  const { workerId } = JSON.parse(
+    await tools()
+      .find((t) => t.name === 'dispatch_task')
+      .execute({ goal: 'Open a PR' })
+  )
+  await waitFor(() => fake.sent.length === 1, 'the worker turn')
+  const worker = router.worker(workerId)
+  router.settled(worker.sessionId, { status: 'completed', structured: null, text: '' })
+  await waitFor(() => runs.length === 2, 'the batch for the worker report')
+  const pr = {
+    owner: 'acme',
+    name: 'app',
+    number: 7,
+    title: 'Fix login',
+    url: 'https://github.com/acme/app/pull/7',
+    workerId
+  }
+  const failed = [{ kind: 'checks_failed', detail: 'Failing checks: lint.', url: 'https://ci/1' }]
+
+  await router.pullRequestEvents(pr, failed, true)
+  await waitFor(() => fake.sent.length === 2, 'the follow-up turn')
+  assert.match(
+    fake.sent[1].text,
+    /GitHub activity on your pull request acme\/app#7[\s\S]*Failing checks: lint\. \(https:\/\/ci\/1\)/
+  )
+  const item = router.items(thread.id).find((e) => e.item.github)
+  assert.deepEqual(item.item.github, { url: pr.url, label: 'acme/app#7' })
+  assert.equal(item.item.workerId, workerId)
+  const quiet = store.allEvents().filter((e) => e.kind === 'github_event')
+  assert.equal(quiet.at(-1).delivered, 'worker')
+  assert.equal(runs.length, 2, 'the Router does not wake for a change its worker handles')
+
+  await router.pullRequestEvents(pr, [{ kind: 'merged', detail: 'Merged.', url: pr.url }], false)
+  assert.equal(
+    store
+      .allEvents()
+      .filter((e) => e.kind === 'github_event')
+      .at(-1).delivered,
+    'none'
+  )
+  assert.equal(fake.sent.length, 2)
+
+  router.settled(worker.sessionId, { status: 'completed', structured: null, text: '' })
+  router.observe({ type: 'removed', sessionId: worker.sessionId })
+  await router.pullRequestEvents(pr, failed, true)
+  const handed =
+    /github_event · w_[0-9a-f]+ · .* · acme\/app#7[\s\S]*was removed, so this comes to you/
+  await waitFor(() => runs.some((r) => handed.test(r.text)), 'the Router batch')
+  assert.equal(fake.sent.length, 2, 'a removed worker gets nothing')
+  router.close()
+  automations.close()
+})
+
 test('a batch renders an automation run for the Router', () => {
   const text = renderBatch('b_1', [
     {

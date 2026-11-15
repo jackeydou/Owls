@@ -4,6 +4,7 @@ import {
   AlertCircleIcon,
   AutomationIcon,
   ForwardIcon,
+  GitPullRequestIcon,
   LoaderIcon,
   StopIcon
 } from '@renderer/components/ui/icons'
@@ -119,6 +120,30 @@ function AutomationRun({ item }: { item: SessionItem }) {
         ) : null}
       </div>
       <div className="owlto-user-message">{item.text}</div>
+    </>
+  )
+}
+/** GitHub activity on a worker's pull request: the pull request, who acts, then what changed. */
+function GitHubActivity({ item }: { item: SessionItem }) {
+  const { t } = useTranslation()
+  const worker = useRouterStore((s) => s.workers.find((w) => w.id === item.workerId))
+  return (
+    <>
+      <div className="router-automation-run">
+        <GitPullRequestIcon size={14} />
+        <span>{t('automations.githubLabel')}</span>
+        <a href={item.github?.url} target="_blank" rel="noreferrer">
+          {item.github?.label}
+        </a>
+        {worker ? (
+          <>
+            <span>·</span>
+            <span>{t('router.directedTo')}</span>
+            <WorkerLink worker={worker} />
+          </>
+        ) : null}
+      </div>
+      <div className="router-github-activity">{item.text}</div>
     </>
   )
 }
@@ -315,6 +340,8 @@ export function RouterTimeline({
                       <ForwardedMessage item={entry.item} />
                     ) : entry.item.kind === 'user' && entry.item.automation ? (
                       <AutomationRun item={entry.item} />
+                    ) : entry.item.kind === 'user' && entry.item.github ? (
+                      <GitHubActivity item={entry.item} />
                     ) : entry.item.kind === 'user' && entry.item.workerId ? (
                       <DirectedMessage item={entry.item} />
                     ) : (

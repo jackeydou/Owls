@@ -17,6 +17,7 @@ export {
   WORKSPACE_ID,
   workerHome
 } from '../../shared/workspace.js'
+export { PullRequestWatcher, pullRequestChanges } from '../automations/pull-request-events.js'
 export { AutomationService } from '../automations/service.js'
 export { AutomationStore } from '../automations/store.js'
 export { CardService } from '../cards/service.js'

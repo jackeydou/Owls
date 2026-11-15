@@ -285,6 +285,7 @@ export const useAppStore = create<State>((set, get) => {
       experiments: defaultExperimentsSettings,
       updateChannel: null,
       pullRequestsVisible: true,
+      pullRequestFollowUps: true,
       workspacePath: null,
       workspaceDismissed: [],
       disconnectedAgents: [],
@@ -606,6 +607,7 @@ export const useAppStore = create<State>((set, get) => {
           experiments: settings.experiments,
           updateChannel: settings.updateChannel,
           pullRequestsVisible: settings.pullRequestsVisible,
+          pullRequestFollowUps: settings.pullRequestFollowUps,
           openInApp: settings.openInApp
         })
       )

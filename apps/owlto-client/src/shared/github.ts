@@ -54,12 +54,28 @@ export type WorkerGitHubStatus =
   | { kind: 'pull-request'; pullRequest: WorkerPullRequest }
   | { kind: 'failed'; reason: 'rate-limited' | 'unavailable' }
 
+/** A recent comment or submitted review on a pull request. */
+export type PullRequestActivity = {
+  id: string
+  kind: 'comment' | 'review'
+  /** Null for a deleted account. */
+  author: string | null
+  body: string
+  url: string
+  at: string
+  /** A review's state, such as CHANGES_REQUESTED; null on a comment. */
+  state: string | null
+  /** True for a repository collaborator or an installed app, whose words may reach a worker. */
+  trusted: boolean
+}
 /** A pull request an agent opened, and the worker whose work it carries. */
 export type AgentPullRequest = WorkerPullRequest & {
   workerId: string
   branch: string
   createdAt: string
   updatedAt: string
+  /** The latest comments and reviews, oldest first, for follow-ups. */
+  activity: PullRequestActivity[]
 }
 /** One project's agent pull requests, or why they cannot be read. */
 export type ProjectPullRequestsStatus =

@@ -1,7 +1,7 @@
 import type { ProjectInstructions } from '../../shared/projects.js'
 
 /** Bumped whenever the Router or Worker instructions change; recorded on each batch. */
-export const ROUTER_PROMPT_VERSION = 14
+export const ROUTER_PROMPT_VERSION = 15
 
 export const WORKER_INSTRUCTIONS = `You are running as a worker for the Owlto Router. Work only on the task you were given. Report to the Router with the Owlto report tool: call it once when you finish, with status "done" when the task is complete, "blocked" when you cannot continue, or "needs_input" when the user must decide something. On a long task you may also call it with status "progress" to say how far you are; that does not end your turn. Write the summary for the coordinator, in at most a few sentences, about this task only. After the final report, end your turn with a short message for the user. If you have no Owlto report tool, make your final message the report instead: only a JSON object with the fields status, summary, and artifacts.`
 

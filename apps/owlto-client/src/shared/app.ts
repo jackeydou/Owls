@@ -136,6 +136,8 @@ export const itemSchema = z.object({
   cards: z.array(cardRefSchema).optional(),
   /** On a `user` item: the automation whose scheduled run it is. */
   automation: z.object({ id: z.string(), name: z.string() }).optional(),
+  /** On a `user` item: the pull request whose GitHub activity it carries. */
+  github: z.object({ url: z.string(), label: z.string() }).optional(),
   /** On a `user` item: the files the message carried. */
   attachments: z.array(attachmentSchema).optional(),
   /**
@@ -272,6 +274,11 @@ export const settingsSchema = z.object({
   updateChannel: updateChannelSchema.nullable().default(null),
   /** Shows the Pull requests page in the sidebar; added later, so older rows show it. */
   pullRequestsVisible: z.boolean().default(true),
+  /**
+   * Sends GitHub events on an agent's pull request (failing CI, requested changes,
+   * new comments) to the worker that opened it; added later, so older rows have it on.
+   */
+  pullRequestFollowUps: z.boolean().catch(true).default(true),
   /**
    * Where workers run tasks that belong to no project. Null uses the default,
    * `~/Owlto/Workspace`; added later, so older rows get it.
