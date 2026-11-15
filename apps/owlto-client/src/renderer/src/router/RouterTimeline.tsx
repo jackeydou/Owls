@@ -1,7 +1,7 @@
 import { ActionButton, ActionIconButton } from '@renderer/components/ui/action-button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { AlertCircleIcon, ForwardIcon, LoaderIcon, StopIcon } from '@renderer/components/ui/icons'
-import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router, SessionItem } from '../../../shared/app'
 import { ConversationItem } from '../app/Conversation'
@@ -13,6 +13,7 @@ import { runReason } from '../memory/SettingsMemory'
 import { DispatchGroup } from './DispatchGroup'
 import { MessageAttachments } from './DraftAttachments'
 import { isSetupFailure } from './RouterSetup'
+import { SelectionActions } from './SelectionActions'
 import { useRouterStore } from './store'
 import { ThreadRow } from './ThreadRow'
 import { RouterIdContext, WorkerLink, workerMarkdown } from './WorkerLink'
@@ -31,6 +32,16 @@ function entriesOf(items: SessionItem[]): Entry[] {
     else entries.push({ id: item.id, workerIds: [item.workerId] })
   }
   return entries
+}
+/** Runs of entries by the same speaker; a turn shows one avatar for all its rows. */
+function turnsOf(entries: Entry[]): Entry[][] {
+  const turns: Entry[][] = []
+  for (const entry of entries) {
+    const turn = turns.at(-1)
+    if (turn && speakerOf(turn[0]) === speakerOf(entry)) turn.push(entry)
+    else turns.push([entry])
+  }
+  return turns
 }
 const speakerOf = (entry: Entry) =>
   'item' in entry && (entry.item.kind === 'user' || entry.item.kind === 'forward')
@@ -148,6 +159,14 @@ export function RouterTimeline({
     () => entriesOf((threadItems ?? []).map((entry) => entry.item)),
     [threadItems]
   )
+  const turns = useMemo(() => turnsOf(entries), [entries])
+  const itemOf = useCallback(
+    (entryId: string) => {
+      const entry = entries.find((e) => e.id === entryId)
+      return entry && 'item' in entry && canForward(entry.item) ? entry.item : null
+    },
+    [entries]
+  )
   const scroll = useRef<HTMLDivElement>(null)
   const content = useRef<HTMLDivElement>(null)
   const spacer = useRef<HTMLDivElement>(null)
@@ -240,53 +259,59 @@ export function RouterTimeline({
               {t('thread.loading')}
             </div>
           ) : null}
-          {entries.map((entry, index) => {
-            const speaker = speakerOf(entry)
-            const previous = entries[index - 1]
-            const forward =
-              router && 'item' in entry && canForward(entry.item) ? (
-                <>
-                  <ForwardAction item={entry.item} router={router} />
-                  <SaveCardAction
-                    source={{ kind: 'item', routerId: router.id, itemId: entry.item.id }}
-                    text={entry.item.text}
-                    projectId={router.projectId}
-                  />
-                </>
-              ) : null
-            return (
-              <ThreadRow
-                key={entry.id}
-                entryId={entry.id}
-                speaker={speaker}
-                follows={Boolean(previous) && speakerOf(previous) === speaker}
-                foldable={'item' in entry && entry.item.kind === 'assistant'}
-              >
-                {'workerIds' in entry ? (
-                  <DispatchGroup workerIds={entry.workerIds} />
-                ) : entry.item.kind === 'forward' ? (
-                  <ForwardedMessage item={entry.item} />
-                ) : entry.item.kind === 'user' && entry.item.workerId ? (
-                  <DirectedMessage item={entry.item} />
-                ) : (
-                  <ConversationItem
-                    item={entry.item}
-                    agent={t('router.agent')}
-                    speaker="router"
-                    markdown={workerMarkdown}
-                    actions={forward}
-                  />
-                )}
-                {'item' in entry && entry.item.cards?.length ? (
-                  <MessageCards cards={entry.item.cards} />
-                ) : null}
-                {/* A reply has its own action row (Copy); everything else gets one here. */}
-                {forward && 'item' in entry && entry.item.kind !== 'assistant' ? (
-                  <div className="owlto-message-actions">{forward}</div>
-                ) : null}
-              </ThreadRow>
-            )
-          })}
+          {turns.map((turn) => (
+            // One avatar leads the turn; hovering it shows the row tools of every row under it.
+            <div className="router-turn" key={turn[0].id}>
+              {turn.map((entry, index) => {
+                const speaker = speakerOf(entry)
+                const forward =
+                  router && 'item' in entry && canForward(entry.item) ? (
+                    <>
+                      <ForwardAction item={entry.item} router={router} />
+                      <SaveCardAction
+                        source={{ kind: 'item', routerId: router.id, itemId: entry.item.id }}
+                        text={entry.item.text}
+                        projectId={router.projectId}
+                      />
+                    </>
+                  ) : null
+                return (
+                  <ThreadRow
+                    key={entry.id}
+                    entryId={entry.id}
+                    speaker={speaker}
+                    follows={index > 0}
+                    foldable={'item' in entry && entry.item.kind === 'assistant'}
+                  >
+                    {'workerIds' in entry ? (
+                      <DispatchGroup workerIds={entry.workerIds} />
+                    ) : entry.item.kind === 'forward' ? (
+                      <ForwardedMessage item={entry.item} />
+                    ) : entry.item.kind === 'user' && entry.item.workerId ? (
+                      <DirectedMessage item={entry.item} />
+                    ) : (
+                      <ConversationItem
+                        item={entry.item}
+                        agent={t('router.agent')}
+                        speaker="router"
+                        markdown={workerMarkdown}
+                        actions={forward}
+                      />
+                    )}
+                    {'item' in entry && entry.item.cards?.length ? (
+                      <MessageCards cards={entry.item.cards} />
+                    ) : null}
+                    {/* A reply has its own action row (Copy); everything else gets one here. */}
+                    {forward && 'item' in entry && entry.item.kind !== 'assistant' ? (
+                      <div className="owlto-message-actions">
+                        <div className="owlto-message-actions-group">{forward}</div>
+                      </div>
+                    ) : null}
+                  </ThreadRow>
+                )
+              })}
+            </div>
+          ))}
           {router && running ? (
             <ThreadRow speaker="router" follows={lastEntrySpeaker === 'router'}>
               <div className="owlto-working" role="status">
@@ -349,6 +374,7 @@ export function RouterTimeline({
         </div>
         <div className="router-tail-space" ref={spacer} aria-hidden="true" />
       </div>
+      <SelectionActions scroller={scroll} router={router} itemOf={itemOf} />
     </RouterIdContext.Provider>
   )
 }

@@ -1,0 +1,1 @@
+- Router thread: hovering the Router avatar shows the fold toggle, message actions sit right of the text instead of over it, and selecting text in a message shows Copy, Forward, and Save as note for just the selection.

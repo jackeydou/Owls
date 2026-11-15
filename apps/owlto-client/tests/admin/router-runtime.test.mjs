@@ -2961,6 +2961,15 @@ test('forward freezes a copy, starts the target Router, and keeps its origin', a
       }),
     /can no longer be forwarded/
   )
+  const quoted = service.forward({
+    commandId: crypto.randomUUID(),
+    source: { ...forward.source, quote: 'just this part' },
+    target: { kind: 'new', projectId: PROJECT.id },
+    note: null
+  })
+  const [quote] = thread(quoted.id).items
+  assert.equal(quote.text, 'just this part', 'a selection forwards in place of the whole message')
+  assert.equal(service.contentOf({ ...forward.source, quote: 'saved part' }).text, 'saved part')
   service.close()
 })
 

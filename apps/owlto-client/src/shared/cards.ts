@@ -68,12 +68,16 @@ export const boardSchema = z.object({
 })
 
 const boardName = z.string().trim().min(1).max(60)
+/** A part of a message the user selected, to forward or save on its own. */
+export const messageQuoteSchema = z.string().trim().min(1).max(CARD_BODY_LIMIT)
 /** What can be saved into a card: the same sources a forward accepts. */
 export const cardCaptureSourceSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('item'),
     routerId: z.string().uuid(),
-    itemId: z.string().min(1).max(200)
+    itemId: z.string().min(1).max(200),
+    /** Text the user selected in the message, saved in place of the whole message. */
+    quote: messageQuoteSchema.optional()
   }),
   z.object({ kind: z.literal('worker'), routerId: z.string().uuid(), workerId: id })
 ])

@@ -826,6 +826,16 @@ html.pane-resizing * {
 .router-row.follows {
   margin-top: 8px;
 }
+/* A run of rows by one speaker, under one avatar. Its rows space themselves as above. */
+.router-turn {
+  margin-top: 20px;
+}
+.router-turn:first-child {
+  margin-top: 0;
+}
+.router-turn:not(:has(.router-row-body:not(:empty))) {
+  display: none;
+}
 .router-row:has(> .router-row-body:empty) {
   display: none;
 }
@@ -978,8 +988,15 @@ html.pane-resizing * {
 .router-row.follows .router-row-avatar {
   display: none;
 }
-/* Row tools float under the avatar while the avatar column is hovered. The group sticks below
-   the view's top, so a long reply can be folded from anywhere along it. */
+/* A turn's avatar column reads as one strip: each later row's column reaches up over the gap
+   above it, so moving from the avatar down to a row's tools never leaves the strip. */
+.router-turn > .router-row.follows > .router-row-side {
+  margin-top: -8px;
+  padding-top: 8px;
+}
+/* Row tools float in the avatar column while any part of the turn's strip is hovered, the
+   avatar included, so the tools of a reply further down the turn show from its avatar. The
+   group sticks below the view's top, so a long reply can be folded from anywhere along it. */
 .router-row-tools {
   position: sticky;
   top: 8px;
@@ -998,6 +1015,7 @@ html.pane-resizing * {
   transition: opacity 120ms ease;
   -webkit-app-region: no-drag;
 }
+.router-turn:has(> .router-row > .router-row-side:hover) .router-row-tools,
 .router-row-side:hover .router-row-tools,
 .router-row-tools:focus-within {
   opacity: 1;
@@ -1021,34 +1039,59 @@ html.pane-resizing * {
 .router-row .owlto-message-label {
   display: none;
 }
-/* A row's actions (Copy, Forward) float together as one small toolbar at its top right. */
+/* A row's actions (Copy, Forward, Save as note) stand in the gutter right of the text, so they
+   cover none of it: a rail the row's height, holding one small toolbar that sticks below the
+   view's top while a long reply scrolls by. The conversation's side padding holds the rail. */
 .router-row .owlto-message-actions {
   position: absolute;
-  top: -4px;
-  right: 0;
+  top: 0;
+  bottom: 0;
+  left: calc(100% + 4px);
   z-index: 1;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  -webkit-app-region: no-drag;
+}
+.router-row .owlto-message-actions-group,
+.owlto-selection-actions {
   display: flex;
   align-items: center;
   gap: 2px;
-  margin: 0;
   padding: 2px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-card-elevated);
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.06);
-  opacity: 0;
-  pointer-events: none;
+}
+.router-row .owlto-message-actions-group {
+  position: sticky;
+  top: 8px;
+  flex-direction: column;
 }
 .router-row:hover .owlto-message-actions,
 .router-row .owlto-message-actions:focus-within {
   opacity: 1;
   pointer-events: auto;
 }
-.router-row .owlto-message-actions button {
+.router-row .owlto-message-actions button,
+.owlto-selection-actions button {
   color: var(--color-muted-foreground);
 }
-.router-row .owlto-message-actions button:hover {
+.router-row .owlto-message-actions button:hover,
+.owlto-selection-actions button:hover {
   color: var(--color-foreground);
+}
+/* The same actions over a selection inside one message, for just the selected text. */
+.owlto-selection-actions {
+  z-index: 80;
+  -webkit-app-region: no-drag;
+}
+.owlto-selection-actions button {
+  width: 23px;
+  height: 23px;
+  padding: 0;
 }
 .router-row .router-dispatch {
   margin: 0;
