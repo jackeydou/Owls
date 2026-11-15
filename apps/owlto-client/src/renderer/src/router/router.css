@@ -652,38 +652,103 @@ html.pane-resizing * {
   white-space: nowrap;
 }
 .router-dispatch {
-  margin: 16px 0;
-  padding: 12px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--owl-radius-md);
-  background: var(--color-card);
+  margin: 8px 0;
 }
-.router-dispatch h3 {
-  margin-bottom: 6px;
-  color: var(--color-muted-foreground);
-  font-size: var(--owl-text-xs);
-  font-weight: 500;
-}
-.router-dispatch li {
+.router-dispatch-row {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 4px 0;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin-left: -6px;
+  padding: 3px 8px 3px 6px;
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-foreground);
   font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-tight);
+  text-align: left;
+  transition:
+    background-color 120ms ease,
+    transform 120ms ease;
+  -webkit-app-region: no-drag;
 }
-.router-dispatch small {
+.router-dispatch-row:hover {
+  background: color-mix(in srgb, var(--color-foreground) 5%, transparent);
+}
+.router-dispatch-row:active {
+  transform: scale(0.99);
+}
+.router-dispatch-row:focus-visible {
+  outline: 2px solid var(--owl-focus-ring);
+  outline-offset: 1px;
+}
+.router-dispatch-connector {
+  flex-shrink: 0;
+  width: 14px;
+  height: 12px;
+  margin-top: -6px;
+  fill: none;
+  stroke: var(--color-muted-foreground);
+  stroke-linecap: round;
+  stroke-width: 1;
+  opacity: 0.55;
+}
+.router-dispatch-title {
   overflow: hidden;
-  flex-shrink: 1;
   min-width: 0;
-  color: var(--color-muted-foreground);
-  font-size: var(--owl-text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.router-dispatch .router-worker-link {
+.router-dispatch-row small {
   flex-shrink: 0;
-  max-width: 62%;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  white-space: nowrap;
+}
+.router-dispatch-row.wait small {
+  color: var(--owl-tag-wait-fg);
+}
+.router-dispatch-row.bad small {
+  color: var(--owl-tag-bad-fg);
+}
+.router-dispatch-dots {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  height: 1em;
+}
+.router-dispatch-dots i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--color-muted-foreground);
+  opacity: 0.35;
+  animation: router-dispatch-dot 1.2s ease-in-out infinite;
+}
+.router-dispatch-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.router-dispatch-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes router-dispatch-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 1;
+    background: var(--color-foreground);
+    transform: scale(1.35);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .router-dispatch-dots i {
+    animation: none;
+    opacity: 0.6;
+  }
 }
 .router-directed {
   display: flex;
