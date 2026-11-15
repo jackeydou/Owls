@@ -11,6 +11,25 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1400-beta.4
+
+### Highlights
+
+- Message a worker straight from its panel, with images and files.
+- The Workspace now shows as a project, and its folders can become projects of their own.
+- Mermaid diagrams render in messages and notes.
+
+### Changes
+
+- Workers: message a worker straight from its panel, with a Markdown input, pasted images, and attached files delivered to Claude Code, Codex, and Cursor. (#135)
+- Workspace: the Workspace now shows under Projects and on the map with its tasks; workspace folders can become their own projects (with a light prompt for new git repositories) and be merged back, and their past tasks, pull requests, and token usage move with them. (#128)
+- Messages: Mermaid code blocks in Router, worker, and note Markdown now render as diagrams, with a code view, copy, and a code fallback when a diagram cannot be drawn. (#132)
+- Router: workers the Router sends out now show as one quiet line each, with animated dots while running, instead of a bordered card. (#133)
+
+### Fixes
+
+- Messages: Markdown tables show thin row lines again, and code blocks put the language label above highlighted code. (#134)
+
 ## 2026.11.1400-beta.3
 
 ### Highlights
