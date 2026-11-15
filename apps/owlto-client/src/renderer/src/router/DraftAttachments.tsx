@@ -17,6 +17,7 @@ type DraftFile = {
   key: string
   name: string
   mimeType: string
+  size: number
   /** An object URL for an image's thumbnail; revoked when the file leaves the draft. */
   preview: string | null
   state: 'staging' | 'ready' | 'failed'
@@ -68,6 +69,7 @@ export function useDraftAttachments() {
           key: crypto.randomUUID(),
           name,
           mimeType,
+          size: file.size,
           preview: isInlineImage({ mimeType }) ? URL.createObjectURL(file) : null,
           state: 'staging',
           attachment: null
@@ -141,10 +143,7 @@ export function DraftAttachmentChips({ attachments }: { attachments: DraftAttach
                   {file.preview ? (
                     <img src={file.preview} alt="" />
                   ) : (
-                    <>
-                      <FileIcon size={16} />
-                      <span>{file.name}</span>
-                    </>
+                    <FileChip name={file.name} size={file.size} />
                   )}
                   {file.state === 'staging' ? (
                     <span className="draft-attachment-overlay">
@@ -172,6 +171,29 @@ export function DraftAttachmentChips({ attachments }: { attachments: DraftAttach
         )
       })}
     </ul>
+  )
+}
+
+function fileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < MEGABYTE) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / MEGABYTE).toFixed(1)} MB`
+}
+
+/** A file's chip: its icon, then its name over its type and size. */
+function FileChip({ name, size }: { name: string; size: number }) {
+  const dot = name.lastIndexOf('.')
+  const ext = dot > 0 ? name.slice(dot + 1).toUpperCase() : null
+  return (
+    <>
+      <span className="draft-attachment-icon">
+        <FileIcon size={16} />
+      </span>
+      <span className="draft-attachment-text">
+        <span>{name}</span>
+        <small>{ext ? `${ext} · ${fileSize(size)}` : fileSize(size)}</small>
+      </span>
+    </>
   )
 }
 
@@ -212,10 +234,7 @@ function SentAttachment({ attachment }: { attachment: Attachment }) {
             {src ? (
               <img src={src} alt="" />
             ) : (
-              <>
-                <FileIcon size={16} />
-                <span>{attachment.name}</span>
-              </>
+              <FileChip name={attachment.name} size={attachment.size} />
             )}
           </button>
         </TooltipTrigger>

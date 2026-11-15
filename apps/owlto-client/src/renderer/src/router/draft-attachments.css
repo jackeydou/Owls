@@ -13,9 +13,9 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   height: 48px;
-  max-width: 220px;
+  max-width: 200px;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--owl-radius-md);
@@ -27,21 +27,45 @@
   width: 48px;
 }
 .draft-attachments > li[data-kind="file"] .draft-attachment-body {
-  padding: 0 12px 0 10px;
+  min-width: 140px;
+  padding: 0 12px 0 6px;
+  text-align: left;
 }
 .draft-attachment-body > img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.draft-attachment-body > span:not(.draft-attachment-overlay) {
+.draft-attachment-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-sidebar-active);
+  color: var(--color-muted-foreground);
+}
+.draft-attachment-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.25;
+}
+.draft-attachment-text > span,
+.draft-attachment-text > small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.draft-attachment-body > .owlto-icon {
-  flex: none;
+.draft-attachment-text > span {
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+}
+.draft-attachment-text > small {
   color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
 }
 .draft-attachment-overlay {
   position: absolute;
@@ -92,14 +116,6 @@
 }
 .message-attachments button.draft-attachment-body:active {
   transform: scale(0.97);
-}
-.message-attachments > li[data-kind="image"] .draft-attachment-body {
-  width: auto;
-  height: 96px;
-  max-width: 180px;
-}
-.message-attachments > li[data-kind="image"] .draft-attachment-body > img {
-  width: auto;
 }
 @media (prefers-reduced-motion: reduce) {
   .draft-attachment-remove.draft-attachment-remove,
