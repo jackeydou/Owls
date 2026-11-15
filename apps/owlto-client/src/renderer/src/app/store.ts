@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { defaultAgentConfigs } from '../../../shared/agents'
 import type {
   AgentConnection,
   AgentProvider,
@@ -45,24 +46,6 @@ export function agentConnection(
   if (provider === 'claude-code') return state.claude
   return provider === 'cursor' ? state.cursor : state.connection
 }
-/** A provider's default model and effort for new workers. Cursor has no effort setting. */
-export function agentSelection(settings: AppSettings, provider: AgentProvider) {
-  if (provider === 'claude-code')
-    return { model: settings.claudeModel, effort: settings.claudeEffort }
-  if (provider === 'cursor') return { model: settings.cursorModel, effort: null }
-  return { model: settings.model, effort: settings.effort }
-}
-/** Saves a provider's default model and effort for new workers. */
-export function withAgentSelection(
-  settings: AppSettings,
-  provider: AgentProvider,
-  next: { model: string | null; effort: string | null }
-): AppSettings {
-  if (provider === 'claude-code')
-    return { ...settings, claudeModel: next.model, claudeEffort: next.effort }
-  if (provider === 'cursor') return { ...settings, cursorModel: next.model }
-  return { ...settings, model: next.model, effort: next.effort }
-}
 export function isAgentReady(connection: AgentConnection): boolean {
   return connection.status === 'ready' && connection.account.kind !== 'signed-out'
 }
@@ -92,7 +75,7 @@ export type SettingsTab =
   /** The workspace folder and its top-level folders. */
   | 'workspace'
 export type RouterSettingsTab = 'router' | 'workers'
-export const projectSettingsPages = ['general', 'git', 'instructions'] as const
+export const projectSettingsPages = ['general', 'agents', 'git', 'instructions'] as const
 export type ProjectSettingsPage = (typeof projectSettingsPages)[number]
 
 type State = {
@@ -266,19 +249,13 @@ export const useAppStore = create<State>((set, get) => {
     projects: [],
     settings: {
       executablePath: null,
-      model: null,
-      effort: null,
-      permission: 'workspace-write',
+      agents: defaultAgentConfigs,
       theme: 'system',
       language: 'en',
       appLogo: defaultAppLogo,
       sidebarCollapsed: false,
-      provider: 'codex',
       claudeExecutablePath: null,
-      claudeModel: null,
-      claudeEffort: null,
       cursorExecutablePath: null,
-      cursorModel: null,
       router: defaultRouterSettings,
       memory: defaultMemorySettings,
       layout: defaultLayoutSettings,
@@ -590,17 +567,11 @@ export const useAppStore = create<State>((set, get) => {
     saveSettings: async (settings) => {
       const saved = await action(() =>
         window.owlto.saveSettings({
-          model: settings.model,
-          effort: settings.effort,
-          permission: settings.permission,
+          agents: settings.agents,
           theme: settings.theme,
           language: settings.language,
           appLogo: settings.appLogo,
           sidebarCollapsed: settings.sidebarCollapsed,
-          provider: settings.provider,
-          claudeModel: settings.claudeModel,
-          claudeEffort: settings.claudeEffort,
-          cursorModel: settings.cursorModel,
           router: settings.router,
           memory: settings.memory,
           layout: settings.layout,

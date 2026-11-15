@@ -1,4 +1,12 @@
 import { z } from 'zod'
+import {
+  type AgentProvider,
+  agentConfigsSchema,
+  defaultAgentConfigs,
+  effortSchema,
+  permissionSchema,
+  providerSchema
+} from './agents.js'
 import { type Attachment, attachmentSchema, type StageAttachment } from './attachments.js'
 import type { Automation, AutomationEnable, AutomationSave } from './automations.js'
 import {
@@ -56,11 +64,10 @@ import type { UsageOverview } from './usage.js'
 import type { UsageStats, UsageStatsRequest } from './usage-stats.js'
 import type { WorkspaceListing } from './workspace.js'
 
-export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
-export const providerSchema = z.enum(['codex', 'claude-code', 'cursor'])
+export type { AgentProvider }
+export { effortSchema, permissionSchema, providerSchema }
 /** A device id: `dv_` and eight hex digits, made on the device's first start. */
 export const deviceIdSchema = z.string().regex(/^dv_[0-9a-f]{8}$/)
-export const effortSchema = z.string().min(1).max(64)
 export const failureSchema = z.object({
   code: z.enum([
     'not_installed',
@@ -248,21 +255,16 @@ export const defaultLayoutSettings: LayoutSettings = {
 }
 export const settingsSchema = z.object({
   executablePath: z.string().nullable(),
-  model: z.string().nullable(),
-  effort: effortSchema.nullable(),
-  permission: permissionSchema,
+  /** How new workers run on each coding agent; rows from before it start from the defaults. */
+  agents: agentConfigsSchema.default(defaultAgentConfigs),
   theme: z.enum(['system', 'light', 'dark']),
   language: z.enum(['en', 'zh-CN']),
   /** Rows saved before the doodle owls name a logo that no longer exists; they get the default. */
   appLogo: appLogoSchema.catch(defaultAppLogo),
   sidebarCollapsed: z.boolean(),
-  provider: providerSchema,
   claudeExecutablePath: z.string().nullable(),
-  claudeModel: z.string().nullable(),
-  claudeEffort: effortSchema.nullable(),
-  /** Added with the Cursor agent, so older rows auto-detect it and use its default model. */
+  /** Added with the Cursor agent, so older rows auto-detect it. */
   cursorExecutablePath: z.string().nullable().default(null),
-  cursorModel: z.string().nullable().default(null),
   router: routerSettingsSchema,
   /** Added after the first release of settings, so older rows get the defaults. */
   memory: memorySettingsSchema.default(defaultMemorySettings),
@@ -368,7 +370,6 @@ export type AppLogo = z.infer<typeof appLogoSchema>
 export type Project = z.infer<typeof projectSchema>
 export type CodexModel = z.infer<typeof modelSchema>
 export type Effort = z.infer<typeof effortSchema>
-export type AgentProvider = z.infer<typeof providerSchema>
 export type CodexAccount =
   | { kind: 'chatgpt'; email: string | null; plan: string | null }
   | { kind: 'api-key' }
@@ -447,8 +448,8 @@ export type CreateSession = {
   provider: AgentProvider
   cwd: string
   model: string | null
-  effort: AppSettings['effort']
-  permission: AppSettings['permission']
+  effort: Effort | null
+  permission: z.infer<typeof permissionSchema>
 }
 /** What a turn says. `text` may be empty when the message carries files. */
 export type TurnInput = { text: string; attachments?: Attachment[]; author?: 'user' }

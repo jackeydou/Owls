@@ -6,15 +6,15 @@ export const memoryStoreSchema = z.enum(['personal', 'project'])
 export const projectMemoryKindSchema = z.enum(['rule', 'decision', 'knowledge', 'lesson', 'status'])
 export const memoryProviderSchema = z.enum(['claude-code', 'codex'])
 /**
- * Who runs Dreaming when the user has not picked anyone: the worker provider, or
- * Claude Code for a provider that cannot run Dreaming's memory tools.
+ * Who runs Dreaming when the user has not picked anyone: the Router's engine, or
+ * Claude Code for an engine that cannot run Dreaming's memory tools.
  */
 export function dreamingProvider(
   chosen: MemoryProvider | null,
-  workerProvider: string
+  routerEngine: string
 ): MemoryProvider {
   if (chosen) return chosen
-  const parsed = memoryProviderSchema.safeParse(workerProvider)
+  const parsed = memoryProviderSchema.safeParse(routerEngine)
   return parsed.success ? parsed.data : 'claude-code'
 }
 

@@ -235,6 +235,7 @@ export class OwltoHost {
         const connection = this.runtimes[provider].connectionState()
         return connection.status === 'ready' && connection.account.kind !== 'signed-out'
       },
+      agentModels: (provider: AgentProvider) => this.runtimes[provider].connectionState().models,
       createSession: (input, worker) => this.runtimes[input.provider].createSession(input, worker),
       remove: (sessionId) => this.archive(sessionId),
       send: (input) => this.send(input),

@@ -377,6 +377,18 @@ export const GlobeIcon = createIcon(
     <ellipse cx="8" cy="8" rx="2.5" ry="6" />
   </g>
 )
+export const GripVerticalIcon = createIcon(
+  'GripVertical',
+  'solid',
+  <g>
+    <circle cx="6" cy="3.5" r="1.1" />
+    <circle cx="10" cy="3.5" r="1.1" />
+    <circle cx="6" cy="8" r="1.1" />
+    <circle cx="10" cy="8" r="1.1" />
+    <circle cx="6" cy="12.5" r="1.1" />
+    <circle cx="10" cy="12.5" r="1.1" />
+  </g>
+)
 export const InfoIcon = createIcon(
   'Info',
   'outline',

@@ -163,9 +163,7 @@ function EngineStep() {
 }
 function WorkerStep() {
   const { t } = useTranslation()
-  const settings = useAppStore((s) => s.settings)
-  const save = useAppStore((s) => s.saveSettings)
-  const { provider } = settings
+  const [provider, setProvider] = useState<AgentProvider>(providerSchema.options[0])
   return (
     <>
       <h2>{t('router.guideWorker')}</h2>
@@ -176,7 +174,7 @@ function WorkerStep() {
             provider={agent}
             body={t('router.guideWorkerBody', { agent: t(`agent.${agent}`) })}
             selected={provider === agent}
-            onSelect={() => void save({ ...settings, provider: agent })}
+            onSelect={() => setProvider(agent)}
           />
         ))}
       </div>
@@ -215,8 +213,10 @@ function GuidePage({
 }
 /** First run: what the Router needs, one step at a time. It ends when nothing is missing. */
 export function RouterGuide({ need }: { need: RouterSetupNeed }) {
-  const provider = useAppStore((s) => s.settings.provider)
-  const workerReady = useAgentReady(provider)
+  const codexReady = useAgentReady('codex')
+  const claudeReady = useAgentReady('claude-code')
+  const cursorReady = useAgentReady('cursor')
+  const workerReady = codexReady || claudeReady || cursorReady
   if (need.kind === 'worker')
     return (
       <GuidePage step={2} total={2}>

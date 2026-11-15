@@ -117,9 +117,9 @@ export const routerEn = {
   'router.project.hideWorkers': 'Hide workers in {{project}}',
   'router.project.worker': '{{worker}}, {{state}}',
   'router.useAgent': 'Use {{agent}}',
-  'router.workerSetupTitle': 'Connect {{agent}} to run workers',
+  'router.workerSetupTitle': 'Connect a coding agent to run workers',
   'router.workerSetupBody':
-    'The Router hands work to {{agent}}, which is not connected. Connect it in Settings, or use another agent.',
+    'The Router hands work to coding agents, and none is connected. Connect one in Settings.',
   'workerState.queued': 'Queued',
   'workerState.running': 'Running',
   'workerState.waiting': 'Waiting for your approval',
@@ -423,9 +423,8 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'router.project.hideWorkers': '收起 {{project}} 的 Worker',
   'router.project.worker': '{{worker}}，{{state}}',
   'router.useAgent': '使用 {{agent}}',
-  'router.workerSetupTitle': '连接 {{agent}} 以运行 Worker',
-  'router.workerSetupBody':
-    '协调者把工作交给 {{agent}}，但它尚未连接。请在设置中连接，或使用其他 agent。',
+  'router.workerSetupTitle': '连接一个编码 Agent 以运行 Worker',
+  'router.workerSetupBody': '协调者把工作交给编码 Agent，但目前一个都没连接。请在设置中连接。',
   'workerState.queued': '排队中',
   'workerState.running': '运行中',
   'workerState.waiting': '等你批准',

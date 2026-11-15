@@ -61,7 +61,18 @@ export const dispatchTaskInput = z
       .describe('Background the worker needs that is not in its working folder.'),
     provider: providerSchema
       .optional()
-      .describe('Coding agent to run the task. Omit to use the default agent.'),
+      .describe(
+        "Coding agent to run the task: a connected one the project allows. Omit to use the project's first connected agent."
+      ),
+    model: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .optional()
+      .describe(
+        "Model ID for that agent, from the project's model list in the batch. Omit to use the first one, or the agent's default."
+      ),
     permission: permissionSchema
       .optional()
       .describe('Access the worker needs. Omit to use the default.'),
@@ -165,7 +176,7 @@ export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
     tool(
       'dispatch_task',
       'Dispatch task',
-      "Start a background worker (a Codex or Claude Code task in one of the user's projects) for one piece of work. Returns immediately with the worker ID and whether it started or is queued behind other workers; the worker reports back in a later batch.",
+      "Start a background worker (a Codex, Claude Code, or Cursor task in one of the user's projects or the workspace) for one piece of work. Returns immediately with the worker ID and whether it started or is queued behind other workers; the worker reports back in a later batch.",
       dispatchTaskInput,
       (input) => handlers.dispatchTask(input)
     ),

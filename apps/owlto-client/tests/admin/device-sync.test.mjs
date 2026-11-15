@@ -202,15 +202,15 @@ function receiver(t) {
     projects: () => [{ id: 'p1', name: 'demo', path: '/tmp/owlto-demo' }],
     threadHome: () => '/tmp/owlto-thread-home',
     settings: () => ({
-      permission: 'workspace-write',
-      provider: 'codex',
-      model: 'gpt-local',
-      effort: null,
-      claudeModel: null,
-      claudeEffort: null,
+      agents: {
+        codex: { model: 'gpt-local', effort: null, permission: 'workspace-write' },
+        'claude-code': { model: null, effort: null, permission: 'workspace-write' },
+        cursor: { model: null, effort: null, permission: 'workspace-write' }
+      },
       router: { maxPermission: 'workspace-write', worktrees: false }
     }),
     providerReady: (provider) => provider === 'codex',
+    agentModels: () => [],
     createSession: (input) => {
       const session = { id: crypto.randomUUID(), ...input }
       created.push(session)

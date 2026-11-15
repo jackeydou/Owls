@@ -1,3 +1,4 @@
+import { type AgentProvider, providerSchema } from '../../shared/agents.js'
 import type {
   AppEvent,
   Failure,
@@ -887,7 +888,7 @@ export class RouterService implements TurnProfiles {
     const state = this.needsState(router, settings.engine, history) ? this.stateOf(router) : null
     // A context that starts without this thread's history reads memory once, frozen there.
     const memory = !history || state ? this.memory.injection(router.projectId) : null
-    const projects = renderProjects(this.host.projects(), router.projectId)
+    const projects = renderProjects(this.host.projects(), router.projectId, this.connectedAgents())
     // A context that gets the state reads the list there.
     const newProjects = !state && projects !== router.projectsShown ? projects : null
     router.projectsShown = projects
@@ -1169,10 +1170,14 @@ export class RouterService implements TurnProfiles {
    * lacks them. A context the engine trimmed also lost the memory block, so it
    * gets a line naming the categories it can still search.
    */
+  private connectedAgents(): AgentProvider[] {
+    return providerSchema.options.filter((p) => this.host.providerReady(p))
+  }
   private stateOf(router: Router, trimmed = false): string {
-    const projects = renderProjects(this.host.projects(), router.projectId)
+    const list = this.host.projects()
+    const projects = renderProjects(list, router.projectId, this.connectedAgents())
     const workers = renderState(this.pool.list(router.id), (worker) =>
-      projects ? this.pool.projectName(worker) : null
+      list.length ? this.pool.projectName(worker) : null
     )
     const memory = trimmed ? this.memory.categoryLine() : null
     return [workers, projects, memory].filter(Boolean).join('\n\n')

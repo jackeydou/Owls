@@ -17,6 +17,7 @@ import { isWithin, normalizePath } from '../../../shared/workspace'
 import { DraftText } from './DraftText'
 import { ProjectIconSetting } from './ProjectIconSetting'
 import { SettingRow } from './SettingRow'
+import { ProjectAgentsPage } from './SettingsProjectAgents'
 import { useAppStore } from './store'
 import { useWorkspaceStore } from './workspace'
 
@@ -296,7 +297,12 @@ function InstructionsPage({ project }: { project: Project }) {
   )
 }
 
-const PAGES = { general: GeneralPage, git: GitPage, instructions: InstructionsPage }
+const PAGES = {
+  general: GeneralPage,
+  agents: ProjectAgentsPage,
+  git: GitPage,
+  instructions: InstructionsPage
+}
 
 /** The page of one project's settings that the Settings navigation selected. */
 export function ProjectSettingsPane() {

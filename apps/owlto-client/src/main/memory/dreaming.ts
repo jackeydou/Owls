@@ -212,7 +212,10 @@ export class DreamingRunner {
     const slice = this.slice(threadId, cursor.itemRev, cursor.eventSeq)
     if (!slice.items.length && !slice.reports.length) return false
     const settings = this.deps.settings()
-    const provider: MemoryProvider = dreamingProvider(settings.memory.provider, settings.provider)
+    const provider: MemoryProvider = dreamingProvider(
+      settings.memory.provider,
+      settings.router.engine
+    )
     const model =
       provider === 'claude-code' ? settings.memory.claudeModel : settings.memory.codexModel
     const runId = `mr_${crypto.randomUUID().replaceAll('-', '').slice(0, 8)}`

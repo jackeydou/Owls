@@ -17,15 +17,9 @@ function memoryStore(project) {
   return {
     settings: () => ({
       executablePath: null,
-      model: null,
-      effort: null,
-      permission: 'workspace-write',
       theme: 'system',
       language: 'en',
-      provider: 'claude-code',
-      claudeExecutablePath: fixture,
-      claudeModel: null,
-      claudeEffort: null
+      claudeExecutablePath: fixture
     }),
     sessions: () => [...sessions.values()].map((s) => structuredClone(s)),
     saveSession: (session) => sessions.set(session.id, structuredClone(session)),

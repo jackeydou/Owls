@@ -27,7 +27,7 @@ const NOW = new Date('2026-11-08T12:00:00.000Z')
 function settingsOf(overrides = {}) {
   return {
     language: 'zh-CN',
-    provider: 'codex',
+    router: { engine: 'codex' },
     ...overrides,
     memory: {
       learn: true,

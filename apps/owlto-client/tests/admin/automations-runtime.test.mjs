@@ -160,12 +160,11 @@ function fakeHost() {
   const sent = []
   const turns = { profiles: null }
   const settings = {
-    permission: 'workspace-write',
-    provider: 'codex',
-    model: 'gpt-test',
-    effort: null,
-    claudeModel: null,
-    claudeEffort: null,
+    agents: {
+      codex: { model: 'gpt-test', effort: null, permission: 'workspace-write' },
+      'claude-code': { model: null, effort: null, permission: 'workspace-write' },
+      cursor: { model: null, effort: null, permission: 'workspace-write' }
+    },
     router: {
       engine: 'owlto',
       owlto: null,
@@ -183,6 +182,7 @@ function fakeHost() {
       workspace: () => '/tmp/owlto-workspace',
       settings: () => settings,
       providerReady: () => true,
+      agentModels: () => [],
       createSession: (input, worker) => ({ id: crypto.randomUUID(), ...input, worker }),
       remove: () => {},
       send: async (input) => {

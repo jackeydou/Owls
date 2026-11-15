@@ -1,3 +1,11 @@
+import {
+  type AgentProvider,
+  allowedAgents,
+  chosenModels,
+  hasAgentChoice,
+  type ProjectAgents,
+  providerSchema
+} from '../../shared/agents.js'
 import type { Project } from '../../shared/app.js'
 import type { AttachedCard } from '../../shared/cards.js'
 import type { RouterWorker } from '../../shared/router.js'
@@ -150,23 +158,43 @@ export function renderBatch(
   return parts.join('\n')
 }
 
+/** A project's own agent order and model lists, or null when it leaves both to the defaults. */
+function projectAgentsLine(agents: ProjectAgents | undefined): string | null {
+  if (!agents) return null
+  const choice = hasAgentChoice(agents)
+  const listed = (choice ? allowedAgents(agents) : providerSchema.options).flatMap((provider) => {
+    const models = chosenModels(agents, provider)
+    if (!choice && !models.length) return []
+    return [models.length ? `${provider} (models: ${models.join(', ')})` : provider]
+  })
+  if (choice) return `  agents, in order: ${listed.join(', ')}`
+  return listed.length ? `  agents: any connected; ${listed.join(', ')}` : null
+}
+
 /**
- * The projects a Router can dispatch to, sorted so the text only changes when
- * they do. A single project is listed too, so the Router can tell whether a
- * task is about it; null when there are none and every task uses the workspace.
+ * The coding agents the user connected and the projects a Router can dispatch to, sorted
+ * so the text only changes when they do. A single project is listed too, so the Router can
+ * tell whether a task is about it. Each project names its agents, most preferred first,
+ * and each agent's models in order, when the user chose them.
  */
-export function renderProjects(projects: Project[], defaultId: string | null): string | null {
-  if (!projects.length) return null
+export function renderProjects(
+  projects: Project[],
+  defaultId: string | null,
+  connected: readonly AgentProvider[]
+): string {
+  const ready = providerSchema.options.filter((p) => connected.includes(p))
+  const agents = `Coding agents connected: ${ready.length ? ready.join(', ') : 'none'}`
+  if (!projects.length) return agents
   const lines = [...projects]
     .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
-    .map((p) => {
+    .flatMap((p) => {
       const about = p.settings?.description.replace(/\s+/g, ' ').trim()
       const description = about ? ` — ${short(about, 200)}` : ''
-      return escapeBatch(
-        `- ${p.name} · ${p.id}${p.id === defaultId ? ' · default' : ''}${description}`
-      )
+      const line = `- ${p.name} · ${p.id}${p.id === defaultId ? ' · default' : ''}${description}`
+      const agentLine = projectAgentsLine(p.settings?.agents)
+      return (agentLine ? [line, agentLine] : [line]).map(escapeBatch)
     })
-  return `Projects:\n${lines.join('\n')}`
+  return `${agents}\nProjects:\n${lines.join('\n')}`
 }
 
 /**

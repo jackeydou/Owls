@@ -40,7 +40,7 @@ function MemorySettingsRows() {
   const memory = settings.memory
   const save = (next: Partial<MemorySettings>) =>
     void saveSettings({ ...settings, memory: { ...memory, ...next } })
-  const provider = dreamingProvider(memory.provider, settings.provider)
+  const provider = dreamingProvider(memory.provider, settings.router.engine)
   const connection = provider === 'claude-code' ? claude : codex
   return (
     <>
@@ -78,7 +78,7 @@ function MemorySettingsRows() {
         >
           <option value="">
             {t('memory.provider.default', {
-              agent: t(`agent.${dreamingProvider(null, settings.provider)}`)
+              agent: t(`agent.${dreamingProvider(null, settings.router.engine)}`)
             })}
           </option>
           {memoryProviderSchema.options.map((option) => (
