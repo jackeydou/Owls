@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ATTACHMENT_LIMIT, attachmentSchema } from './attachments.js'
 import { ATTACHED_CARD_LIMIT, cardIdSchema } from './cards.js'
 import { ROUTER_INSTRUCTIONS_LIMIT } from './router-instructions.js'
 
@@ -141,6 +142,10 @@ export const workerSchema = z.object({
   permission: z.enum(permissionValues),
   /** The message a queued worker sends when it starts: its first turn or a Router follow-up. */
   next: z.string().nullable(),
+  /** Files the user attached to the messages waiting in `next`. */
+  nextAttachments: z.array(attachmentSchema).optional(),
+  /** True when only the user wrote what waits in `next`, so it is shown as theirs. */
+  nextFromUser: z.boolean().optional(),
   status: workerStatusSchema,
   workspace: workerWorkspaceSchema,
   pullRequest: workerPullRequestLinkSchema.nullable(),
@@ -180,15 +185,26 @@ export const threadItemsSchema = z.object({
   /** Returns items changed after this version; 0 for the whole thread. */
   after: z.number().int().nonnegative().default(0)
 })
-export const sendRouterSchema = z.object({
-  routerId: z.string().uuid(),
-  commandId: z.string().uuid(),
-  text: z.string().trim().min(1).max(8000),
-  /** Delivers the message straight to this worker instead of the Router's model. */
-  workerId: z.string().min(1).max(64).optional(),
-  /** Cards the message carries as reference material; main freezes their text when it sends. */
-  cardIds: z.array(cardIdSchema).max(ATTACHED_CARD_LIMIT).default([])
-})
+export const sendRouterSchema = z
+  .object({
+    routerId: z.string().uuid(),
+    commandId: z.string().uuid(),
+    text: z.string().trim().max(8000),
+    /** Delivers the message straight to this worker instead of the Router's model. */
+    workerId: z.string().min(1).max(64).optional(),
+    /** Cards the message carries as reference material; main freezes their text when it sends. */
+    cardIds: z.array(cardIdSchema).max(ATTACHED_CARD_LIMIT).default([]),
+    /** Files staged with `stageAttachment`. Only a worker message carries them. */
+    attachments: z.array(attachmentSchema).max(ATTACHMENT_LIMIT).default([])
+  })
+  .refine((input) => !input.attachments.length || input.workerId, {
+    message: 'Only a message to a worker can carry files.',
+    path: ['attachments']
+  })
+  .refine((input) => input.text || input.attachments.length, {
+    message: 'Write a message or attach a file.',
+    path: ['text']
+  })
 export const forwardSchema = z.object({
   commandId: z.string().uuid(),
   source: z.discriminatedUnion('kind', [

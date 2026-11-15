@@ -17,13 +17,19 @@ import type {
   ClaudeConnection,
   CreateSession,
   RespondRequest,
-  SendMessage,
   Session,
   SessionItem
 } from '../../shared/app.js'
 import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
 import { totalTokens } from '../../shared/usage-stats.js'
-import { type SessionPlace, sessionCwd, type WorkerUsageRecorder } from '../app/agent-runtime.js'
+import {
+  type RuntimeSend,
+  type RuntimeTurn,
+  type SessionPlace,
+  sessionCwd,
+  type WorkerUsageRecorder
+} from '../app/agent-runtime.js'
+import { userItemFields } from '../app/attachments.js'
 import { OwltoError, toFailure } from '../app/errors.js'
 import type { OwltoStore } from '../app/store.js'
 import { record, recordSchema, safeText, string } from '../codex/protocol.js'
@@ -36,7 +42,7 @@ import {
 import type { TurnProfile, TurnProfiles } from '../router/service.js'
 import { claudeResultUsage } from '../usage/turn-usage.js'
 import { discoverClaudeExecutable } from './discovery.js'
-import { type InputStream, inputStream } from './input.js'
+import { claudeContent, type InputStream, inputStream } from './input.js'
 import {
   claudeEffortSchema,
   completeToolItem,
@@ -291,7 +297,7 @@ export class ClaudeService {
     this.changed(session, true)
     return session
   }
-  async send(input: SendMessage): Promise<void> {
+  async send(input: RuntimeSend): Promise<void> {
     const session = this.getSession(input.sessionId)
     const executable = this.readyExecutable()
     if (active(session))
@@ -313,7 +319,8 @@ export class ClaudeService {
       status: 'completed',
       text: input.text,
       detail: '',
-      turnId
+      turnId,
+      ...userItemFields(input)
     })
     const runtime: Runtime = {
       turnId,
@@ -376,7 +383,7 @@ export class ClaudeService {
     }
     runtime.input.push({
       type: 'user',
-      message: { role: 'user', content: input.text },
+      message: await claudeContent(input),
       parent_tool_use_id: null
     })
     session.status = 'running'
@@ -387,23 +394,27 @@ export class ClaudeService {
    * Adds a message to the running turn; Claude Code folds it into the same turn
    * (F9). Returns not_running when no turn can take it.
    */
-  steer(sessionId: string, text: string): 'steered' | 'not_running' {
+  async steer(sessionId: string, turn: RuntimeTurn): Promise<'steered' | 'not_running'> {
     const session = this.getSession(sessionId)
-    const runtime = this.runtimes.get(sessionId)
-    if (!runtime || runtime.cancelled || !active(session)) return 'not_running'
+    const live = () => {
+      const runtime = this.runtimes.get(sessionId)
+      return runtime && !runtime.cancelled && active(session) ? runtime : null
+    }
+    if (!live()) return 'not_running'
+    const message = await claudeContent(turn)
+    // Checked again after reading the images: the turn may have ended meanwhile.
+    const runtime = live()
+    if (!runtime) return 'not_running'
     session.items.push({
       id: crypto.randomUUID(),
       kind: 'user',
       status: 'completed',
-      text,
+      text: turn.text,
       detail: '',
-      turnId: runtime.turnId
+      turnId: runtime.turnId,
+      ...userItemFields(turn)
     })
-    runtime.input.push({
-      type: 'user',
-      message: { role: 'user', content: text },
-      parent_tool_use_id: null
-    })
+    runtime.input.push({ type: 'user', message, parent_tool_use_id: null })
     this.changed(session, true)
     return 'steered'
   }

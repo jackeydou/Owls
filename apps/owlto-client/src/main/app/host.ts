@@ -1,4 +1,5 @@
 import { mkdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import type { z } from 'zod'
 import type {
   AgentProvider,
@@ -12,8 +13,10 @@ import type {
   Router,
   SendMessage,
   Session,
-  ThreadItem
+  ThreadItem,
+  TurnInput
 } from '../../shared/app.js'
+import type { Attachment, StageAttachment } from '../../shared/attachments.js'
 import type {
   Board,
   boardSaveSchema,
@@ -68,6 +71,7 @@ import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
 import type { UsageLedger } from '../usage/ledger.js'
 import type { AgentRuntime } from './agent-runtime.js'
+import { AttachmentStore } from './attachments.js'
 import { OwltoError } from './errors.js'
 import type { UserProfile } from './profile.js'
 import { cloneGitHubProject, createQuickProject } from './project-sources.js'
@@ -106,6 +110,7 @@ export class OwltoHost {
   private profile: UserProfile | null = null
   private ledger: UsageLedger | null = null
   private readonly runtimes: Record<AgentProvider, AgentRuntime>
+  private readonly attachments: AttachmentStore
   private usageCache: { at: number; value: Promise<UsageOverview>; pending: boolean } | null = null
   constructor(
     private readonly codex: CodexService,
@@ -114,9 +119,12 @@ export class OwltoHost {
     private readonly threadHome: string,
     private readonly projectsHome: string,
     /** The workspace folder used while the user has not picked one. */
-    private readonly workspaceHome: string
+    private readonly workspaceHome: string,
+    /** Where attached files are kept; next to the Router thread folders by default. */
+    attachmentsRoot = join(dirname(threadHome), 'attachments')
   ) {
     this.runtimes = { codex, 'claude-code': claude, cursor }
+    this.attachments = new AttachmentStore(attachmentsRoot)
   }
   /** Connects the Routers, which start every session of this host. */
   attachRouter(router: RouterService): void {
@@ -194,7 +202,7 @@ export class OwltoHost {
       createSession: (input, worker) => this.runtimes[input.provider].createSession(input, worker),
       remove: (sessionId) => this.archive(sessionId),
       send: (input) => this.send(input),
-      steer: (sessionId, text) => this.steer(sessionId, text),
+      steer: (sessionId, input) => this.steer(sessionId, input),
       interrupt: (sessionId) => this.interrupt(sessionId),
       respond: (input) => this.respond(input)
     }
@@ -261,8 +269,10 @@ export class OwltoHost {
     return this.requireRouter().items(input.routerId, input.after)
   }
   /** Freezes the attached cards first, so a missing card refuses the whole message. */
-  sendRouter(input: SendRouterMessage): Promise<void> {
+  async sendRouter(input: SendRouterMessage): Promise<void> {
     const cards = input.cardIds.length ? this.requireCards().attach(input.cardIds) : []
+    // A missing file refuses the message before anything reaches the worker.
+    if (input.attachments.length) await this.attachments.files(input.attachments)
     return this.requireRouter().send(input, cards)
   }
   forward(input: ForwardMessage): Router {
@@ -496,11 +506,28 @@ export class OwltoHost {
   private runtimeOf(sessionId: string): AgentRuntime {
     return Object.values(this.runtimes).find((r) => r.owns(sessionId)) ?? this.codex
   }
-  private send(input: SendMessage): Promise<void> {
-    return this.runtimeOf(input.sessionId).send(input)
+  private async send(input: SendMessage): Promise<void> {
+    const attachments = input.attachments?.length
+      ? await this.attachments.files(input.attachments)
+      : undefined
+    return this.runtimeOf(input.sessionId).send({ ...input, attachments })
   }
-  private async steer(sessionId: string, text: string): Promise<'steered' | 'not_running'> {
-    return this.runtimeOf(sessionId).steer(sessionId, text)
+  private async steer(sessionId: string, input: TurnInput): Promise<'steered' | 'not_running'> {
+    const attachments = input.attachments?.length
+      ? await this.attachments.files(input.attachments)
+      : undefined
+    return this.runtimeOf(sessionId).steer(sessionId, { ...input, attachments })
+  }
+  stageAttachment(input: StageAttachment): Promise<Attachment> {
+    return this.attachments.stage(input)
+  }
+  attachmentPreview(attachment: Attachment): Promise<string | null> {
+    return this.attachments.preview(attachment)
+  }
+  /** The path of a sent attachment, for opening it; refuses one that is gone. */
+  async attachmentPath(attachment: Attachment): Promise<string> {
+    const [file] = await this.attachments.files([attachment])
+    return file.path
   }
   private interrupt(sessionId: string): Promise<void> {
     return this.runtimeOf(sessionId).interrupt(sessionId)

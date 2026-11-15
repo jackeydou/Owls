@@ -8,11 +8,17 @@ import type {
   CreateSession,
   CursorConnection,
   RespondRequest,
-  SendMessage,
   Session
 } from '../../shared/app.js'
 import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
-import { type SessionPlace, sessionCwd, type WorkerUsageRecorder } from '../app/agent-runtime.js'
+import {
+  type RuntimeSend,
+  type RuntimeTurn,
+  type SessionPlace,
+  sessionCwd,
+  type WorkerUsageRecorder
+} from '../app/agent-runtime.js'
+import { splitAttachments, turnText, userItemFields } from '../app/attachments.js'
 import { OwltoError, toFailure } from '../app/errors.js'
 import type { OwltoStore } from '../app/store.js'
 import { turnDiff } from '../claude/normalize.js'
@@ -45,6 +51,14 @@ const active = (s: Session): boolean => ['starting', 'running', 'waiting'].inclu
 /** The ACP version Owlto speaks. */
 const PROTOCOL_VERSION = 1
 
+const noCapabilities = {
+  loadSession: false,
+  mcpCapabilities: { http: false },
+  sessionCapabilities: {},
+  promptCapabilities: { image: false }
+}
+/** Keeps an inline image's base64 copy to a size agents accept. */
+const CURSOR_IMAGE_MAX_BYTES = 3_750_000
 const initializeSchema = z.object({
   protocolVersion: z.number().optional(),
   agentCapabilities: z
@@ -59,11 +73,17 @@ const initializeSchema = z.object({
         .object({ systemPrompt: z.unknown().optional() })
         .loose()
         .catch({})
-        .default({})
+        .default({}),
+      /** Whether a prompt may carry image blocks; text and resource links always work. */
+      promptCapabilities: z
+        .object({ image: z.boolean().catch(false).default(false) })
+        .loose()
+        .catch({ image: false })
+        .default({ image: false })
     })
     .loose()
-    .catch({ loadSession: false, mcpCapabilities: { http: false }, sessionCapabilities: {} })
-    .default({ loadSession: false, mcpCapabilities: { http: false }, sessionCapabilities: {} }),
+    .catch(noCapabilities)
+    .default(noCapabilities),
   authMethods: z
     .array(z.object({ id: z.string() }).loose())
     .catch([])
@@ -287,7 +307,7 @@ export class CursorService {
     this.changed(session, true)
     return session
   }
-  async send(input: SendMessage): Promise<void> {
+  async send(input: RuntimeSend): Promise<void> {
     const session = this.getSession(input.sessionId)
     const executable = this.readyExecutable()
     if (active(session))
@@ -309,7 +329,8 @@ export class CursorService {
       status: 'completed',
       text: input.text,
       detail: '',
-      turnId
+      turnId,
+      ...userItemFields(input)
     })
     const runtime: Runtime = {
       turnId,
@@ -323,10 +344,10 @@ export class CursorService {
     this.runtimes.set(session.id, runtime)
     session.status = 'running'
     this.changed(session, true)
-    void this.runTurn(session, runtime, executable, input.text)
+    void this.runTurn(session, runtime, executable, input)
   }
   /** ACP has no way to add a message to a running turn, so the caller queues it for the next. */
-  steer(sessionId: string, _text: string): 'steered' | 'not_running' {
+  steer(sessionId: string, _turn: RuntimeTurn): 'steered' | 'not_running' {
     this.getSession(sessionId)
     return 'not_running'
   }
@@ -334,7 +355,7 @@ export class CursorService {
     session: Session,
     runtime: Runtime,
     executable: string,
-    text: string
+    turn: RuntimeTurn
   ): Promise<void> {
     const connection = new AcpConnection({
       notification: (method, params) => this.notification(session, runtime, method, params),
@@ -391,12 +412,28 @@ export class CursorService {
           30_000
         )
       if (runtime.cancelled) return
+      // An agent without image prompts reads images from disk like any other file.
+      const { images, rest } = await splitAttachments(
+        turn.attachments,
+        init.agentCapabilities.promptCapabilities.image ? CURSOR_IMAGE_MAX_BYTES : null
+      )
+      const text = turnText(turn.text, rest)
       const prompt =
         instructions && !('systemPrompt' in systemPrompt) ? `${instructions}\n\n${text}` : text
       const result = promptResultSchema.parse(
         await connection.request(
           'session/prompt',
-          { sessionId: runtime.acpSessionId, prompt: [{ type: 'text', text: prompt }] },
+          {
+            sessionId: runtime.acpSessionId,
+            prompt: [
+              ...(prompt ? [{ type: 'text', text: prompt }] : []),
+              ...images.map((image) => ({
+                type: 'image',
+                mimeType: image.mimeType,
+                data: image.data
+              }))
+            ]
+          },
           null
         )
       )

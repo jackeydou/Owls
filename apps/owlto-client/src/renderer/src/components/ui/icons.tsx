@@ -240,6 +240,14 @@ export const ExternalLinkIcon = createIcon(
     <path d="M9.25 2.75 L13.25 2.75 L13.25 6.75" />
   </g>
 )
+export const FileIcon = createIcon(
+  'File',
+  'outline',
+  <g>
+    <path d="M5.25 2 L9 2 L12.75 5.75 L12.75 12 C12.75 13.105 11.855 14 10.75 14 L5.25 14 C4.145 14 3.25 13.105 3.25 12 L3.25 4 C3.25 2.895 4.145 2 5.25 2 Z" />
+    <path d="M9 2 L9 4.75 C9 5.302 9.448 5.75 10 5.75 L12.75 5.75" />
+  </g>
+)
 export const FileCodeIcon = createIcon(
   'FileCode',
   'outline',
@@ -395,6 +403,11 @@ export const PaletteIcon = createIcon(
     <circle cx="7.75" cy="4.5" r="0.825" fill="currentColor" stroke="none" />
     <circle cx="10.5" cy="5.5" r="0.825" fill="currentColor" stroke="none" />
   </g>
+)
+export const PaperclipIcon = createIcon(
+  'Paperclip',
+  'outline',
+  <path d="M12.75 7.5 L8.1 12.15 C6.79 13.46 4.66 13.46 3.35 12.15 C2.04 10.84 2.04 8.71 3.35 7.4 L8.35 2.4 C9.22 1.53 10.64 1.53 11.51 2.4 C12.38 3.27 12.38 4.69 11.51 5.56 L6.6 10.47 C6.16 10.91 5.45 10.91 5.01 10.47 C4.57 10.03 4.57 9.32 5.01 8.88 L9.4 4.5" />
 )
 export const PencilIcon = createIcon(
   'Pencil',

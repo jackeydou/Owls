@@ -5,11 +5,13 @@ import type {
   Project,
   RespondRequest,
   SendMessage,
-  Session
+  Session,
+  TurnInput
 } from '../../shared/app.js'
 import type { AgentUsage } from '../../shared/usage.js'
 import type { TurnUsage } from '../../shared/usage-stats.js'
 import type { TurnProfiles } from '../router/service.js'
+import type { AttachmentFile } from './attachments.js'
 import { OwltoError } from './errors.js'
 
 /**
@@ -36,6 +38,13 @@ export function sessionCwd(
   return resolved
 }
 
+/**
+ * A turn as a runtime receives it: attachments carry the path of main's copy.
+ * `author` marks a message the user wrote to a worker, so its item says so.
+ */
+export type RuntimeTurn = Omit<TurnInput, 'attachments'> & { attachments?: AttachmentFile[] }
+export type RuntimeSend = Omit<SendMessage, keyof TurnInput> & RuntimeTurn
+
 /** Receives the token usage a worker session's turn reported, one call per model. */
 export type WorkerUsageRecorder = (sessionId: string, usage: TurnUsage) => void
 
@@ -54,11 +63,12 @@ export interface AgentRuntime {
   usage(): AgentUsage | Promise<AgentUsage>
   /** `place` marks a session outside a project's own folder; see `SessionPlace`. */
   createSession(input: CreateSession, place?: SessionPlace): Session
-  send(input: SendMessage): Promise<void>
+  /** A runtime that cannot take an attachment inline lists its path in the text instead. */
+  send(input: RuntimeSend): Promise<void>
   /** Resolves `not_running` when no turn can take the message; the caller queues it. */
   steer(
     sessionId: string,
-    text: string
+    input: RuntimeTurn
   ): 'steered' | 'not_running' | Promise<'steered' | 'not_running'>
   interrupt(sessionId: string): Promise<void>
   respond(input: RespondRequest): void

@@ -276,7 +276,16 @@ export class RouterService implements TurnProfiles {
     cards: AttachedCard[]
   ): Promise<void> {
     const text = cards.length ? `${cardsText(cards)}\n\n${input.text}` : input.text
-    await this.forUser(() => this.workers.message(router.id, { workerId, text }))
+    // Callers inside main may leave out the schema's default.
+    const attachments = input.attachments ?? []
+    await this.forUser(() =>
+      this.workers.message(router.id, {
+        workerId,
+        text: text.trim(),
+        author: 'user',
+        ...(attachments.length ? { attachments } : {})
+      })
+    )
     this.put(router, {
       id: input.commandId,
       kind: 'user',
@@ -285,14 +294,16 @@ export class RouterService implements TurnProfiles {
       detail: '',
       turnId: null,
       workerId,
-      ...cardRefs(cards)
+      ...cardRefs(cards),
+      ...(attachments.length ? { attachments } : {})
     })
     const body: InboxEventBody = {
       kind: 'user_message',
       at: new Date().toISOString(),
       text: input.text,
       workerId,
-      ...(cards.length ? { cards } : {})
+      ...(cards.length ? { cards } : {}),
+      ...(attachments.length ? { files: attachments.map((a) => a.name) } : {})
     }
     this.add(router.id, input.commandId, body, false)
   }

@@ -27,6 +27,7 @@ import { diffStats, parseDiff } from './diff'
 import { useFollowScroll } from './follow-scroll'
 import { OpenInButton } from './OpenInButton'
 import { useRouterStore } from './store'
+import { WorkerComposer } from './WorkerComposer'
 import { WorkerConversation } from './WorkerConversation'
 import { WorkerGitHub } from './WorkerGitHub'
 import './worker-detail.css'
@@ -160,35 +161,38 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
         </p>
       ) : null}
       <WorkerGitHub worker={worker} />
-      <div
-        className="router-panel-body"
-        ref={follow.scroller}
-        onScroll={follow.onScroll}
-        onWheel={follow.onWheel}
-      >
-        <div ref={follow.content}>
-          {showChanges ? (
-            <DiffView files={files} projectPath={projectPath} />
-          ) : (
-            <WorkerConversation
-              worker={worker}
-              session={session}
-              projectPath={projectPath}
-              onToggleFold={follow.release}
-            />
-          )}
+      <div className="worker-body">
+        <div
+          className="router-panel-body"
+          ref={follow.scroller}
+          onScroll={follow.onScroll}
+          onWheel={follow.onWheel}
+        >
+          <div ref={follow.content}>
+            {showChanges ? (
+              <DiffView files={files} projectPath={projectPath} />
+            ) : (
+              <WorkerConversation
+                worker={worker}
+                session={session}
+                projectPath={projectPath}
+                onToggleFold={follow.release}
+              />
+            )}
+          </div>
         </div>
+        {follow.away ? (
+          <IconButton
+            variant="outline"
+            className="worker-jump"
+            label={t('worker.jumpToLatest')}
+            tooltip={t('worker.jumpToLatest')}
+            icon={<ArrowDownIcon size={16} />}
+            onClick={follow.jumpToBottom}
+          />
+        ) : null}
       </div>
-      {follow.away ? (
-        <IconButton
-          variant="outline"
-          className="worker-jump"
-          label={t('worker.jumpToLatest')}
-          tooltip={t('worker.jumpToLatest')}
-          icon={<ArrowDownIcon size={16} />}
-          onClick={follow.jumpToBottom}
-        />
-      ) : null}
+      <WorkerComposer key={worker.id} worker={worker} />
     </aside>
   )
 }

@@ -2,11 +2,10 @@ import type { Effort } from '../../shared/app.js'
 import type {
   DispatchTaskInput,
   DispatchTaskResult,
-  MessageWorkerInput,
   MessageWorkerResult,
   StopWorkerResult
 } from './tools.js'
-import type { WorkerPool } from './workers.js'
+import type { WorkerMessage, WorkerPool } from './workers.js'
 
 /** A request to start a worker, from a Router tool call or from another device's command. */
 export type WorkerDispatch = {
@@ -39,7 +38,7 @@ export interface WorkerTarget {
   dispatch(request: WorkerDispatch): Promise<DispatchTaskResult>
   message(
     routerId: string,
-    input: MessageWorkerInput,
+    input: WorkerMessage,
     mode?: WorkerMessageMode
   ): Promise<MessageWorkerResult>
   stop(routerId: string, workerId: string, by?: 'router' | 'user'): Promise<StopWorkerResult>
@@ -54,7 +53,7 @@ export class LocalWorkers implements WorkerTarget {
   }
   message(
     routerId: string,
-    input: MessageWorkerInput,
+    input: WorkerMessage,
     mode: WorkerMessageMode = 'steer'
   ): Promise<MessageWorkerResult> {
     return this.pool.message(routerId, input, mode)

@@ -11,6 +11,7 @@ import type { RouterWorker } from '../../../shared/router'
 import { useAppStore } from '../app/store'
 import { useCardsStore } from '../cards/store'
 import { byRelevance, projectHue, workerTitle } from './activity'
+import type { DraftAttachments } from './DraftAttachments'
 import { ProjectIcon } from './ProjectIcon'
 import { useRouterStore } from './store'
 import { WorkerDot } from './WorkerLink'
@@ -164,7 +165,8 @@ export function useRouterDraft({
   disabled = false,
   onThread,
   linkedCards,
-  onSent
+  onSent,
+  attachments
 }: {
   projectId: string | null
   router: Router | undefined
@@ -177,6 +179,8 @@ export function useRouterDraft({
   linkedCards?: CardRef[]
   /** Told when a message went out. */
   onSent?: () => void
+  /** Files the draft carries, for a message to a worker; pasting or dropping files adds them. */
+  attachments?: DraftAttachments
 }) {
   const { createThread, send, sending } = useRouterStore()
   /** A thread made by a send that failed, so trying again does not leave another. */
@@ -204,12 +208,20 @@ export function useRouterDraft({
   )
   // ProseMirror keeps the props it was made with; the key handler reads the latest render.
   const keyDown = useRef<(event: KeyboardEvent) => boolean>(() => false)
+  const takeFiles = useRef<(files: File[]) => boolean>(() => false)
+  takeFiles.current = (files) => {
+    if (!attachments || !files.length) return false
+    attachments.add(files)
+    return true
+  }
   const editor = useEditor({
     extensions: [PlainText, ProjectMention],
     autofocus: 'end',
     editorProps: {
       attributes: { class: 'router-draft-input', role: 'textbox', 'aria-multiline': 'true' },
-      handleKeyDown: (_view, event) => keyDown.current(event)
+      handleKeyDown: (_view, event) => keyDown.current(event),
+      handlePaste: (_view, event) => takeFiles.current([...(event.clipboardData?.files ?? [])]),
+      handleDrop: (_view, event) => takeFiles.current([...(event.dataTransfer?.files ?? [])])
     },
     onUpdate: ({ editor }) => {
       setEmpty(!editor.getText().trim())
@@ -248,18 +260,21 @@ export function useRouterDraft({
     }
     setHighlight(0)
   }
+  const files = attachments?.ready ?? []
+  const waiting = attachments?.staging ?? false
   async function submit() {
     const message = editor.getText({ blockSeparator: '\n' }).trim()
-    if (!message || sending) return
+    if ((!message && !files.length) || sending || waiting) return
     const chosen = router ? null : (firstProject(editor) ?? projectId)
     const current = router ?? created.current ?? (await createThread(chosen))
     if (!current) return
     created.current = router ? null : current
     const cardIds = cards.map((card) => card.id)
-    if (await send(current.id, message, addressed?.id, cardIds)) {
+    if (await send(current.id, message, addressed?.id, cardIds, files)) {
       editor.commands.clearContent(true)
       setMention(null)
       setCards([])
+      attachments?.clear()
       onSent?.()
       created.current = null
       if (!router) onThread?.(current.id)
@@ -292,6 +307,10 @@ export function useRouterDraft({
       setCards((list) => list.slice(0, -1))
       return true
     }
+    if (event.key === 'Backspace' && editor.isEmpty && attachments?.files.length) {
+      attachments.removeLast()
+      return true
+    }
     if (isSendKey(event) && !event.isComposing) {
       event.preventDefault()
       void submit()
@@ -302,6 +321,8 @@ export function useRouterDraft({
   return {
     editor,
     empty,
+    /** Something to send, with every attached file ready. */
+    canSend: (!empty || files.length > 0) && !waiting && !sending,
     sending,
     addressed,
     options,

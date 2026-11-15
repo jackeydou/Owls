@@ -113,9 +113,9 @@ function fakeHost(overrides = {}) {
         turns.running.add(input.sessionId)
         sent.push(input)
       },
-      steer: async (sessionId, text) => {
+      steer: async (sessionId, input) => {
         if (!turns.running.has(sessionId)) return 'not_running'
-        steered.push({ sessionId, text })
+        steered.push({ sessionId, text: input.text })
         return 'steered'
       },
       interrupt: async (sessionId) => {
@@ -1481,6 +1481,36 @@ test('a message to a finished worker starts its next turn, and the report wakes 
   service.settled(worker.sessionId, report('Badge added.'))
   await waitFor(() => engine.runs.length === 3, 'next report batch')
   assert.match(engine.runs[2].text, /Badge added\./)
+  service.close()
+})
+
+test('files sent to a worker reach its turn, the thread, and the Router', async () => {
+  const { service, router, engine, current, sent, fake } = await withTools(async (call) => [
+    await call('dispatch_task', { goal: 'Fix the layout' })
+  ])
+  const worker = service.snapshot().workers[0]
+  service.settled(worker.sessionId, report('Fixed.'))
+  await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'report batch')
+  const shot = { id: crypto.randomUUID(), name: 'shot.png', mimeType: 'image/png', size: 4 }
+  const commandId = crypto.randomUUID()
+  await service.send({
+    routerId: router.id,
+    commandId,
+    text: '',
+    workerId: worker.id,
+    cardIds: [],
+    attachments: [shot]
+  })
+  // Files alone start a turn with no text, never the goal again.
+  assert.deepEqual(
+    { text: sent.at(-1).text, attachments: sent.at(-1).attachments, author: sent.at(-1).author },
+    { text: '', attachments: [shot], author: 'user' }
+  )
+  assert.deepEqual(current().items.find((i) => i.id === commandId).attachments, [shot])
+  assert.equal(fake.steered.length, 0)
+  service.settled(worker.sessionId, report('Looked.'))
+  await waitFor(() => engine.runs.length === 3, 'next report batch')
+  assert.match(engine.runs[2].text, /Attached files: shot\.png/)
   service.close()
 })
 

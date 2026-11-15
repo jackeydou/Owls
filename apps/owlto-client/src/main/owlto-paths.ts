@@ -66,6 +66,11 @@ export function routerThreadHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'router-threads')
 }
 
+/** Where files the user attaches to worker messages are kept. */
+export function attachmentsHome(dataRoot = getDataRoot()): string {
+  return join(dataRoot, 'attachments')
+}
+
 /** The empty working directory Dreaming runs in; it has no project to read. */
 export function memoryDreamingHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'memory-dreaming')

@@ -13,13 +13,21 @@ import type {
   Failure,
   Project,
   RespondRequest,
-  SendMessage,
-  Session
+  Session,
+  SessionItem
 } from '../../shared/app.js'
 import { questionSchema } from '../../shared/app.js'
+import { isInlineImage } from '../../shared/attachments.js'
 import { defaultProjectSettings, type SaveProject } from '../../shared/projects.js'
 import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
-import { type SessionPlace, sessionCwd, type WorkerUsageRecorder } from '../app/agent-runtime.js'
+import {
+  type RuntimeSend,
+  type RuntimeTurn,
+  type SessionPlace,
+  sessionCwd,
+  type WorkerUsageRecorder
+} from '../app/agent-runtime.js'
+import { turnText, userItemFields } from '../app/attachments.js'
 import { OwltoError, toFailure } from '../app/errors.js'
 import type { OwltoStore } from '../app/store.js'
 import {
@@ -41,6 +49,28 @@ import {
 } from './protocol.js'
 import { parseCodexRateLimits } from './usage.js'
 
+type Echo = { sent: string; text: string; fields: ReturnType<typeof userItemFields> }
+
+/**
+ * A turn's `UserInput` items. Codex reads images from disk itself (`localImage`),
+ * so only other files go into the text as paths.
+ */
+/** The text part of a turn: the user's text and the paths of non-image files. */
+function codexText(turn: RuntimeTurn): string {
+  return turnText(
+    turn.text,
+    (turn.attachments ?? []).filter((f) => !isInlineImage(f))
+  )
+}
+function codexInput(turn: RuntimeTurn): Record<string, unknown>[] {
+  const files = turn.attachments ?? []
+  const images = files.filter(isInlineImage)
+  const text = codexText(turn)
+  return [
+    ...(text ? [{ type: 'text', text, text_elements: [] }] : []),
+    ...images.map((image) => ({ type: 'localImage', path: image.path }))
+  ]
+}
 const execFileAsync = promisify(execFile)
 const active = (s: Session): boolean => ['starting', 'running', 'waiting'].includes(s.status)
 const CODEX_REPORT_TOOL = {
@@ -60,6 +90,12 @@ export class CodexService {
   private readonly loaded = new Set<string>()
   private readonly requests = new Map<string, PendingRequest>()
   private readonly cancelled = new Set<string>()
+  /**
+   * Codex echoes each user message back as its own item, holding the text Owlto
+   * sent. For a message with files or from the user, that text carries the file
+   * note, so the echo is matched by it and gets the user's text, files, and author.
+   */
+  private readonly echoes = new Map<string, Echo[]>()
   private readonly interruptions = new Map<string, Promise<void>>()
   private readonly dirty = new Set<string>()
   private flushTimer: ReturnType<typeof setTimeout> | null = null
@@ -241,7 +277,7 @@ export class CodexService {
     this.changed(session, true)
     return session
   }
-  async send(input: SendMessage): Promise<void> {
+  async send(input: RuntimeSend): Promise<void> {
     const session = this.getSession(input.sessionId)
     const client = this.readyClient()
     if (active(session))
@@ -264,8 +300,10 @@ export class CodexService {
       status: 'completed',
       text: input.text,
       detail: '',
-      turnId: null
+      turnId: null,
+      ...userItemFields(input)
     })
+    this.expectEcho(session.id, input)
     this.changed(session, true)
     const profile = this.profiles?.profile(session.id) ?? null
     try {
@@ -317,7 +355,7 @@ export class CodexService {
         await client.request('turn/start', {
           threadId: session.threadId,
           clientUserMessageId: input.commandId,
-          input: [{ type: 'text', text: input.text, text_elements: [] }],
+          input: codexInput(input),
           ...(session.model ? { model: session.model } : {}),
           ...(session.effort ? { effort: session.effort } : {})
         })
@@ -341,21 +379,60 @@ export class CodexService {
     }
   }
   /** Adds a message to the running turn with `turn/steer`; not_running when there is none. */
-  async steer(sessionId: string, text: string): Promise<'steered' | 'not_running'> {
+  async steer(sessionId: string, turn: RuntimeTurn): Promise<'steered' | 'not_running'> {
     const session = this.getSession(sessionId)
     if (!active(session) || !session.threadId || !session.turnId || this.cancelled.has(sessionId))
       return 'not_running'
+    const echo = this.expectEcho(session.id, turn)
     try {
       await this.readyClient().request('turn/steer', {
         threadId: session.threadId,
         expectedTurnId: session.turnId,
-        input: [{ type: 'text', text, text_elements: [] }]
+        input: codexInput(turn)
       })
     } catch {
       // A stale turn id or a finished turn: the caller starts a new turn instead.
+      echo?.()
       return 'not_running'
     }
     return 'steered'
+  }
+  /** Registers the echo a message will get; returns how to drop it again. */
+  private expectEcho(sessionId: string, turn: RuntimeTurn): (() => void) | null {
+    const fields = userItemFields(turn)
+    if (!fields.attachments && !fields.author) return null
+    const echo: Echo = { sent: codexText(turn), text: turn.text, fields }
+    const list = this.echoes.get(sessionId) ?? []
+    list.push(echo)
+    this.echoes.set(sessionId, list)
+    return () => {
+      const rest = (this.echoes.get(sessionId) ?? []).filter((e) => e !== echo)
+      if (rest.length) this.echoes.set(sessionId, rest)
+      else this.echoes.delete(sessionId)
+    }
+  }
+  /**
+   * A user message item from Codex, with the user's text, files, and author when
+   * Owlto expected its echo. Its started and completed frames both arrive; the
+   * first takes the echo, and the second finds the item it already made.
+   */
+  private ownUserItem(session: Session, native: Record<string, unknown>, item: SessionItem) {
+    const echoed = this.echoed(session.id, item)
+    if (echoed !== item) return echoed
+    const clientId = typeof native.clientId === 'string' ? native.clientId : null
+    const known = session.items.find((i) => i.id === item.id || i.id === clientId)
+    if (!known || !(known.author || known.attachments)) return item
+    return { ...item, text: known.text, author: known.author, attachments: known.attachments }
+  }
+  /** The user's own text and fields for an echoed message, when Owlto expected one. */
+  private echoed(sessionId: string, item: SessionItem): SessionItem {
+    if (item.kind !== 'user') return item
+    const list = this.echoes.get(sessionId)
+    const index = list?.findIndex((e) => e.sent === item.text) ?? -1
+    if (!list || index < 0) return item
+    const [echo] = list.splice(index, 1)
+    if (!list.length) this.echoes.delete(sessionId)
+    return { ...item, text: echo.text, ...echo.fields }
   }
   async interrupt(id: string): Promise<void> {
     const session = this.getSession(id)
@@ -512,7 +589,9 @@ export class CodexService {
       case 'item/started':
       case 'item/completed': {
         const native = record(params.item)
-        const item = normalizeItem(native, turnId || null, frame.method === 'item/completed')
+        const normalized = normalizeItem(native, turnId || null, frame.method === 'item/completed')
+        const item =
+          normalized.kind === 'user' ? this.ownUserItem(session, native, normalized) : normalized
         if (item.kind === 'user' && typeof native.clientId === 'string') {
           session.items = session.items.filter((i) => i.id !== native.clientId || i.id === item.id)
         }

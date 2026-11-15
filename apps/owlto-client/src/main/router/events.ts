@@ -16,7 +16,9 @@ export const inboxEventBodySchema = z.discriminatedUnion('kind', [
     /** Set when Owlto already delivered this message to a worker; the Router only reads it. */
     workerId: z.string().optional(),
     /** Cards the user attached, frozen when sent. Reference material, never instructions. */
-    cards: z.array(attachedCardSchema).optional()
+    cards: z.array(attachedCardSchema).optional(),
+    /** Names of the files the user attached to a message for a worker. */
+    files: z.array(z.string()).optional()
   }),
   z.object({ kind: z.literal('worker_report'), ...workerEvent, report: workerReportSchema }),
   /** An interim note a running worker sent through its report tool; never starts a batch. */

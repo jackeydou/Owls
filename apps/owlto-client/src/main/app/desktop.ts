@@ -21,6 +21,7 @@ import { MemoryStore } from '../memory/store.js'
 import { MemorySweeper } from '../memory/sweep.js'
 import { DreamingTriggers } from '../memory/triggers.js'
 import {
+  attachmentsHome,
   getDataRoot,
   memoryDreamingHome,
   projectsHome,
@@ -178,7 +179,8 @@ void app
       new CursorService(store, emit),
       routerThreadHome(root),
       projectsHome(root),
-      workspaceHome(root)
+      workspaceHome(root),
+      attachmentsHome(root)
     )
     const usage = new UsageLedger(store)
     service.attachUsage(usage)

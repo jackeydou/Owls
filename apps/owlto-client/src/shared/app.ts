@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { type Attachment, attachmentSchema, type StageAttachment } from './attachments.js'
 import {
   type Board,
   type BoardSave,
@@ -130,7 +131,14 @@ export const itemSchema = z.object({
   /** On a `forward` item: where its frozen `text` came from. `detail` holds the user's note. */
   forward: forwardOriginSchema.optional(),
   /** On a `user` item: the cards the message carried, as they were named when sent. */
-  cards: z.array(cardRefSchema).optional()
+  cards: z.array(cardRefSchema).optional(),
+  /** On a `user` item: the files the message carried. */
+  attachments: z.array(attachmentSchema).optional(),
+  /**
+   * On a worker session's `user` item: `user` when the user wrote it in the worker
+   * panel. Without it, the Router sent the message.
+   */
+  author: z.literal('user').optional()
 })
 export const questionSchema = z.object({
   id: z.string(),
@@ -425,7 +433,9 @@ export type CreateSession = {
   effort: AppSettings['effort']
   permission: AppSettings['permission']
 }
-export type SendMessage = { sessionId: string; commandId: string; text: string }
+/** What a turn says. `text` may be empty when the message carries files. */
+export type TurnInput = { text: string; attachments?: Attachment[]; author?: 'user' }
+export type SendMessage = { sessionId: string; commandId: string } & TurnInput
 export type RespondRequest = z.infer<typeof respondSchema>
 export interface OwltoAPI {
   snapshot(): Promise<Reply<AppSnapshot>>
@@ -471,6 +481,12 @@ export interface OwltoAPI {
   createThread(input: CreateThread): Promise<Reply<Router>>
   threadItems(input: ThreadItemsRequest): Promise<Reply<ThreadItem[]>>
   sendRouter(input: SendRouterMessage): Promise<Reply<void>>
+  /** Keeps a copy of a pasted or picked file, ready to send with a worker message. */
+  stageAttachment(input: StageAttachment): Promise<Reply<Attachment>>
+  /** An image attachment as a data URL for its thumbnail; null for other files. */
+  attachmentPreview(attachment: Attachment): Promise<Reply<string | null>>
+  /** Opens a sent attachment in the system's default app. */
+  openAttachment(attachment: Attachment): Promise<Reply<void>>
   /** Resolves to the thread that received the content. */
   forward(input: ForwardMessage): Promise<Reply<Router>>
   interruptRouter(routerId: string): Promise<Reply<void>>

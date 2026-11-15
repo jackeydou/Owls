@@ -1,4 +1,29 @@
 import type { SDKUserMessage } from '@anthropic-ai/claude-agent-sdk/core'
+import type { RuntimeTurn } from '../app/agent-runtime.js'
+import { splitAttachments, turnText } from '../app/attachments.js'
+
+/** Keeps the base64 copy under the Messages API's 5 MB image limit. */
+const CLAUDE_IMAGE_MAX_BYTES = 3_750_000
+
+/**
+ * A turn as Claude Code takes it: images inline as base64 blocks, other files
+ * (and images too large to inline) as paths for its Read tool.
+ */
+export async function claudeContent(turn: RuntimeTurn): Promise<SDKUserMessage['message']> {
+  if (!turn.attachments?.length) return { role: 'user', content: turn.text }
+  const { images, rest } = await splitAttachments(turn.attachments, CLAUDE_IMAGE_MAX_BYTES)
+  const text = turnText(turn.text, rest)
+  return {
+    role: 'user',
+    content: [
+      ...images.map((image) => ({
+        type: 'image' as const,
+        source: { type: 'base64' as const, media_type: image.mimeType, data: image.data }
+      })),
+      ...(text ? [{ type: 'text' as const, text }] : [])
+    ]
+  }
+}
 
 export type InputStream = {
   stream: AsyncIterable<SDKUserMessage>
