@@ -1,0 +1,1 @@
+- Router thread: the message actions beside a reply stay up while the pointer moves over to them, so they can be clicked.
