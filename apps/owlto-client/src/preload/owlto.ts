@@ -11,6 +11,7 @@ const api: OwltoAPI = {
   selectClaudeExecutable: () => ipcRenderer.invoke('owlto:select-claude-executable'),
   connectCursor: () => ipcRenderer.invoke('owlto:connect-cursor'),
   selectCursorExecutable: () => ipcRenderer.invoke('owlto:select-cursor-executable'),
+  disconnectAgent: (provider) => ipcRenderer.invoke('owlto:disconnect-agent', provider),
   signIn: () => ipcRenderer.invoke('owlto:sign-in'),
   cancelSignIn: () => ipcRenderer.invoke('owlto:cancel-sign-in'),
   saveSettings: (settings) => ipcRenderer.invoke('owlto:settings', settings),

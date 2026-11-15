@@ -183,6 +183,8 @@ type State = {
   connectClaude(): Promise<void>
   selectClaudeExecutable(): Promise<void>
   connectCursor(): Promise<void>
+  /** Disconnects one agent until the user connects it again. */
+  disconnectAgent(provider: AgentProvider): Promise<void>
   selectCursorExecutable(): Promise<void>
   saveSettings(settings: AppSettings): Promise<void>
   /** Saves the user's name or avatar choice; resolves to whether it was saved. */
@@ -282,6 +284,7 @@ export const useAppStore = create<State>((set, get) => {
       pullRequestsVisible: true,
       workspacePath: null,
       workspaceDismissed: [],
+      disconnectedAgents: [],
       openInApp: null,
       profile: defaultProfile
     },
@@ -567,6 +570,10 @@ export const useAppStore = create<State>((set, get) => {
     connectCursor: async () => {
       const cursor = await action(() => window.owlto.connectCursor())
       if (cursor) set({ cursor })
+    },
+    disconnectAgent: async (provider) => {
+      // The agent's connection event, sent before this reply, updates its state.
+      await action(() => window.owlto.disconnectAgent(provider))
     },
     selectCursorExecutable: async () => {
       const cursor = await action(() => window.owlto.selectCursorExecutable())

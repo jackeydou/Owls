@@ -1,0 +1,1 @@
+- Agents settings: shorter copy; the account row's button shows the connection, and connected agents can be disconnected (they stay disconnected across restarts until connected again).

@@ -319,9 +319,7 @@ void app
     applyAppMenu(store.settings(), menu)
     createWindow()
     updater.start()
-    void service.connect()
-    void service.connectClaude()
-    void service.connectCursor()
+    service.connectAtStartup()
     app.on('activate', () => {
       if (!window) createWindow()
     })

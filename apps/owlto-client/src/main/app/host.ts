@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type { z } from 'zod'
 import type {
+  AgentConnection,
   AgentProvider,
   AppSettings,
   AppSnapshot,
@@ -233,13 +234,38 @@ export class OwltoHost {
     return this.cursor.connectionState()
   }
   connect(): Promise<CodexConnection> {
-    return this.codex.connect()
+    const connection = this.codex.connect()
+    this.rememberDisconnected('codex', false)
+    return connection
   }
   connectClaude(): Promise<ClaudeConnection> {
-    return this.claude.connect()
+    const connection = this.claude.connect()
+    this.rememberDisconnected('claude-code', false)
+    return connection
   }
   connectCursor(): Promise<CursorConnection> {
-    return this.cursor.connect()
+    const connection = this.cursor.connect()
+    this.rememberDisconnected('cursor', false)
+    return connection
+  }
+  /** Connects every agent the user has not disconnected. */
+  connectAtStartup(): void {
+    const disconnected = new Set(this.codex.snapshot().settings.disconnectedAgents)
+    if (!disconnected.has('codex')) void this.codex.connect()
+    if (!disconnected.has('claude-code')) void this.claude.connect()
+    if (!disconnected.has('cursor')) void this.cursor.connect()
+  }
+  disconnectAgent(provider: AgentProvider): AgentConnection {
+    const connection = this.runtimes[provider].disconnect()
+    this.rememberDisconnected(provider, true)
+    return connection
+  }
+  private rememberDisconnected(provider: AgentProvider, disconnected: boolean): void {
+    const settings = this.codex.snapshot().settings
+    if (settings.disconnectedAgents.includes(provider) === disconnected) return
+    const rest = settings.disconnectedAgents.filter((p) => p !== provider)
+    const disconnectedAgents = (disconnected ? [...rest, provider] : rest).sort()
+    this.codex.saveSettings({ ...settings, disconnectedAgents })
   }
   saveSettings(settings: AppSettings): AppSettings {
     const previous = this.codex.snapshot().settings

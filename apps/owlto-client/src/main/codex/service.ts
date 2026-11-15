@@ -168,6 +168,26 @@ export class CodexService {
     })
     return this.connecting
   }
+  /** Stops the app server and forgets the account until the user connects again. */
+  disconnect(): CodexConnection {
+    if (this.connecting || [...this.sessions.values()].some(active))
+      throw new OwltoError('busy', 'Stop active tasks before disconnecting Codex.')
+    const client = this.client
+    this.client = null
+    // Stopping reports the close through disconnected(); the state below replaces it.
+    client?.stop()
+    this.loaded.clear()
+    this.requests.clear()
+    this.connection = {
+      ...this.connection,
+      status: 'disconnected',
+      account: { kind: 'signed-out' },
+      models: [],
+      error: null
+    }
+    this.emitConnection()
+    return this.connection
+  }
   private async openConnection(): Promise<CodexConnection> {
     this.client?.stop()
     this.loaded.clear()

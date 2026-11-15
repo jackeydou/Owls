@@ -221,6 +221,20 @@ export class CursorService {
     })
     return this.connecting
   }
+  /** Forgets the account until the user connects again; each turn starts its own process. */
+  disconnect(): CursorConnection {
+    if (this.connecting || this.hasActiveTasks())
+      throw new OwltoError('busy', 'Stop active tasks before disconnecting Cursor.')
+    this.connection = {
+      ...this.connection,
+      status: 'disconnected',
+      account: { kind: 'unknown' },
+      models: [],
+      error: null
+    }
+    this.emitConnection()
+    return this.connection
+  }
   private async openConnection(): Promise<CursorConnection> {
     this.connection = { ...this.connection, status: 'connecting', error: null }
     this.emitConnection()
