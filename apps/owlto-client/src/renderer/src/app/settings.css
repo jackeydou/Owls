@@ -782,3 +782,62 @@ button.owlto-workspace-folder-name:hover {
 .owlto-ranked-row.dragging .owlto-ranked-grip {
   cursor: grabbing;
 }
+/* One coding agent's worker settings: a header row that folds its settings away. */
+.owlto-agent-config {
+  border-top: 1px solid var(--color-border);
+}
+.owlto-settings-tab-body + .owlto-agent-config {
+  margin-top: 16px;
+}
+.owlto-agent-config:not(:has(+ .owlto-agent-config)) {
+  border-bottom: 1px solid var(--color-border);
+}
+.owlto-agent-config-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 56px;
+  padding: 0 8px;
+  border-radius: var(--owl-radius-sm);
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+  text-align: left;
+  transition: background-color 120ms ease;
+}
+.owlto-agent-config-toggle:hover {
+  background: var(--color-card-muted);
+}
+.owlto-agent-config-toggle:active {
+  transform: translateY(1px);
+}
+.owlto-agent-config-toggle .router-agent-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+.owlto-agent-config-toggle small {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  font-weight: 400;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.owlto-agent-config-toggle > svg:last-child {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+}
+.owlto-agent-config-panel {
+  padding: 0 8px 4px 34px;
+}
+.owlto-settings-section .owlto-agent-config-panel > .owlto-setting-row:first-child {
+  border-top: 0;
+  padding-top: 8px;
+}
+.owlto-agent-config + .owlto-note {
+  padding-top: 12px;
+}
