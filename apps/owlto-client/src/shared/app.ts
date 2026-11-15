@@ -253,11 +253,19 @@ export const defaultLayoutSettings: LayoutSettings = {
   projectsOpen: false,
   rightPanel: 'projects'
 }
+/**
+ * The app's look: `standard`, or `doodle`, the hand-drawn style of the Owlto website.
+ * A skin changes only colors, borders, shadows, and fonts, never the layout.
+ */
+export const skinSchema = z.enum(['standard', 'doodle'])
+export type Skin = z.infer<typeof skinSchema>
 export const settingsSchema = z.object({
   executablePath: z.string().nullable(),
   /** How new workers run on each coding agent; rows from before it start from the defaults. */
   agents: agentConfigsSchema.default(defaultAgentConfigs),
   theme: z.enum(['system', 'light', 'dark']),
+  /** Added later, so older rows get `standard`. */
+  skin: skinSchema.catch('standard').default('standard'),
   language: z.enum(['en', 'zh-CN']),
   /** Rows saved before the doodle owls name a logo that no longer exists; they get the default. */
   appLogo: appLogoSchema.catch(defaultAppLogo),

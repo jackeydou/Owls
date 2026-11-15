@@ -43,7 +43,7 @@ export const MenuContent = forwardRef<
           sideOffset={sideOffset}
           collisionPadding={collisionPadding}
           className={cn(
-            'z-[90] min-w-[220px] [-webkit-app-region:no-drag] max-w-[320px] rounded-(--owl-radius-md) border border-border/70 bg-card p-1 text-(length:--owl-text-sm) text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
+            'owl-floating z-[90] min-w-[220px] [-webkit-app-region:no-drag] max-w-[320px] rounded-(--owl-radius-md) border border-border/70 bg-card p-1 text-(length:--owl-text-sm) text-foreground shadow-[0_8px_28px_rgb(0_0_0_/_0.12)] outline-none dark:border-white/12',
             className
           )}
           onPointerDown={(event) => {

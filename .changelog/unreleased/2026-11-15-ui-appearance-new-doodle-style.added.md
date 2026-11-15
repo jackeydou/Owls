@@ -1,0 +1,1 @@
+- Appearance: new Doodle style matching the Owlto website, with light and dark modes. Switch it in Settings > Appearance. (#150)
