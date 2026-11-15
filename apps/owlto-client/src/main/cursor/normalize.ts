@@ -1,18 +1,13 @@
 import { isAbsolute, relative, resolve } from 'node:path'
 import { z } from 'zod'
-import type {
-  AgentRequest,
-  AppSettings,
-  CodexModel,
-  CursorAccount,
-  SessionItem
-} from '../../shared/app.js'
+import type { Permission } from '../../shared/agents.js'
+import type { AgentRequest, CodexModel, CursorAccount, SessionItem } from '../../shared/app.js'
 import { fileDiff } from '../claude/normalize.js'
 import { recordSchema, safeText, string } from '../codex/protocol.js'
 import type { TurnProfile } from '../router/service.js'
 
 /** Owlto permission choices mapped onto Cursor's session modes. */
-export function cursorMode(permission: AppSettings['permission']): 'ask' | 'agent' {
+export function cursorMode(permission: Permission): 'ask' | 'agent' {
   return permission === 'read-only' ? 'ask' : 'agent'
 }
 
@@ -236,7 +231,7 @@ function inside(cwd: string, path: string): boolean {
  * like Claude Code's accept-edits mode; read-only also refuses edits outright.
  */
 export function approvalPolicy(
-  permission: AppSettings['permission'],
+  permission: Permission,
   state: ToolState,
   cwd: string
 ): 'allow' | 'reject' | 'ask' {

@@ -1,0 +1,1 @@
+- Coding agents: each connected agent has its own worker settings; projects can pick and order agents and models, and the Router sees connected agents and project choices.

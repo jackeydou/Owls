@@ -6,9 +6,9 @@ import routerOwl from '../../../../resources/owl-avatars/router.svg'
 import workerOwlto from '../../../../resources/owl-avatars/workers.svg'
 import { RouterInstructionsRow } from '../router/RouterInstructions'
 import { RouterEngineRows, WorkerLimitRows } from '../router/RouterSettings'
-import { TaskOptions } from './Controls'
 import { SettingRow } from './SettingRow'
 import { SettingsTabs } from './SettingsTabs'
+import { WorkerAgentSettings } from './SettingsWorkerAgents'
 import { useAppStore } from './store'
 
 /** The Router and the workers it sends out, one tab each. */
@@ -45,7 +45,8 @@ export function RouterWorkersSettingsPane() {
         ) : (
           <>
             <p className="owlto-settings-tab-body">{t('defaultsBody')}</p>
-            <TaskOptions />
+            <WorkerAgentSettings />
+            <h3 className="owlto-settings-subhead">{t('workerAgents.allWorkers')}</h3>
             <WorkerLimitRows />
             <WorkspaceFolderRow />
           </>

@@ -129,12 +129,6 @@ async function app(t, provider, goal = 'report through mcp') {
     executablePath: CODEX,
     cursorExecutablePath: CURSOR,
     claudeExecutablePath: CLAUDE,
-    provider,
-    model: null,
-    effort: null,
-    cursorModel: null,
-    claudeModel: null,
-    claudeEffort: null,
     workspacePath: workspace
   })
   const sdk = claudeSdk()

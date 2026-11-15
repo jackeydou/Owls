@@ -3,6 +3,7 @@ import type {
   AgentProvider,
   AppEvent,
   AppSettings,
+  CodexModel,
   CreateSession,
   Project,
   RespondRequest,
@@ -21,6 +22,7 @@ import type {
 import type { SessionPlace } from '../app/agent-runtime.js'
 import { OwltoError } from '../app/errors.js'
 import { safeText } from '../codex/protocol.js'
+import { chooseAgent } from './agent-choice.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
 import {
   projectInstructions,
@@ -121,6 +123,8 @@ export type WorkerHost = {
   workspace(): string
   settings(): AppSettings
   providerReady(provider: AgentProvider): boolean
+  /** The models the agent offers now; empty while it is not connected. */
+  agentModels(provider: AgentProvider): CodexModel[]
   /** `place` marks a session in a project's worktree or in the workspace folder. */
   createSession(input: CreateSession, place?: SessionPlace): Session
   /** Removes a stopped worker's session; the `removed` event does the rest. */
@@ -228,16 +232,21 @@ export class WorkerPool implements TurnProfiles {
   async dispatch(request: WorkerDispatch): Promise<DispatchTaskResult> {
     const { input, seen } = request
     const settings = this.host.settings()
-    const permission = input.permission ?? settings.permission
+    const project = this.projectFor(request.defaultProjectId, input)
+    const { provider, permission, ...selection } = chooseAgent(
+      { ...input, selection: request.selection },
+      {
+        project: project?.settings?.agents ?? null,
+        agents: settings.agents,
+        ready: (p) => this.host.providerReady(p),
+        models: (p) => this.host.agentModels(p)
+      }
+    )
     if (PERMISSION_RANK[permission] > PERMISSION_RANK[settings.router.maxPermission])
       throw new RouterToolError(
         'permission_not_allowed',
         `The Router may grant at most ${settings.router.maxPermission}.`
       )
-    const provider = input.provider ?? settings.provider
-    if (!this.host.providerReady(provider))
-      throw new RouterToolError('provider_unavailable', `${provider} is not connected.`)
-    const project = this.projectFor(request.defaultProjectId, input)
     const key = createHash('sha256')
       .update(project?.id ?? '')
       .update('\0')
@@ -279,13 +288,6 @@ export class WorkerPool implements TurnProfiles {
     const workspace = repo
       ? { ...this.workspaces.plan(repo, id, base), baseBranch }
       : ({ kind: 'checkout' } as const)
-    const selection =
-      request.selection ??
-      (provider === 'claude-code'
-        ? { model: settings.claudeModel, effort: settings.claudeEffort }
-        : provider === 'cursor'
-          ? { model: settings.cursorModel, effort: null }
-          : { model: settings.model, effort: settings.effort })
     let session: Session
     try {
       session =

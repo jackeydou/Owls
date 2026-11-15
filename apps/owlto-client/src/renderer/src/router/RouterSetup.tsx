@@ -19,13 +19,14 @@ export const isSetupFailure = (failure: Failure) => SETUP_FAILURES.includes(fail
 type EngineAgent = Exclude<RouterEngineId, 'owlto'>
 export type RouterSetupNeed =
   | { kind: 'owlto' | 'claude' | 'codex'; alternate: EngineAgent | null }
-  | { kind: 'worker'; provider: AgentProvider; alternate: AgentProvider | null }
+  /** No coding agent is connected, so no worker can run. */
+  | { kind: 'worker'; alternate: null }
 
 /** Agents that can run the Router; any provider can run workers. */
 const ENGINE_AGENTS: EngineAgent[] = ['claude-code', 'codex']
 /** The agent whose Settings tab resolves a need, or null for the Router page. */
 function settingsAgentFor(need: RouterSetupNeed): AgentProvider | null {
-  if (need.kind === 'worker') return need.provider
+  if (need.kind === 'worker') return providerSchema.options[0]
   if (need.kind === 'owlto') return null
   return need.kind === 'claude' ? 'claude-code' : 'codex'
 }
@@ -44,13 +45,7 @@ export function useRouterSetup(router?: Router): RouterSetupNeed | null {
     return { kind: 'claude', alternate }
   if (engine === 'codex' && (!ready('codex') || failed)) return { kind: 'codex', alternate }
   if (engine === 'owlto' && (!settings.router.owlto || failed)) return { kind: 'owlto', alternate }
-  const { provider } = settings
-  if (!ready(provider))
-    return {
-      kind: 'worker',
-      provider,
-      alternate: providerSchema.options.find((a) => a !== provider && ready(a)) ?? null
-    }
+  if (!providerSchema.options.some(ready)) return { kind: 'worker', alternate: null }
   return null
 }
 const COPY = {
@@ -68,11 +63,9 @@ export function RouterSetupNotice({ need }: { need: RouterSetupNeed }) {
   const showRouterSettings = useAppStore((s) => s.showRouterSettings)
   const showAgentSettings = useAppStore((s) => s.showAgentSettings)
   const { alternate } = need
-  const agent = t(`agent.${need.kind === 'worker' ? need.provider : 'codex'}`)
+  const agent = t('agent.codex')
   function switchToAlternate() {
-    if (need.kind === 'worker') {
-      if (need.alternate) void save({ ...settings, provider: need.alternate })
-    } else if (need.alternate)
+    if (need.alternate)
       void save({ ...settings, router: { ...settings.router, engine: need.alternate } })
   }
   return (

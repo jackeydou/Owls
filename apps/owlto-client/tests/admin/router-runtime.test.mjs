@@ -58,7 +58,7 @@ const WORKSPACE = '/tmp/owlto-workspace'
 /** A thread's first batch lists the projects, so even a lone message arrives as a batch. */
 const firstBatch = (text) =>
   new RegExp(
-    `^<owlto-batch id="b_[0-9a-f]+" events="1">\\nProjects:\\n- demo · p1 · default\\n\\[1\\] user_message · user · [0-9:]+\\n${text}\\n</owlto-batch>$`
+    `^<owlto-batch id="b_[0-9a-f]+" events="1">\\nCoding agents connected: codex, claude-code\\nProjects:\\n- demo · p1 · default\\n\\[1\\] user_message · user · [0-9:]+\\n${text}\\n</owlto-batch>$`
   )
 
 function fakeHost(overrides = {}) {
@@ -69,12 +69,11 @@ function fakeHost(overrides = {}) {
   const removed = []
   const turns = { profiles: null, running: new Set() }
   const settings = {
-    permission: 'workspace-write',
-    provider: 'codex',
-    model: 'gpt-test',
-    effort: null,
-    claudeModel: null,
-    claudeEffort: null,
+    agents: {
+      codex: { model: 'gpt-test', effort: null, permission: 'workspace-write' },
+      'claude-code': { model: null, effort: null, permission: 'workspace-write' },
+      cursor: { model: null, effort: null, permission: 'workspace-write' }
+    },
     router: {
       engine: 'owlto',
       owlto: null,
@@ -98,6 +97,7 @@ function fakeHost(overrides = {}) {
       workspace: () => WORKSPACE,
       settings: () => settings,
       providerReady: (provider) => (overrides.ready ?? ['codex', 'claude-code']).includes(provider),
+      agentModels: (provider) => overrides.models?.[provider] ?? [],
       createSession: (input, worker) => {
         const session = { id: crypto.randomUUID(), ...input, worker: worker ?? null }
         created.push(session)
@@ -2266,9 +2266,61 @@ test('the Router reads each project description in its project list', () => {
       { id: 'p2', name: 'web', path: '/w', settings: { description: 'Marketing\n site' } },
       { id: 'p1', name: 'api', path: '/a' }
     ],
-    'p1'
+    'p1',
+    ['cursor', 'codex']
   )
-  assert.equal(text, 'Projects:\n- api · p1 · default\n- web · p2 — Marketing site')
+  assert.equal(
+    text,
+    'Coding agents connected: codex, cursor\nProjects:\n- api · p1 · default\n- web · p2 — Marketing site'
+  )
+  assert.equal(renderProjects([], null, []), 'Coding agents connected: none')
+})
+
+test('the Router reads each project agent order and model lists', () => {
+  const settings = (agents) => ({ description: '', agents })
+  const models = (claude = [], codex = []) => ({ codex, 'claude-code': claude, cursor: [] })
+  const text = renderProjects(
+    [
+      {
+        id: 'p1',
+        name: 'api',
+        path: '/a',
+        settings: settings({
+          order: [
+            { id: 'claude-code', on: true },
+            { id: 'cursor', on: false },
+            { id: 'codex', on: true }
+          ],
+          models: models([
+            { id: 'opus', on: true },
+            { id: 'haiku', on: false },
+            { id: 'sonnet', on: true }
+          ])
+        })
+      },
+      {
+        id: 'p2',
+        name: 'web',
+        path: '/w',
+        settings: settings({ order: [], models: models([], [{ id: 'gpt-6', on: true }]) })
+      },
+      { id: 'p3', name: 'zoo', path: '/z', settings: settings({ order: [], models: models() }) }
+    ],
+    null,
+    ['codex', 'claude-code']
+  )
+  assert.equal(
+    text,
+    [
+      'Coding agents connected: codex, claude-code',
+      'Projects:',
+      '- api · p1',
+      '  agents, in order: claude-code (models: opus, sonnet), codex',
+      '- web · p2',
+      '  agents: any connected; codex (models: gpt-6)',
+      '- zoo · p3'
+    ].join('\n')
+  )
 })
 
 // Worker worktrees in the WorkerPool, with a recording stand-in for git.
@@ -2308,7 +2360,6 @@ function fakeWorkspaces(options = {}) {
 }
 // Claude Code workers start without the Codex start gap, so these tests stay fast.
 const worktreeSettings = {
-  provider: 'claude-code',
   router: { ...fakeHost().settings.router, worktrees: true }
 }
 
@@ -2318,7 +2369,7 @@ test('workers that write start together, each in its own worktree', async () => 
   const { service, router, current, sent, created } = harness([], {
     factory,
     workspaces,
-    host: { settings: worktreeSettings }
+    host: { ready: ['claude-code'], settings: worktreeSettings }
   })
   const results = []
   engine.onRun = async (_input, tools) => {
@@ -2398,7 +2449,7 @@ test('a worker follows its project settings from its next turn', async () => {
   const { service, router, current, fake } = harness([], {
     factory,
     workspaces,
-    host: { settings: worktreeSettings, projects }
+    host: { ready: ['claude-code'], settings: worktreeSettings, projects }
   })
   engine.onRun = async (_input, tools) => {
     if (engine.runs.length === 1) await tools[0].execute({ goal: 'Write A' })
@@ -2433,7 +2484,10 @@ test('without worktrees, writers in one project still take turns', async () => {
     ['setting off', { host: {}, workspaces: fakeWorkspaces() }],
     [
       'not a repository',
-      { host: { settings: worktreeSettings }, workspaces: fakeWorkspaces({ git: false }) }
+      {
+        host: { ready: ['claude-code'], settings: worktreeSettings },
+        workspaces: fakeWorkspaces({ git: false })
+      }
     ]
   ]) {
     const { engine, factory } = scriptedEngine()
@@ -2464,7 +2518,7 @@ test('a worktree that cannot be prepared fails the dispatch and the follow-up', 
   const { service, router, current } = harness([], {
     factory,
     workspaces,
-    host: { settings: worktreeSettings }
+    host: { ready: ['claude-code'], settings: worktreeSettings }
   })
   let error = null
   engine.onRun = async (_input, tools) => {
@@ -2494,7 +2548,7 @@ test('removing a worktree worker cleans up, keeps unmerged work, and can discard
   const { service, router, current } = harness([], {
     factory,
     workspaces,
-    host: { settings: worktreeSettings }
+    host: { ready: ['claude-code'], settings: worktreeSettings }
   })
   engine.onRun = async (_input, tools) => {
     if (engine.runs.length !== 1) return
@@ -2543,7 +2597,7 @@ test('restart prunes worktrees and finishes a cleanup that did not complete', as
     store,
     factory: first.factory,
     workspaces: failing,
-    host: { settings: worktreeSettings }
+    host: { ready: ['claude-code'], settings: worktreeSettings }
   })
   first.engine.onRun = async (_input, tools) => {
     if (first.engine.runs.length === 1) await tools[0].execute({ goal: 'Write A' })
@@ -2565,7 +2619,7 @@ test('restart prunes worktrees and finishes a cleanup that did not complete', as
     store,
     factory: scriptedEngine().factory,
     workspaces,
-    host: { settings: worktreeSettings }
+    host: { ready: ['claude-code'], settings: worktreeSettings }
   })
   await two.service.recovered
   assert.deepEqual(workspaces.calls, [
@@ -2631,6 +2685,95 @@ const message = (id, text = 'hello') => ({
   text,
   detail: '',
   turnId: null
+})
+
+test('dispatch follows the project agent order and model list', async () => {
+  const model = (id, efforts = []) => ({ id, name: id, efforts, isDefault: false })
+  const ORDERED = {
+    ...PROJECT,
+    settings: {
+      description: '',
+      agents: {
+        order: [
+          { id: 'cursor', on: true },
+          { id: 'claude-code', on: true },
+          { id: 'codex', on: false }
+        ],
+        models: {
+          codex: [],
+          'claude-code': [
+            { id: 'gone', on: true },
+            { id: 'haiku', on: false },
+            { id: 'opus', on: true },
+            { id: 'sonnet', on: true }
+          ],
+          cursor: []
+        }
+      }
+    }
+  }
+  const { engine, service, router, current, created } = scripted({
+    host: {
+      projects: [ORDERED],
+      ready: ['codex', 'claude-code'],
+      models: { 'claude-code': [model('haiku'), model('opus', ['high']), model('sonnet')] },
+      settings: {
+        agents: {
+          codex: { model: 'gpt-test', effort: null, permission: 'workspace-write' },
+          'claude-code': { model: 'haiku', effort: 'high', permission: 'read-only' },
+          cursor: { model: null, effort: null, permission: 'workspace-write' }
+        }
+      }
+    }
+  })
+  const results = []
+  engine.onRun = async (_input, tools) => {
+    const dispatch = dispatchFrom(tools)
+    for (const input of [
+      { goal: 'First choice' },
+      { goal: 'Named model', model: 'sonnet' },
+      { goal: 'Unlisted model', model: 'haiku' },
+      { goal: 'Unused agent', provider: 'codex' },
+      { goal: 'Disconnected agent', provider: 'cursor' }
+    ])
+      results.push(await dispatch.execute(input).then(JSON.parse, (error) => error.code))
+  }
+  await send(service, router, 'go')
+  await waitFor(() => current().status === 'idle' && results.length === 5, 'dispatches')
+  assert.match(
+    engine.runs[0].text,
+    /agents, in order: cursor, claude-code \(models: gone, opus, sonnet\)/
+  )
+  assert.deepEqual(results.slice(2), [
+    'invalid_request',
+    'provider_unavailable',
+    'provider_unavailable'
+  ])
+  assert.deepEqual(
+    created.map((s) => [s.provider, s.model, s.effort, s.permission]),
+    [
+      ['claude-code', 'opus', 'high', 'read-only'],
+      ['claude-code', 'sonnet', null, 'read-only']
+    ],
+    'skips the disconnected agent and the model the agent no longer offers'
+  )
+  service.close()
+})
+
+test('a project without choices uses the first connected agent and its settings', async () => {
+  const { engine, service, router, current, created } = scripted({
+    host: { ready: ['claude-code'] }
+  })
+  engine.onRun = async (_input, tools) => {
+    await dispatchFrom(tools).execute({ goal: 'Any agent' })
+  }
+  await send(service, router, 'go')
+  await waitFor(() => current().status === 'idle' && created.length === 1, 'dispatch')
+  assert.deepEqual(
+    [created[0].provider, created[0].model, created[0].permission],
+    ['claude-code', null, 'workspace-write']
+  )
+  service.close()
 })
 
 test('threads are global: a project can have several, and a thread needs no project', async () => {
@@ -2795,7 +2938,7 @@ test('a single project is listed but not used unless the task names it', async (
   const { engine, service, current, created } = scripted({
     projectId: null,
     workspaces,
-    host: { settings: worktreeSettings }
+    host: { ready: ['claude-code'], settings: worktreeSettings }
   })
   const router = service.snapshot().routers[0]
   const results = []
@@ -2890,7 +3033,7 @@ test('the same goal in two projects is two workers', async () => {
 
 test('writers in one checkout wait for each other across threads', async () => {
   const { engine, service, router, current, sent } = scripted({
-    host: { projects: [PROJECT, OTHER], settings: { provider: 'claude-code' } }
+    host: { projects: [PROJECT, OTHER], ready: ['claude-code'] }
   })
   const second = service.createThread({ projectId: PROJECT.id })
   const third = service.createThread({ projectId: OTHER.id })
@@ -2977,7 +3120,7 @@ test('a forwarded worker can be built on, not controlled, by the receiving threa
   const workspaces = fakeWorkspaces()
   const { engine, service, router, thread, current, created } = scripted({
     workspaces,
-    host: { settings: worktreeSettings }
+    host: { ready: ['claude-code'], settings: worktreeSettings }
   })
   let tools = null
   engine.onRun = async (_input, current) => {
@@ -3096,7 +3239,7 @@ test('a new thread reads memory once in its first batch and can search it', asyn
   await waitFor(() => current().status === 'idle' && current().items.length >= 3, 'first batch')
   assert.match(
     seen[0],
-    /<owlto-batch id="b_[0-9a-f]+" events="1">\nProjects:\n- demo · p1 · default\nMemory \(saved by Owlto/
+    /<owlto-batch id="b_[0-9a-f]+" events="1">\nCoding agents connected: codex, claude-code\nProjects:\n- demo · p1 · default\nMemory \(saved by Owlto/
   )
   assert.match(seen[0], /Prefers short replies \(p1\)/)
   assert.match(seen[0], /user_message · user/)
@@ -3117,7 +3260,7 @@ test('search_memory sits in the fixed tool order only while memory is on', async
   const off = await withTools(async () => [], { memory: fakeMemory(false) })
   assert.ok(!off.engine.tools.some((t) => t.name === 'search_memory'))
   assert.match(off.engine.runs[0].text, firstBatch('go'), 'no memory block without memory')
-  assert.equal(ROUTER_PROMPT_VERSION, 15)
+  assert.equal(ROUTER_PROMPT_VERSION, 16)
   off.service.close()
 })
 

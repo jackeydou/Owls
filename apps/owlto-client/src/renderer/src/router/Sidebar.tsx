@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
 import { DreamingOwl } from '../app/OwlAvatar'
-import { agentConnection, useAppStore } from '../app/store'
+import { useAppStore } from '../app/store'
 import { useDreaming } from '../memory/dreaming'
 import { usageSummaryRows, useUsageStore, watchUsage } from '../usage/store'
 import { UsagePanel } from '../usage/UsagePanel'
@@ -122,8 +122,6 @@ export function Sidebar() {
     () => routers.filter((r) => r.itemCount && !r.archivedAt).sort(byRecent),
     [routers]
   )
-  const provider = useAppStore((s) => s.settings.provider)
-  const connection = useAppStore((s) => agentConnection(s, provider))
   return (
     <nav className="router-sidebar" style={{ width }} aria-label={t('router.sidebar')}>
       <div className="router-sidebar-head" />
@@ -197,7 +195,7 @@ export function Sidebar() {
       <UsageEntry />
       <button
         type="button"
-        className={`router-sidebar-item router-sidebar-action router-sidebar-settings ${connection.status}`}
+        className="router-sidebar-item router-sidebar-action router-sidebar-settings"
         onClick={() => showSettings()}
       >
         <SettingsIcon size={17} />

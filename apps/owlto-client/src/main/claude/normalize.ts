@@ -1,12 +1,7 @@
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk/core'
 import { z } from 'zod'
-import type {
-  AgentRequest,
-  AppSettings,
-  ClaudeAccount,
-  CodexModel,
-  SessionItem
-} from '../../shared/app.js'
+import type { Permission } from '../../shared/agents.js'
+import type { AgentRequest, ClaudeAccount, CodexModel, SessionItem } from '../../shared/app.js'
 import { effortSchema } from '../../shared/app.js'
 import { recordSchema, safeText, string } from '../codex/protocol.js'
 
@@ -62,7 +57,7 @@ export function parseClaudeAccount(value: unknown): ClaudeAccount {
  * classifier cannot decide are still routed to the user.
  */
 export function permissionOptions(
-  permission: AppSettings['permission'],
+  permission: Permission,
   autoMode: boolean
 ): { permissionMode: PermissionMode; disallowedTools?: string[] } {
   if (permission === 'read-only')

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { defaultProjectAgents, projectAgentsSchema } from './agents.js'
 
 /** A GitHub repository named by the user, and the URL to clone it from. */
 export type GitHubRepoRef = { owner: string; repo: string; cloneUrl: string }
@@ -128,7 +129,9 @@ export const projectSettingsSchema = z.object({
   /** One of the palette colors; null picks one from the project's id. */
   color: z.number().int().min(1).max(PROJECT_COLORS).nullable().default(null),
   git: projectGitSettingsSchema,
-  instructions: projectInstructionsSchema
+  instructions: projectInstructionsSchema,
+  /** The coding agents and models this project's workers use; added later, so older rows get none. */
+  agents: projectAgentsSchema.default(defaultProjectAgents)
 })
 export type ProjectGitSettings = z.infer<typeof projectGitSettingsSchema>
 export type ProjectInstructions = z.infer<typeof projectInstructionsSchema>
@@ -138,7 +141,8 @@ export const defaultProjectSettings: ProjectSettings = {
   icon: { kind: 'letter' },
   color: null,
   git: { baseBranch: null, remote: null, deletePushedBranches: false },
-  instructions: { general: '', codeReview: '', pullRequest: '' }
+  instructions: { general: '', codeReview: '', pullRequest: '' },
+  agents: defaultProjectAgents
 }
 /** The remote workers use when the project names none. */
 export const DEFAULT_REMOTE = 'origin'

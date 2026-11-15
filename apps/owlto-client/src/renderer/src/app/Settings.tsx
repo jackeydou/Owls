@@ -72,6 +72,7 @@ const TAB_GROUPS: TabEntry[][] = [
 
 const PROJECT_PAGE_ICONS: Record<ProjectSettingsPage, IconComponent> = {
   general: InfoIcon,
+  agents: TerminalIcon,
   git: GitBranchIcon,
   instructions: ScrollTextIcon
 }
