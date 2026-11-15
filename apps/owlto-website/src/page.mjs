@@ -192,7 +192,8 @@ function hero({ t }) {
     ['cursor', 0.78, 300]
   ]
   const [lineA, lineB] = t.hero.title
-  return `<section class="hero" id="top">
+  // Hero copy is English on every locale, so mark it as such for fonts and screen readers.
+  return `<section class="hero" id="top" lang="en">
   <div class="sky" aria-hidden="true"><i class="moon"></i><i class="stars"></i><i class="stars stars-b"></i></div>
   <div class="hero-copy">
     <p class="kicker rise" style="--i:0">${esc(t.hero.kicker)}</p>

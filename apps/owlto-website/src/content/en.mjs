@@ -23,7 +23,7 @@ export default {
   hero: {
     kicker: 'Free and open source · macOS',
     title: ['Your', 'agent team'],
-    sub: 'A team of coding owls on your Mac. Tell one owl what you need: it plans the work, hands each part to Claude Code, Codex, or Cursor, and comes back with one clear answer.',
+    sub: 'Stop juggling coding agents. Tell Owlto what you need and let the team handle the rest.',
     cta: 'Download for macOS',
     ctaNote: 'Apple silicon · macOS 13 or later',
     secondary: 'See it work',

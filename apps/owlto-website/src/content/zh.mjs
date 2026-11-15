@@ -1,4 +1,6 @@
 // Simplified Chinese copy. Mirrors en.mjs key for key.
+import en from './en.mjs'
+
 export default {
   meta: {
     title: 'Owlto：你的 Auto 智能体团队，在 Mac 上调度 Claude Code、Codex、Cursor',
@@ -20,24 +22,8 @@ export default {
     language: '语言',
     menu: '菜单'
   },
-  hero: {
-    kicker: '免费开源 · macOS',
-    title: ['你的', '智能体团队'],
-    sub: 'Mac 上的一支猫头鹰编程团队。把需求告诉一只猫头鹰：它来规划任务，把每一部分交给 Claude Code、Codex 或 Cursor，最后给你一个清楚的答复。',
-    cta: '下载 macOS 版',
-    ctaNote: 'Apple 芯片 · macOS 13 及以上',
-    secondary: '看看它怎么干活',
-    hoots: ['咕咕！', '收到。', '叫我吗？', '正在提交…', 'LGTM'],
-    owlLabels: {
-      user: '戴墨镜的你',
-      router: 'Router 猫头鹰',
-      'claude-code': 'Claude Code 猫头鹰',
-      codex: 'Codex 猫头鹰',
-      cursor: 'Cursor 猫头鹰'
-    },
-    hint: '它们在盯着你的鼠标。点一只试试。',
-    auto: 'Auto'
-  },
+  // The hero stays in English on every locale; only the rest is translated.
+  hero: en.hero,
   chaos: {
     kicker: '问题在哪',
     title: ['四个服务，', '九个任务，', '三个智能体，', '只有一个你。'],
