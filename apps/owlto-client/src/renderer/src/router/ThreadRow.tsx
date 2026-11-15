@@ -1,5 +1,6 @@
+import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { CollapseAllIcon, ExpandAllIcon } from '@renderer/components/ui/icons'
+import { ChevronDownIcon, CollapseAllIcon, ExpandAllIcon } from '@renderer/components/ui/icons'
 import {
   createContext,
   type ReactNode,
@@ -26,6 +27,7 @@ type TurnFold = {
   folded: boolean
   /** A row reports whether its reply runs past the folded height. */
   setLong(rowId: string, long: boolean): void
+  toggle(): void
 }
 const TurnFoldContext = createContext<TurnFold | null>(null)
 
@@ -49,8 +51,7 @@ export function ThreadTurn({ children }: { children: ReactNode }) {
   }, [])
   const hasLong = longRows.size > 0
   const isFolded = hasLong && folded
-  const fold = useMemo(() => ({ folded: isFolded, setLong }), [isFolded, setLong])
-  function toggle() {
+  const toggle = useCallback(() => {
     setFolded(!isFolded)
     if (isFolded) return
     // Folding from deep inside a long turn would leave the view below it; bring its top back.
@@ -60,7 +61,8 @@ export function ThreadTurn({ children }: { children: ReactNode }) {
       if (el && scroller && el.getBoundingClientRect().top < scroller.getBoundingClientRect().top)
         el.scrollIntoView({ block: 'start' })
     })
-  }
+  }, [isFolded])
+  const fold = useMemo(() => ({ folded: isFolded, setLong, toggle }), [isFolded, setLong, toggle])
   return (
     <TurnFoldContext.Provider value={fold}>
       <div ref={turn} className="router-turn">
@@ -102,6 +104,7 @@ export function ThreadRow({
   foldable?: boolean
   children: ReactNode
 }) {
+  const { t } = useTranslation()
   const row = useRef<HTMLDivElement>(null)
   const fold = useContext(TurnFoldContext)
   const long = useLongReply(row, foldable && fold !== null)
@@ -130,7 +133,22 @@ export function ThreadRow({
           )}
         </div>
       </div>
-      <div className="router-row-body">{children}</div>
+      <div className="router-row-body">
+        {children}
+        {long && fold ? (
+          // At the foot of a long reply: over the fade while folded, after the text once open.
+          <Button
+            variant="outline"
+            size="custom"
+            className="router-fold-bar"
+            aria-expanded={!isFolded}
+            onClick={fold.toggle}
+          >
+            <ChevronDownIcon size={14} />
+            {t(isFolded ? 'router.expandMessage' : 'router.collapseMessage')}
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }

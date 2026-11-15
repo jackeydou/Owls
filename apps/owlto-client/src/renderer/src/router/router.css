@@ -1032,6 +1032,38 @@ html.pane-resizing * {
 .router-row-tools button:hover {
   color: var(--color-foreground);
 }
+/* The fold control at a long reply's foot. Folded, it sits on the fade and always shows; open,
+   it shows on the row's hover, so a reply read in full ends without extra chrome. */
+.router-fold-bar {
+  position: relative;
+  z-index: 1;
+  gap: 4px;
+  height: 26px;
+  margin-top: 4px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+  -webkit-app-region: no-drag;
+}
+.router-fold-bar:hover {
+  color: var(--color-foreground);
+}
+.router-row:not(.folded) .router-fold-bar {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.router-row:not(.folded) .router-fold-bar svg {
+  transform: rotate(180deg);
+}
+.router-row:hover .router-fold-bar,
+.router-row .router-fold-bar:focus-visible {
+  opacity: 1;
+}
+.router-row.folded .router-fold-bar {
+  margin-top: -14px;
+}
 /* A folded reply shows its first four lines, fading out into the rest. */
 .router-row.folded .owlto-markdown {
   max-height: 4lh;
