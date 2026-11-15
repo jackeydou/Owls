@@ -260,8 +260,8 @@ export function RouterTimeline({
             </div>
           ) : null}
           {turns.map((turn) => (
-            // One avatar leads the turn; its fold toggle sits right under it.
-            <ThreadTurn key={turn[0].id}>
+            // One avatar leads the turn; a Router turn folds as one block between user messages.
+            <ThreadTurn key={turn[0].id} foldable={speakerOf(turn[0]) === 'router'}>
               {turn.map((entry, index) => {
                 const speaker = speakerOf(entry)
                 const forward =
@@ -281,7 +281,6 @@ export function RouterTimeline({
                     entryId={entry.id}
                     speaker={speaker}
                     follows={index > 0}
-                    foldable={'item' in entry && entry.item.kind === 'assistant'}
                   >
                     {'workerIds' in entry ? (
                       <DispatchGroup workerIds={entry.workerIds} />

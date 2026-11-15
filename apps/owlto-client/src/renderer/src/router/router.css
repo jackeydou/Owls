@@ -1017,7 +1017,8 @@ html.pane-resizing * {
   transition: opacity 120ms ease;
   -webkit-app-region: no-drag;
 }
-.router-turn:has(> .router-row:first-child > .router-row-side:hover) .router-row-tools,
+.router-turn:has(> .router-turn-rows > .router-row:first-child > .router-row-side:hover)
+  .router-row-tools,
 .router-turn-rail:hover .router-row-tools,
 .router-row-tools:focus-within {
   opacity: 1;
@@ -1032,14 +1033,36 @@ html.pane-resizing * {
 .router-row-tools button:hover {
   color: var(--color-foreground);
 }
-/* The fold control at a long reply's foot. Folded, it sits on the fade and always shows; open,
-   it shows on the row's hover, so a reply read in full ends without extra chrome. */
+/* A folded turn shows its first four lines of text, fading into the page. It clips only
+   vertically, so the actions in the right gutter stay usable, and fades with an overlay
+   rather than a mask, which would hide them too. */
+.router-turn {
+  --owl-turn-line: calc(var(--owl-text-base) * var(--owl-leading-relaxed));
+}
+.router-turn.folded > .router-turn-rows {
+  position: relative;
+  max-height: calc(var(--owl-turn-line) * 4);
+  overflow-x: visible;
+  overflow-y: clip;
+}
+.router-turn.folded > .router-turn-rows::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: var(--owl-thread-gutter);
+  height: calc(var(--owl-turn-line) * 1.5);
+  background: linear-gradient(to bottom, transparent, var(--color-background));
+  pointer-events: none;
+}
+/* The fold control at the turn's foot. Folded, it sits on the fade and always shows; open, it
+   shows on the turn's hover, so a turn read in full ends without extra chrome. */
 .router-fold-bar {
   position: relative;
   z-index: 1;
   gap: 4px;
   height: 26px;
-  margin-top: 4px;
+  margin: 4px 0 0 var(--owl-thread-gutter);
   padding: 0 10px 0 8px;
   border-radius: 999px;
   color: var(--color-muted-foreground);
@@ -1050,25 +1073,19 @@ html.pane-resizing * {
 .router-fold-bar:hover {
   color: var(--color-foreground);
 }
-.router-row:not(.folded) .router-fold-bar {
+.router-turn:not(.folded) > .router-fold-bar {
   opacity: 0;
   transition: opacity 120ms ease;
 }
-.router-row:not(.folded) .router-fold-bar svg {
+.router-turn:not(.folded) > .router-fold-bar svg {
   transform: rotate(180deg);
 }
-.router-row:hover .router-fold-bar,
-.router-row .router-fold-bar:focus-visible {
+.router-turn:hover > .router-fold-bar,
+.router-turn > .router-fold-bar:focus-visible {
   opacity: 1;
 }
-.router-row.folded .router-fold-bar {
+.router-turn.folded > .router-fold-bar {
   margin-top: -14px;
-}
-/* A folded reply shows its first four lines, fading out into the rest. */
-.router-row.folded .owlto-markdown {
-  max-height: 4lh;
-  overflow: hidden;
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5lh), transparent);
 }
 .router-row .owlto-message-label {
   display: none;
