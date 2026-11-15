@@ -1,0 +1,1 @@
+- Router thread: folding now collapses everything the Router did between two user messages as one block, instead of a single long reply.
