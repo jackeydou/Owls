@@ -7,7 +7,6 @@ import {
   FileCodeIcon,
   type IconComponent,
   InfoIcon,
-  LoaderIcon,
   ScrollTextIcon,
   ShieldCheckIcon,
   SparklesIcon,
@@ -153,6 +152,10 @@ function ActivityItem({ item }: { item: SessionItem }) {
     </details>
   )
 }
+type RequestDecision = 'accept' | 'decline' | 'cancel'
+/** Characters a request title can have and still fit on the card's one row. */
+const LONG_REQUEST_TITLE = 56
+
 export function RequestCard({
   request,
   sessionId,
@@ -165,15 +168,20 @@ export function RequestCard({
   const { t } = useTranslation()
   const respond = useAppStore((s) => s.respond)
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [pending, setPending] = useState(false)
-  async function submit(decision: 'accept' | 'decline' | 'cancel') {
-    setPending(true)
+  const [pending, setPending] = useState<RequestDecision | null>(null)
+  const isQuestion = request.kind === 'question'
+  const answering = request.status === 'answering'
+  const busy = pending !== null || answering
+  // A long command gets its own block under the row instead of wrapping beside the buttons.
+  const longTitle = request.title.length > LONG_REQUEST_TITLE || request.title.includes('\n')
+  async function submit(decision: RequestDecision) {
+    setPending(decision)
     try {
       await respond({
         sessionId,
         requestId: request.id,
         decision,
-        ...(request.kind === 'question'
+        ...(isQuestion
           ? {
               answers: Object.fromEntries(
                 Object.entries(answers).map(([id, answer]) => [id, [answer]])
@@ -182,25 +190,73 @@ export function RequestCard({
           : {})
       })
     } finally {
-      setPending(false)
+      setPending(null)
     }
   }
+  const actions = (
+    <div className="owlto-request-actions">
+      <Button
+        size="sm"
+        type="submit"
+        data-request-action="accept"
+        pending={pending === 'accept' || (answering && pending === null)}
+        disabled={busy || request.questions.some((q) => !answers[q.id]?.trim())}
+      >
+        {t(answering ? 'responsePending' : isQuestion ? 'continue' : 'approve')}
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        pending={pending === 'decline' || pending === 'cancel'}
+        disabled={busy}
+        onClick={() => void submit(isQuestion ? 'cancel' : 'decline')}
+      >
+        {t(isQuestion ? 'cancel' : 'decline')}
+      </Button>
+    </div>
+  )
   return (
     <form
       className="owlto-request"
+      data-kind={request.kind}
+      aria-label={t(isQuestion ? 'questionTitle' : 'approvalTitle', { agent })}
       onSubmit={(event) => {
         event.preventDefault()
         void submit('accept')
       }}
     >
-      <div className="owlto-request-title">
-        <ShieldCheckIcon size={19} />
-        <strong>
-          {t(request.kind === 'question' ? 'questionTitle' : 'approvalTitle', { agent })}
-        </strong>
-      </div>
-      {request.title ? <pre>{request.title}</pre> : null}
-      {request.detail ? <p>{request.detail}</p> : null}
+      {isQuestion ? (
+        <div className="owlto-request-head">
+          <ShieldCheckIcon size={15} />
+          <strong className="owlto-request-label">{t('questionTitle', { agent })}</strong>
+        </div>
+      ) : (
+        <div className="owlto-request-head">
+          <ShieldCheckIcon size={15} />
+          <strong className="owlto-request-label">{t('approvalLabel')}</strong>
+          <p className="owlto-request-subject">
+            <span>{agent}</span>
+            {request.title && !longTitle ? (
+              <>
+                <span aria-hidden> → </span>
+                {request.kind === 'permissions' ? (
+                  <span>{request.title}</span>
+                ) : (
+                  <code>{request.title}</code>
+                )}
+              </>
+            ) : null}
+          </p>
+          {actions}
+        </div>
+      )}
+      {!isQuestion && longTitle ? (
+        <pre className="owlto-request-command">{request.title}</pre>
+      ) : null}
+      {isQuestion && request.title ? (
+        <p className="owlto-request-subject">{request.title}</p>
+      ) : null}
+      {request.detail ? <p className="owlto-request-detail">{request.detail}</p> : null}
       {request.questions.map((question) => (
         <fieldset key={question.id}>
           <legend>{question.question}</legend>
@@ -234,36 +290,7 @@ export function RequestCard({
           />
         </fieldset>
       ))}
-      <div className="owlto-request-actions">
-        <Button
-          size="sm"
-          type="submit"
-          disabled={
-            pending ||
-            request.status === 'answering' ||
-            request.questions.some((q) => !answers[q.id]?.trim())
-          }
-        >
-          {pending || request.status === 'answering' ? (
-            <LoaderIcon size={15} className="animate-spin" />
-          ) : null}
-          {t(
-            request.status === 'answering'
-              ? 'responsePending'
-              : request.kind === 'question'
-                ? 'continue'
-                : 'approve'
-          )}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={pending || request.status === 'answering'}
-          onClick={() => void submit(request.kind === 'question' ? 'cancel' : 'decline')}
-        >
-          {t(request.kind === 'question' ? 'cancel' : 'decline')}
-        </Button>
-      </div>
+      {isQuestion ? actions : null}
     </form>
   )
 }
