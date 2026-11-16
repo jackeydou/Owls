@@ -29,6 +29,13 @@ export const REPORT_SERVER_NAME = 'owlto'
 export const REPORT_TOOL_DESCRIPTION =
   'Report to the Owlto Router, the coordinator that gave you this task. Call it once when you finish, with status done, blocked, or needs_input. On a long task you may also call it with status progress to say how far you are; that does not end your turn.'
 
+/**
+ * Longest note artifact the report tool takes. A note is one sentence for the
+ * coordinator; anything longer belongs in a file, where the user can open it.
+ * Only tool calls are held to it: a stored or final-message report stays readable.
+ */
+export const WORKER_NOTE_LIMIT = 300
+
 /** The report tool's input, for agents that take a zod schema (the Agent SDK). */
 export const REPORT_TOOL_SCHEMA = z
   .object({
@@ -45,7 +52,9 @@ export const REPORT_TOOL_SCHEMA = z
       .array(z.object({ kind: z.enum(['file', 'url', 'note']), ref: z.string().max(2000) }))
       .max(20)
       .optional()
-      .describe('Files, URLs, or notes the coordinator should know about.')
+      .describe(
+        `Files, URLs, or notes the coordinator should know about. A note is one sentence of at most ${WORKER_NOTE_LIMIT} characters, such as "Tests were not run." Write anything longer, such as a report or a plan, to a file and list that file as a file artifact instead.`
+      )
   })
   .strict()
 const { $schema: _toolDraft, ...reportToolJsonSchema } = z.toJSONSchema(REPORT_TOOL_SCHEMA, {
@@ -65,7 +74,16 @@ export function parseToolReport(
   input: unknown
 ): { ok: true; report: WorkerReport } | { ok: false; text: string } {
   const parsed = workerReportSchema.strict().safeParse(input)
-  if (parsed.success) return { ok: true, report: parsed.data }
+  if (parsed.success) {
+    const long = parsed.data.artifacts.findIndex(
+      (artifact) => artifact.kind === 'note' && artifact.ref.trim().length > WORKER_NOTE_LIMIT
+    )
+    if (long < 0) return { ok: true, report: parsed.data }
+    return {
+      ok: false,
+      text: `Invalid report. artifacts.${long}.ref: a note is one sentence of at most ${WORKER_NOTE_LIMIT} characters. Write the content to a file, list it as a file artifact, and call report again.`
+    }
+  }
   const issues = parsed.error.issues
     .slice(0, 5)
     .map((issue) => `${issue.path.join('.') || 'input'}: ${issue.message}`)

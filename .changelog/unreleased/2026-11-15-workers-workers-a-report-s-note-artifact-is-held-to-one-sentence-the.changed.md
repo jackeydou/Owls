@@ -1,0 +1,1 @@
+- Workers: a report's note artifact is held to one sentence. The report tool turns down a longer one and asks the worker to write it to a file instead. (#158)

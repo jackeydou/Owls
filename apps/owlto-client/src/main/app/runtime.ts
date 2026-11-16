@@ -79,6 +79,7 @@ export {
   parseReport,
   parseToolReport,
   REPORT_TOOL_INPUT_SCHEMA,
+  WORKER_NOTE_LIMIT,
   WORKER_REPORT_JSON_SCHEMA
 } from '../router/report.js'
 export { WorkerReportServer } from '../router/report-server.js'

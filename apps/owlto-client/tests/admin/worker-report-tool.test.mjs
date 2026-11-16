@@ -37,6 +37,7 @@ const {
   OwltoHost,
   OwltoStore,
   parseToolReport,
+  WORKER_NOTE_LIMIT,
   RouterCredentials,
   RouterStore,
   RouterService,
@@ -213,6 +214,29 @@ test('report tool input is validated before it reaches the Router', () => {
   assert.match(bad.text, /^Invalid report\. /)
   assert.match(bad.text, /status/)
   assert.equal(parseToolReport({ status: 'done', summary: 'x'.repeat(20_001) }).ok, false)
+  const note = (ref) =>
+    parseToolReport({
+      status: 'done',
+      summary: 'Ok.',
+      artifacts: [
+        { kind: 'file', ref: 'a.md' },
+        { kind: 'note', ref }
+      ]
+    })
+  assert.equal(note('x'.repeat(WORKER_NOTE_LIMIT)).ok, true)
+  const long = note('x'.repeat(WORKER_NOTE_LIMIT + 1))
+  assert.equal(long.ok, false)
+  assert.match(long.text, /artifacts\.1\.ref/)
+  assert.match(long.text, /file artifact/)
+  // Only notes are held to one sentence; a long file path still passes.
+  assert.equal(
+    parseToolReport({
+      status: 'done',
+      summary: 'Ok.',
+      artifacts: [{ kind: 'file', ref: `/${'d/'.repeat(300)}a.md` }]
+    }).ok,
+    true
+  )
 })
 
 test('a Codex worker reports through its dynamic tool instead of its final message', async (t) => {
