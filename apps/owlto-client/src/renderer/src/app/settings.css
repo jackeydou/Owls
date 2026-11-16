@@ -847,6 +847,9 @@ button.owlto-workspace-folder-name:hover {
   gap: 8px;
   padding: 2px 14px 12px;
 }
+.owlto-picker-body.unfolded {
+  padding-top: 12px;
+}
 .owlto-picker-body .owlto-ranked-empty {
   padding: 0;
 }

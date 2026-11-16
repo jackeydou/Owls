@@ -49,12 +49,12 @@ function packSingles(
   return rows
 }
 
-/** Above this many unpicked choices the fold gets a search field. */
-const SEARCH_THRESHOLD = 8
+/** Above this many unpicked choices they fold away behind a toggle with a search field. */
+const FOLD_THRESHOLD = 10
 
 /**
  * A long list of choices split in two: the picked ones as a short list the user drags into
- * order, and the rest folded below, grouped by model family as chips that add a choice to
+ * order, and the rest below (folded when there are more than ten), grouped by model family as chips that add a choice to
  * the end of the order. Every change hands back the whole list, picked entries first.
  */
 export function RankedPicker({
@@ -72,7 +72,8 @@ export function RankedPicker({
 }) {
   const picked = items.filter((i) => i.on)
   const rest = items.filter((i) => !i.on)
-  const [open, setOpen] = useState(() => picked.length === 0 || rest.length <= SEARCH_THRESHOLD)
+  const foldable = rest.length > FOLD_THRESHOLD
+  const [open, setOpen] = useState(() => picked.length === 0)
   const [query, setQuery] = useState('')
   const needle = query.trim().toLowerCase()
   const shown = needle
@@ -102,19 +103,21 @@ export function RankedPicker({
       )}
       {rest.length ? (
         <div className="owlto-picker-more">
-          <button
-            type="button"
-            className="owlto-picker-toggle"
-            aria-expanded={open}
-            onClick={() => setOpen(!open)}
-          >
-            <ChevronRightIcon size={14} className="owlto-picker-chevron" />
-            <span>{copy.more}</span>
-            <small>{rest.length}</small>
-          </button>
-          {open ? (
-            <div className="owlto-picker-body">
-              {rest.length > SEARCH_THRESHOLD ? (
+          {foldable ? (
+            <button
+              type="button"
+              className="owlto-picker-toggle"
+              aria-expanded={open}
+              onClick={() => setOpen(!open)}
+            >
+              <ChevronRightIcon size={14} className="owlto-picker-chevron" />
+              <span>{copy.more}</span>
+              <small>{rest.length}</small>
+            </button>
+          ) : null}
+          {open || !foldable ? (
+            <div className={cn('owlto-picker-body', !foldable && 'unfolded')}>
+              {foldable ? (
                 <label className="owlto-picker-search">
                   <SearchIcon size={14} aria-hidden />
                   <input
