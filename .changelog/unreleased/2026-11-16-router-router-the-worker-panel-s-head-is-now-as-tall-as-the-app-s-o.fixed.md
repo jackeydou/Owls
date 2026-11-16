@@ -1,0 +1,1 @@
+- Router: the worker panel's head is now as tall as the app's other top bars, 44px instead of 52px, so their bottom borders line up. (#157)

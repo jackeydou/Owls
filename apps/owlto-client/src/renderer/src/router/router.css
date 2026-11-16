@@ -20,10 +20,9 @@
   --owl-hue-3: oklch(0.58 0.15 215);
   --owl-hue-4: oklch(0.58 0.14 355);
   --owl-panel-width: 480px;
+  /* Every top bar shares this height: the title bars, the sidebars' heads, and the details
+     panel's head, so their bottom borders line up side by side. */
   --owl-bar-height: 44px;
-  /* The chat's title bar and the details panel's head, side by side, share this height. Their
-     contents stay centered on the top --owl-bar-height, level with the window controls. */
-  --owl-head-height: 52px;
   --owl-toggle-size: 28px;
   --owl-toggle-left: 10px;
   --owl-toggle-right: 10px;
@@ -502,11 +501,6 @@ html.pane-resizing * {
 }
 .router-chat .owlto-conversation {
   padding-bottom: 48px;
-}
-.router-topbar {
-  height: var(--owl-head-height);
-  padding-left: 32px;
-  padding-bottom: calc(var(--owl-head-height) - var(--owl-bar-height));
 }
 .router-topbar .owlto-task-title {
   font-size: var(--owl-text-sm);
@@ -1508,8 +1502,8 @@ html[data-theme="dark"] .router-automation-run a {
   flex-shrink: 0;
   align-items: center;
   gap: 4px;
-  height: var(--owl-head-height);
-  padding: 0 12px calc(var(--owl-head-height) - var(--owl-bar-height)) 20px;
+  height: var(--owl-bar-height);
+  padding: 0 12px 0 20px;
   -webkit-app-region: drag;
 }
 .router-panel > header button {
