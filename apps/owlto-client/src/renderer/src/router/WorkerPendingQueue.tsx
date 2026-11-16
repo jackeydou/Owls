@@ -24,28 +24,32 @@ export function WorkerPendingQueue({ worker }: { worker: RouterWorker }) {
   const mode = busy ? STEER_MODES[worker.provider] : 'send'
   const action = { routerId: worker.routerId, workerId: worker.id }
   return (
-    <section className="worker-queue" aria-label={t('workerQueue.label')}>
-      <h3>
-        {t(busy ? 'workerQueue.heading' : 'workerQueue.headingIdle', { count: pending.length })}
-      </h3>
-      <ul>
-        {pending.map((message) => (
+    <ul className="worker-queue" aria-label={t('workerQueue.label', { count: pending.length })}>
+      {pending.map((message) => {
+        const text = message.text || t('workerQueue.filesOnly')
+        return (
           <li key={message.id}>
-            <p>
-              {message.attachments?.length ? (
-                <span className="worker-queue-files">
-                  <PaperclipIcon size={12} aria-hidden />
-                  {message.attachments.length}
-                </span>
-              ) : null}
-              {message.text || t('workerQueue.filesOnly')}
-            </p>
+            {message.attachments?.length ? (
+              <span className="worker-queue-files">
+                <PaperclipIcon size={12} aria-hidden />
+                {message.attachments.length}
+              </span>
+            ) : null}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focus reveals the full text in the tooltip. */}
+                <p tabIndex={0}>{text}</p>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-80 whitespace-pre-wrap">
+                {text}
+              </TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="worker-queue-steer">
                   <ActionButton
-                    size="sm"
-                    variant="outline"
+                    size="custom"
+                    variant="ghost"
                     onAction={() => steerPending({ ...action, messageId: message.id })}
                   >
                     {t(`workerQueue.steer.${mode}`)}
@@ -58,14 +62,15 @@ export function WorkerPendingQueue({ worker }: { worker: RouterWorker }) {
             </Tooltip>
             <ActionIconButton
               size="sm"
+              className="worker-queue-remove"
               label={t('workerQueue.remove')}
               tooltip={t('workerQueue.remove')}
-              icon={<XIcon size={14} />}
+              icon={<XIcon size={13} />}
               onAction={() => dropPending({ ...action, messageId: message.id })}
             />
           </li>
-        ))}
-      </ul>
-    </section>
+        )
+      })}
+    </ul>
   )
 }

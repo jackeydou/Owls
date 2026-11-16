@@ -473,62 +473,52 @@ p.worker-composer-removed {
     opacity: 0.7;
   }
 }
-/* Messages the user wrote while the worker was busy, above the input. */
+/* Messages the user wrote while the worker was busy: one plain line each, above the input. */
 .worker-queue {
-  margin: 0 0 8px;
-  padding: 8px 8px 4px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--owl-radius-lg);
-  background: var(--color-card-muted);
-}
-.worker-queue h3 {
-  margin: 0 4px 6px;
-  color: var(--color-muted-foreground);
-  font-size: var(--owl-text-2xs);
-  font-weight: 500;
-}
-.worker-queue ul {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-height: 160px;
+  max-height: 120px;
+  margin: 0 4px 6px;
   overflow-y: auto;
 }
 .worker-queue li {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 4px 4px 8px;
-  border-radius: var(--owl-radius-md);
-  background: var(--color-card);
+  gap: 4px;
+  min-height: 28px;
 }
 .worker-queue li > p {
-  display: -webkit-box;
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
-  line-height: var(--owl-leading-normal);
-  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .worker-queue-files {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 2px;
-  margin-right: 6px;
   color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
 }
 .worker-queue-steer {
   display: inline-flex;
   flex: none;
 }
-.worker-queue-steer .owlto-icon,
 .worker-queue-steer button {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--owl-radius-sm);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
   white-space: nowrap;
 }
-.worker-queue-steer button {
-  height: 26px;
-  padding: 0 10px;
+.worker-queue-remove {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--color-muted-foreground);
 }
