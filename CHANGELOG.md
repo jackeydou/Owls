@@ -11,6 +11,20 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1500-beta.4
+
+### Highlights
+
+- Import private GitHub repositories using your Owlto GitHub connection.
+
+### Changes
+
+- GitHub: Install on GitHub now opens the renamed Owlto GitHub app (owlto-dev). (#154)
+
+### Fixes
+
+- Projects: importing a private GitHub repository now clones with your Owlto GitHub connection when git on the computer cannot sign in, and a failed import says why. (#154)
+
 ## 2026.11.1500-beta.3
 
 ### Highlights
