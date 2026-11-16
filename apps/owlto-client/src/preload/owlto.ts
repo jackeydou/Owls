@@ -50,6 +50,7 @@ const api: OwltoAPI = {
   removeWorker: (input) => ipcRenderer.invoke('owlto:router-remove-worker', input),
   openInApps: () => ipcRenderer.invoke('owlto:open-in-apps'),
   openWorkerIn: (input) => ipcRenderer.invoke('owlto:open-worker-in', input),
+  openWorkerArtifact: (input) => ipcRenderer.invoke('owlto:open-worker-artifact', input),
   routerProviders: () => ipcRenderer.invoke('owlto:router-providers'),
   setRouterKey: (input) => ipcRenderer.invoke('owlto:router-set-key', input),
   removeRouterKey: (providerId) => ipcRenderer.invoke('owlto:router-remove-key', providerId),

@@ -47,15 +47,21 @@ export function isWithin(path: string, folder: string): boolean {
   return child === parent || child.startsWith(parent.endsWith('/') ? parent : `${parent}/`)
 }
 
+/** A reported file as an absolute path; a relative one is under the worker's folder. Null when empty. */
+export function artifactFilePath(ref: string, folder: string): string | null {
+  const path = ref.trim().replace(/^file:\/\//, '')
+  if (!path) return null
+  return normalizePath(isAbsolute(path) ? path : `${folder}/${path}`)
+}
+
 /** The files a workspace worker reported, as absolute paths inside the workspace. */
 function reportedPaths(worker: RouterWorker, workspacePath: string): string[] {
   const paths: string[] = []
   for (const artifact of worker.report?.artifacts ?? []) {
     if (artifact.kind !== 'file') continue
-    const ref = artifact.ref.trim().replace(/^file:\/\//, '')
-    if (!ref) continue
-    const path = normalizePath(isAbsolute(ref) ? ref : `${workspacePath}/${ref}`)
-    if (isWithin(path, workspacePath) && path !== normalizePath(workspacePath)) paths.push(path)
+    const path = artifactFilePath(artifact.ref, workspacePath)
+    if (path && isWithin(path, workspacePath) && path !== normalizePath(workspacePath))
+      paths.push(path)
   }
   return paths
 }

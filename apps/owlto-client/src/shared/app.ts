@@ -58,7 +58,8 @@ import {
   type SetRouterKey,
   type ThreadItemsRequest,
   unknownBatchSchema,
-  type WorkerAction
+  type WorkerAction,
+  type WorkerArtifactAction
 } from './router.js'
 import { type UpdateSnapshot, updateChannelSchema } from './updates.js'
 import type { UsageOverview } from './usage.js'
@@ -541,6 +542,8 @@ export interface OwltoAPI {
   openInApps(): Promise<Reply<OpenInApp[]>>
   /** Opens a worker's folder (its worktree, project, or workspace) in an installed app. */
   openWorkerIn(input: OpenWorkerIn): Promise<Reply<void>>
+  /** Opens a file from a worker's report in its default app. */
+  openWorkerArtifact(input: WorkerArtifactAction): Promise<Reply<void>>
   routerProviders(): Promise<Reply<RouterProviderInfo[]>>
   setRouterKey(input: SetRouterKey): Promise<Reply<void>>
   removeRouterKey(providerId: string): Promise<Reply<void>>

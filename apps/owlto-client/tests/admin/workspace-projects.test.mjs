@@ -8,6 +8,7 @@ import test from 'node:test'
 const require = createRequire(import.meta.url)
 const {
   WORKSPACE_ID,
+  artifactFilePath,
   isWithin,
   isWorkspaceProject,
   listWorkspaceFolders,
@@ -37,6 +38,13 @@ test('paths compare by whole segments after normalizing', () => {
   assert.equal(isWithin('/ws/app/src', '/ws/app'), true)
   assert.equal(isWithin('/ws/app', '/ws/app'), true)
   assert.equal(isWithin('/ws/apple', '/ws/app'), false)
+})
+
+test('a reported file resolves against the worker folder unless it is already absolute', () => {
+  assert.equal(artifactFilePath('docs/plan.md', '/ws/app'), '/ws/app/docs/plan.md')
+  assert.equal(artifactFilePath(' file:///tmp/out/report.md ', '/ws/app'), '/tmp/out/report.md')
+  assert.equal(artifactFilePath('../notes.md', '/ws/app'), '/ws/notes.md')
+  assert.equal(artifactFilePath('  ', '/ws/app'), null)
 })
 
 test('a worker counts under its project, the nearest workspace project, or the Workspace', () => {

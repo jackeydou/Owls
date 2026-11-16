@@ -11,6 +11,7 @@ export {
 export { ROUTER_INSTRUCTIONS } from '../../shared/router-instructions.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'
 export {
+  artifactFilePath,
   isWithin,
   normalizePath,
   promotableFolders,
@@ -78,6 +79,7 @@ export {
   parseReport,
   parseToolReport,
   REPORT_TOOL_INPUT_SCHEMA,
+  WORKER_NOTE_LIMIT,
   WORKER_REPORT_JSON_SCHEMA
 } from '../router/report.js'
 export { WorkerReportServer } from '../router/report-server.js'
