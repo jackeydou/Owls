@@ -38,6 +38,12 @@ export function sessionCwd(
   return resolved
 }
 
+/** The registered project a session at `cwd` (from `sessionCwd`) works for. */
+export function sessionProject(cwd: string, place: SessionPlace | undefined): string | null {
+  if (place?.kind === 'workspace') return null
+  return place?.projectPath ?? cwd
+}
+
 /**
  * A turn as a runtime receives it: attachments carry the path of main's copy.
  * `author` marks a message the user wrote to a worker, so its item says so.

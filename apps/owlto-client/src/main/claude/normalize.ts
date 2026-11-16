@@ -53,17 +53,49 @@ export function parseClaudeAccount(value: unknown): ClaudeAccount {
  * Maps Owlto permission choices onto Claude Code's native permission modes.
  * Claude Code has no OS sandbox by default, so read-only removes the editing
  * tools and keeps every other action behind an approval prompt. Full access
- * uses auto mode only when the model reports support for it; approvals the
- * classifier cannot decide are still routed to the user.
+ * skips every approval, like the CLI's `--dangerously-skip-permissions`.
  */
-export function permissionOptions(
-  permission: Permission,
-  autoMode: boolean
-): { permissionMode: PermissionMode; disallowedTools?: string[] } {
+export function permissionOptions(permission: Permission): {
+  permissionMode: PermissionMode
+  allowDangerouslySkipPermissions?: true
+  disallowedTools?: string[]
+} {
   if (permission === 'read-only')
     return { permissionMode: 'default', disallowedTools: [...WRITE_TOOLS].sort() }
-  if (permission === 'full-access' && autoMode) return { permissionMode: 'auto' }
+  if (permission === 'full-access')
+    return { permissionMode: 'bypassPermissions', allowDangerouslySkipPermissions: true }
   return { permissionMode: 'acceptEdits' }
+}
+
+function inside(path: string, folder: string): boolean {
+  return path === folder || path.startsWith(folder.endsWith('/') ? folder : `${folder}/`)
+}
+
+/**
+ * Folders a session may read without asking beside its own `cwd`, passed as
+ * `additionalDirectories` (the CLI's `--add-dir`). A workspace task gets every
+ * registered project; a project task gets only its own project and the
+ * workspace, so other projects' skills stay out of its context. A project
+ * checkout that neither holds nor sits inside `cwd` is the user's own copy or
+ * another project, so file edits there are denied: a worktree worker reads its
+ * project's checkout but edits its worktree.
+ */
+export function folderAccess(input: {
+  cwd: string
+  projectPath: string | null
+  workspace: string
+  projects: string[]
+}): { additionalDirectories: string[]; editDenied: string[] } {
+  const { cwd, projectPath, workspace } = input
+  const projects = projectPath === null ? input.projects : [projectPath]
+  const additionalDirectories = [...new Set([workspace, ...projects])]
+    .filter((folder) => folder !== cwd)
+    .sort()
+  const editDenied = [...new Set(projects)]
+    .filter((project) => !inside(cwd, project) && !inside(project, cwd))
+    .sort()
+    .map((project) => `Edit(/${project.replace(/\/+$/, '')}/**)`)
+  return { additionalDirectories, editDenied }
 }
 
 function toolLabel(name: string): string {

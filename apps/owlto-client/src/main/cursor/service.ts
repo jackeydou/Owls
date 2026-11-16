@@ -16,6 +16,7 @@ import {
   type RuntimeTurn,
   type SessionPlace,
   sessionCwd,
+  sessionProject,
   type WorkerUsageRecorder
 } from '../app/agent-runtime.js'
 import { splitAttachments, turnText, userItemFields } from '../app/attachments.js'
@@ -304,6 +305,7 @@ export class CursorService {
       threadId: null,
       title: '',
       cwd,
+      projectPath: sessionProject(cwd, place),
       model: input.model,
       effort: null,
       permission: input.permission,

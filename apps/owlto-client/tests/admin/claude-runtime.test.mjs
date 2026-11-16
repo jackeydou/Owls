@@ -195,8 +195,14 @@ async function until(predicate) {
 }
 
 test('Claude normalization maps native tools, permissions, accounts, and answers', () => {
-  const { toolItem, permissionOptions, parseClaudeAccount, permissionRequest, questionAnswers } =
-    claudeNormalize
+  const {
+    toolItem,
+    permissionOptions,
+    folderAccess,
+    parseClaudeAccount,
+    permissionRequest,
+    questionAnswers
+  } = claudeNormalize
   assert.equal(toolItem('a', 'Bash', { command: 'ls' }, 't').kind, 'command')
   const edit = toolItem('b', 'Edit', { file_path: 'a.ts', old_string: 'x', new_string: 'y' }, 't')
   assert.equal(edit.kind, 'files')
@@ -206,13 +212,31 @@ test('Claude normalization maps native tools, permissions, accounts, and answers
     '✓ Ship'
   )
   assert.equal(toolItem('d', 'mcp__github__create_issue', {}, 't').text, 'github / create_issue')
-  assert.deepEqual(permissionOptions('read-only', true), {
+  assert.deepEqual(permissionOptions('read-only'), {
     permissionMode: 'default',
     disallowedTools: ['Edit', 'NotebookEdit', 'Write']
   })
-  assert.deepEqual(permissionOptions('workspace-write', true), { permissionMode: 'acceptEdits' })
-  assert.deepEqual(permissionOptions('full-access', true), { permissionMode: 'auto' })
-  assert.deepEqual(permissionOptions('full-access', false), { permissionMode: 'acceptEdits' })
+  assert.deepEqual(permissionOptions('workspace-write'), { permissionMode: 'acceptEdits' })
+  assert.deepEqual(permissionOptions('full-access'), {
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true
+  })
+  const projects = ['/code/b', '/code/a', '/ws/c']
+  // A project task in its worktree reads its project and the workspace, and edits only its worktree.
+  assert.deepEqual(
+    folderAccess({ cwd: '/trees/a/w1', projectPath: '/code/a', workspace: '/ws', projects }),
+    { additionalDirectories: ['/code/a', '/ws'], editDenied: ['Edit(//code/a/**)'] }
+  )
+  // A workspace task reads every project and may edit those registered inside the workspace.
+  assert.deepEqual(folderAccess({ cwd: '/ws', projectPath: null, workspace: '/ws', projects }), {
+    additionalDirectories: ['/code/a', '/code/b', '/ws/c'],
+    editDenied: ['Edit(//code/a/**)', 'Edit(//code/b/**)']
+  })
+  // A session in its project's own folder may edit it.
+  assert.deepEqual(
+    folderAccess({ cwd: '/code/a', projectPath: '/code/a', workspace: '/ws', projects }),
+    { additionalDirectories: ['/ws'], editDenied: [] }
+  )
   assert.deepEqual(parseClaudeAccount({ apiProvider: 'bedrock' }), { kind: 'external' })
   assert.deepEqual(parseClaudeAccount({ apiKeySource: 'ANTHROPIC_API_KEY' }), { kind: 'api-key' })
   assert.deepEqual(parseClaudeAccount({}), { kind: 'unknown' })
@@ -227,6 +251,7 @@ test('Claude service runs local turns through the SDK contract', async () => {
   const project = realpathSync(mkdtempSync(join(tmpdir(), 'owlto-claude-test-')))
   const sdk = fakeSdk()
   const service = new ClaudeService(memoryStore(project), () => {}, sdk)
+  service.setWorkspaceFolder(() => '/fixture/workspace')
   try {
     const connection = await service.connect()
     assert.equal(connection.status, 'ready')
@@ -260,7 +285,10 @@ test('Claude service runs local turns through the SDK contract', async () => {
     assert.equal(state().threadId, 'claude-session-1')
     assert.equal(state().tokens, 15)
     const first = sdk.calls[1]
-    assert.equal(first.permissionMode, 'auto')
+    assert.equal(first.permissionMode, 'bypassPermissions')
+    assert.equal(first.allowDangerouslySkipPermissions, true)
+    assert.deepEqual(first.additionalDirectories, ['/fixture/workspace'])
+    assert.equal(first.disallowedTools, undefined)
     assert.deepEqual(first.settingSources, ['user', 'project', 'local'])
     assert.deepEqual(first.systemPrompt, { type: 'preset', preset: 'claude_code' })
     assert.equal(first.resume, undefined)

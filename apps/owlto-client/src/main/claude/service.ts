@@ -27,6 +27,7 @@ import {
   type RuntimeTurn,
   type SessionPlace,
   sessionCwd,
+  sessionProject,
   type WorkerUsageRecorder
 } from '../app/agent-runtime.js'
 import { userItemFields } from '../app/attachments.js'
@@ -46,6 +47,7 @@ import { claudeContent, type InputStream, inputStream } from './input.js'
 import {
   claudeEffortSchema,
   completeToolItem,
+  folderAccess,
   parseClaudeAccount,
   parseClaudeModels,
   permissionOptions,
@@ -119,6 +121,7 @@ export class ClaudeService {
   private connecting: Promise<ClaudeConnection> | null = null
   private profiles: TurnProfiles | null = null
   private recordUsage: WorkerUsageRecorder = () => {}
+  private workspaceFolder: (() => string) | null = null
   private closed = false
   private connection: ClaudeConnection = {
     status: 'disconnected',
@@ -157,6 +160,10 @@ export class ClaudeService {
   }
   setUsageRecorder(recorder: WorkerUsageRecorder): void {
     this.recordUsage = recorder
+  }
+  /** The workspace folder, read at each turn so a changed folder applies to the next turn. */
+  setWorkspaceFolder(folder: () => string): void {
+    this.workspaceFolder = folder
   }
   owns(sessionId: string): boolean {
     return this.sessions.has(sessionId)
@@ -298,6 +305,7 @@ export class ClaudeService {
       threadId: null,
       title: '',
       cwd,
+      projectPath: sessionProject(cwd, place),
       model: input.model,
       effort: input.effort,
       permission: input.permission,
@@ -356,9 +364,6 @@ export class ClaudeService {
     }
     this.runtimes.set(session.id, runtime)
     this.changed(session, true)
-    const model = this.connection.models.find((m) =>
-      session.model ? m.id === session.model : m.isDefault
-    )
     const profile = this.profiles?.profile(session.id) ?? null
     // Owlto's tools are approved here rather than through `allowedTools`, which the SDK
     // warns about on every query because it shadows this callback.
@@ -381,7 +386,7 @@ export class ClaudeService {
                 mcpServers: { [REPORT_SERVER_NAME]: this.reportServer(profile) }
               }
             : {}),
-          ...permissionOptions(session.permission, model?.autoMode === true),
+          ...this.accessOptions(session),
           ...(session.model ? { model: session.model } : {}),
           ...(session.effort ? { effort: claudeEffortSchema.parse(session.effort) } : {}),
           ...(session.threadId ? { resume: session.threadId } : {}),
@@ -801,6 +806,20 @@ export class ClaudeService {
         }))
       ]
     })
+  }
+  /** The permission mode plus the folders the session may read without asking. */
+  private accessOptions(session: Session): Options {
+    const { disallowedTools = [], ...mode } = permissionOptions(session.permission)
+    const { additionalDirectories, editDenied } = this.workspaceFolder
+      ? folderAccess({
+          cwd: session.cwd,
+          projectPath: session.projectPath,
+          workspace: this.workspaceFolder(),
+          projects: this.store.projects().map((project) => project.path)
+        })
+      : { additionalDirectories: [], editDenied: [] }
+    const denied = [...disallowedTools, ...editDenied]
+    return { ...mode, additionalDirectories, ...(denied.length ? { disallowedTools: denied } : {}) }
   }
   private baseOptions(executable: string, cwd: string, runtime?: Runtime): Options {
     return {
