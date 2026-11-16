@@ -10,6 +10,7 @@ const require = createRequire(import.meta.url)
 const {
   parseGitHubRepo,
   saveProjectSchema,
+  cloneFailureCode,
   cloneGitHubProject,
   createQuickProject
 } = require('../../out/main/app/runtime.js')
@@ -97,6 +98,34 @@ test('importing a repository that is already cloned there reuses the folder', as
     cloneGitHubProject({ url: 'not a repo', parent: root }, root),
     (error) => error.code === 'project_url_invalid'
   )
+})
+
+test('a failed clone says why, without showing git output', () => {
+  const https = (method) => ({ ssh: false, method })
+  const noPrompt =
+    "fatal: could not read Username for 'https://github.com': terminal prompts disabled"
+  assert.equal(cloneFailureCode(noPrompt, https(null)), 'project_clone_sign_in')
+  assert.equal(
+    cloneFailureCode('remote: Repository not found.\nfatal: repository not found', https('app')),
+    'project_clone_app_access'
+  )
+  assert.equal(
+    cloneFailureCode(
+      "fatal: Authentication failed for 'https://github.com/o/r.git/'",
+      https('token')
+    ),
+    'project_clone_no_access'
+  )
+  assert.equal(
+    cloneFailureCode('git@github.com: Permission denied (publickey).', { ssh: true, method: null }),
+    'project_clone_ssh_denied'
+  )
+  assert.equal(
+    cloneFailureCode('fatal: unable to access: Could not resolve host: github.com', https(null)),
+    'project_clone_network'
+  )
+  assert.equal(cloneFailureCode('git not found', https(null)), 'project_git_missing')
+  assert.equal(cloneFailureCode('fatal: something else', https(null)), 'project_clone_failed')
 })
 
 test('project settings default their icon and accept only small raster image icons', () => {

@@ -102,6 +102,12 @@ export const failureSchema = z.object({
     'project_url_invalid',
     'project_exists',
     'project_clone_failed',
+    'project_clone_network',
+    'project_clone_ssh_denied',
+    'project_clone_sign_in',
+    'project_clone_app_access',
+    'project_clone_no_access',
+    'project_git_missing',
     'avatar_unavailable',
     'thread_busy'
   ]),

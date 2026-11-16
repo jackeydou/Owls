@@ -96,7 +96,7 @@ export { AttachmentStore, safeAttachmentName, turnText } from './attachments.js'
 export { OwltoHost } from './host.js'
 export { bundleIconFile, OPEN_IN_CATALOG, OpenInApps } from './open-in.js'
 export { UserProfile } from './profile.js'
-export { cloneGitHubProject, createQuickProject } from './project-sources.js'
+export { cloneFailureCode, cloneGitHubProject, createQuickProject } from './project-sources.js'
 export { OwltoStore } from './store.js'
 export {
   isWorkspaceProject,
