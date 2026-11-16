@@ -479,7 +479,7 @@ p.worker-composer-removed {
   flex-direction: column;
   max-height: 136px;
   margin: 0 0 8px;
-  padding: 2px 6px 2px 12px;
+  padding: 2px 6px;
   overflow-y: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--owl-radius-lg);
@@ -491,13 +491,14 @@ p.worker-composer-removed {
   align-items: center;
   gap: 4px;
   min-height: 32px;
+  padding-left: 6px;
 }
-/* A short rule between two messages. */
+/* A centered rule between two messages, a little short of the box's width. */
 .worker-queue li + li::before {
   position: absolute;
   top: 0;
-  left: 0;
-  width: 16px;
+  right: 4%;
+  left: 4%;
   height: 1px;
   background: var(--color-border);
   content: "";
