@@ -41,6 +41,7 @@ import {
   createThreadSchema,
   forwardSchema,
   owltoProviderSchema,
+  pendingMessageActionSchema,
   resolveBatchSchema,
   sendRouterSchema,
   setRouterKeySchema,
@@ -158,6 +159,12 @@ export function registerIpc(
     if (result.response === 1) await host.discardWorktree(request)
   })
   handle('router-stop-worker', (input) => host.stopWorker(workerActionSchema.parse(input)))
+  handle('router-steer-pending', (input) =>
+    host.steerPending(pendingMessageActionSchema.parse(input))
+  )
+  handle('router-drop-pending', (input) =>
+    host.dropPending(pendingMessageActionSchema.parse(input))
+  )
   handle('router-remove-worker', async (input) => {
     const request = workerActionSchema.parse(input)
     const chinese = host.snapshot().settings.language === 'zh-CN'

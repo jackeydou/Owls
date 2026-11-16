@@ -405,3 +405,138 @@ p.worker-composer-removed {
   border-radius: 50%;
   object-fit: cover;
 }
+/* The turn is still running: the worker's owl at work and three bouncing dots in its color. */
+.worker-working {
+  --worker-dot-from: #e8785a;
+  --worker-dot-to: #f4b860;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 8px;
+}
+.worker-working[data-speaker="codex"] {
+  --worker-dot-from: #1f2228;
+  --worker-dot-to: #a3abb8;
+}
+.worker-working[data-speaker="cursor"] {
+  --worker-dot-from: #7c8cff;
+  --worker-dot-to: #c08cff;
+}
+[data-theme="dark"] .worker-working[data-speaker="codex"] {
+  --worker-dot-from: #ffffff;
+  --worker-dot-to: #6b7280;
+}
+.worker-working .owlto-owl-avatar {
+  width: 28px;
+  height: 28px;
+}
+.worker-working-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-card-muted);
+}
+.worker-working-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--worker-dot-from);
+  animation: worker-working-dot 1.2s ease-in-out infinite;
+}
+/* The three dots step from one color to the other. */
+.worker-working-dots i:nth-child(2) {
+  background: color-mix(in oklab, var(--worker-dot-from), var(--worker-dot-to));
+  animation-delay: 0.15s;
+}
+.worker-working-dots i:nth-child(3) {
+  background: var(--worker-dot-to);
+  animation-delay: 0.3s;
+}
+@keyframes worker-working-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .worker-working-dots i {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+/* Messages the user wrote while the worker was busy: one line each in a box above the input. */
+.worker-queue {
+  display: flex;
+  flex-direction: column;
+  max-height: 136px;
+  margin: 0 0 8px;
+  padding: 2px 6px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-lg);
+  background: var(--color-card);
+}
+.worker-queue li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding-left: 6px;
+}
+/* A centered rule between two messages, a little short of the box's width. */
+.worker-queue li + li::before {
+  position: absolute;
+  top: 0;
+  right: 4%;
+  left: 4%;
+  height: 1px;
+  background: var(--color-border);
+  content: "";
+}
+.worker-queue li > p {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.worker-queue-files {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+.worker-queue-steer {
+  flex: none;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--owl-radius-sm);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-muted-foreground);
+}
+.worker-queue-steer:hover,
+.worker-queue-steer:focus-visible {
+  color: var(--color-foreground);
+}
+.worker-queue-remove {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--color-muted-foreground);
+}

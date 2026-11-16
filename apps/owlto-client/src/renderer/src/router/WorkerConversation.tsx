@@ -6,7 +6,7 @@ import { type RouterWorker, type WorkerReport, workerReportSchema } from '../../
 import { ConversationItem, RequestCard } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { OwlAvatar } from '../app/OwlAvatar'
-import { openRequests } from './activity'
+import { isWorking, openRequests } from './activity'
 import { WorkerUserMessage } from './WorkerUserMessage'
 
 /** A worker's final message is its JSON report; this reads it back so it is never shown raw. */
@@ -83,6 +83,25 @@ function ReportMessage({
           </ul>
         </section>
       ) : null}
+    </div>
+  )
+}
+
+/**
+ * Shown under the last message while the turn runs: the worker's owl typing away
+ * and three dots bouncing in its color, so a quiet stretch never reads as done.
+ */
+function WorkingIndicator({ provider, agent }: { provider: AgentProvider; agent: string }) {
+  const { t } = useTranslation()
+  return (
+    <div className="worker-working" data-speaker={provider} role="status">
+      <OwlAvatar speaker={provider} working />
+      <span className="worker-working-dots" aria-hidden>
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="sr-only">{t('worker.working', { agent })}</span>
     </div>
   )
 }
@@ -171,6 +190,9 @@ export function WorkerConversation({
         />
       ) : null}
       {after.map(renderItem)}
+      {isWorking(worker) && !session.error ? (
+        <WorkingIndicator provider={session.provider} agent={agent} />
+      ) : null}
       {openRequests(session).map((request) => (
         <RequestCard key={request.id} request={request} sessionId={session.id} agent={agent} />
       ))}
