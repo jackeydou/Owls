@@ -528,6 +528,11 @@ p.worker-composer-removed {
   font-size: var(--owl-text-xs);
   font-weight: 500;
   white-space: nowrap;
+  color: var(--color-muted-foreground);
+}
+.worker-queue-steer:hover,
+.worker-queue-steer:focus-visible {
+  color: var(--color-foreground);
 }
 .worker-queue-remove {
   flex: none;
