@@ -14,6 +14,7 @@ import {
   defaultProjectAgents,
   hasAgentChoice,
   type ProjectAgents,
+  pickedModels,
   providerSchema,
   rankAll
 } from '../../../shared/agents'
@@ -166,7 +167,7 @@ export function ProjectAgentsPage({ project }: { project: Project }) {
                         ...agents,
                         models: {
                           ...agents.models,
-                          [provider]: next.map((m) => ({ id: m.id, on: m.on }))
+                          [provider]: pickedModels(next)
                         }
                       })
                     }

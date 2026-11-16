@@ -38,8 +38,10 @@ const rankedModelsSchema = z
   .max(PROJECT_MODEL_LIMIT)
   .refine((list) => new Set(list.map((m) => m.id)).size === list.length, 'Duplicate model')
 /**
- * Which coding agents and models one project's workers use, in the user's order. Each list
- * keeps unchecked entries too, so the order the user dragged them into survives.
+ * Which coding agents and models one project's workers use, in the user's order. The agent
+ * list keeps unchecked entries too, so the order the user dragged them into survives. Model
+ * lists hold only picked models (see `pickedModels`): an agent such as Cursor offers more
+ * models than PROJECT_MODEL_LIMIT, so saving every offered model would fail validation.
  */
 export const projectAgentsSchema = z.object({
   /** Empty until the user orders the agents; only checked agents take the project's tasks. */
@@ -74,6 +76,11 @@ export function allowedAgents(agents: ProjectAgents): AgentProvider[] {
 export function chosenModels(agents: ProjectAgents, provider: AgentProvider): string[] {
   return agents.models[provider].filter((m) => m.on).map((m) => m.id)
 }
+/** The model entries a project saves for one agent: the picked ones, in the user's order. */
+export function pickedModels(items: ReadonlyArray<{ id: string; on: boolean }>): RankedModel[] {
+  return items.filter((m) => m.on).map((m) => ({ id: m.id, on: true }))
+}
+
 /**
  * A ranked list with every id from `available` in it: saved entries first in their order,
  * then new ids unchecked. Saved ids that are no longer available stay, so a model an

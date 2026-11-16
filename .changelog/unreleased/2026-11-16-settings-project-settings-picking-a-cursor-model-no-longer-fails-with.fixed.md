@@ -1,0 +1,1 @@
+- Project settings: picking a Cursor model no longer fails with "This request is invalid"; project model lists now save only picked models.
