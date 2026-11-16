@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1600-beta.1
+
+### Highlights
+
+- See when a worker is busy, and queue or steer messages while it works.
+- Claude Code workers can work in your projects and Workspace without asking first.
+
+### Changes
+
+- Workers: the worker panel shows when a worker is working, and messages sent while it is busy wait in a queue until you steer them in or the turn ends. (#156)
+- Settings: a project's model lists show picked models as a short numbered list to drag into order, with the rest below as chips (folded with search above ten) grouped by model family. (#159)
+- Claude Code workers: read registered projects and the Workspace without asking; Full access now skips every approval. (#160)
+
+### Fixes
+
+- Router: the worker panel's head is now as tall as the app's other top bars, 44px instead of 52px, so their bottom borders line up. (#157)
+
 ## 2026.11.1500-beta.4
 
 ### Highlights
