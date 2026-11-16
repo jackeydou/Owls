@@ -25,6 +25,7 @@ import {
   type RuntimeTurn,
   type SessionPlace,
   sessionCwd,
+  sessionProject,
   type WorkerUsageRecorder
 } from '../app/agent-runtime.js'
 import { turnText, userItemFields } from '../app/attachments.js'
@@ -293,6 +294,7 @@ export class CodexService {
       threadId: null,
       title: '',
       cwd,
+      projectPath: sessionProject(cwd, place),
       model: input.model,
       effort: input.effort,
       permission: input.permission,

@@ -1,0 +1,1 @@
+- Claude Code workers: read registered projects and the Workspace without asking; Full access now skips every approval.

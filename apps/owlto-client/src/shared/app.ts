@@ -182,6 +182,8 @@ export const sessionSchema = z.object({
   threadId: z.string().nullable(),
   title: z.string(),
   cwd: z.string(),
+  /** The registered project the session works for; null in the workspace folder. */
+  projectPath: z.string().nullable().default(null),
   model: z.string().nullable(),
   effort: effortSchema.nullable(),
   permission: permissionSchema,

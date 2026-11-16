@@ -50,10 +50,20 @@ ID and passed as `resume` on later turns.
 | --- | --- |
 | Read only | `default` mode with `Edit`, `NotebookEdit`, `Write` disallowed |
 | Workspace access | `acceptEdits` |
-| Full access | `auto` when the model reports auto-mode support, else `acceptEdits` |
+| Full access | `bypassPermissions` (`allowDangerouslySkipPermissions`) |
 
 Claude Code has no OS sandbox by default, so read-only relies on removed edit
-tools and approval prompts. `bypassPermissions` is never used.
+tools and approval prompts. Full access skips every approval, like the CLI's
+`--dangerously-skip-permissions`.
+
+Every turn passes folders as `additionalDirectories`, so reading files and
+running read-only commands there never asks. A workspace task gets every
+registered project; a project task gets only its own project and the workspace
+folder, which keeps other projects' skills out of its context. Sessions record
+their project in `projectPath`. A project checkout that neither holds nor sits
+inside the session's `cwd` gets an `Edit(//<path>/**)` deny rule: a worktree
+worker reads its project's own checkout but edits only its worktree.
+Other commands still ask, except under full access.
 
 `canUseTool` prompts become approval cards; `AskUserQuestion` becomes a question
 card whose answers return as `updatedInput.answers` keyed by question text.

@@ -189,15 +189,17 @@ void app
     const root = getDataRoot()
     mkdirSync(root, { recursive: true })
     const store = new OwltoStore(join(root, 'owlto.db'), migrationsFolder())
+    const claude = new ClaudeService(store, emit, { query, createSdkMcpServer })
     service = new OwltoHost(
       new CodexService(store, emit),
-      new ClaudeService(store, emit, { query, createSdkMcpServer }),
+      claude,
       new CursorService(store, emit),
       routerThreadHome(root),
       projectsHome(root),
       workspaceHome(root),
       attachmentsHome(root)
     )
+    claude.setWorkspaceFolder(() => service?.workspaceFolder() ?? workspaceHome(root))
     const usage = new UsageLedger(store)
     service.attachUsage(usage)
     const recordUsage = (entry: UsageEntry) => usage.record(entry)
