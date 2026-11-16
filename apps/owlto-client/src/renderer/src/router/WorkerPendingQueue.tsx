@@ -44,22 +44,14 @@ export function WorkerPendingQueue({ worker }: { worker: RouterWorker }) {
                 {text}
               </TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="worker-queue-steer">
-                  <ActionButton
-                    size="custom"
-                    variant="ghost"
-                    onAction={() => steerPending({ ...action, messageId: message.id })}
-                  >
-                    {t(`workerQueue.steer.${mode}`)}
-                  </ActionButton>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-64">
-                {t(`workerQueue.steerHint.${mode}`)}
-              </TooltipContent>
-            </Tooltip>
+            <ActionButton
+              size="custom"
+              variant="ghost"
+              className="worker-queue-steer"
+              onAction={() => steerPending({ ...action, messageId: message.id })}
+            >
+              {t(`workerQueue.steer.${mode}`)}
+            </ActionButton>
             <ActionIconButton
               size="sm"
               className="worker-queue-remove"

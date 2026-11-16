@@ -18,11 +18,6 @@ export const workerComposerEn = {
   'workerQueue.steer.inject': 'Steer',
   'workerQueue.steer.restart': 'Interrupt & send',
   'workerQueue.steer.send': 'Send now',
-  'workerQueue.steerHint.inject':
-    'Queued until this turn ends. Steer sends it into the current turn now.',
-  'workerQueue.steerHint.restart':
-    'Queued until this turn ends. Cursor cannot take a message mid-turn, so this stops the current turn and sends it as the next one.',
-  'workerQueue.steerHint.send': 'The worker is not running. This starts a new turn with it.',
   'workerQueue.remove': 'Remove from the queue',
   'worker.working': '{{agent}} is working',
   'workerComposer.removed': 'This worker was removed, so it cannot take messages.',
@@ -49,10 +44,6 @@ export const workerComposerZh: Record<keyof typeof workerComposerEn, string> = {
   'workerQueue.steer.inject': 'Steer',
   'workerQueue.steer.restart': '打断并发送',
   'workerQueue.steer.send': '立即发送',
-  'workerQueue.steerHint.inject': '默认等这一轮结束后发送。点 Steer 现在就插入当前这一轮。',
-  'workerQueue.steerHint.restart':
-    '默认等这一轮结束后发送。Cursor 不支持中途插入，点这里会先停止当前这一轮，再把这条作为下一轮发出。',
-  'workerQueue.steerHint.send': 'Worker 没有在运行，会用这条开始新的一轮。',
   'workerQueue.remove': '移出队列',
   'worker.working': '{{agent}} 正在工作',
   'workerComposer.removed': '这个 Worker 已移除，无法再接收消息。',

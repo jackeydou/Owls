@@ -473,19 +473,34 @@ p.worker-composer-removed {
     opacity: 0.7;
   }
 }
-/* Messages the user wrote while the worker was busy: one plain line each, above the input. */
+/* Messages the user wrote while the worker was busy: one line each in a box above the input. */
 .worker-queue {
   display: flex;
   flex-direction: column;
-  max-height: 120px;
-  margin: 0 4px 6px;
+  max-height: 136px;
+  margin: 0 0 8px;
+  padding: 2px 6px 2px 12px;
   overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-lg);
+  background: var(--color-card);
 }
 .worker-queue li {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
-  min-height: 28px;
+  min-height: 32px;
+}
+/* A short rule between two messages. */
+.worker-queue li + li::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 1px;
+  background: var(--color-border);
+  content: "";
 }
 .worker-queue li > p {
   flex: 1;
@@ -505,10 +520,7 @@ p.worker-composer-removed {
   font-size: var(--owl-text-2xs);
 }
 .worker-queue-steer {
-  display: inline-flex;
   flex: none;
-}
-.worker-queue-steer button {
   height: 24px;
   padding: 0 8px;
   border-radius: var(--owl-radius-sm);
