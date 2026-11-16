@@ -49,6 +49,7 @@ import type {
   ArchiveThread,
   CreateThread,
   ForwardMessage,
+  PendingMessageAction,
   ResolveBatch,
   RouterProviderInfo,
   SendRouterMessage,
@@ -357,6 +358,12 @@ export class OwltoHost {
   }
   stopWorker(input: WorkerAction): Promise<void> {
     return this.requireRouter().stopWorker(input)
+  }
+  steerPending(input: PendingMessageAction): Promise<void> {
+    return this.requireRouter().steerPending(input)
+  }
+  dropPending(input: PendingMessageAction): void {
+    this.requireRouter().dropPending(input)
   }
   removeWorker(input: WorkerAction): void {
     this.requireRouter().removeWorker(input)

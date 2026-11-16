@@ -47,6 +47,7 @@ import {
   type ArchiveThread,
   type CreateThread,
   type ForwardMessage,
+  type PendingMessageAction,
   type ResolveBatch,
   type RouterProviderInfo,
   type RouterWorker,
@@ -530,6 +531,9 @@ export interface OwltoAPI {
   resolveBatch(input: ResolveBatch): Promise<Reply<void>>
   discardWorktree(input: WorkerAction): Promise<Reply<void>>
   stopWorker(input: WorkerAction): Promise<Reply<void>>
+  /** Sends a message the user lined up while the worker was busy, without waiting for the turn to end. */
+  steerPendingMessage(input: PendingMessageAction): Promise<Reply<void>>
+  dropPendingMessage(input: PendingMessageAction): Promise<Reply<void>>
   removeWorker(input: WorkerAction): Promise<Reply<void>>
   /** Editors, the file manager, and terminals installed on this Mac, in menu order. */
   openInApps(): Promise<Reply<OpenInApp[]>>

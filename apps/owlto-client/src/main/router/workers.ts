@@ -13,11 +13,13 @@ import type {
 } from '../../shared/app.js'
 import type { Attachment } from '../../shared/attachments.js'
 import { defaultProjectSettings, type ProjectSettings } from '../../shared/projects.js'
-import type {
-  RouterWorker,
-  WorkerPullRequestLink,
-  WorkerReport,
-  WorkerStatus
+import {
+  type PendingWorkerMessage,
+  type RouterWorker,
+  STEER_MODES,
+  type WorkerPullRequestLink,
+  type WorkerReport,
+  type WorkerStatus
 } from '../../shared/router.js'
 import type { SessionPlace } from '../app/agent-runtime.js'
 import { OwltoError } from '../app/errors.js'
@@ -115,6 +117,23 @@ function clearQueue(worker: RouterWorker): void {
   delete worker.nextFromUser
 }
 
+/** Moves the user's pending messages, oldest first, into what the next turn sends. */
+function flushPending(worker: RouterWorker): void {
+  for (const message of worker.pending ?? [])
+    queueTurn(worker, {
+      text: message.text,
+      author: 'user',
+      ...(message.attachments?.length ? { attachments: message.attachments } : {})
+    })
+  delete worker.pending
+}
+
+const pendingTurn = (message: PendingWorkerMessage): TurnInput => ({
+  text: message.text,
+  author: 'user',
+  ...(message.attachments?.length ? { attachments: message.attachments } : {})
+})
+
 export type WorkerHost = {
   projects(): Project[]
   /** The engine's working directory for a thread with no default project. */
@@ -175,6 +194,8 @@ export class WorkerPool implements TurnProfiles {
   private readonly workers = new Map<string, RouterWorker>()
   /** Workers the Router asked to stop, whose stop needs no new batch. */
   private readonly stopping = new Set<string>()
+  /** Workers whose turn is cancelled so a steered message can start the next one. */
+  private readonly restarting = new Set<string>()
   /** Final reports sent through the report tool during the current turn, by worker. */
   private readonly turnReports = new Map<string, WorkerReport>()
   private nextCodexStart = 0
@@ -353,6 +374,20 @@ export class WorkerPool implements TurnProfiles {
       ...(input.author ? { author: input.author } : {})
     }
     if (activeWorker(worker)) {
+      // The user's message waits where they can see it until the turn ends or they steer it in.
+      if (mode === 'queue') {
+        worker.pending = [
+          ...(worker.pending ?? []),
+          {
+            id: crypto.randomUUID(),
+            text: turn.text,
+            ...(turn.attachments?.length ? { attachments: turn.attachments } : {}),
+            createdAt: new Date().toISOString()
+          }
+        ]
+        this.save(worker)
+        return { delivered: 'queued' }
+      }
       if (mode === 'steer' && (await this.host.steer(worker.sessionId, turn)) === 'steered')
         return { delivered: 'steered' }
       // The turn is ending; the message becomes the next turn once it settles.
@@ -372,6 +407,59 @@ export class WorkerPool implements TurnProfiles {
   }
 
   /**
+   * Sends one of the user's pending messages now. A running Claude Code or Codex
+   * turn takes it in place; a Cursor turn is cancelled and the message starts the
+   * next one, with the other pending messages after it. With no turn running, it
+   * starts a new turn.
+   */
+  async steerPending(
+    routerId: string,
+    workerId: string,
+    messageId: string
+  ): Promise<'steered' | 'restarting' | 'started' | 'queued'> {
+    const worker = this.owned(routerId, workerId)
+    const message = worker.pending?.find((m) => m.id === messageId)
+    if (!message) return 'queued'
+    const take = () => {
+      worker.pending = worker.pending?.filter((m) => m.id !== messageId)
+      if (!worker.pending?.length) delete worker.pending
+    }
+    if (activeWorker(worker)) {
+      if (STEER_MODES[worker.provider] === 'restart') {
+        take()
+        queueTurn(worker, pendingTurn(message))
+        this.save(worker)
+        this.restarting.add(worker.id)
+        await this.host.interrupt(worker.sessionId).catch(() => {})
+        return 'restarting'
+      }
+      if ((await this.host.steer(worker.sessionId, pendingTurn(message))) === 'steered') {
+        take()
+        this.save(worker)
+        return 'steered'
+      }
+      // The turn is ending; the message goes out with the next turn.
+      if (activeWorker(worker)) return 'queued'
+    }
+    if (!worker.pending?.some((m) => m.id === messageId)) return 'queued'
+    take()
+    const { delivered } = await this.message(routerId, {
+      workerId,
+      ...pendingTurn(message)
+    })
+    return delivered
+  }
+
+  /** Drops one of the user's pending messages before it is sent. */
+  dropPending(routerId: string, workerId: string, messageId: string): void {
+    const worker = this.owned(routerId, workerId)
+    if (!worker.pending?.some((m) => m.id === messageId)) return
+    worker.pending = worker.pending.filter((m) => m.id !== messageId)
+    if (!worker.pending.length) delete worker.pending
+    this.save(worker)
+  }
+
+  /**
    * Stops a worker for the Router or the user. A worker cancelled from the queue
    * never settles a turn, so when the user cancels it the Router hears about it
    * here, with its next batch.
@@ -382,6 +470,8 @@ export class WorkerPool implements TurnProfiles {
     by: 'router' | 'user' = 'router'
   ): Promise<StopWorkerResult> {
     const worker = this.owned(routerId, workerId)
+    // The user's own stop drops what they lined up; after the Router's they can still send it.
+    if (by === 'user') delete worker.pending
     if (worker.status === 'queued') {
       worker.status = worker.report ? 'idle' : 'stopped'
       clearQueue(worker)
@@ -583,7 +673,8 @@ export class WorkerPool implements TurnProfiles {
   settled(sessionId: string, outcome: TurnOutcome): void {
     const worker = this.bySession(sessionId)
     if (!worker || worker.status === 'removed' || this.closed) return
-    const stopped = this.stopping.delete(worker.id)
+    const restarted = this.restarting.delete(worker.id)
+    const stopped = this.stopping.delete(worker.id) || restarted
     const sent = this.turnReports.get(worker.id)
     this.turnReports.delete(worker.id)
     // Progress notes the Router has not read yet are stale once the turn ends.
@@ -608,7 +699,7 @@ export class WorkerPool implements TurnProfiles {
       worker.degraded = degraded
       worker.status = 'reported'
       this.inbox.add(worker.routerId, { ...this.event('worker_report', worker), report })
-    } else {
+    } else if (!(restarted && outcome.status === 'interrupted')) {
       worker.status = outcome.status === 'interrupted' ? 'stopped' : 'failed'
       this.inbox.add(
         worker.routerId,
@@ -616,8 +707,9 @@ export class WorkerPool implements TurnProfiles {
         !stopped
       )
     }
-    // A Router follow-up that arrived as the turn ended runs next.
-    if (worker.next) worker.status = 'queued'
+    // What the user wrote during the turn, and any Router follow-up, runs next.
+    if (!stopped || restarted) flushPending(worker)
+    if (worker.next !== null) worker.status = 'queued'
     this.save(worker)
     this.schedule()
   }

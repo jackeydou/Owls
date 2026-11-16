@@ -20,8 +20,11 @@ export type WorkerDispatch = {
   /** Goal hashes of workers dispatched in the current batch, so a retried call reuses them. */
   seen?: Map<string, string>
 }
-/** `steer` tries the running turn first; `next` always waits for the next turn. */
-export type WorkerMessageMode = 'steer' | 'next'
+/**
+ * `steer` tries the running turn first; `next` always waits for the next turn;
+ * `queue` holds a user message on the worker, where they can still steer or drop it.
+ */
+export type WorkerMessageMode = 'steer' | 'next' | 'queue'
 export type ApproveWorkerInput = {
   workerId: string
   requestId: string

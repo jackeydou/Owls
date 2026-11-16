@@ -1437,8 +1437,8 @@ test('dispatch_task refuses a parent that is unknown or removed', async () => {
   service.close()
 })
 
-test('a message to a running worker skips the model and reaches the Router later', async () => {
-  const { service, router, engine, current, fake } = await withTools(async (call) => [
+test('a message to a running worker waits in its queue and reaches the Router later', async () => {
+  const { service, router, engine, current, fake, sent } = await withTools(async (call) => [
     await call('dispatch_task', { goal: 'Run the suite' })
   ])
   await waitFor(() => current().status === 'idle', 'dispatch batch')
@@ -1450,17 +1450,82 @@ test('a message to a running worker skips the model and reaches the Router later
     text: 'Add a token expiry case.',
     workerId: worker.id
   })
-  assert.deepEqual(fake.steered, [
-    { sessionId: worker.sessionId, text: 'Add a token expiry case.' }
-  ])
+  assert.deepEqual(fake.steered, [], 'the running turn is left alone')
+  const queued = service.snapshot().workers[0].pending
+  assert.deepEqual(
+    queued.map((m) => m.text),
+    ['Add a token expiry case.']
+  )
   await new Promise((resolve) => setTimeout(resolve, 30))
-  assert.equal(engine.runs.length, 1, 'no batch for a delivered message')
+  assert.equal(engine.runs.length, 1, 'no batch for a queued message')
   const item = current().items.find((i) => i.id === commandId)
   assert.equal(item.workerId, worker.id)
+  const turns = sent.length
   service.settled(worker.sessionId, report('Passed.'))
+  // The queue goes out as the next turn, as the user's own message.
+  await waitFor(() => sent.length === turns + 1, 'queued turn')
+  assert.deepEqual(
+    { text: sent.at(-1).text, author: sent.at(-1).author },
+    { text: 'Add a token expiry case.', author: 'user' }
+  )
+  assert.equal(service.snapshot().workers[0].pending, undefined)
   await waitFor(() => engine.runs.length === 2, 'report batch')
   assert.match(engine.runs[1].text, new RegExp(`user_message · user · .* · to ${worker.id}\\n`))
   assert.match(engine.runs[1].text, /worker_report · .* · done\nGoal: Run the suite\nPassed\./)
+  service.close()
+})
+
+test('steering a queued message injects it, and dropping one removes it', async () => {
+  const { service, router, current, fake } = await withTools(async (call) => [
+    await call('dispatch_task', { goal: 'Run the suite' })
+  ])
+  await waitFor(() => current().status === 'idle', 'dispatch batch')
+  const worker = service.snapshot().workers[0]
+  for (const text of ['First', 'Second'])
+    await service.send({
+      routerId: router.id,
+      commandId: crypto.randomUUID(),
+      text,
+      workerId: worker.id
+    })
+  const [first, second] = service.snapshot().workers[0].pending
+  await service.steerPending({ routerId: router.id, workerId: worker.id, messageId: first.id })
+  assert.deepEqual(fake.steered, [{ sessionId: worker.sessionId, text: 'First' }])
+  assert.deepEqual(
+    service.snapshot().workers[0].pending.map((m) => m.id),
+    [second.id]
+  )
+  service.dropPending({ routerId: router.id, workerId: worker.id, messageId: second.id })
+  assert.equal(service.snapshot().workers[0].pending, undefined)
+  service.close()
+})
+
+test('steering a Cursor worker interrupts its turn and sends the message next', async () => {
+  const { service, router, current, fake, sent, engine } = await withTools(
+    async (call) => [await call('dispatch_task', { goal: 'Run the suite', provider: 'cursor' })],
+    { host: { ready: ['codex', 'claude-code', 'cursor'] } }
+  )
+  await waitFor(() => current().status === 'idle', 'dispatch batch')
+  const worker = service.snapshot().workers[0]
+  assert.equal(worker.provider, 'cursor')
+  for (const text of ['Use the new API', 'Then rerun'])
+    await service.send({
+      routerId: router.id,
+      commandId: crypto.randomUUID(),
+      text,
+      workerId: worker.id
+    })
+  const [first] = service.snapshot().workers[0].pending
+  await service.steerPending({ routerId: router.id, workerId: worker.id, messageId: first.id })
+  assert.deepEqual(fake.interrupted, [worker.sessionId])
+  const turns = sent.length
+  const runs = engine.runs.length
+  service.settled(worker.sessionId, { status: 'interrupted', structured: null, text: '' })
+  await waitFor(() => sent.length === turns + 1, 'restarted turn')
+  assert.equal(sent.at(-1).text, 'Use the new API\n\nThen rerun')
+  assert.equal(service.snapshot().workers[0].status, 'running')
+  await new Promise((resolve) => setTimeout(resolve, 30))
+  assert.equal(engine.runs.length, runs, 'a restart for a steer does not wake the Router')
   service.close()
 })
 

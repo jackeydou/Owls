@@ -16,6 +16,7 @@ import type {
   ArchiveThread,
   CreateThread,
   ForwardMessage,
+  PendingMessageAction,
   ResolveBatch,
   RouterEngineId,
   RouterProviderInfo,
@@ -299,12 +300,17 @@ export class RouterService implements TurnProfiles {
     // Callers inside main may leave out the schema's default.
     const attachments = input.attachments ?? []
     await this.forUser(() =>
-      this.workers.message(router.id, {
-        workerId,
-        text: text.trim(),
-        author: 'user',
-        ...(attachments.length ? { attachments } : {})
-      })
+      this.workers.message(
+        router.id,
+        {
+          workerId,
+          text: text.trim(),
+          author: 'user',
+          ...(attachments.length ? { attachments } : {})
+        },
+        // While the worker is busy the message waits until the user steers it in.
+        'queue'
+      )
     )
     this.put(router, {
       id: input.commandId,
@@ -427,6 +433,17 @@ export class RouterService implements TurnProfiles {
         artifacts: worker.report.artifacts
       }
     }
+  }
+
+  /** Sends one of the user's pending messages to a worker now (see `WorkerPool.steerPending`). */
+  async steerPending(input: PendingMessageAction): Promise<void> {
+    const router = this.ownRouter(input.routerId)
+    await this.forUser(() => this.pool.steerPending(router.id, input.workerId, input.messageId))
+  }
+
+  dropPending(input: PendingMessageAction): void {
+    const router = this.ownRouter(input.routerId)
+    this.pool.dropPending(router.id, input.workerId, input.messageId)
   }
 
   async stopWorker(input: WorkerAction): Promise<void> {

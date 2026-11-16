@@ -74,6 +74,24 @@ export const workerReportSchema = z.object({
     .max(20)
     .default([])
 })
+/** A user message waiting for the worker's current turn to end. */
+export const pendingWorkerMessageSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  attachments: z.array(attachmentSchema).optional(),
+  createdAt: z.string()
+})
+/**
+ * How each agent takes a message in the middle of a turn. Claude Code (streaming
+ * input) and Codex (`turn/steer`) fold it into the running turn; ACP has no such
+ * call, so Cursor's turn is cancelled and the message starts the next one.
+ */
+export const STEER_MODES = {
+  'claude-code': 'inject',
+  codex: 'inject',
+  cursor: 'restart'
+} as const satisfies Record<(typeof providerValues)[number], 'inject' | 'restart'>
+export type SteerMode = (typeof STEER_MODES)[keyof typeof STEER_MODES]
 export const workerStatusSchema = z.enum([
   'queued',
   'starting',
@@ -146,6 +164,11 @@ export const workerSchema = z.object({
   nextAttachments: z.array(attachmentSchema).optional(),
   /** True when only the user wrote what waits in `next`, so it is shown as theirs. */
   nextFromUser: z.boolean().optional(),
+  /**
+   * Messages the user wrote while the worker was busy, oldest first. They go out as
+   * the next turn when the current one ends, or earlier when the user steers one in.
+   */
+  pending: z.array(pendingWorkerMessageSchema).optional(),
   status: workerStatusSchema,
   workspace: workerWorkspaceSchema,
   pullRequest: workerPullRequestLinkSchema.nullable(),
@@ -241,6 +264,10 @@ export const workerActionSchema = z.object({
   routerId: z.string().uuid(),
   workerId: z.string().min(1).max(64)
 })
+/** Steers or drops one of a worker's pending messages. */
+export const pendingMessageActionSchema = workerActionSchema.extend({
+  messageId: z.string().min(1).max(64)
+})
 export const setRouterKeySchema = z.object({
   providerId: owltoProviderSchema,
   key: z.string().trim().min(1).max(4096)
@@ -256,6 +283,8 @@ export type WorkerStatus = z.infer<typeof workerStatusSchema>
 export type WorktreeBase = z.infer<typeof worktreeBaseSchema>
 export type WorkerWorkspace = z.infer<typeof workerWorkspaceSchema>
 export type WorkerAction = z.infer<typeof workerActionSchema>
+export type PendingWorkerMessage = z.infer<typeof pendingWorkerMessageSchema>
+export type PendingMessageAction = z.infer<typeof pendingMessageActionSchema>
 export type WorkerPullRequestLink = z.infer<typeof workerPullRequestLinkSchema>
 export type RouterWorker = z.infer<typeof workerSchema>
 export type RouterStatus = z.infer<typeof routerStatusSchema>

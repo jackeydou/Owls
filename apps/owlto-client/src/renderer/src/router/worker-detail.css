@@ -405,3 +405,130 @@ p.worker-composer-removed {
   border-radius: 50%;
   object-fit: cover;
 }
+/* The turn is still running: the worker's owl at work and three bouncing dots in its color. */
+.worker-working {
+  --worker-dot-from: #e8785a;
+  --worker-dot-to: #f4b860;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 8px;
+}
+.worker-working[data-speaker="codex"] {
+  --worker-dot-from: #1f2228;
+  --worker-dot-to: #a3abb8;
+}
+.worker-working[data-speaker="cursor"] {
+  --worker-dot-from: #7c8cff;
+  --worker-dot-to: #c08cff;
+}
+[data-theme="dark"] .worker-working[data-speaker="codex"] {
+  --worker-dot-from: #ffffff;
+  --worker-dot-to: #6b7280;
+}
+.worker-working .owlto-owl-avatar {
+  width: 28px;
+  height: 28px;
+}
+.worker-working-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-card-muted);
+}
+.worker-working-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--worker-dot-from);
+  animation: worker-working-dot 1.2s ease-in-out infinite;
+}
+/* The three dots step from one color to the other. */
+.worker-working-dots i:nth-child(2) {
+  background: color-mix(in oklab, var(--worker-dot-from), var(--worker-dot-to));
+  animation-delay: 0.15s;
+}
+.worker-working-dots i:nth-child(3) {
+  background: var(--worker-dot-to);
+  animation-delay: 0.3s;
+}
+@keyframes worker-working-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .worker-working-dots i {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+/* Messages the user wrote while the worker was busy, above the input. */
+.worker-queue {
+  margin: 0 0 8px;
+  padding: 8px 8px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-lg);
+  background: var(--color-card-muted);
+}
+.worker-queue h3 {
+  margin: 0 4px 6px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-weight: 500;
+}
+.worker-queue ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.worker-queue li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 8px;
+  border-radius: var(--owl-radius-md);
+  background: var(--color-card);
+}
+.worker-queue li > p {
+  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+  overflow-wrap: anywhere;
+}
+.worker-queue-files {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 6px;
+  color: var(--color-muted-foreground);
+}
+.worker-queue-steer {
+  display: inline-flex;
+  flex: none;
+}
+.worker-queue-steer .owlto-icon,
+.worker-queue-steer button {
+  white-space: nowrap;
+}
+.worker-queue-steer button {
+  height: 26px;
+  padding: 0 10px;
+}

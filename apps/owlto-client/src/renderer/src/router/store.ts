@@ -6,6 +6,7 @@ import type { OpenInApp, OpenWorkerIn } from '../../../shared/open-in'
 import type {
   ForwardMessage,
   OwltoProviderId,
+  PendingMessageAction,
   RouterProviderInfo,
   RouterWorker
 } from '../../../shared/router'
@@ -84,6 +85,9 @@ type State = {
   deleteThread(routerId: string): Promise<boolean>
   resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
   stopWorker(routerId: string, workerId: string): Promise<void>
+  /** Sends a pending message now; the row leaving the queue shows that it went. */
+  steerPending(input: PendingMessageAction): Promise<void>
+  dropPending(input: PendingMessageAction): Promise<void>
   loadOpenInApps(): Promise<void>
   /** Resolves true once the app was asked to open the worker's folder. */
   openWorkerIn(input: OpenWorkerIn): Promise<boolean>
@@ -298,6 +302,12 @@ export const useRouterStore = create<State>((set, get) => {
     },
     stopWorker: async (routerId, workerId) => {
       await action(() => window.owlto.stopWorker({ routerId, workerId }))
+    },
+    steerPending: async (input) => {
+      await action(() => window.owlto.steerPendingMessage(input))
+    },
+    dropPending: async (input) => {
+      await action(() => window.owlto.dropPendingMessage(input))
     },
     removeWorker: async (routerId, workerId) => {
       await action(() => window.owlto.removeWorker({ routerId, workerId }))
