@@ -251,7 +251,7 @@ Release MR flow:
 ### Electron Packaging
 
 - Public app/package branding is `Owlto`; build artifacts should use names such as `Owlto-2026.5.3.dmg` rather than internal workspace names.
-- Two external names still use the product's first name, Owls: the `jackeydou/Owls` repository (also the update feed) and the `owls-agents` GitHub App. Do not rename them in code until they are renamed on GitHub.
+- One external name still uses the product's first name, Owls: the `jackeydou/Owls` repository (also the update feed). Do not rename it in code until it is renamed on GitHub. The GitHub App is `owlto-dev` (https://github.com/apps/owlto-dev); renaming it kept its Client ID.
 - Check `apps/owlto-client/scripts/electron-builder-config.cjs` before changing packaging behavior.
 
 ## Source Map

@@ -568,7 +568,9 @@ export class OwltoHost {
     this.codex.removeProject(projectId)
   }
   async cloneProject(input: CloneProject): Promise<Project> {
-    return this.addProject(await cloneGitHubProject(input, this.projectsHome))
+    return this.addProject(
+      await cloneGitHubProject(input, this.projectsHome, this.github?.auth ?? null)
+    )
   }
   async createProject(input: CreateProject): Promise<Project> {
     return this.addProject(await createQuickProject(input, this.projectsHome))

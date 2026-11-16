@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /** Where a user adds the Owlto GitHub App to their repositories. */
-export const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/owls-agents/installations/new'
+export const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/owlto-dev/installations/new'
 
 /** Where to create a token for the personal access token connection. */
 export const GITHUB_TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new'

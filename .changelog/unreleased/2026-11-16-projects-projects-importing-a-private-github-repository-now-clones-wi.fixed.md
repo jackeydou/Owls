@@ -1,0 +1,1 @@
+- Projects: importing a private GitHub repository now clones with your Owlto GitHub connection when git on the computer cannot sign in, and a failed import says why.

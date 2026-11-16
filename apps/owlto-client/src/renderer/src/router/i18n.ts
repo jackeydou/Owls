@@ -304,7 +304,19 @@ export const routerEn = {
   'errors.project_exists':
     'A folder with this name already exists there. Choose another name or location.',
   'errors.project_clone_failed':
-    'Could not clone this repository. Check the URL, and for a private repository make sure git on this computer can sign in to GitHub.'
+    'Could not clone this repository. Check the URL, and for a private repository make sure git on this computer can sign in to GitHub.',
+  'errors.project_clone_network':
+    'Owlto could not reach GitHub. Check your connection and try again.',
+  'errors.project_clone_ssh_denied':
+    'GitHub refused this computer’s SSH key. Paste the https URL instead to clone with your GitHub connection in Settings.',
+  'errors.project_clone_sign_in':
+    'This repository was not found, or it is private. To clone a private repository, connect GitHub in Settings > GitHub, then try again.',
+  'errors.project_clone_app_access':
+    'The Owlto GitHub app is not installed on this repository. Install it on the repository in Settings > GitHub, or connect with gh CLI or a token, then try again.',
+  'errors.project_clone_no_access':
+    'This repository was not found, or your GitHub connection cannot read it. Check the URL and the account in Settings > GitHub.',
+  'errors.project_git_missing':
+    'git is not installed on this computer. Install git, then try again.'
 }
 
 export const routerZh: Record<keyof typeof routerEn, string> = {
@@ -603,5 +615,15 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'errors.project_url_invalid': '请输入 github.com 仓库 URL，或 owner/repo。',
   'errors.project_exists': '该位置已有同名文件夹，请换个名称或位置。',
   'errors.project_clone_failed':
-    '无法克隆这个仓库。请检查 URL；如果是私有仓库，请确认本机 git 能登录 GitHub。'
+    '无法克隆这个仓库。请检查 URL；如果是私有仓库，请确认本机 git 能登录 GitHub。',
+  'errors.project_clone_network': 'Owlto 连不上 GitHub，请检查网络后重试。',
+  'errors.project_clone_ssh_denied':
+    'GitHub 拒绝了本机的 SSH 密钥。改用 https 链接，即可用设置里的 GitHub 连接克隆。',
+  'errors.project_clone_sign_in':
+    '找不到这个仓库，或它是私有仓库。要克隆私有仓库，请先在 设置 > GitHub 连接 GitHub，再重试。',
+  'errors.project_clone_app_access':
+    'Owlto GitHub 应用没有安装到这个仓库。请在 设置 > GitHub 把它安装到该仓库，或改用 gh CLI 或令牌连接，再重试。',
+  'errors.project_clone_no_access':
+    '找不到这个仓库，或当前 GitHub 连接无权读取它。请检查 URL 和 设置 > GitHub 里的账号。',
+  'errors.project_git_missing': '本机没有安装 git。请先安装 git，再重试。'
 }
