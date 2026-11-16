@@ -475,3 +475,43 @@ html[data-skin="doodle"] :is(.router-forward textarea, .cards-dialog form > labe
 html[data-skin="doodle"] input:is([type="radio"], [type="checkbox"]) {
   accent-color: var(--doodle-amber);
 }
+
+/* Requests waiting on the user: the website demo's dashed "Needs your OK" strip. The border
+   grows by 1px, so the padding gives that pixel back and the card keeps its size. */
+html[data-skin="doodle"] .owlto-request {
+  padding: 7px 9px 7px 11px;
+  border: 2px dashed var(--doodle-line);
+  background: var(--doodle-tint);
+}
+html[data-skin="doodle"] .owlto-request-head > .owlto-icon {
+  display: none;
+}
+html[data-skin="doodle"] .owlto-request-label {
+  font: italic 800 var(--owl-text-sm) / 1.2 var(--doodle-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+html[data-skin="doodle"] .owlto-request-subject {
+  font-weight: 600;
+}
+html[data-skin="doodle"] .owlto-request .owlto-request-subject code {
+  background: var(--doodle-card);
+  box-shadow: inset 0 0 0 1.5px var(--doodle-line);
+  border-radius: 6px;
+  font-weight: 600;
+}
+html[data-skin="doodle"] .owlto-request-command {
+  background: var(--doodle-card);
+  box-shadow: inset 0 0 0 1.5px var(--doodle-line);
+  font-weight: 600;
+}
+html[data-skin="doodle"] .owlto-request-detail {
+  color: var(--doodle-muted);
+}
+html[data-skin="doodle"] .owlto-request [data-request-action="accept"] {
+  background: var(--doodle-green);
+  color: #fff;
+}
+html[data-skin="doodle"] .owlto-request [data-request-action="accept"]:hover:not(:disabled) {
+  background: #36ad63;
+}
