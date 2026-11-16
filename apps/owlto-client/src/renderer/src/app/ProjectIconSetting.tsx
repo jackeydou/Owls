@@ -2,7 +2,7 @@ import { Button } from '@renderer/components/ui/button'
 import { SearchIcon, UploadIcon } from '@renderer/components/ui/icons'
 import { AnchoredPopover } from '@renderer/components/ui/popover'
 import { cn } from '@renderer/lib/utils'
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Project } from '../../../shared/app'
 import {
@@ -13,9 +13,10 @@ import {
 } from '../../../shared/projects'
 import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
+import { ImageCropper } from './ImageCropper'
 import { PROJECT_EMOJI } from './project-emoji'
 import { SettingRow } from './SettingRow'
-import { squareImageFromFile } from './square-image'
+import { centeredSquare, type SquareCrop, squareImage } from './square-image'
 
 /** Side of the square an image icon is stored at: sharp at 2x in a 20px tile, and small. */
 const ICON_SIZE = 96
@@ -87,7 +88,7 @@ function EmojiGrid({
   ))
 }
 
-/** The upload tab: pick or drop an image, cropped to a square. */
+/** The upload tab: pick or drop an image. */
 function UploadPane({ onFile, failed }: { onFile: (file: File) => void; failed: boolean }) {
   const { t } = useTranslation()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -197,9 +198,47 @@ export function ProjectIconSetting({
     setFailed(false)
     onSave({ icon: next })
   }
+  // A picked image that is not square waits here while the user picks the part to keep.
+  const [pending, setPending] = useState<{ bitmap: ImageBitmap; url: string } | null>(null)
+  useEffect(() => {
+    if (!pending) return
+    return () => {
+      pending.bitmap.close()
+      URL.revokeObjectURL(pending.url)
+    }
+  }, [pending])
+  const saveImage = (image: ImageBitmap, crop: SquareCrop) => {
+    try {
+      saveIcon({
+        kind: 'image',
+        src: squareImage(image, crop, ICON_SIZE, PROJECT_ICON_IMAGE_LIMIT)
+      })
+      setOpen(false)
+    } catch {
+      setFailed(true)
+    }
+    setPending(null)
+  }
+  const pickFile = (file: File) => {
+    setFailed(false)
+    createImageBitmap(file).then(
+      (bitmap) => {
+        if (bitmap.width === bitmap.height) {
+          saveImage(bitmap, centeredSquare(bitmap.width, bitmap.height))
+          bitmap.close()
+        } else setPending({ bitmap, url: URL.createObjectURL(file) })
+      },
+      () => setFailed(true)
+    )
+  }
+  const close = () => {
+    setOpen(false)
+    setPending(null)
+  }
   const selectTab = (next: Tab) => {
     setTab(next)
     setQuery('')
+    setPending(null)
   }
   const onTabKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
@@ -225,12 +264,11 @@ export function ProjectIconSetting({
             aria-expanded={open}
             style={{ '--owl-c': projectHue(project.id, color) } as React.CSSProperties}
             onClick={() => {
-              if (!open) {
-                setTab(tabFor(icon))
-                setQuery('')
-                setFailed(false)
-              }
-              setOpen(!open)
+              if (open) return close()
+              setTab(tabFor(icon))
+              setQuery('')
+              setFailed(false)
+              setOpen(true)
             }}
           >
             <ProjectIcon project={project} />
@@ -238,7 +276,7 @@ export function ProjectIconSetting({
           <AnchoredPopover
             anchor={anchor}
             open={open}
-            onClose={() => setOpen(false)}
+            onClose={close}
             label={t('projectSettings.icon.picker')}
             className="owlto-icon-picker"
           >
@@ -269,19 +307,16 @@ export function ProjectIconSetting({
               aria-labelledby={`${tabsId}-${tab}`}
               className="owlto-icon-picker-panel"
             >
-              {tab === 'upload' ? (
-                <UploadPane
-                  failed={failed}
-                  onFile={(file) =>
-                    squareImageFromFile(file, ICON_SIZE, PROJECT_ICON_IMAGE_LIMIT).then(
-                      (src) => {
-                        saveIcon({ kind: 'image', src })
-                        setOpen(false)
-                      },
-                      () => setFailed(true)
-                    )
-                  }
+              {tab === 'upload' && pending ? (
+                <ImageCropper
+                  src={pending.url}
+                  width={pending.bitmap.width}
+                  height={pending.bitmap.height}
+                  onCancel={() => setPending(null)}
+                  onSave={(crop) => saveImage(pending.bitmap, crop)}
                 />
+              ) : tab === 'upload' ? (
+                <UploadPane failed={failed} onFile={pickFile} />
               ) : (
                 <>
                   <label className="owlto-icon-picker-search">

@@ -524,6 +524,60 @@
   border-color: var(--color-foreground);
   background: var(--color-sidebar-hover);
 }
+/* Picking the square part of a non-square image: the image whole, a frame that slides. */
+.owlto-image-cropper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  height: 280px;
+  margin: 12px;
+  padding-top: 4px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+}
+.owlto-image-cropper-stage {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--owl-radius-xs);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.owlto-image-cropper-stage:active {
+  cursor: grabbing;
+}
+.owlto-image-cropper-stage > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* The shade outside the frame is the frame's own spread shadow, clipped by the stage. */
+.owlto-image-cropper-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: var(--owl-radius-xs);
+  box-shadow:
+    0 0 0 1.5px rgb(255 255 255 / 0.95),
+    0 0 0 9999px rgb(0 0 0 / 0.5);
+  outline: none;
+}
+.owlto-image-cropper-frame:focus-visible {
+  box-shadow:
+    0 0 0 1.5px rgb(255 255 255 / 0.95),
+    0 0 0 4px var(--owl-focus-ring),
+    0 0 0 9999px rgb(0 0 0 / 0.5);
+}
+.owlto-image-cropper-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-self: stretch;
+  margin-top: auto;
+}
 .owlto-icon-picker-foot {
   display: flex;
   align-items: center;
