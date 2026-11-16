@@ -341,32 +341,6 @@
   flex-shrink: 0;
   color: var(--color-muted-foreground);
 }
-.owlto-project-icon-editor {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-/* The preview is the tile at the size the settings page can show it well. */
-.owlto-project-icon-preview > .owlto-project-icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--owl-radius-sm);
-  background: var(--color-sidebar-active);
-  font-size: var(--owl-text-lg);
-  font-weight: 600;
-}
-.owlto-project-icon-preview > .owlto-project-icon.colored {
-  background: color-mix(in srgb, var(--owl-c) 18%, transparent);
-}
-.owlto-project-icon-preview > .owlto-project-icon.emoji {
-  font-size: var(--owl-text-lg);
-}
-.owlto-project-icon-preview > .owlto-project-icon.image {
-  background: transparent;
-}
 .owlto-segmented {
   display: inline-flex;
   padding: 2px;
@@ -385,18 +359,238 @@
   background: var(--color-sidebar-active);
   color: var(--color-foreground);
 }
-.owlto-setting-detail .router-input.owlto-project-emoji {
-  width: 72px;
-  min-width: 0;
+/* The preview tile is the button that opens the icon picker. */
+.owlto-project-icon-preview {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-md);
+  background: var(--color-card);
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    transform 80ms ease;
+}
+.owlto-project-icon-preview:hover,
+.owlto-project-icon-preview[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--color-foreground) 22%, var(--color-border));
+  background: var(--color-card-muted);
+}
+.owlto-project-icon-preview:active {
+  transform: scale(0.96);
+}
+.owlto-project-icon-preview > .owlto-project-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
   height: 30px;
-  padding: 0 8px;
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-sidebar-active);
+  font-size: var(--owl-text-lg);
+  font-weight: 600;
+}
+.owlto-project-icon-preview > .owlto-project-icon.colored {
+  background: color-mix(in srgb, var(--owl-c) 18%, transparent);
+}
+.owlto-project-icon-preview > .owlto-project-icon.emoji {
+  font-size: var(--owl-text-lg);
+}
+.owlto-project-icon-preview > .owlto-project-icon.image {
+  background: transparent;
+}
+/* The picker card: tabs, a search line, a scrolling grid, and the color row. */
+.owlto-icon-picker {
+  display: flex;
+  flex-direction: column;
+  width: 368px;
+  overflow: hidden;
+}
+.owlto-icon-picker-tabs {
+  display: flex;
+  gap: 20px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.owlto-icon-picker-tabs > button {
+  height: 38px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  font-weight: 500;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+}
+.owlto-icon-picker-tabs > button:hover {
+  color: var(--color-foreground);
+}
+.owlto-icon-picker-tabs > button[aria-selected="true"] {
+  border-bottom-color: var(--color-foreground);
+  color: var(--color-foreground);
+}
+.owlto-icon-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted-foreground);
+}
+.owlto-icon-picker-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+}
+.owlto-icon-picker-search input::placeholder {
+  color: var(--color-muted-foreground);
+}
+.owlto-icon-picker-scroll {
+  height: 264px;
+  overflow-y: auto;
+  padding: 8px 10px;
+}
+.owlto-icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+.owlto-icon-picker-grid > button {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: var(--owl-radius-sm);
+  color: color-mix(in srgb, var(--color-foreground) 72%, transparent);
+  transition:
+    background-color 100ms ease,
+    color 100ms ease,
+    transform 80ms ease;
+}
+.owlto-icon-picker-grid > button:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-foreground);
+}
+.owlto-icon-picker-grid > button:active {
+  transform: scale(0.92);
+}
+.owlto-icon-picker-grid > button[aria-pressed="true"] {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+.owlto-icon-picker-grid > button.emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+.owlto-icon-picker-group + .owlto-icon-picker-group {
+  margin-top: 8px;
+}
+.owlto-icon-picker-group > h4 {
+  padding: 4px 4px 4px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+}
+.owlto-icon-picker-empty {
+  padding: 32px 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
   text-align: center;
+}
+.owlto-icon-picker-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 280px;
+  margin: 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--owl-radius-md);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  text-align: center;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+.owlto-icon-picker-upload.over {
+  border-color: var(--color-foreground);
+  background: var(--color-sidebar-hover);
+}
+/* Picking the square part of a non-square image: the image whole, a frame that slides. */
+.owlto-image-cropper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  height: 280px;
+  margin: 12px;
+  padding-top: 4px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+}
+.owlto-image-cropper-stage {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--owl-radius-xs);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.owlto-image-cropper-stage:active {
+  cursor: grabbing;
+}
+.owlto-image-cropper-stage > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* The shade outside the frame is the frame's own spread shadow, clipped by the stage. */
+.owlto-image-cropper-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: var(--owl-radius-xs);
+  box-shadow:
+    0 0 0 1.5px rgb(255 255 255 / 0.95),
+    0 0 0 9999px rgb(0 0 0 / 0.5);
+  outline: none;
+}
+.owlto-image-cropper-frame:focus-visible {
+  box-shadow:
+    0 0 0 1.5px rgb(255 255 255 / 0.95),
+    0 0 0 4px var(--owl-focus-ring),
+    0 0 0 9999px rgb(0 0 0 / 0.5);
+}
+.owlto-image-cropper-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-self: stretch;
+  margin-top: auto;
+}
+.owlto-icon-picker-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 8px 6px 16px;
+  border-top: 1px solid var(--color-border);
 }
 .owlto-project-colors {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-left: auto;
+  gap: 8px;
 }
 .owlto-project-colors .swatch {
   position: relative;
@@ -426,7 +620,7 @@
   outline: none;
 }
 .owlto-project-icon-error {
-  flex: 0 0 100%;
+  max-width: 260px;
   color: var(--owl-bad);
   font-size: var(--owl-text-sm);
 }

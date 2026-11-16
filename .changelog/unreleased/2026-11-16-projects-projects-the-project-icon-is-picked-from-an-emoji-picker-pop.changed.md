@@ -1,0 +1,1 @@
+- Projects: the project icon is picked from an emoji picker popover with search and image upload; color moved into the picker. (#163)
