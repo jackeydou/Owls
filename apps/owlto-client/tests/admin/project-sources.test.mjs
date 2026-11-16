@@ -12,7 +12,9 @@ const {
   saveProjectSchema,
   cloneFailureCode,
   cloneGitHubProject,
-  createQuickProject
+  createQuickProject,
+  TOKEN_VARIABLE,
+  tokenCredentialConfig
 } = require('../../out/main/app/runtime.js')
 
 function tempRoot(t) {
@@ -126,6 +128,23 @@ test('a failed clone says why, without showing git output', () => {
   )
   assert.equal(cloneFailureCode('git not found', https(null)), 'project_git_missing')
   assert.equal(cloneFailureCode('fatal: something else', https(null)), 'project_clone_failed')
+})
+
+test('the clone token helper answers only https://github.com', () => {
+  const fill = (protocol, host) =>
+    execFileSync('git', [...tokenCredentialConfig(), 'credential', 'fill'], {
+      input: `protocol=${protocol}\nhost=${host}\npath=o/r.git\n\n`,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0', [TOKEN_VARIABLE]: 'secret-token' },
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe']
+    })
+  assert.match(fill('https', 'github.com'), /password=secret-token/)
+  for (const [protocol, host] of [
+    ['https', 'lfs.example.com'],
+    ['https', 'github.com.evil.com'],
+    ['http', 'github.com']
+  ])
+    assert.throws(() => fill(protocol, host), `${protocol}://${host} must get no token`)
 })
 
 test('project settings default their icon and accept only small raster image icons', () => {

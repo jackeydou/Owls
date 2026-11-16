@@ -9,12 +9,31 @@ import { OwltoError } from './errors.js'
 const CLONE_TIMEOUT_MS = 10 * 60_000
 const GIT_TIMEOUT_MS = 30_000
 /** The child-process variable the one-off credential helper reads the token from. */
-const TOKEN_VARIABLE = 'OWLTO_GITHUB_TOKEN'
+export const TOKEN_VARIABLE = 'OWLTO_GITHUB_TOKEN'
 /**
- * Answers git's credential `get` with the Owlto GitHub token. It runs for one clone only: the
- * token stays out of the clone's config and remote URL, and out of the process arguments.
+ * Answers git's credential `get` with the Owlto GitHub token, only for https://github.com. A
+ * cloned repository can point Git LFS (which inherits this helper) at another host, so the
+ * helper reads the request and stays silent for anything else. It runs for one clone only:
+ * the token stays out of the clone's config and remote URL, and out of the process arguments.
  */
-const TOKEN_HELPER = `!f() { test "$1" = get && printf 'username=x-access-token\\npassword=%s\\n' "$${TOKEN_VARIABLE}"; }; f`
+const TOKEN_HELPER = [
+  '!f() {',
+  'test "$1" = get || return 0;',
+  'p=; h=;',
+  `while IFS='=' read -r k v; do test -z "$k" && break; case "$k" in protocol) p=$v;; host) h=$v;; esac; done;`,
+  'test "$p" = https && test "$h" = github.com || return 0;',
+  `printf 'username=x-access-token\\npassword=%s\\n' "$${TOKEN_VARIABLE}";`,
+  '}; f'
+].join(' ')
+
+/**
+ * Git config for one command that replaces the user's credential helpers with the token
+ * helper, scoped to https://github.com. The empty helper clears the user's own helpers, so a
+ * stale keychain entry cannot win.
+ */
+export function tokenCredentialConfig(): string[] {
+  return ['-c', 'credential.helper=', '-c', `credential.https://github.com.helper=${TOKEN_HELPER}`]
+}
 
 type GitResult = { ok: true; stdout: string } | { ok: false; stderr: string }
 
@@ -132,17 +151,7 @@ async function cloneRepository(
   let stderr = own.stderr
   if (token) {
     const withToken = await git(
-      [
-        // The empty helper clears the user's own helpers, so a stale keychain entry cannot win.
-        '-c',
-        'credential.helper=',
-        '-c',
-        `credential.helper=${TOKEN_HELPER}`,
-        'clone',
-        '--',
-        ref.cloneUrl,
-        target
-      ],
+      [...tokenCredentialConfig(), 'clone', '--', ref.cloneUrl, target],
       null,
       CLONE_TIMEOUT_MS,
       { [TOKEN_VARIABLE]: token }
