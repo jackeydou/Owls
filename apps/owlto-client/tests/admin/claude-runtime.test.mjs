@@ -198,6 +198,7 @@ test('Claude normalization maps native tools, permissions, accounts, and answers
   const {
     toolItem,
     permissionOptions,
+    supportsAutoMode,
     folderAccess,
     parseClaudeAccount,
     permissionRequest,
@@ -212,15 +213,24 @@ test('Claude normalization maps native tools, permissions, accounts, and answers
     '✓ Ship'
   )
   assert.equal(toolItem('d', 'mcp__github__create_issue', {}, 't').text, 'github / create_issue')
-  assert.deepEqual(permissionOptions('read-only'), {
+  assert.deepEqual(permissionOptions('read-only', true), {
     permissionMode: 'default',
     disallowedTools: ['Edit', 'NotebookEdit', 'Write']
   })
-  assert.deepEqual(permissionOptions('workspace-write'), { permissionMode: 'acceptEdits' })
-  assert.deepEqual(permissionOptions('full-access'), {
+  // Workspace access lets the auto mode classifier approve low-risk actions when the model has it.
+  assert.deepEqual(permissionOptions('workspace-write', true), { permissionMode: 'auto' })
+  assert.deepEqual(permissionOptions('workspace-write', false), { permissionMode: 'acceptEdits' })
+  assert.deepEqual(permissionOptions('full-access', true), {
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true
   })
+  const models = [
+    { id: 'default', isDefault: true, autoMode: true },
+    { id: 'haiku', isDefault: false, autoMode: false }
+  ]
+  assert.equal(supportsAutoMode(models, null), true)
+  assert.equal(supportsAutoMode(models, 'haiku'), false)
+  assert.equal(supportsAutoMode(models, 'missing'), false)
   const projects = ['/code/b', '/code/a', '/ws/c']
   // A project task in its worktree reads its project and the workspace, and edits only its worktree.
   assert.deepEqual(

@@ -52,10 +52,16 @@ export function parseClaudeAccount(value: unknown): ClaudeAccount {
 /**
  * Maps Owlto permission choices onto Claude Code's native permission modes.
  * Claude Code has no OS sandbox by default, so read-only removes the editing
- * tools and keeps every other action behind an approval prompt. Full access
- * skips every approval, like the CLI's `--dangerously-skip-permissions`.
+ * tools and keeps every other action behind an approval prompt. Workspace
+ * access uses auto mode where the model supports it: a classifier approves
+ * low-risk actions and the rest still reach the user through `canUseTool`.
+ * Without auto mode it falls back to accepting edits and asking for the rest.
+ * Full access skips every approval, like `--dangerously-skip-permissions`.
  */
-export function permissionOptions(permission: Permission): {
+export function permissionOptions(
+  permission: Permission,
+  autoMode: boolean
+): {
   permissionMode: PermissionMode
   allowDangerouslySkipPermissions?: true
   disallowedTools?: string[]
@@ -64,7 +70,16 @@ export function permissionOptions(permission: Permission): {
     return { permissionMode: 'default', disallowedTools: [...WRITE_TOOLS].sort() }
   if (permission === 'full-access')
     return { permissionMode: 'bypassPermissions', allowDangerouslySkipPermissions: true }
-  return { permissionMode: 'acceptEdits' }
+  return { permissionMode: autoMode ? 'auto' : 'acceptEdits' }
+}
+
+/**
+ * Whether a session's model runs in auto mode. A session with no model uses
+ * the account's default entry.
+ */
+export function supportsAutoMode(models: CodexModel[], model: string | null): boolean {
+  const entry = models.find((m) => (model ? m.id === model : m.isDefault))
+  return entry?.autoMode === true
 }
 
 function inside(path: string, folder: string): boolean {

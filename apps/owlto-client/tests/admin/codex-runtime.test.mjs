@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
 const {
+  approvalOptions,
   CodexClient,
   normalizeItem,
   parseModels,
@@ -67,6 +68,24 @@ test('Codex projection keeps command and patch output without raw wire payloads'
   assert.equal(files.text, 'app.ts')
   assert.equal(files.detail, '+fixed')
   assert.throws(() => normalizeItem({ type: 'agentMessage', text: 'no id' }, null, false))
+})
+
+test('Codex permissions send sandbox escalations to auto-review except in read only', () => {
+  assert.deepEqual(approvalOptions('read-only'), {
+    approvalPolicy: 'on-request',
+    approvalsReviewer: 'user',
+    sandbox: 'read-only'
+  })
+  assert.deepEqual(approvalOptions('workspace-write'), {
+    approvalPolicy: 'on-request',
+    approvalsReviewer: 'auto_review',
+    sandbox: 'workspace-write'
+  })
+  assert.deepEqual(approvalOptions('full-access'), {
+    approvalPolicy: 'on-request',
+    approvalsReviewer: 'auto_review',
+    sandbox: 'danger-full-access'
+  })
 })
 
 test('Model options come from the native catalog and credentials are redacted', () => {

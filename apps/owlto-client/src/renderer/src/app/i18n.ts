@@ -38,7 +38,8 @@ const en = {
   'permission.workspace-write': 'Workspace access',
   'permission.full-access': 'Full access',
   readOnlyHelp: 'Reads files only. Makes no changes.',
-  permissionHelp: 'Edits project files. Asks before going further.',
+  permissionHelp:
+    'Edits project files. Auto-review approves safe steps beyond that and asks you about the rest.',
   fullAccessHelp: 'Works beyond the project. Still asks when needed.',
   back: 'Back',
   settingsTitle: 'Settings',
@@ -62,7 +63,7 @@ const en = {
   claudeAccount: 'Claude account',
   claudeSignInHelp: 'To switch accounts, run claude in Terminal, then reconnect.',
   claudePermissionHelp:
-    'Reads your projects and Workspace freely. Edits task files. Asks before running commands.',
+    'Reads your projects and Workspace freely. Edits task files. Auto mode approves safe commands and asks you about the rest.',
   claudeFullAccessHelp: 'Approves every action without asking.',
   cursorAccount: 'Cursor account',
   cursorSignInHelp: 'To switch accounts, run cursor-agent login in Terminal, then reconnect.',
@@ -216,7 +217,7 @@ const zh: Record<keyof typeof en, string> = {
   'permission.workspace-write': '工作区访问',
   'permission.full-access': '完全访问',
   readOnlyHelp: '只读取文件，不做任何修改。',
-  permissionHelp: '可编辑项目文件，超出范围时先询问。',
+  permissionHelp: '可编辑项目文件，超出范围的安全操作由自动审查批准，其余先询问你。',
   fullAccessHelp: '可在项目外操作，必要时仍会询问。',
   back: '返回',
   settingsTitle: '设置',
@@ -239,7 +240,8 @@ const zh: Record<keyof typeof en, string> = {
   installLink: '查看安装说明',
   claudeAccount: 'Claude 账号',
   claudeSignInHelp: '切换账号：在终端运行 claude 后重新连接。',
-  claudePermissionHelp: '可直接读取所有项目和 Workspace，可编辑任务文件，运行命令前先询问。',
+  claudePermissionHelp:
+    '可直接读取所有项目和 Workspace，可编辑任务文件，安全的命令由自动模式批准，其余先询问你。',
   claudeFullAccessHelp: '所有操作直接执行，不再询问。',
   cursorAccount: 'Cursor 账号',
   cursorSignInHelp: '切换账号：在终端运行 cursor-agent login 后重新连接。',

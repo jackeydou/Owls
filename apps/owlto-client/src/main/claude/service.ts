@@ -53,6 +53,7 @@ import {
   permissionOptions,
   permissionRequest,
   questionAnswers,
+  supportsAutoMode,
   toolItem,
   toolResultText,
   turnDiff
@@ -809,7 +810,10 @@ export class ClaudeService {
   }
   /** The permission mode plus the folders the session may read without asking. */
   private accessOptions(session: Session): Options {
-    const { disallowedTools = [], ...mode } = permissionOptions(session.permission)
+    const { disallowedTools = [], ...mode } = permissionOptions(
+      session.permission,
+      supportsAutoMode(this.connection.models, session.model)
+    )
     const { additionalDirectories, editDenied } = this.workspaceFolder
       ? folderAccess({
           cwd: session.cwd,
