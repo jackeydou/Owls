@@ -1,0 +1,1 @@
+- Settings: a project's model lists show picked models as a short numbered list to drag into order, with the rest folded below as search-filtered chips grouped by model family. (#159)
