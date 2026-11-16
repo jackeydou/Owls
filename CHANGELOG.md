@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1600-beta.2
+
+### Highlights
+
+- Pick a project icon from an emoji picker, or upload an image and choose which part to keep.
+- A worker's report lists its files and links as numbered references you can open.
+
+### Changes
+
+- Workers: a report's artifacts show as a numbered reference list in the worker panel. Files open with a click, links ask before opening, and notes render as Markdown and fold when long. (#158)
+- Workers: a report's note artifact is held to one sentence. The report tool turns down a longer one and asks the worker to write it to a file instead. (#158)
+- Projects: the project icon is picked from an emoji picker popover with search and image upload, with a crop step for non-square images; color moved into the picker. (#163)
+
+### Fixes
+
+- Project settings: picking a Cursor model no longer fails with "This request is invalid"; project model lists now save only picked models. (#162)
+
 ## 2026.11.1600-beta.1
 
 ### Highlights
