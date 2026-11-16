@@ -1,0 +1,1 @@
+- Workers: the worker panel shows when a worker is working, and messages sent while it is busy wait in a queue until you steer them in or the turn ends. (#156)
