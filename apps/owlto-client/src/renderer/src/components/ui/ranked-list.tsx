@@ -43,10 +43,13 @@ export type RankedListCopy = {
 
 function RankedRow({
   item,
+  rank,
   copy,
   onToggle
 }: {
   item: RankedItem
+  /** One-based position, shown before the label when set. */
+  rank?: number
   copy: RankedListCopy
   onToggle(): void
 }) {
@@ -75,6 +78,7 @@ function RankedRow({
         className="owlto-ranked-toggle"
         onClick={onToggle}
       >
+        {rank ? <span className="owlto-ranked-rank">{rank}</span> : null}
         {item.icon}
         <span className="owlto-ranked-label">{item.label}</span>
         {item.on ? <CheckIcon size={15} className="owlto-ranked-check" /> : null}
@@ -103,10 +107,13 @@ export function RankedList({
   items,
   copy,
   onChange,
+  numbered = false,
   className
 }: {
   header?: ReactNode
   items: RankedItem[]
+  /** Shows each row's position before its label. */
+  numbered?: boolean
   copy: RankedListCopy
   onChange(items: RankedItem[]): void
   className?: string
@@ -141,10 +148,11 @@ export function RankedList({
       >
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <ul>
-            {items.map((item) => (
+            {items.map((item, index) => (
               <RankedRow
                 key={item.id}
                 item={item}
+                rank={numbered ? index + 1 : undefined}
                 copy={copy}
                 onToggle={() =>
                   onChange(items.map((i) => (i.id === item.id ? { ...i, on: !i.on } : i)))

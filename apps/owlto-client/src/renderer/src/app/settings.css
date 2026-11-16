@@ -698,7 +698,7 @@ button.owlto-workspace-folder-name:hover {
 }
 .owlto-ranked-columns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   border: 1px solid var(--color-border);
   border-radius: var(--owl-radius-md);
   overflow: hidden;
@@ -789,6 +789,148 @@ button.owlto-workspace-folder-name:hover {
 }
 .owlto-ranked-row.dragging .owlto-ranked-grip {
   cursor: grabbing;
+}
+.owlto-ranked-rank {
+  flex-shrink: 0;
+  min-width: 14px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+/* A long list split into the picked, ordered models and a fold of the rest. */
+.owlto-ranked-picker .owlto-ranked-row {
+  height: 36px;
+}
+.owlto-ranked-empty {
+  margin: 0;
+  padding: 10px 14px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.owlto-picker-more {
+  border-top: 1px solid var(--color-border);
+}
+.owlto-picker-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 36px;
+  padding: 0 14px;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+  text-align: left;
+  transition: background-color 120ms ease;
+}
+.owlto-picker-toggle:hover {
+  background: var(--color-card-muted);
+}
+.owlto-picker-toggle:active span {
+  transform: translateY(1px);
+}
+.owlto-picker-toggle small {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.owlto-picker-chevron {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+  transition: transform 120ms ease;
+}
+.owlto-picker-toggle[aria-expanded="true"] .owlto-picker-chevron {
+  transform: rotate(90deg);
+}
+.owlto-picker-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 14px 12px;
+}
+.owlto-picker-body.unfolded {
+  padding-top: 12px;
+}
+.owlto-picker-body .owlto-ranked-empty {
+  padding: 0;
+}
+.owlto-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card);
+  color: var(--color-muted-foreground);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.owlto-picker-search:focus-within {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
+.owlto-picker-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-xs);
+  outline: none;
+}
+.owlto-picker-search input::-webkit-search-cancel-button {
+  appearance: none;
+}
+.owlto-picker-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.owlto-picker-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.owlto-picker-family {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.owlto-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.owlto-picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 8px 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-size: var(--owl-text-xs);
+  white-space: nowrap;
+  transition:
+    background-color 120ms ease,
+    transform 80ms ease;
+}
+.owlto-picker-chip svg {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+}
+.owlto-picker-chip:hover {
+  background: var(--color-card-muted);
+}
+.owlto-picker-chip:active {
+  transform: scale(0.95);
 }
 /* One coding agent's worker settings: a header row that folds its settings away. */
 .owlto-agent-config {

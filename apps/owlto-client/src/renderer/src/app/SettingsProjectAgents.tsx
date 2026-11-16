@@ -4,6 +4,7 @@ import {
   RankedList,
   type RankedListCopy
 } from '@renderer/components/ui/ranked-list'
+import { RankedPicker, type RankedPickerCopy } from '@renderer/components/ui/ranked-picker'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
@@ -37,6 +38,23 @@ function useRankedCopy(): RankedListCopy {
   )
 }
 
+/** Text for the model pickers. */
+function usePickerCopy(ranked: RankedListCopy): RankedPickerCopy {
+  const { t } = useTranslation()
+  return useMemo(
+    () => ({
+      ...ranked,
+      empty: t('projectAgents.noneChosen'),
+      more: t('projectAgents.moreModels'),
+      search: t('projectAgents.searchModels'),
+      noMatch: t('projectAgents.noMatch'),
+      standard: t('projectAgents.standardVariant'),
+      add: (name) => t('projectAgents.addModel', { name })
+    }),
+    [ranked, t]
+  )
+}
+
 /** Models a user can pick. Claude Code's "default" entry is an alias, not a model. */
 const pickable = (provider: AgentProvider, models: CodexModel[]) =>
   provider === 'claude-code' ? models.filter((m) => !m.isDefault) : models
@@ -46,6 +64,7 @@ export function ProjectAgentsPage({ project }: { project: Project }) {
   const { t } = useTranslation()
   const saveProject = useAppStore((s) => s.saveProject)
   const copy = useRankedCopy()
+  const pickerCopy = usePickerCopy(copy)
   const ready = useAppStore(
     useShallow((s) => providerSchema.options.filter((p) => isAgentReady(agentConnection(s, p))))
   )
@@ -132,7 +151,7 @@ export function ProjectAgentsPage({ project }: { project: Project }) {
                   note: names.has(m.id) ? undefined : t('projectAgents.unavailable')
                 }))
                 return (
-                  <RankedList
+                  <RankedPicker
                     key={provider}
                     header={
                       <>
@@ -141,7 +160,7 @@ export function ProjectAgentsPage({ project }: { project: Project }) {
                       </>
                     }
                     items={items}
-                    copy={copy}
+                    copy={pickerCopy}
                     onChange={(next) =>
                       void save({
                         ...agents,
