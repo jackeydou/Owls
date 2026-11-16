@@ -1,0 +1,1 @@
+- GitHub: Install on GitHub now opens the renamed Owlto GitHub app (owlto-dev). (#154)
