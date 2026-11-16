@@ -1,0 +1,1 @@
+- Requests: the permission card is compact, and under the Doodle skin it matches the website's Needs your OK strip. (#165)
