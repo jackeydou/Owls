@@ -46,7 +46,8 @@ import {
   sendRouterSchema,
   setRouterKeySchema,
   threadItemsSchema,
-  workerActionSchema
+  workerActionSchema,
+  workerArtifactActionSchema
 } from '../../shared/router.js'
 import { usageStatsRequestSchema } from '../../shared/usage-stats.js'
 import type { AppUpdater } from '../updates/updater.js'
@@ -184,6 +185,11 @@ export function registerIpc(
   handle('open-worker-in', (input) => {
     const { appId, ...worker } = openWorkerInSchema.parse(input)
     return openIn.open(appId, host.workerFolder(worker))
+  })
+  handle('open-worker-artifact', async (input) => {
+    const path = host.workerArtifactPath(workerArtifactActionSchema.parse(input))
+    if (await shell.openPath(path))
+      throw new OwltoError('request_unavailable', 'This file could not be opened.')
   })
   handle('router-providers', () => host.routerProviders())
   handle('router-set-key', (input) => host.setRouterKey(setRouterKeySchema.parse(input)))

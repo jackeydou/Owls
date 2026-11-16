@@ -8,7 +8,8 @@ import type {
   OwltoProviderId,
   PendingMessageAction,
   RouterProviderInfo,
-  RouterWorker
+  RouterWorker,
+  WorkerArtifactAction
 } from '../../../shared/router'
 import { UIError, uiFailure } from '../app/failures'
 
@@ -91,6 +92,8 @@ type State = {
   loadOpenInApps(): Promise<void>
   /** Resolves true once the app was asked to open the worker's folder. */
   openWorkerIn(input: OpenWorkerIn): Promise<boolean>
+  /** Resolves true once the reported file was opened; a failure shows as an error. */
+  openWorkerArtifact(input: WorkerArtifactAction): Promise<boolean>
   removeWorker(routerId: string, workerId: string): Promise<void>
   discardWorktree(routerId: string, workerId: string): Promise<void>
   showPanel(panel: RouterPanel | null): void
@@ -296,6 +299,13 @@ export const useRouterStore = create<State>((set, get) => {
     openWorkerIn: async (input) => {
       const opened = await action(async () => {
         const reply = await window.owlto.openWorkerIn(input)
+        return reply.ok ? { ok: true as const, value: true } : reply
+      })
+      return opened === true
+    },
+    openWorkerArtifact: async (input) => {
+      const opened = await action(async () => {
+        const reply = await window.owlto.openWorkerArtifact(input)
         return reply.ok ? { ok: true as const, value: true } : reply
       })
       return opened === true

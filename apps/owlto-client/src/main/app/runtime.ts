@@ -11,6 +11,7 @@ export {
 export { ROUTER_INSTRUCTIONS } from '../../shared/router-instructions.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'
 export {
+  artifactFilePath,
   isWithin,
   normalizePath,
   promotableFolders,

@@ -1,0 +1,1 @@
+- Workers: a report's artifacts show as a numbered reference list in the worker panel. Files open with a click, links ask before opening, and notes render as Markdown and fold when long. (#158)

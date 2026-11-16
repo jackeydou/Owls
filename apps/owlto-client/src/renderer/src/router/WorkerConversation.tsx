@@ -2,11 +2,17 @@ import { AlertCircleIcon, ChevronRightIcon } from '@renderer/components/ui/icons
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider, Session, SessionItem } from '../../../shared/app'
-import { type RouterWorker, type WorkerReport, workerReportSchema } from '../../../shared/router'
+import {
+  type RouterWorker,
+  type WorkerAction,
+  type WorkerReport,
+  workerReportSchema
+} from '../../../shared/router'
 import { ConversationItem, RequestCard } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { OwlAvatar } from '../app/OwlAvatar'
 import { isWorking, openRequests } from './activity'
+import { WorkerArtifacts } from './WorkerArtifacts'
 import { WorkerUserMessage } from './WorkerUserMessage'
 
 /** A worker's final message is its JSON report; this reads it back so it is never shown raw. */
@@ -46,8 +52,11 @@ function ReportMessage({
   provider,
   projectPath,
   degraded,
-  id
+  id,
+  current
 }: {
+  /** The worker whose latest report this is; null for an earlier report, whose files cannot open. */
+  current: WorkerAction | null
   report: WorkerReport
   agent: string
   provider: AgentProvider
@@ -56,9 +65,6 @@ function ReportMessage({
   id: string
 }) {
   const { t } = useTranslation()
-  // A path outside the project may be private, so only its name is shown (RFC section 6).
-  const artifact = (kind: string, ref: string) =>
-    kind === 'file' && !ref.startsWith(`${projectPath}/`) ? (ref.split(/[\\/]/).at(-1) ?? ref) : ref
   const item: SessionItem = {
     id,
     kind: 'assistant',
@@ -71,18 +77,7 @@ function ReportMessage({
     <div className="worker-report">
       {degraded ? <p className="worker-report-note">{t('worker.degraded')}</p> : null}
       <ConversationItem item={item} agent={agent} speaker={provider} />
-      {report.artifacts.length ? (
-        <section aria-label={t('worker.artifacts')}>
-          <h3>{t('worker.artifacts')}</h3>
-          <ul>
-            {report.artifacts.map((entry) => (
-              <li key={`${entry.kind}:${entry.ref}`}>
-                <code>{artifact(entry.kind, entry.ref)}</code>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <WorkerArtifacts artifacts={report.artifacts} projectPath={projectPath} current={current} />
     </div>
   )
 }
@@ -156,6 +151,7 @@ export function WorkerConversation({
           provider={session.provider}
           projectPath={projectPath}
           degraded={false}
+          current={null}
         />
       )
     return <ConversationItem key={item.id} item={item} agent={agent} speaker={session.provider} />
@@ -187,6 +183,7 @@ export function WorkerConversation({
           provider={session.provider}
           projectPath={projectPath}
           degraded={worker.degraded}
+          current={{ routerId: worker.routerId, workerId: worker.id }}
         />
       ) : null}
       {after.map(renderItem)}

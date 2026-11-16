@@ -55,12 +55,13 @@ import type {
   SendRouterMessage,
   SetRouterKey,
   ThreadItemsRequest,
-  WorkerAction
+  WorkerAction,
+  WorkerArtifactAction
 } from '../../shared/router.js'
 import { type UsageOverview, unavailableUsage } from '../../shared/usage.js'
 import type { UsageStats, UsageStatsRequest } from '../../shared/usage-stats.js'
 import { isInPlay } from '../../shared/worker-map.js'
-import { type WorkspaceListing, workerHome } from '../../shared/workspace.js'
+import { artifactFilePath, type WorkspaceListing, workerHome } from '../../shared/workspace.js'
 import type { PullRequestWatcher } from '../automations/pull-request-events.js'
 import type { AutomationService } from '../automations/service.js'
 import type { CardService } from '../cards/service.js'
@@ -374,6 +375,14 @@ export class OwltoHost {
     const session = this.snapshot().sessions.find((s) => s.id === sessionId)
     if (!session) throw new OwltoError('request_unavailable', 'This worker no longer exists.')
     return session.cwd
+  }
+  /** The absolute path of a file a worker reported. */
+  workerArtifactPath(input: WorkerArtifactAction): string {
+    const { sessionId, ref } = this.requireRouter().workerArtifact(input)
+    const session = this.snapshot().sessions.find((s) => s.id === sessionId)
+    const path = session ? artifactFilePath(ref, session.cwd) : null
+    if (!path) throw new OwltoError('request_unavailable', 'This file is no longer available.')
+    return path
   }
   routerProviders(): RouterProviderInfo[] {
     return this.requireRouter().providers()
