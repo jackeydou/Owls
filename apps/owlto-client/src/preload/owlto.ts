@@ -12,6 +12,7 @@ const api: OwltoAPI = {
   connectCursor: () => ipcRenderer.invoke('owlto:connect-cursor'),
   selectCursorExecutable: () => ipcRenderer.invoke('owlto:select-cursor-executable'),
   disconnectAgent: (provider) => ipcRenderer.invoke('owlto:disconnect-agent', provider),
+  detectAgents: () => ipcRenderer.invoke('owlto:detect-agents'),
   signIn: () => ipcRenderer.invoke('owlto:sign-in'),
   cancelSignIn: () => ipcRenderer.invoke('owlto:cancel-sign-in'),
   saveSettings: (settings) => ipcRenderer.invoke('owlto:settings', settings),

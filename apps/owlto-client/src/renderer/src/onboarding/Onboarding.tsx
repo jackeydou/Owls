@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type AgentProvider, providerSchema } from '../../../shared/app'
 import type { RouterEngineId } from '../../../shared/router'
+import { useAgentDetectionStore, useAgentPresence, useDetectAgents } from '../app/agent-detection'
 import { failureMessage } from '../app/failures'
 import { type AgentSpeaker, OwlAvatar } from '../app/OwlAvatar'
 import { agentConnection, isAgentReady, useAppStore } from '../app/store'
@@ -58,22 +59,64 @@ function ConnectButton({ provider }: { provider: AgentProvider }) {
   )
 }
 
+/** Shown in place of Connect when the agent's CLI is not on this Mac. */
+function NotDetected({ provider }: { provider: AgentProvider }) {
+  const { t } = useTranslation()
+  const detect = useAgentDetectionStore((s) => s.detect)
+  return (
+    <div className="onb-missing">
+      <span className="onb-missing-label">{t('onboarding.notDetected')}</span>
+      <ActionButton
+        size="sm"
+        variant="outline"
+        onAction={async () => {
+          await detect()
+          return 'quiet'
+        }}
+      >
+        {t('onboarding.checkAgain')}
+      </ActionButton>
+      <span className="sr-only">
+        {t('onboarding.notDetectedHelp', { agent: t(`agent.${provider}`) })}
+      </span>
+    </div>
+  )
+}
+
 function AgentCard({ provider }: { provider: AgentProvider }) {
   const { t } = useTranslation()
   const ready = useAgentReady(provider)
+  const presence = useAgentPresence(provider)
   const error = useAppStore((s) => agentConnection(s, provider).error)
+  const missing = presence === 'missing' && !ready
   return (
-    <li className="onb-card onb-agent" data-ready={ready || undefined}>
+    <li
+      className="onb-card onb-agent"
+      data-ready={ready || undefined}
+      data-missing={missing || undefined}
+    >
       <div className="onb-agent-head">
         <OwlAvatar speaker={provider} />
         <AgentIcon provider={provider} />
       </div>
       <strong>{t(`agent.${provider}`)}</strong>
-      <p>{t(`onboarding.agentHelp.${provider}`)}</p>
+      <p>
+        {missing
+          ? t('onboarding.notDetectedHelp', { agent: t(`agent.${provider}`) })
+          : presence === 'found' && !ready
+            ? t('onboarding.detected')
+            : t(`onboarding.agentHelp.${provider}`)}
+      </p>
       <div className="onb-agent-foot">
-        {ready ? <ConnectedMark /> : <ConnectButton provider={provider} />}
+        {ready ? (
+          <ConnectedMark />
+        ) : missing ? (
+          <NotDetected provider={provider} />
+        ) : (
+          <ConnectButton provider={provider} />
+        )}
       </div>
-      {error && !ready ? (
+      {error && !ready && !missing ? (
         <p role="alert" className="onb-error">
           {failureMessage(error)}
         </p>
@@ -85,6 +128,7 @@ function AgentCard({ provider }: { provider: AgentProvider }) {
 function AgentsStep({ onNext }: { onNext: () => void }) {
   const { t } = useTranslation()
   const ready = useReadyAgents()
+  useDetectAgents()
   return (
     <>
       <ul className="onb-agents">
@@ -119,12 +163,15 @@ function EngineOption({
   const ready = useAppStore((s) =>
     isAgent(engine) ? isAgentReady(agentConnection(s, engine)) : false
   )
+  const presence = useAgentPresence(isAgent(engine) ? engine : 'codex')
+  const missing = isAgent(engine) && presence === 'missing' && !ready
   const speaker: AgentSpeaker = isAgent(engine) ? engine : 'router'
   return (
     <button
       type="button"
       className="onb-card onb-engine"
       aria-pressed={selected}
+      disabled={missing}
       onClick={onSelect}
     >
       <OwlAvatar speaker={speaker} />
@@ -132,7 +179,11 @@ function EngineOption({
         <strong>{isAgent(engine) ? t(`agent.${engine}`) : t('routerSettings.engine.owlto')}</strong>
         <small>{t(`routerSettings.engineHelp.${engine}`)}</small>
       </span>
-      {ready ? <ConnectedMark /> : null}
+      {ready ? (
+        <ConnectedMark />
+      ) : missing ? (
+        <span className="onb-missing-label">{t('onboarding.notDetected')}</span>
+      ) : null}
       <i className="onb-radio" aria-hidden="true" />
     </button>
   )
@@ -143,11 +194,11 @@ function RouterStep({ onBack, onDone }: { onBack: () => void; onDone: () => void
   const { t } = useTranslation()
   const settings = useAppStore((s) => s.settings)
   const save = useAppStore((s) => s.saveSettings)
-  const readyAgents = useReadyAgents()
-  const [chosen, setChosen] = useState<RouterEngineId | null>(() => {
-    if (settings.router.engine !== 'owlto') return settings.router.engine
-    return ENGINE_AGENTS.find((a) => readyAgents.includes(a)) ?? null
-  })
+  // Nothing is picked for the user: only an engine they saved before starts selected.
+  const [chosen, setChosen] = useState<RouterEngineId | null>(() =>
+    settings.router.engine !== 'owlto' || settings.router.owlto ? settings.router.engine : null
+  )
+  useDetectAgents()
   const chosenReady = useAppStore((s) =>
     chosen && isAgent(chosen) ? isAgentReady(agentConnection(s, chosen)) : false
   )

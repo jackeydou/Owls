@@ -103,6 +103,7 @@ export function registerIpc(
   handle('connect-claude', () => host.connectClaude())
   handle('connect-cursor', () => host.connectCursor())
   handle('disconnect-agent', (input) => host.disconnectAgent(providerSchema.parse(input)))
+  handle('detect-agents', () => host.detectAgents())
   handle('settings', (input) => {
     const previous = host.snapshot().settings
     const saved = host.saveSettings({ ...previous, ...settingsUpdateSchema.parse(input) })

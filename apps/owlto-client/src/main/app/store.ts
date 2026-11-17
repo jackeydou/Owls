@@ -9,6 +9,7 @@ import {
   defaultAppLogo,
   defaultExperimentsSettings,
   defaultLayoutSettings,
+  migrateConnectedAgents,
   projectSchema,
   sessionSchema,
   settingsSchema
@@ -38,7 +39,7 @@ export class OwltoStore {
   settings(): AppSettings {
     const row = this.db.select().from(settingsTable).get()
     return row
-      ? settingsSchema.parse(row.value)
+      ? settingsSchema.parse(migrateConnectedAgents(row.value))
       : {
           executablePath: null,
           agents: defaultAgentConfigs,
@@ -59,7 +60,7 @@ export class OwltoStore {
           requestNotifications: true,
           workspacePath: null,
           workspaceDismissed: [],
-          disconnectedAgents: [],
+          connectedAgents: [],
           openInApp: null,
           profile: defaultProfile,
           onboarding: 'pending'
