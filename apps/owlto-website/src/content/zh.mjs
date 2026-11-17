@@ -16,6 +16,7 @@ export default {
     features: '功能',
     start: '快速开始',
     faq: '常见问题',
+    docs: '文档',
     download: '下载',
     github: 'GitHub',
     theme: '切换白天或夜晚',
@@ -67,7 +68,7 @@ export default {
       },
       {
         title: '多个 worker 并行工作',
-        text: '每个 worker 都有一份独立的项目副本，可以跨服务同时改代码，互不冲突。'
+        text: '每个改代码的 worker 都有自己的 git worktree 和分支，可以跨服务同时工作，互不覆盖。合并哪些由你决定。'
       },
       {
         title: '你只收到一个清楚的答复',
@@ -273,7 +274,7 @@ export default {
     items: {
       parallel: {
         title: '多个 worker 同时开工',
-        text: '每个 worker 都有一份独立的项目副本，可以同时修改代码，互不干扰。'
+        text: '每个改代码的 worker 都有自己的 git worktree 和分支，可以同时修改代码，互不覆盖。每个分支由你审阅和合并。'
       },
       map: {
         title: '全局地图',
@@ -336,6 +337,9 @@ export default {
     body: '需要一台搭载 Apple 芯片（M1 及以上）、运行 macOS 13 Ventura 及以上的 Mac。',
     copy: '复制',
     copied: '已复制',
+    more: '想看完整流程？',
+    moreLink: '一步步完成第一个任务',
+    agentsLink: '连接各个智能体',
     steps: [
       {
         title: '安装 Owlto',
@@ -344,11 +348,11 @@ export default {
       },
       {
         title: '至少安装一个编程智能体',
-        text: 'Owlto 驱动的是你已经在用的智能体。安装一个或多个，并在终端里登录一次。'
+        text: 'worker 运行在你已经在用的智能体里。安装一个或多个，并在终端里登录一次。Cursor 只能运行 worker；Router 需要 Claude Code、Codex，或给内置引擎配置模型 API key。'
       },
       {
         title: '连接并开始对话',
-        text: '打开设置（⌘,）→ Agents，点击“Connect local …”。然后按 ⌘N，把需求告诉 Router。'
+        text: '打开设置（⌘,）→ Agents，选择智能体并点击“连接”。在“设置 → 协调者与 Worker”中选择由谁运行 Router，然后按 ⌘N，把需求告诉 Router。'
       }
     ],
     agents: [
@@ -391,7 +395,7 @@ export default {
     rows: [
       ['在哪里提需求', '每个智能体一个窗口', '只和 Router 在一处对话'],
       ['拆分大任务', '自己规划，来回复制提示词', 'Router 负责规划和派发'],
-      ['并行修改', '多个智能体可能在同一份代码里冲突', '每个 worker 一份独立的项目副本'],
+      ['并行修改', '多个智能体可能在同一份代码里冲突', '每个 worker 有自己的 worktree 和分支'],
       ['批准操作', '散落在各个窗口', '统一排在输入框上方'],
       ['查看进度', '逐个终端翻看', '一张项目与猫头鹰的地图'],
       ['最终结果', '逐份阅读对话记录', '一份汇总，附带文件和 diff']
@@ -411,7 +415,7 @@ export default {
       },
       {
         q: 'Owlto 支持哪些编程智能体？',
-        a: 'Owlto 支持 Claude Code、Codex 和 Cursor。你需要自行安装并登录，然后在“设置 → Agents”中连接。Claude Code 和 Codex 既可以担任 Router，也可以作为 worker；Cursor 只能作为 worker，不能担任 Router。'
+        a: 'Owlto 支持 Claude Code、Codex 和 Cursor。你需要自行安装并登录，然后在“设置 → Agents”中连接。三者都可以运行 worker。Router 可以运行在 Claude Code、Codex 或 Owlto 内置引擎上；内置引擎使用你提供的模型 API key 或本地 OpenAI 兼容端点。Cursor 不能担任 Router。'
       },
       {
         q: 'Owlto 免费吗？',
@@ -419,19 +423,19 @@ export default {
       },
       {
         q: '运行 Owlto 需要什么？',
-        a: '一台搭载 Apple 芯片（M1 及以上）、运行 macOS 13 Ventura 及以上的 Mac，并且至少安装并登录了 Claude Code、Codex、Cursor 中的一个。'
+        a: '一台搭载 Apple 芯片（M1 及以上）、运行 macOS 13 Ventura 及以上的 Mac，并且至少安装并登录了 Claude Code、Codex、Cursor 中的一个，用来运行 worker。Router 运行在 Claude Code 或 Codex 上；如果只用 Cursor，需要给内置 Router 引擎配置模型 API key 或本地端点。'
       },
       {
-        q: '多个智能体同时改同一个项目，怎么避免冲突？',
-        a: '每个 worker 都有一份独立的项目副本，所以多个 worker 可以同时修改代码。你可以打开任意 worker，查看它的汇报、改动的文件，以及每处改动的并排对比。'
+        q: '多个智能体怎样同时改同一个项目？',
+        a: '每个改代码的 worker 都在自己的 git worktree 和分支上工作，从你已提交的文件开始，所以多个 worker 可以同时修改代码而互不覆盖。Owlto 不会替你合并：你审阅每个分支，再合并或创建 PR。如果两个分支改了同一处代码，需要在合并时解决冲突。'
       },
       {
         q: 'Owlto 会看到我的密码或 API 令牌吗？',
-        a: '不会。Owlto 运行在你的 Mac 上，使用你自己安装并登录的智能体。它不会复制你的密码或登录令牌，只读取账号状态，用来显示你当前登录的身份。'
+        a: 'Owlto 运行在你的 Mac 上，使用你自己安装并登录的智能体。它不会复制这些智能体的密码或登录令牌，只读取账号状态，用来显示你当前登录的身份。如果你给内置 Router 引擎填写 API key，或用令牌连接 GitHub，这些密钥会通过 macOS 钥匙串加密保存在你的 Mac 上。'
       },
       {
         q: 'Router 是什么？',
-        a: 'Router 是和你对话的那只猫头鹰。它把你的需求变成计划，挑选合适的 worker，跟踪进度，在需要时请你批准，并汇总最终结果。'
+        a: 'Router 是和你对话的那只猫头鹰（中文界面称为“协调者”）。它把你的需求变成计划，挑选合适的 worker，跟踪进度，并汇总最终结果。它从不亲自改文件，也不能替你批准：需要你确认的请求会停在输入框上方。'
       },
       {
         q: '我可以直接和某个 worker 对话吗？',
@@ -453,10 +457,33 @@ export default {
     button: '下载 macOS 版',
     star: '在 GitHub 上点个 Star'
   },
+  docs: {
+    label: '文档',
+    siteTitle: 'Owlto 文档',
+    menu: '文档目录',
+    breadcrumb: '面包屑导航',
+    onThisPage: '本页内容',
+    related: '相关页面',
+    pager: '上一页和下一页',
+    prev: '上一页',
+    next: '下一页',
+    updated: '最近审阅',
+    edit: '在 GitHub 上建议修改',
+    feedback: '反馈文档问题',
+    groupOrder: ['start', 'guides', 'concepts', 'reference'],
+    groups: {
+      start: '入门',
+      guides: '使用指南',
+      concepts: '概念',
+      reference: '参考与帮助'
+    }
+  },
   footer: {
     tagline: '你的 Owlto（Auto）智能体团队：Mac 上的猫头鹰编程团队。',
     product: '产品',
     project: '项目',
+    docs: '文档',
+    docsHome: '文档首页',
     releases: '版本发布',
     issues: '反馈问题',
     contributing: '参与贡献',

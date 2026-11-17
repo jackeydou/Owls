@@ -9,8 +9,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import en from './src/content/en.mjs'
 import zh from './src/content/zh.mjs'
+import { checkDocs, docsText, docUrl, loadDocs, renderDoc } from './src/docs.mjs'
 import { renderPage } from './src/page.mjs'
-import { DOWNLOAD_URL, ISSUES_URL, LOCALES, localeUrl, REPO_URL, SITE_URL } from './src/site.mjs'
+import { DOWNLOAD_URL, ISSUES_URL, LOCALES, REPO_URL, SITE_URL } from './src/site.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(here, 'dist')
@@ -66,27 +67,38 @@ Sitemap: ${SITE_URL}/sitemap.xml
 `
 }
 
-function sitemap(lastmod) {
-  const links = LOCALES.map(
-    (l) => `    <xhtml:link rel="alternate" hreflang="${l.htmlLang}" href="${localeUrl(l)}"/>`
-  ).join('\n')
-  const urls = LOCALES.map(
-    (locale) => `  <url>
-    <loc>${localeUrl(locale)}</loc>
-    <lastmod>${lastmod}</lastmod>
+// One <url> per page and locale, each listing every locale's version of the
+// page plus x-default (the English page).
+function sitemap(lastmod, docsByLocale) {
+  const routes = ['', ...docsByLocale[LOCALES[0].code].map((doc) => doc.route)]
+  const urls = routes.flatMap((route) => {
+    const links = LOCALES.map(
+      (l) =>
+        `    <xhtml:link rel="alternate" hreflang="${l.htmlLang}" href="${SITE_URL}/${l.path}${route}"/>`
+    ).join('\n')
+    return LOCALES.map((locale) => {
+      const doc = docsByLocale[locale.code].find((item) => item.route === route)
+      return `  <url>
+    <loc>${SITE_URL}/${locale.path}${route}</loc>
+    <lastmod>${doc?.updated ?? lastmod}</lastmod>
 ${links}
-    <xhtml:link rel="alternate" hreflang="x-default" href="${localeUrl(LOCALES[0])}"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE_URL}/${LOCALES[0].path}${route}"/>
   </url>`
-  ).join('\n')
+    })
+  })
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${urls}
+${urls.join('\n')}
 </urlset>
 `
 }
 
 // llms.txt: a short, link-first summary for language models (https://llmstxt.org).
-function llms(t) {
+function llms(t, docs) {
+  const docLinks = docs
+    .filter((doc) => doc.slug)
+    .map((doc) => `- [${doc.title}](${docUrl(LOCALES[0], doc)}): ${doc.description}`)
+    .join('\n')
   return `# Owlto
 
 > ${t.meta.description}
@@ -95,21 +107,26 @@ ${t.faq.items[0].a}
 
 - Platform: macOS 13 Ventura or later, Apple silicon (M1 or later)
 - Price: free, open source (AGPL-3.0)
-- Works with: Claude Code, Codex, Cursor (installed and signed in by the user)
+- Works with: Claude Code, Codex, Cursor (installed and signed in by the user). All three run workers. The Router runs on Claude Code, Codex, or Owlto's built-in engine (your own model API key or a local OpenAI-compatible endpoint); Cursor can't run the Router.
 - Languages: English, Simplified Chinese
+
+## Docs
+
+- [Documentation home](${SITE_URL}/docs/): every guide, grouped by task
+${docLinks}
 
 ## Links
 
 - [Website](${SITE_URL}/): product overview, features, and FAQ
 - [Website (简体中文)](${SITE_URL}/zh/): the same page in Simplified Chinese
-- [Full text for LLMs](${SITE_URL}/llms-full.txt): every feature, the setup steps, and the FAQ in one file
+- [Full text for LLMs](${SITE_URL}/llms-full.txt): every feature, the setup steps, the FAQ, and the docs in one file
 - [Download](${DOWNLOAD_URL}): latest .dmg on GitHub Releases
 - [Source code](${REPO_URL}): GitHub repository and README
 - [Issues](${ISSUES_URL}): bug reports and feature requests
 `
 }
 
-function llmsFull(t) {
+function llmsFull(t, locale, docs) {
   const features = Object.values(t.features.items)
     .map((item) => `- **${item.title}.** ${item.text}`)
     .join('\n')
@@ -174,6 +191,10 @@ ${compare}
 ## ${t.faq.kicker}
 
 ${faq}
+
+# ${t.docs.label}
+
+${docsText(locale, docs)}
 `
 }
 
@@ -220,14 +241,23 @@ export function build() {
   const { version } = JSON.parse(
     readFileSync(path.join(here, '../owlto-client/package.json'), 'utf8')
   )
+  const docsByLocale = Object.fromEntries(
+    LOCALES.map((locale) => [locale.code, loadDocs(locale, CONTENT[locale.code].docs.groupOrder)])
+  )
+  checkDocs(docsByLocale)
   for (const locale of LOCALES) {
-    write(`${locale.path}index.html`, renderPage({ t: CONTENT[locale.code], locale, version }))
+    const t = CONTENT[locale.code]
+    const docs = docsByLocale[locale.code]
+    write(`${locale.path}index.html`, renderPage({ t, locale, version, docs }))
+    for (const doc of docs) {
+      write(`${locale.path}${doc.route}index.html`, renderDoc({ t, locale, doc, docs }))
+    }
   }
   write('robots.txt', robots())
-  write('sitemap.xml', sitemap(new Date().toISOString().slice(0, 10)))
-  write('llms.txt', llms(en))
-  write('llms-full.txt', llmsFull(en))
-  write('zh/llms-full.txt', llmsFull(zh))
+  write('sitemap.xml', sitemap(new Date().toISOString().slice(0, 10), docsByLocale))
+  write('llms.txt', llms(en, docsByLocale.en))
+  write('llms-full.txt', llmsFull(en, LOCALES[0], docsByLocale.en))
+  write('zh/llms-full.txt', llmsFull(zh, LOCALES[1], docsByLocale.zh))
   write('site.webmanifest', manifest())
   write('404.html', notFound())
   // GitHub Pages: serve files as-is, without Jekyll processing.

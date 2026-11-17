@@ -14,6 +14,7 @@ export default {
     features: 'Features',
     start: 'Get started',
     faq: 'FAQ',
+    docs: 'Docs',
     download: 'Download',
     github: 'GitHub',
     theme: 'Switch between day and night',
@@ -81,7 +82,7 @@ export default {
       },
       {
         title: 'Workers run side by side',
-        text: 'Each worker gets its own copy of the project, so several can change code at once, across services, without conflicts.'
+        text: 'Each worker that edits code gets its own git worktree and branch, so several can work at once, across services, without overwriting each other. You choose what to merge.'
       },
       {
         title: 'You get one clear answer',
@@ -294,7 +295,7 @@ export default {
     items: {
       parallel: {
         title: 'Many workers at once',
-        text: 'Each worker gets its own copy of your project, so several can change code at the same time without stepping on each other.'
+        text: 'Each worker that edits code gets its own git worktree and branch, so several can change code at the same time without overwriting each other. You review and merge each branch.'
       },
       map: {
         title: 'Overview map',
@@ -357,6 +358,9 @@ export default {
     body: 'You need a Mac with Apple silicon (M1 or later) running macOS 13 Ventura or later.',
     copy: 'Copy',
     copied: 'Copied',
+    more: 'Want the full walkthrough?',
+    moreLink: 'Your first task, step by step',
+    agentsLink: 'Connecting each agent',
     steps: [
       {
         title: 'Install Owlto',
@@ -365,11 +369,11 @@ export default {
       },
       {
         title: 'Install at least one coding agent',
-        text: 'Owlto drives the agents you already use. Install one or more and sign in once in Terminal.'
+        text: 'Workers run in the agents you already use. Install one or more and sign in once in Terminal. Cursor runs workers only; the Router needs Claude Code, Codex, or a model API key for the built-in engine.'
       },
       {
         title: 'Connect it and start a conversation',
-        text: 'Open Settings (⌘,) → Agents and click “Connect local …”. Then press ⌘N and tell the Router what you need.'
+        text: 'Open Settings (⌘,) → Agents, pick the agent, and click Connect. Choose who runs the Router under Settings → Router & Workers, then press ⌘N and tell the Router what you need.'
       }
     ],
     agents: [
@@ -420,7 +424,7 @@ export default {
       [
         'Parallel changes',
         'Agents can collide in one checkout',
-        'Each worker gets its own copy of the project'
+        'Each worker gets its own worktree and branch'
       ],
       ['Approvals', 'Scattered across windows', 'Queued above the message box'],
       ['Seeing progress', 'Tab through every terminal', 'One map of projects and owls'],
@@ -441,7 +445,7 @@ export default {
       },
       {
         q: 'Which coding agents does Owlto work with?',
-        a: 'Owlto works with Claude Code, Codex, and Cursor. You install and sign in to them yourself, then connect them in Settings → Agents. Claude Code and Codex can run the Router or act as workers. Cursor can act as a worker, but not as the Router.'
+        a: 'Owlto works with Claude Code, Codex, and Cursor. You install and sign in to them yourself, then connect them in Settings → Agents. All three can run workers. The Router runs on Claude Code, Codex, or Owlto’s built-in engine, which uses a model API key or a local OpenAI-compatible endpoint you provide. Cursor can’t run the Router.'
       },
       {
         q: 'Is Owlto free?',
@@ -449,19 +453,19 @@ export default {
       },
       {
         q: 'What do I need to run Owlto?',
-        a: 'A Mac with Apple silicon (M1 or later) running macOS 13 Ventura or later, and at least one of Claude Code, Codex, or Cursor installed and signed in.'
+        a: 'A Mac with Apple silicon (M1 or later) running macOS 13 Ventura or later, and at least one of Claude Code, Codex, or Cursor installed and signed in to run workers. The Router runs on Claude Code or Codex; if you only use Cursor, give the built-in Router engine a model API key or a local endpoint.'
       },
       {
-        q: 'How do several agents work on the same project without conflicts?',
-        a: 'Each worker gets its own copy of your project, so several workers can change code at the same time. You can open any worker to see its report, its changed files, and a side-by-side view of each change.'
+        q: 'How do several agents work on the same project at once?',
+        a: 'Each worker that edits code gets its own git worktree on its own branch, starting from your committed files, so several workers can change code at the same time without overwriting each other. Owlto does not merge for you: you review each branch and merge it or open a pull request. If two branches change the same lines, you resolve the conflict when you merge.'
       },
       {
         q: 'Does Owlto see my passwords or API tokens?',
-        a: 'No. Owlto runs on your Mac and uses the agents you installed and signed in to yourself. It never copies your passwords or sign-in tokens. It only reads your account status to show who you are signed in as.'
+        a: 'Owlto runs on your Mac and uses the agents you installed and signed in to yourself. It never copies their passwords or sign-in tokens; it only reads your account status to show who you are signed in as. If you give the built-in Router engine an API key, or connect GitHub with a token, that key is stored on your Mac, encrypted with the macOS keychain.'
       },
       {
         q: 'What is the Router?',
-        a: 'The Router is the owl you talk to. It turns your request into a plan, picks the right workers, watches their progress, asks for your approval when something needs it, and sums up the result.'
+        a: 'The Router is the owl you talk to. It turns your request into a plan, picks the right workers, watches their progress, and sums up the result. It never edits files itself, and it can’t approve anything for you: requests that need your OK wait above the message box.'
       },
       {
         q: 'Can I talk to one worker directly?',
@@ -483,10 +487,33 @@ export default {
     button: 'Download for macOS',
     star: 'Star on GitHub'
   },
+  docs: {
+    label: 'Docs',
+    siteTitle: 'Owlto Docs',
+    menu: 'Docs menu',
+    breadcrumb: 'Breadcrumb',
+    onThisPage: 'On this page',
+    related: 'Related pages',
+    pager: 'Previous and next page',
+    prev: 'Previous',
+    next: 'Next',
+    updated: 'Last reviewed',
+    edit: 'Suggest an edit on GitHub',
+    feedback: 'Report a docs problem',
+    groupOrder: ['start', 'guides', 'concepts', 'reference'],
+    groups: {
+      start: 'Get started',
+      guides: 'Guides',
+      concepts: 'Concepts',
+      reference: 'Reference and help'
+    }
+  },
   footer: {
     tagline: 'Your Owlto (auto) agent team: coding owls on your Mac.',
     product: 'Product',
     project: 'Project',
+    docs: 'Docs',
+    docsHome: 'Documentation',
     releases: 'Releases',
     issues: 'Report an issue',
     contributing: 'Contributing',

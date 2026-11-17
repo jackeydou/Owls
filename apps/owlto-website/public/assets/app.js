@@ -382,7 +382,15 @@ function initTilt() {
   }
 }
 
+// Docs: the page list starts open so it works without scripting; on narrow
+// screens fold it away so the article comes first.
+function initDocsMenu() {
+  const menu = $('.docs-menu')
+  if (menu && matchMedia('(max-width: 1000px)').matches) menu.open = false
+}
+
 initTheme()
+initDocsMenu()
 initScrollChrome()
 initOwls()
 initReveal()
