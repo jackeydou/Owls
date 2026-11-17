@@ -1,0 +1,1 @@
+- Packaging: remove unused legacy, plugin, Computer Use helper, and bundled Node.js code, so the app download is smaller. (#177)
