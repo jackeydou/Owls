@@ -15,8 +15,6 @@ const releaseNotesPath = path.resolve(__dirname, '../../..', 'release-notes', `$
 const releaseNotes = fs.existsSync(releaseNotesPath)
   ? fs.readFileSync(releaseNotesPath, 'utf8').trim()
   : ''
-const computerUseHelperResourcesPath = path.resolve(__dirname, '../build/generated/helpers')
-const sitesPluginSourcePath = path.resolve(__dirname, '../../../packages/owlto-sites-plugin/plugin')
 const unusedMacPermissionInfoKeys = [
   'NSAudioCaptureUsageDescription',
   'NSBluetoothAlwaysUsageDescription',
@@ -52,9 +50,6 @@ module.exports = {
   files: [
     '!**/.vscode/*',
     '!src/*',
-    '!resources/node/**',
-    '!resources/plugins/**',
-    '!resources/skills/**',
     '!node_modules/@owlto/mac-*/target/**',
     '!node_modules/@owlto/mac-*/src/**',
     '!node_modules/@owlto/mac-*/Cargo.*',
@@ -70,48 +65,13 @@ module.exports = {
   // Keep JavaScript dependencies inside app.asar. Unpacking all of node_modules put tens of
   // thousands of small files in the bundle, which made copying, signing, and verifying the
   // app slow. Unpack only native addons.
-  asarUnpack: ['resources/**', '**/*.node', 'out/main/compiled-workflow/stage-worker-entry.js'],
+  asarUnpack: ['resources/**', '**/*.node'],
   extraResources: [
-    {
-      from: 'drizzle',
-      to: 'drizzle'
-    },
     {
       from: 'migrations',
       to: 'migrations'
-    },
-    {
-      from: 'resources/node',
-      to: 'node'
-    },
-    {
-      from: 'resources/plugins',
-      to: 'plugins',
-      filter: ['**/*', '!plugins/plugins/sites/**']
-    },
-    {
-      from: sitesPluginSourcePath,
-      to: 'plugins/plugins/sites',
-      filter: [
-        '**/*',
-        '!**/node_modules/**',
-        '!**/.next/**',
-        '!**/.next-dev/**',
-        '!**/dist/**',
-        '!**/out/**'
-      ]
-    },
-    {
-      from: 'resources/skills',
-      to: 'skills'
-    },
-    fs.existsSync(computerUseHelperResourcesPath)
-      ? {
-          from: computerUseHelperResourcesPath,
-          to: 'helpers'
-        }
-      : null
-  ].filter(Boolean),
+    }
+  ],
   win: {
     executableName: isDebug ? 'Owlto Debug' : 'Owlto',
     icon: 'resources/icon.png'

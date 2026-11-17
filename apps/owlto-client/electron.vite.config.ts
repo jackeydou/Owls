@@ -56,10 +56,7 @@ export default defineConfig(({ command, mode }) => {
           input: {
             index: resolve('src/main/app/desktop.ts'),
             'app/runtime': resolve('src/main/app/runtime.ts'),
-            'app/ipc': resolve('src/main/app/ipc.ts'),
-            'tools/computer-use/helper-entry': resolve(
-              'src/main/tools/computer-use/helper-entry.ts'
-            )
+            'app/ipc': resolve('src/main/app/ipc.ts')
           }
         },
         externalizeDeps: {
@@ -77,8 +74,7 @@ export default defineConfig(({ command, mode }) => {
       build: {
         rollupOptions: {
           input: {
-            index: resolve('src/preload/owlto.ts'),
-            'browser-annotation': resolve('src/preload/browser-annotation.ts')
+            index: resolve('src/preload/owlto.ts')
           }
         }
       }

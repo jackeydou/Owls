@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!!apps/owlto-client/legacy"]
+    "includes": ["**"]
   },
   "formatter": {
     "enabled": true,

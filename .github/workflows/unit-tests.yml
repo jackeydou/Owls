@@ -25,8 +25,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Typecheck, bundle, and the full test suite. None of it needs macOS: the
-  # tests load the built main bundle, not the native mac-* addons.
+  # Typecheck, bundle, and the unit tests. None of it needs macOS: the tests
+  # load the built main bundle, not the native mac-* addon. Packaging tests
+  # run in the macOS job.
   test:
     name: Owlto client
     runs-on: ubuntu-latest
@@ -45,14 +46,11 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      # Skip install scripts: the owlto-client postinstall rebuilds Electron
-      # native modules (better-sqlite3, node-pty) and downloads Electron, and
-      # the tests use neither. Run the two workspace prepare steps the build
-      # does need.
+      # Skip install scripts: the owlto-client postinstall rebuilds the
+      # Electron native module (better-sqlite3) and downloads Electron, and
+      # the tests use neither.
       - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile --ignore-scripts
-          pnpm --filter @owlto/local-rpc-client --filter @owlto/browser-use run prepare
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Typecheck
         run: pnpm --filter owlto-client typecheck
@@ -92,7 +90,7 @@ jobs:
             exit 0
           fi
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename' > "$RUNNER_TEMP/files.txt"
-          pattern='^(packages/mac-[^/]+/|apps/owlto-client/scripts/|apps/owlto-client/package\.json$|apps/owlto-client/electron\.vite\.config\.|apps/owlto-client/tests/admin/(dmg-size|mac-signing|packaged-runtime)\.test\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|patches/|\.github/workflows/)'
+          pattern='^(packages/mac-[^/]+/|apps/owlto-client/scripts/|apps/owlto-client/package\.json$|apps/owlto-client/electron\.vite\.config\.|apps/owlto-client/tests/packaging/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|\.github/workflows/)'
           if grep -Eq "$pattern" "$RUNNER_TEMP/files.txt"; then
             echo "macos=true" >> "$GITHUB_OUTPUT"
             echo "macOS job runs for:" >> "$GITHUB_STEP_SUMMARY"
@@ -102,8 +100,8 @@ jobs:
             echo "No macOS-relevant changes; macOS job skipped." >> "$GITHUB_STEP_SUMMARY"
           fi
 
-  # Compile the native mac-* addons and run the suite on macOS, including
-  # the DMG test that needs the macOS-only dmg-license package.
+  # Compile the native mac-* addon and run the suite on macOS, including the
+  # packaging tests (the DMG one needs the macOS-only dmg-license package).
   macos:
     name: Owlto client (macOS)
     needs: changes
@@ -132,7 +130,7 @@ jobs:
         run: echo "version=$(rustc --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
 
       # The addons only change when their Rust sources or manifests do, so a
-      # hit skips the four release builds entirely.
+      # hit skips the release build entirely.
       - name: Restore native addons
         id: native-cache
         uses: actions/cache@v4
@@ -145,9 +143,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            packages/mac-window-list -> target
-            packages/mac-input -> target
-            packages/mac-cursor-overlay -> target
             packages/mac-process-limits -> target
 
       - name: Build native addons
@@ -159,4 +154,4 @@ jobs:
 
       - name: Run unit tests
         working-directory: apps/owlto-client
-        run: node --experimental-strip-types --test tests/admin/*.test.mjs
+        run: node --experimental-strip-types --test tests/admin/*.test.mjs tests/packaging/*.test.mjs

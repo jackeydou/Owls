@@ -11,7 +11,6 @@ allowBuilds:
   esbuild: false
   koffi: false
   msw: false
-  node-pty: true
   protobufjs: false
   sharp: false
   tos-crc64-js: false
@@ -36,10 +35,6 @@ onlyBuiltDependencies:
   - electron
   - esbuild
   - better-sqlite3
-  - node-pty
-
-patchedDependencies:
-  '@anthropic-ai/sandbox-runtime@0.0.71': patches/@anthropic-ai__sandbox-runtime@0.0.71.patch
 
 overrides:
   'brace-expansion@^5.0.5': 5.0.9
