@@ -113,6 +113,7 @@ export {
 } from './project-sources.js'
 export { mergePaths, parseShellPath, readLoginShellPath } from './shell-path.js'
 export { OwltoStore } from './store.js'
+export { readWindowState, restorableBounds, writeWindowState } from './window-state.js'
 export {
   isWorkspaceProject,
   listWorkspaceFolders,

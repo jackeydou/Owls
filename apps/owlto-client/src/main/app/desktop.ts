@@ -59,6 +59,8 @@ import { applyAppMenu, type MenuDeps } from './menu.js'
 import { UserProfile } from './profile.js'
 import { adoptLoginShellPath } from './shell-path.js'
 import { OwltoStore } from './store.js'
+import { WINDOW_STATE_FILENAME } from './window-state.js'
+import { initialWindowState, rememberWindowState } from './window-state-electron.js'
 import { realWorkspace } from './workspace-folders.js'
 
 /** How feedback names the operating system; `process.getSystemVersion()` adds the version. */
@@ -150,12 +152,16 @@ const closedClaude: ClaudeConnection = {
   models: [],
   error: null
 }
+/** The size un-maximizing returns to when no size was saved yet. */
+const DEFAULT_WINDOW_SIZE = { width: 1280, height: 860 }
+const MIN_WINDOW_SIZE = { width: 820, height: 620 }
 function createWindow(): void {
+  const statePath = join(getDataRoot(), WINDOW_STATE_FILENAME)
+  const initial = initialWindowState(statePath, DEFAULT_WINDOW_SIZE, MIN_WINDOW_SIZE)
   window = new BrowserWindow({
-    width: 1280,
-    height: 860,
-    minWidth: 820,
-    minHeight: 620,
+    ...initial.bounds,
+    minWidth: MIN_WINDOW_SIZE.width,
+    minHeight: MIN_WINDOW_SIZE.height,
     show: false,
     backgroundColor: '#181818',
     title: app.getName(),
@@ -170,7 +176,11 @@ function createWindow(): void {
     }
   })
   if (service) applyAppLogo(service.snapshot().settings.appLogo, window)
-  window.once('ready-to-show', () => window?.show())
+  window.once('ready-to-show', () => {
+    if (initial.maximized) window?.maximize()
+    window?.show()
+  })
+  rememberWindowState(window, statePath)
   // Keep the native profile name when the renderer loads its generic HTML title.
   window.on('page-title-updated', (event) => event.preventDefault())
   window.webContents.setWindowOpenHandler(({ url }) => {
