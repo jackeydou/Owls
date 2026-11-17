@@ -61,7 +61,8 @@ export class OwltoStore {
           workspaceDismissed: [],
           disconnectedAgents: [],
           openInApp: null,
-          profile: defaultProfile
+          profile: defaultProfile,
+          onboarding: 'pending'
         }
   }
   saveSettings(value: AppSettings): AppSettings {

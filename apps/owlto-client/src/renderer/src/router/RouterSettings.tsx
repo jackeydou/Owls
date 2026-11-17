@@ -11,6 +11,7 @@ import {
   owltoModelSchema,
   owltoProviderSchema,
   owltoThinkingSchema,
+  type RouterSettings,
   routerEngineSchema
 } from '../../../shared/router'
 import { permissionChoices } from '../app/permission-choices'
@@ -150,7 +151,14 @@ export function WorkerLimitRows() {
  * Provider, model, and key for the built-in engine; the model is saved only when valid.
  * `guided` saves both with one button, since a saved model ends the guide.
  */
-export function OwltoModelFields({ guided = false }: { guided?: boolean }) {
+export function OwltoModelFields({
+  guided = false,
+  onGuidedSave
+}: {
+  guided?: boolean
+  /** Onboarding saves the Router itself, with the rest of its step. */
+  onGuidedSave?: (router: RouterSettings) => Promise<void>
+}) {
   const { t } = useTranslation()
   const settings = useAppStore((s) => s.settings)
   const saveSettings = useAppStore((s) => s.saveSettings)
@@ -184,7 +192,8 @@ export function OwltoModelFields({ guided = false }: { guided?: boolean }) {
     if (!valid.success) return
     setSavingKey(true)
     const keyed = !key.trim() || (await setKey(draft.provider, key.trim()))
-    if (keyed) await saveRouter({ ...settings.router, owlto: valid.data })
+    const router = { ...settings.router, owlto: valid.data }
+    if (keyed) await (onGuidedSave ? onGuidedSave(router) : saveRouter(router))
     setSavingKey(false)
   }
   const keyMissing = !custom && !provider?.configured && !key.trim()

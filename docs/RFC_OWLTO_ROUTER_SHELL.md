@@ -270,7 +270,6 @@ renderer/src/router/
   WorkerLink.tsx         行内引用，含 Streamdown 的 a 组件
   RequestTray.tsx        审批托盘，复用 RequestCard
   RouterComposer.tsx     草稿逻辑、@ 菜单、全景输入框
-  RouterGuide.tsx        首次进入的设置引导
   ThreadEditor.tsx       thread 末尾的编辑行
   ThreadRow.tsx          thread 的一行：头像和正文
   WorkerDetail.tsx       活动、改动、汇报
@@ -310,11 +309,12 @@ shared/
   （RFC 第 6 节）。`degraded` 时说明内容取自原始输出。
 - **启动**：打开 `updatedAt` 最新的 Router，没有时打开第一个项目，都没有时显示选择文件夹。
   不新增设置项，也不需要记住「上次的项目」。
-- **未配置时的首页**：thread 为空且 Router 引擎未就绪时，进入 app 先走引导（`RouterGuide`），不显示
-  thread 和编辑行；选中已连接的 Claude Code 或 Codex 一步完成，否则新用户必须先有 API key 才能使用。
-  引擎就绪但默认 Worker agent 未连接时，引导进入第二步，否则所有派发都会以 `provider_unavailable`
-  失败。引导可以跳过，下次启动仍会出现。thread 已有内容或引导被跳过时，同样的提示以一条 Router 消息
-  显示在编辑行上方（`RouterSetupNotice`），保留一键切换。
+- **首次引导**：首次启动且什么都没配置时，全屏显示引导（`onboarding/Onboarding.tsx`），风格同官网首页，
+  底部是会跟随鼠标、可点击的猫头鹰。第一步连接编码 Agent，第二步选择协调者引擎（Worker 用默认值），
+  完成后提示可在设置中修改。右上角 Skip 弹窗确认，未完成的步骤不保存。状态存在 `settings.onboarding`
+  （`pending` / `skipped` / `done`）。跳过后编辑行上方显示带猫头鹰的设置卡片（`SetupCard`），点击重新打开
+  引导；只要配置了任何一项（连接任一 Agent 或设置协调者），状态变为 `done`，卡片不再出现。
+  其余情况下 Router 未就绪时，提示以一条 Router 消息显示在编辑行上方（`RouterSetupNotice`），保留一键切换。
   一键切换后，`RouterService.settingsChanged` 清除旧设置留下的失败，并发出等待中的消息，用户不用重发。
 - **设置**：`defaults` 分组改名为「Worker 默认值」，`TaskOptions` 从输入框挪到这里。
 - **无障碍**：节点容器使用 `role="tree"`，方向键移动焦点，所有操作都有键盘路径。信号和颜色都不是

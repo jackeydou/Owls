@@ -3,6 +3,8 @@ import { AlertCircleIcon, LoaderIcon, XIcon } from '@renderer/components/ui/icon
 import i18next from 'i18next'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Onboarding } from '../onboarding/Onboarding'
+import { OnboardingHost } from '../onboarding/state'
 import { OpenWorkerFromNotification } from '../router/OpenWorkerFromNotification'
 import { RouterShell } from '../router/RouterShell'
 import { UpdatePopup } from '../updates/UpdatePopup'
@@ -49,6 +51,8 @@ export default function App() {
         </main>
       )}
       {loaded ? <MenuCommands /> : null}
+      {loaded ? <OnboardingHost /> : null}
+      {loaded ? <Onboarding /> : null}
       <OpenWorkerFromNotification />
       {loaded ? <UpdatePopup /> : null}
       {error ? (

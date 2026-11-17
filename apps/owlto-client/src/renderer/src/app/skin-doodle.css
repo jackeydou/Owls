@@ -517,3 +517,127 @@ html[data-skin="doodle"] .owlto-request [data-request-action="accept"] {
 html[data-skin="doodle"] .owlto-request [data-request-action="accept"]:hover:not(:disabled) {
   background: #36ad63;
 }
+
+/* Onboarding and the setup card: the website hero, inked. */
+html[data-skin="doodle"] .onb {
+  --onb-orb: #ffd66b;
+  --onb-dots: color-mix(in srgb, var(--doodle-fg) 14%, transparent);
+}
+html[data-skin="doodle"][data-theme="dark"] .onb {
+  --onb-orb: #f3ecd2;
+}
+html[data-skin="doodle"] .onb-moon {
+  box-shadow: 0 0 0 4px var(--doodle-line);
+}
+html[data-skin="doodle"][data-theme="dark"] .onb-moon {
+  box-shadow:
+    0 0 0 4px var(--doodle-line),
+    0 0 90px 20px rgb(243 236 210 / 0.25);
+}
+html[data-skin="doodle"] .onb h1 {
+  font: italic 900 clamp(34px, 5.6vw, 60px) / 0.95 var(--doodle-display);
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+}
+html[data-skin="doodle"]:lang(zh-CN) .onb h1 {
+  font-style: normal;
+  text-transform: none;
+  line-height: 1.15;
+}
+html[data-skin="doodle"] .onb-kicker {
+  font: italic 800 var(--owl-text-sm) / 1.2 var(--doodle-display);
+  letter-spacing: 0.08em;
+  color: var(--doodle-fg);
+}
+html[data-skin="doodle"] .onb-steps li {
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 2px var(--doodle-line),
+    var(--doodle-shadow-sm);
+}
+html[data-skin="doodle"] .onb-steps li[data-state="current"] {
+  background: var(--doodle-amber);
+  color: var(--doodle-ink);
+}
+html[data-skin="doodle"] .onb-steps li[data-state="current"] b {
+  background: var(--doodle-ink);
+  color: var(--doodle-on-ink);
+}
+html[data-skin="doodle"] .onb-steps li[data-state="done"] b {
+  background: var(--doodle-green);
+}
+html[data-skin="doodle"] :is(.onb-card, .onb-setup-card) {
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 2px var(--doodle-line),
+    var(--doodle-shadow-lg);
+}
+html[data-skin="doodle"] .onb-agent[data-ready] {
+  background: color-mix(in srgb, var(--doodle-green) 10%, var(--doodle-card));
+}
+html[data-skin="doodle"] .onb-engine:hover {
+  transform: var(--doodle-lift);
+}
+html[data-skin="doodle"] .onb-engine:active {
+  transform: var(--doodle-press);
+  box-shadow:
+    inset 0 0 0 2px var(--doodle-line),
+    1px 1px 0 var(--doodle-line);
+}
+html[data-skin="doodle"] .onb-engine[aria-pressed="true"] {
+  background: var(--doodle-tint);
+  box-shadow:
+    inset 0 0 0 3px var(--doodle-line),
+    var(--doodle-shadow-lg);
+}
+html[data-skin="doodle"] .onb-radio {
+  border: 2px solid var(--doodle-line);
+}
+html[data-skin="doodle"] .onb-engine[aria-pressed="true"] .onb-radio {
+  border: 6px solid var(--doodle-line);
+  background: var(--doodle-amber);
+}
+html[data-skin="doodle"] .onb .onb-primary,
+html[data-skin="doodle"] .onb-setup-card .onb-primary {
+  background: var(--doodle-amber);
+  color: var(--doodle-ink);
+  box-shadow:
+    inset 0 0 0 2px var(--doodle-line),
+    var(--doodle-shadow);
+}
+html[data-skin="doodle"] .onb .onb-primary:hover:not(:disabled),
+html[data-skin="doodle"] .onb-setup-card .onb-primary:hover:not(:disabled) {
+  background: var(--doodle-amber);
+  transform: var(--doodle-lift);
+}
+html[data-skin="doodle"] .onb .onb-primary:active:not(:disabled),
+html[data-skin="doodle"] .onb-setup-card .onb-primary:active:not(:disabled) {
+  transform: var(--doodle-press);
+  box-shadow:
+    inset 0 0 0 2px var(--doodle-line),
+    1px 1px 0 var(--doodle-line);
+}
+html[data-skin="doodle"] .onb-hoot {
+  border: 2px solid var(--doodle-line);
+  box-shadow: var(--doodle-shadow);
+  font: italic 800 var(--owl-text-base) var(--doodle-display);
+}
+html[data-skin="doodle"] .onb-hint {
+  font: italic 700 var(--owl-text-sm) / 1.25 var(--doodle-display);
+}
+html[data-skin="doodle"] .onb-setup-card {
+  --onb-orb: #ffd66b;
+}
+html[data-skin="doodle"][data-theme="dark"] .onb-setup-card {
+  --onb-orb: color-mix(in srgb, #f3ecd2 18%, var(--doodle-card));
+}
+html[data-skin="doodle"] .onb-setup-text strong {
+  font: italic 800 var(--owl-text-lg) / 1.2 var(--doodle-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+/* Chinese has no italic face: a slanted one reads as broken. */
+html[data-skin="doodle"]:lang(zh-CN)
+:is(.onb-kicker, .onb-hint, .onb-hoot, .onb-setup-text strong) {
+  font-style: normal;
+}
