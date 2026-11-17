@@ -1,3 +1,4 @@
+import { esc, json } from './escape.mjs'
 import { owlSvg } from './owl.mjs'
 import {
   CONTRIBUTING_URL,
@@ -10,17 +11,7 @@ import {
   SITE_URL
 } from './site.mjs'
 
-export const esc = (value) =>
-  String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-
-// JSON embedded in <script> must not be able to close the tag.
-const json = (value) => JSON.stringify(value).replaceAll('<', '\\u003c')
-
-const ICONS = {
+export const ICONS = {
   apple:
     '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.9-.8-3-.8-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2-1.1 2.8-2.3.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.8zM14.1 5.8c.6-.8 1.1-1.9.9-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1.1.1 2.2-.5 2.8-1.3z"/></svg>',
   github:
@@ -154,28 +145,31 @@ ${ogAlternates}
 </head>`
 }
 
-function nav({ t, locale }) {
-  const p = locale.prefix
+// Shared header. `home` is the relative path from the current page to its
+// locale's home page ('' on the home page itself); `otherHref` points at the
+// same page in the other locale; `current` marks the active top-level link.
+export function nav({ t, locale, home = '', otherHref, current = null, prefix }) {
+  const p = prefix ?? locale.prefix
   const other = LOCALES.find((l) => l !== locale)
-  const otherHref = `${p}${other.path}` || './'
+  const otherLink = otherHref ?? (`${p}${other.path}` || './')
   const links = [
-    ['#how', t.nav.how],
-    ['#features', t.nav.features],
-    ['#start', t.nav.start],
-    ['#faq', t.nav.faq]
+    [`${home}#how`, t.nav.how, null],
+    [`${home}#features`, t.nav.features, null],
+    [`${home}docs/`, t.nav.docs, 'docs'],
+    [`${home}#faq`, t.nav.faq, null]
   ]
   return `<a class="skip" href="#main">${esc(t.nav.skip)}</a>
 <div class="progress" aria-hidden="true"><i></i></div>
 <header class="nav" data-nav>
-  <a class="brand" href="#top" aria-label="Owlto">
+  <a class="brand" href="${home || '#top'}" aria-label="Owlto">
     <img src="${p}assets/logos/trio-white.svg" width="36" height="36" alt="">
     <span>Owlto</span>
   </a>
   <nav class="nav-links" aria-label="${esc(t.nav.menu)}">
-    ${links.map(([href, label]) => `<a href="${href}">${esc(label)}</a>`).join('\n    ')}
+    ${links.map(([href, label, id]) => `<a href="${href}"${id && id === current ? ' aria-current="page"' : ''}>${esc(label)}</a>`).join('\n    ')}
   </nav>
   <div class="nav-actions">
-    <a class="nav-lang" href="${otherHref}" hreflang="${other.htmlLang}" lang="${other.htmlLang}" aria-label="${esc(t.nav.language)}: ${esc(other.label)}">${other.code === 'zh' ? '中文' : 'EN'}</a>
+    <a class="nav-lang" href="${otherLink}" hreflang="${other.htmlLang}" lang="${other.htmlLang}" aria-label="${esc(t.nav.language)}: ${esc(other.label)}">${other.code === 'zh' ? '中文' : 'EN'}</a>
     <button class="nav-icon" type="button" data-theme-toggle aria-label="${esc(t.nav.theme)}">${ICONS.sun}${ICONS.moon}</button>
     <a class="nav-icon nav-gh" href="${REPO_URL}" rel="noopener" aria-label="${esc(t.nav.github)}">${ICONS.github}</a>
     <a class="btn btn-sm" href="${DOWNLOAD_URL}" rel="noopener">${esc(t.nav.download)}</a>
@@ -498,6 +492,7 @@ function start({ t }) {
       </div></div></li>
     <li class="reveal"><span class="step-n">3</span><div><h3>${esc(connect.title)}</h3><p>${esc(connect.text)}</p></div></li>
   </ol>
+  <p class="start-more reveal">${esc(t.start.more)} <a href="docs/quickstart/">${esc(t.start.moreLink)}</a> · <a href="docs/connect-agents/">${esc(t.start.agentsLink)}</a></p>
 </section>`
 }
 
@@ -572,20 +567,29 @@ function closing({ t, locale }) {
 </section>`
 }
 
-function footer({ t, locale }) {
-  const p = locale.prefix
+export function footer({ t, locale, home = '', otherHref, docs, prefix }) {
+  const p = prefix ?? locale.prefix
   const other = LOCALES.find((l) => l !== locale)
+  const docLinks = docs
+    .filter((doc) => doc.footer)
+    .map((doc) => `<a href="${home}${doc.route}">${esc(doc.navTitle)}</a>`)
+    .join('\n    ')
   return `<footer class="footer">
   <div class="footer-brand">
-    <a class="brand" href="#top"><img src="${p}assets/logos/trio-white.svg" width="36" height="36" alt=""><span>Owlto</span></a>
+    <a class="brand" href="${home || '#top'}"><img src="${p}assets/logos/trio-white.svg" width="36" height="36" alt=""><span>Owlto</span></a>
     <p>${esc(t.footer.tagline)}</p>
   </div>
   <nav aria-label="${esc(t.footer.product)}">
     <h2>${esc(t.footer.product)}</h2>
-    <a href="#how">${esc(t.nav.how)}</a>
-    <a href="#features">${esc(t.nav.features)}</a>
-    <a href="#start">${esc(t.nav.start)}</a>
-    <a href="#faq">${esc(t.nav.faq)}</a>
+    <a href="${home}#how">${esc(t.nav.how)}</a>
+    <a href="${home}#features">${esc(t.nav.features)}</a>
+    <a href="${home}#start">${esc(t.nav.start)}</a>
+    <a href="${home}#faq">${esc(t.nav.faq)}</a>
+  </nav>
+  <nav aria-label="${esc(t.footer.docs)}">
+    <h2>${esc(t.footer.docs)}</h2>
+    <a href="${home}docs/">${esc(t.footer.docsHome)}</a>
+    ${docLinks}
   </nav>
   <nav aria-label="${esc(t.footer.project)}">
     <h2>${esc(t.footer.project)}</h2>
@@ -594,7 +598,7 @@ function footer({ t, locale }) {
     <a href="${ISSUES_URL}" rel="noopener">${esc(t.footer.issues)}</a>
     <a href="${CONTRIBUTING_URL}" rel="noopener">${esc(t.footer.contributing)}</a>
     <a href="${LICENSE_URL}" rel="noopener">${esc(t.footer.license)}</a>
-    <a href="${p}${other.path}" hreflang="${other.htmlLang}" lang="${other.htmlLang}">${esc(other.label)}</a>
+    <a href="${otherHref ?? (`${p}${other.path}` || './')}" hreflang="${other.htmlLang}" lang="${other.htmlLang}">${esc(other.label)}</a>
   </nav>
   <p class="footer-legal">${esc(t.footer.legal)} ${esc(t.footer.madeBy)}</p>
 </footer>`
@@ -606,7 +610,7 @@ export function renderPage(context) {
 <html lang="${locale.htmlLang}">
 ${head(context)}
 <body>
-${nav(context)}
+${nav({ ...context, home: '' })}
 <main id="main">
 ${hero(context)}
 ${chaos(context)}
@@ -617,7 +621,7 @@ ${trust(context)}
 ${faq(context)}
 ${closing(context)}
 </main>
-${footer(context)}
+${footer({ ...context, home: '' })}
 <script src="${locale.prefix}assets/app.js" defer></script>
 </body>
 </html>

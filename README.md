@@ -20,8 +20,8 @@ several terminal windows, you chat with one **Router** owl. It plans the work,
 sends each part to a **worker** (Claude Code, Codex, or Cursor), keeps an eye on
 them, and comes back with one clear answer.
 
-Several workers can work on the same project at the same time without stepping
-on each other's toes, and you can look in on any of them whenever you like.
+Several workers can work on the same project at the same time, each on its own
+branch, and you can look in on any of them whenever you like.
 
 ## Meet the owls
 
@@ -46,8 +46,9 @@ When an owl is busy, you'll see it typing away on its laptop:
 
 - **One chat for everything.** Describe what you want in plain words. The Router
   decides who should do it and reports back when it's done.
-- **Many workers at once.** Each worker gets its own copy of your project, so
-  several can change code at the same time without conflicts.
+- **Many workers at once.** Each worker that edits code gets its own git
+  worktree and branch, so several can change code at the same time without
+  overwriting each other. You review and merge each branch.
 - **Mention a worker directly.** Type `@` to pick a project for a conversation
   or to talk to one worker yourself.
 - **See every worker's story.** Open a worker to read its report first, then
@@ -124,16 +125,18 @@ curl https://cursor.com/install -fsS | bash
 cursor-agent login
 ```
 
-Cursor can work as a worker, but not as the Router.
+Cursor can work as a worker, but not as the Router. The Router runs on Claude
+Code, Codex, or Owlto's built-in engine, which uses a model API key or a local
+OpenAI-compatible endpoint you provide.
 
 ### 2. Connect it in Owlto
 
 Open **Settings** (`⌘,`) → **Agents**, choose the agent's tab, and click
-**Connect local …** (for example, **Connect local Claude Code**). Owlto finds
-the agent on your Mac and shows the account you're signed in with.
+**Connect**. Owlto finds the agent on your Mac and shows the account you're
+signed in with.
 
-Then open **Settings → Router & Workers** to choose which agent runs the Router
-and which one your workers use by default.
+Then open **Settings → Router & Workers** to choose what runs the Router and to
+set each agent's default model and permission for workers.
 
 ### 3. Start a conversation
 
@@ -144,6 +147,10 @@ and which one your workers use by default.
   it grows into a git repository, Owlto offers to make it its own project.
 - Click a worker to see what it's doing, or press `⌘J` to see everything on the
   map.
+- Each worker that edits code commits to its own `owlto/w_…` branch. Review it
+  and merge it, or ask for a pull request.
+
+The full guides are at [owlto.dev/docs](https://owlto.dev/docs/).
 
 > Only open projects you trust. Your coding agents may follow instructions and
 > settings stored inside a project.
