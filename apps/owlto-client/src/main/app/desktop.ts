@@ -50,6 +50,8 @@ import { GitWorkspaces } from '../router/worktrees.js'
 import { AppUpdater } from '../updates/updater.js'
 import { UsageLedger } from '../usage/ledger.js'
 import { applyAppLogo } from './app-logo.js'
+import { WorkerAttention } from './attention.js'
+import { electronAttention } from './attention-electron.js'
 import { OwltoError } from './errors.js'
 import { OwltoHost } from './host.js'
 import { registerIpc } from './ipc.js'
@@ -72,6 +74,8 @@ let service: OwltoHost | null = null
 let router: RouterService | null = null
 let triggers: DreamingTriggers | null = null
 let updater: AppUpdater | null = null
+/** Notifies the user when a worker waits on them while Owlto is in the background. */
+let attention: WorkerAttention | null = null
 /** The Router's own Codex app-server; started only when the Codex engine runs. */
 const codexRouter = new CodexRouterServer()
 let quitApproved = false
@@ -90,6 +94,7 @@ function migrationsFolder(): string {
 function emit(event: AppEvent): void {
   router?.observe(event)
   triggers?.observe(event)
+  attention?.observe(event)
   if (window && !window.isDestroyed()) window.webContents.send('owlto:event', event)
 }
 function memoryChanged(): void {
@@ -247,6 +252,25 @@ void app
       automations
     )
     service.attachRouter(router)
+    attention = new WorkerAttention(
+      electronAttention({
+        settings,
+        worker: (sessionId) => {
+          const worker = router?.workerForSession(sessionId)
+          if (!worker || worker.status === 'removed') return null
+          return {
+            id: worker.id,
+            routerId: worker.routerId,
+            title: worker.title ?? worker.goal.split('\n')[0] ?? ''
+          }
+        },
+        window: () => {
+          if (!window) createWindow()
+          return window
+        }
+      }),
+      service.snapshot().sessions
+    )
     service.attachAutomations(automations)
     const dreaming = new DreamingRunner({
       memory,
@@ -368,6 +392,8 @@ void app
       () => window,
       updater,
       (saved, previous) => {
+        if (saved.requestNotifications !== previous.requestNotifications)
+          attention?.settingsChanged()
         if (
           saved.language !== previous.language ||
           saved.pullRequestsVisible !== previous.pullRequestsVisible
@@ -411,6 +437,8 @@ app.on('before-quit', (event) => {
 app.on('will-quit', () => {
   updater?.dispose()
   updater = null
+  attention?.close()
+  attention = null
   service?.close()
   codexRouter.close()
   service = null

@@ -1,5 +1,6 @@
 import { ActionButton } from '@renderer/components/ui/action-button'
 import { FolderOpenIcon } from '@renderer/components/ui/icons'
+import { Switch } from '@renderer/components/ui/switch'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import routerOwl from '../../../../resources/owl-avatars/router.svg'
@@ -48,11 +49,34 @@ export function RouterWorkersSettingsPane() {
             <WorkerAgentSettings />
             <h3 className="owlto-settings-subhead">{t('workerAgents.allWorkers')}</h3>
             <WorkerLimitRows />
+            <RequestNotificationsRow />
             <WorkspaceFolderRow />
           </>
         )}
       </SettingsTabs>
     </section>
+  )
+}
+
+/** System notifications and the dock badge for workers waiting on the user. */
+function RequestNotificationsRow() {
+  const { t } = useTranslation()
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
+  return (
+    <SettingRow
+      label={t('requestNotifications')}
+      htmlFor="worker-request-notifications"
+      description={t('requestNotificationsBody')}
+    >
+      <Switch
+        id="worker-request-notifications"
+        checked={settings.requestNotifications}
+        onCheckedChange={(requestNotifications) =>
+          void saveSettings({ ...settings, requestNotifications })
+        }
+      />
+    </SettingRow>
   )
 }
 

@@ -1,0 +1,1 @@
+- Workers: Owlto shows a system notification and a dock badge when a worker waits for your approval or answer while the app is in the background; click it to open that worker. Toggle in Router & Workers settings. (#167)

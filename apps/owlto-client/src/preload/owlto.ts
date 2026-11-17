@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AppEvent, OwltoAPI } from '../shared/app.js'
+import type { AppEvent, OpenWorkerTarget, OwltoAPI } from '../shared/app.js'
 import type { MenuCommand } from '../shared/menu.js'
 import type { UpdateSnapshot } from '../shared/updates.js'
 
@@ -75,6 +75,11 @@ const api: OwltoAPI = {
     const handler = (_: Electron.IpcRendererEvent, command: MenuCommand) => listener(command)
     ipcRenderer.on('owlto:menu-command', handler)
     return () => ipcRenderer.removeListener('owlto:menu-command', handler)
+  },
+  onOpenWorker: (listener) => {
+    const handler = (_: Electron.IpcRendererEvent, target: OpenWorkerTarget) => listener(target)
+    ipcRenderer.on('owlto:open-worker', handler)
+    return () => ipcRenderer.removeListener('owlto:open-worker', handler)
   },
   memory: {
     list: (input) => ipcRenderer.invoke('owlto:memory-list', input),

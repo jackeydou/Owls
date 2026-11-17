@@ -300,6 +300,11 @@ export const settingsSchema = z.object({
    */
   pullRequestFollowUps: z.boolean().catch(true).default(true),
   /**
+   * Notifies the user and badges the dock icon when a worker waits for an approval
+   * or an answer while Owlto is in the background; added later, so older rows have it on.
+   */
+  requestNotifications: z.boolean().catch(true).default(true),
+  /**
    * Where workers run tasks that belong to no project. Null uses the default,
    * `~/Owlto/Workspace`; added later, so older rows get it.
    */
@@ -455,6 +460,12 @@ export type AppEvent =
   | { type: 'worker-github'; workerId: string; status: WorkerGitHubStatus }
   /** The profile changed outside the settings page, e.g. to the GitHub avatar. */
   | { type: 'profile'; profile: Profile }
+/** A worker a notification points at; `routerId` is null for a session that is not a worker. */
+export type OpenWorkerTarget = {
+  sessionId: string
+  workerId: string | null
+  routerId: string | null
+}
 export type Reply<T> = { ok: true; value: T } | { ok: false; error: Failure }
 export const respondSchema = z.object({
   sessionId: z.string().uuid(),
@@ -567,6 +578,8 @@ export interface OwltoAPI {
   onEvent(listener: (event: AppEvent) => void): () => void
   /** Commands chosen in the native application menu (macOS). */
   onMenuCommand(listener: (command: MenuCommand) => void): () => void
+  /** The user clicked a worker's request notification; open that worker. */
+  onOpenWorker(listener: (target: OpenWorkerTarget) => void): () => void
   memory: MemoryAPI
   cards: CardsAPI
   automations: AutomationsAPI

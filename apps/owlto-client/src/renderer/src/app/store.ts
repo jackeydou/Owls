@@ -264,6 +264,7 @@ export const useAppStore = create<State>((set, get) => {
       updateChannel: null,
       pullRequestsVisible: true,
       pullRequestFollowUps: true,
+      requestNotifications: true,
       workspacePath: null,
       workspaceDismissed: [],
       disconnectedAgents: [],
@@ -581,6 +582,7 @@ export const useAppStore = create<State>((set, get) => {
           updateChannel: settings.updateChannel,
           pullRequestsVisible: settings.pullRequestsVisible,
           pullRequestFollowUps: settings.pullRequestFollowUps,
+          requestNotifications: settings.requestNotifications,
           openInApp: settings.openInApp
         })
       )

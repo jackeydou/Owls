@@ -3,6 +3,7 @@ import { AlertCircleIcon, LoaderIcon, XIcon } from '@renderer/components/ui/icon
 import i18next from 'i18next'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { OpenWorkerFromNotification } from '../router/OpenWorkerFromNotification'
 import { RouterShell } from '../router/RouterShell'
 import { UpdatePopup } from '../updates/UpdatePopup'
 import { failureMessage } from './failures'
@@ -48,6 +49,7 @@ export default function App() {
         </main>
       )}
       {loaded ? <MenuCommands /> : null}
+      <OpenWorkerFromNotification />
       {loaded ? <UpdatePopup /> : null}
       {error ? (
         <div className="owlto-error-toast" role="alert">
