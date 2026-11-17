@@ -11,6 +11,21 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1600-beta.3
+
+### Highlights
+
+- Fewer approval cards: in Workspace access, Claude Code and Codex approve safe actions for you.
+- Get a notification when a worker needs your approval or answer while Owlto is in the background.
+
+### Changes
+
+- Workers: Workspace access is now "Approve for me": Claude Code auto mode and Codex auto-review approve safe actions, so fewer approval cards reach you. Cursor now offers only Read only and Full access; a saved Cursor Workspace access setting becomes Full access. (#166)
+- Requests: the permission card is compact, and under the Doodle skin it matches the website's Needs your OK strip. (#165)
+- Workers: Owlto shows a system notification and a dock badge when a worker waits for your approval or answer while the app is in the background; click it to open that worker. Toggle in Router & Workers settings. (#167)
+
+### Fixes
+
 ## 2026.11.1600-beta.2
 
 ### Highlights
