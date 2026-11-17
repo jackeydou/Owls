@@ -1,18 +1,9 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
-import { dirname, isAbsolute, join, normalize, relative, resolve } from 'node:path'
+import { isAbsolute, join, normalize, relative, resolve } from 'node:path'
 import { app } from 'electron'
 import { parseDataRootArg } from '../shared/startup-args.js'
 
-const STORE_FILENAME = 'owlto-settings.json'
 const BOOTSTRAP_FILENAME = 'owlto-bootstrap.json'
 
 export function defaultDataRoot(): string {
@@ -85,10 +76,6 @@ export function attachmentsHome(dataRoot = getDataRoot()): string {
 /** The empty working directory Dreaming runs in; it has no project to read. */
 export function memoryDreamingHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'memory-dreaming')
-}
-
-export function defaultWorkspaceRoot(): string {
-  return join(homedir(), 'Documents', 'Owlto')
 }
 
 function bootstrapPath(): string {
@@ -176,94 +163,7 @@ export function getDataRoot(): string {
   return defaultDataRoot()
 }
 
-export function ensureBootstrapDir(): void {
-  mkdirSync(dirname(bootstrapPath()), { recursive: true })
-}
-
-function writeBootstrapFile(path: string, dataRoot: string): void {
-  mkdirSync(dirname(path), { recursive: true })
-  writeFileSync(path, `${JSON.stringify({ dataRoot }, null, 2)}\n`, 'utf8')
-}
-
-function syncDataRootBootstrapMirror(dataRoot: string): void {
-  const mirrorPath = dataRootBootstrapMirrorPath()
-  if (normalize(mirrorPath) === normalize(bootstrapPath())) {
-    return
-  }
-
-  if (dataRoot === defaultDataRoot()) {
-    rmSync(mirrorPath, { force: true })
-    return
-  }
-
-  if (isUnsafePersistentDataRoot(dataRoot)) {
-    return
-  }
-
-  writeBootstrapFile(mirrorPath, dataRoot)
-}
-
-export function writeBootstrapDataRoot(absPath: string): void {
-  const dataRoot = resolveOwltoPath(absPath)
-  ensureBootstrapDir()
-  writeBootstrapFile(bootstrapPath(), dataRoot)
-  syncDataRootBootstrapMirror(dataRoot)
-}
-
-/** Persist the normal data root in the app profile without saving one-off startup overrides. */
-export function writeBootstrapIfMissing(): void {
-  if (parseDataRootArg(process.argv)) {
-    return
-  }
-
-  const profileRoot = readBootstrapDataRoot(bootstrapPath())
-  if (profileRoot) {
-    syncDataRootBootstrapMirror(profileRoot)
-    return
-  }
-
-  if (!existsSync(bootstrapPath()) || profileRoot === null) {
-    const root = readPersistedDataRoot() ?? defaultDataRoot()
-    writeBootstrapDataRoot(root)
-  }
-}
-
 /** The anonymous analytics install id; only release builds with analytics write it. */
 export function analyticsIdentityPath(root: string): string {
   return join(root, 'analytics.json')
-}
-
-export function storeFilePath(root: string): string {
-  return join(root, STORE_FILENAME)
-}
-
-function migrateSettingsFile(oldRoot: string, newRoot: string): void {
-  const src = storeFilePath(oldRoot)
-  const dst = storeFilePath(newRoot)
-  if (existsSync(src) && !existsSync(dst)) {
-    copyFileSync(src, dst)
-  }
-}
-
-/**
- * Move config to a new root (bootstrap + migrate store file), then restart the app.
- * IPC returns `{ restarting: true }` before exit (restart is deferred one microtask).
- */
-export function applyNewDataRoot(absoluteOrTilde: string): 'restarting' | 'unchanged' {
-  const newRoot = resolveOwltoPath(absoluteOrTilde)
-  if (isUnsafePersistentDataRoot(newRoot)) {
-    throw new Error('Temporary folders cannot be saved as the Owlto data root')
-  }
-  const oldRoot = getDataRoot()
-  if (newRoot === oldRoot) {
-    return 'unchanged'
-  }
-  mkdirSync(newRoot, { recursive: true })
-  migrateSettingsFile(oldRoot, newRoot)
-  writeBootstrapDataRoot(newRoot)
-  queueMicrotask(() => {
-    app.relaunch()
-    app.exit(0)
-  })
-  return 'restarting'
 }

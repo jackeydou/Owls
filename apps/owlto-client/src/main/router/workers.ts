@@ -3,7 +3,7 @@ import type {
   AgentProvider,
   AppEvent,
   AppSettings,
-  CodexModel,
+  AgentModel,
   CreateSession,
   Project,
   RespondRequest,
@@ -23,7 +23,7 @@ import {
 } from '../../shared/router.js'
 import type { SessionPlace } from '../app/agent-runtime.js'
 import { OwltoError } from '../app/errors.js'
-import { safeText } from '../codex/protocol.js'
+import { safeText } from '../app/values.js'
 import { chooseAgent } from './agent-choice.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
 import {
@@ -143,7 +143,7 @@ export type WorkerHost = {
   settings(): AppSettings
   providerReady(provider: AgentProvider): boolean
   /** The models the agent offers now; empty while it is not connected. */
-  agentModels(provider: AgentProvider): CodexModel[]
+  agentModels(provider: AgentProvider): AgentModel[]
   /** `place` marks a session in a project's worktree or in the workspace folder. */
   createSession(input: CreateSession, place?: SessionPlace): Session
   /** Removes a stopped worker's session; the `removed` event does the rest. */

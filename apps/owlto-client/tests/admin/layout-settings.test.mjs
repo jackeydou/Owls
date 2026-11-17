@@ -5,23 +5,6 @@ import test from 'node:test'
 const require = createRequire(import.meta.url)
 const { layoutSettingsSchema } = require('../../out/main/app/runtime.js')
 
-test('saved sidebar widths at the old defaults follow the current defaults', () => {
-  const layout = layoutSettingsSchema.parse({
-    sidebarWidth: 224,
-    projectsWidth: 260,
-    panelWidth: 480,
-    projectsOpen: true
-  })
-  assert.deepEqual(layout, {
-    sidebarWidth: null,
-    projectsWidth: null,
-    panelWidth: 480,
-    cardWidth: null,
-    projectsOpen: true,
-    rightPanel: 'projects'
-  })
-})
-
 test('the right sidebar list is kept, and older or unknown values show projects', () => {
   const saved = layoutSettingsSchema.parse({
     sidebarWidth: null,

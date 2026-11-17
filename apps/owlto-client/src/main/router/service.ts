@@ -63,7 +63,6 @@ import {
 import { checkoutOnly, type WorkerRemoteBranch, type WorkerWorkspaces } from './worktrees.js'
 
 export type { TurnOutcome, TurnProfile, TurnProfiles, WorkerHost } from './workers.js'
-export { WORKER_LIMIT } from './workers.js'
 
 type ActiveBatch = {
   id: string

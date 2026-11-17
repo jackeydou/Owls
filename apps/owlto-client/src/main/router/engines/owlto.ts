@@ -7,7 +7,7 @@ import {
 import type { Api, AssistantMessage, Model } from '@earendil-works/pi-ai'
 import type { Failure, SessionItem } from '../../../shared/app.js'
 import type { OwltoThinking } from '../../../shared/router.js'
-import { safeText } from '../../codex/protocol.js'
+import { safeText } from '../../app/values.js'
 import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
 import { type ContextWindow, ROUTER_CONTEXT_BUDGET, trimContext } from '../render.js'
 import { type RouterTool, toolErrorText, toolJsonSchema } from '../tools.js'

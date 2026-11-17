@@ -40,16 +40,8 @@ import type { TurnOutcome, TurnProfile, TurnProfiles } from '../router/service.j
 import { codexToolName } from '../router/worker-tools.js'
 import { codexCallUsage } from '../usage/turn-usage.js'
 import { CodexClient, discoverExecutable } from './client.js'
-import {
-  approvalOptions,
-  normalizeItem,
-  parseModels,
-  type RpcFrame,
-  record,
-  recordSchema,
-  safeText,
-  string
-} from './protocol.js'
+import { approvalOptions, normalizeItem, parseModels, type RpcFrame } from './protocol.js'
+import { record, recordSchema, safeText, string } from '../app/values.js'
 import { parseCodexRateLimits } from './usage.js'
 
 type Echo = { sent: string; text: string; fields: ReturnType<typeof userItemFields> }

@@ -23,7 +23,7 @@ import { splitAttachments, turnText, userItemFields } from '../app/attachments.j
 import { OwltoError, toFailure } from '../app/errors.js'
 import type { OwltoStore } from '../app/store.js'
 import { turnDiff } from '../claude/normalize.js'
-import { recordSchema, safeText, string } from '../codex/protocol.js'
+import { recordSchema, safeText, string } from '../app/values.js'
 import { REPORT_SERVER_NAME } from '../router/report.js'
 import type { TurnProfiles } from '../router/service.js'
 import { AcpConnection, AcpReplyError, METHOD_NOT_FOUND } from './acp.js'

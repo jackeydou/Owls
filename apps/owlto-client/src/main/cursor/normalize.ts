@@ -1,9 +1,9 @@
 import { isAbsolute, relative, resolve } from 'node:path'
 import { z } from 'zod'
 import type { Permission } from '../../shared/agents.js'
-import type { AgentRequest, CodexModel, CursorAccount, SessionItem } from '../../shared/app.js'
+import type { AgentRequest, AgentModel, CursorAccount, SessionItem } from '../../shared/app.js'
 import { fileDiff } from '../claude/normalize.js'
-import { recordSchema, safeText, string } from '../codex/protocol.js'
+import { recordSchema, safeText, string } from '../app/values.js'
 import type { TurnProfile } from '../router/service.js'
 
 /** Owlto permission choices mapped onto Cursor's session modes. */
@@ -43,8 +43,8 @@ const MARKERS = /\s*\((current|default)(,\s*(current|default))?\)\s*/gi
  * Lines in any other shape are skipped; an empty result leaves only the CLI's
  * default model to choose.
  */
-export function parseCursorModels(output: string): CodexModel[] {
-  const models = new Map<string, CodexModel>()
+export function parseCursorModels(output: string): AgentModel[] {
+  const models = new Map<string, AgentModel>()
   for (const line of output.split(/\r?\n/)) {
     const match = MODEL_LINE.exec(line)
     if (!match) continue

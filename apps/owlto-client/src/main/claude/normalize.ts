@@ -1,15 +1,15 @@
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk/core'
 import { z } from 'zod'
 import type { Permission } from '../../shared/agents.js'
-import type { AgentRequest, ClaudeAccount, CodexModel, SessionItem } from '../../shared/app.js'
+import type { AgentRequest, ClaudeAccount, AgentModel, SessionItem } from '../../shared/app.js'
 import { effortSchema } from '../../shared/app.js'
-import { recordSchema, safeText, string } from '../codex/protocol.js'
+import { recordSchema, safeText, string } from '../app/values.js'
 
 export const claudeEffortSchema = z.enum(['low', 'medium', 'high', 'xhigh', 'max'])
 const COMMAND_TOOLS = new Set(['Bash', 'PowerShell'])
 const WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit'])
 
-export function parseClaudeModels(value: unknown): CodexModel[] {
+export function parseClaudeModels(value: unknown): AgentModel[] {
   return z
     .array(
       z.object({
@@ -77,7 +77,7 @@ export function permissionOptions(
  * Whether a session's model runs in auto mode. A session with no model uses
  * the account's default entry.
  */
-export function supportsAutoMode(models: CodexModel[], model: string | null): boolean {
+export function supportsAutoMode(models: AgentModel[], model: string | null): boolean {
   const entry = models.find((m) => (model ? m.id === model : m.isDefault))
   return entry?.autoMode === true
 }

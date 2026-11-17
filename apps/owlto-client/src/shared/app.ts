@@ -226,20 +226,13 @@ export const paneWidthBounds = {
   card: { min: 340, max: 960, initial: 460 }
 } as const
 export type ResizablePane = keyof typeof paneWidthBounds
-/**
- * Defaults that earlier builds wrote into every saved layout. A saved width equal to one of
- * them was never chosen by dragging, so it reads as "use the current default".
- */
-const legacyPaneDefaults = { sidebarWidth: 224, projectsWidth: 260 } as const
 /** A width the user dragged to, or null to follow the pane's current default. */
 const paneWidthSchema = z.number().int().positive().nullable()
-const followLegacyDefault = (legacy: number) =>
-  z.preprocess((value) => (value === legacy ? null : value), paneWidthSchema)
 export const rightPanelSchema = z.enum(['projects', 'cards'])
 export type RightPanel = z.infer<typeof rightPanelSchema>
 export const layoutSettingsSchema = z.object({
-  sidebarWidth: followLegacyDefault(legacyPaneDefaults.sidebarWidth),
-  projectsWidth: followLegacyDefault(legacyPaneDefaults.projectsWidth),
+  sidebarWidth: paneWidthSchema,
+  projectsWidth: paneWidthSchema,
   panelWidth: paneWidthSchema,
   /** The open card's editor on the Cards page; added later, so older rows follow the default. */
   cardWidth: paneWidthSchema.catch(null),
@@ -419,7 +412,7 @@ export type Session = z.infer<typeof sessionSchema>
 export type AppSettings = z.infer<typeof settingsSchema>
 export type AppLogo = z.infer<typeof appLogoSchema>
 export type Project = z.infer<typeof projectSchema>
-export type CodexModel = z.infer<typeof modelSchema>
+export type AgentModel = z.infer<typeof modelSchema>
 export type Effort = z.infer<typeof effortSchema>
 export type CodexAccount =
   | { kind: 'chatgpt'; email: string | null; plan: string | null }
@@ -431,7 +424,7 @@ export type CodexConnection = {
   executablePath: string | null
   version: string | null
   account: CodexAccount
-  models: CodexModel[]
+  models: AgentModel[]
   error: Failure | null
 }
 export type ClaudeAccount =
@@ -444,7 +437,7 @@ export type ClaudeConnection = {
   executablePath: string | null
   version: string | null
   account: ClaudeAccount
-  models: CodexModel[]
+  models: AgentModel[]
   error: Failure | null
 }
 export type CursorAccount =
@@ -456,7 +449,7 @@ export type CursorConnection = {
   executablePath: string | null
   version: string | null
   account: CursorAccount
-  models: CodexModel[]
+  models: AgentModel[]
   error: Failure | null
 }
 /** Any worker provider's connection; each provider keeps its own account shape. */

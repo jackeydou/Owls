@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import type { Permission } from '../../shared/agents.js'
-import type { CodexModel, SessionItem } from '../../shared/app.js'
+import type { AgentModel, SessionItem } from '../../shared/app.js'
 import { effortSchema } from '../../shared/app.js'
+import { record, recordSchema, safeText, string } from '../app/values.js'
 
-export const recordSchema = z.record(z.string(), z.unknown())
 export const frameSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
   method: z.string().optional(),
@@ -12,17 +12,6 @@ export const frameSchema = z.object({
   error: z.object({ code: z.number(), message: z.string() }).optional()
 })
 export type RpcFrame = z.infer<typeof frameSchema>
-export function record(value: unknown): Record<string, unknown> {
-  return recordSchema.parse(value)
-}
-export function string(value: unknown, fallback = ''): string {
-  return typeof value === 'string' ? value : fallback
-}
-export function safeText(value: unknown): string {
-  return string(value)
-    .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]')
-    .replace(/\b(sk-[a-zA-Z0-9_-]{12,}|eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_.-]+)/g, '[redacted]')
-}
 /**
  * Maps an Owlto permission onto a Codex worker's sandbox and approvals. Once
  * the sandbox may write, escalations (network, paths outside the writable
@@ -42,7 +31,7 @@ export function approvalOptions(permission: Permission): {
   }
 }
 
-export function parseModels(value: unknown): CodexModel[] {
+export function parseModels(value: unknown): AgentModel[] {
   const response = z
     .object({
       data: z.array(

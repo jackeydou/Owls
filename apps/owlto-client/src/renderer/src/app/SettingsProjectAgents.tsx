@@ -18,7 +18,7 @@ import {
   providerSchema,
   rankAll
 } from '../../../shared/agents'
-import type { CodexModel, Project } from '../../../shared/app'
+import type { AgentModel, Project } from '../../../shared/app'
 import { AgentIcon } from '../router/AgentIcon'
 import { SettingRow } from './SettingRow'
 import { agentConnection, isAgentReady, useAppStore } from './store'
@@ -57,7 +57,7 @@ function usePickerCopy(ranked: RankedListCopy): RankedPickerCopy {
 }
 
 /** Models a user can pick. Claude Code's "default" entry is an alias, not a model. */
-const pickable = (provider: AgentProvider, models: CodexModel[]) =>
+const pickable = (provider: AgentProvider, models: AgentModel[]) =>
   provider === 'claude-code' ? models.filter((m) => !m.isDefault) : models
 
 /** Which coding agents a project's workers use, and each agent's models, in the user's order. */
@@ -72,7 +72,7 @@ export function ProjectAgentsPage({ project }: { project: Project }) {
   const codex = useAppStore((s) => s.connection.models)
   const claude = useAppStore((s) => s.claude.models)
   const cursor = useAppStore((s) => s.cursor.models)
-  const offered: Record<AgentProvider, CodexModel[]> = {
+  const offered: Record<AgentProvider, AgentModel[]> = {
     codex: pickable('codex', codex),
     'claude-code': pickable('claude-code', claude),
     cursor: pickable('cursor', cursor)

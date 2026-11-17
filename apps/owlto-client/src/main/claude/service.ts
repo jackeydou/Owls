@@ -34,7 +34,7 @@ import {
 import { userItemFields } from '../app/attachments.js'
 import { OwltoError, toFailure } from '../app/errors.js'
 import type { OwltoStore } from '../app/store.js'
-import { record, recordSchema, safeText, string } from '../codex/protocol.js'
+import { record, recordSchema, safeText, string } from '../app/values.js'
 import {
   REPORT_SERVER_NAME,
   REPORT_TOOL_DESCRIPTION,
