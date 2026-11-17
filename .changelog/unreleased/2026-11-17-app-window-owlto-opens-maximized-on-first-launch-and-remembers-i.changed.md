@@ -1,0 +1,1 @@
+- Window: Owlto opens maximized on first launch and remembers its size, position, and maximized state across restarts and updates.
