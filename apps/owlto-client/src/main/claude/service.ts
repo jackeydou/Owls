@@ -8,6 +8,7 @@ import type {
   PermissionResult,
   Query,
   SDKMessage,
+  SDKResultMessage,
   SDKUserMessage,
   SdkMcpToolDefinition
 } from '@anthropic-ai/claude-agent-sdk/core'
@@ -89,6 +90,20 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   ]).finally(() => clearTimeout(timer))
 }
 
+/**
+ * Whether a result ends the turn that sent `prompts`. On resume the CLI may
+ * first run a turn of its own, such as the notice for a background task the
+ * previous process left behind, and emits an empty result for it before it
+ * reads Owlto's message. Results echo the uuids of the messages they answer;
+ * one without an echo counts unless a task notification started it.
+ */
+export function answersPrompts(message: SDKResultMessage, prompts: ReadonlySet<string>): boolean {
+  const echoed =
+    message.user_message_uuids ?? (message.user_message_uuid ? [message.user_message_uuid] : [])
+  if (echoed.length > 0) return echoed.some((uuid) => prompts.has(uuid))
+  return message.origin?.kind !== 'task-notification'
+}
+
 type Runtime = {
   turnId: string
   input: InputStream
@@ -101,6 +116,8 @@ type Runtime = {
   blocks: Map<number, string>
   messageId: string | null
   stopTimer: ReturnType<typeof setTimeout> | null
+  /** Uuids of the user messages this turn sent, to tell its result from the CLI's own turns. */
+  prompts: Set<string>
   /** The result's structured output and text, reported to the Router for worker tasks. */
   structured: unknown
   resultText: string
@@ -360,6 +377,7 @@ export class ClaudeService {
       blocks: new Map(),
       messageId: null,
       stopTimer: null,
+      prompts: new Set(),
       structured: null,
       resultText: ''
     }
@@ -405,10 +423,13 @@ export class ClaudeService {
       this.profiles?.settled(session.id, { status: 'failed', structured: null, text: '' })
       throw new OwltoError(session.error.code, session.error.message)
     }
+    const uuid = crypto.randomUUID()
+    runtime.prompts.add(uuid)
     runtime.input.push({
       type: 'user',
       message: await claudeContent(input),
-      parent_tool_use_id: null
+      parent_tool_use_id: null,
+      uuid
     })
     session.status = 'running'
     this.changed(session, true)
@@ -438,7 +459,9 @@ export class ClaudeService {
       turnId: runtime.turnId,
       ...userItemFields(turn)
     })
-    runtime.input.push({ type: 'user', message, parent_tool_use_id: null })
+    const uuid = crypto.randomUUID()
+    runtime.prompts.add(uuid)
+    runtime.input.push({ type: 'user', message, parent_tool_use_id: null, uuid })
     this.changed(session, true)
     return 'steered'
   }
@@ -507,6 +530,7 @@ export class ClaudeService {
         const usage = claudeResultUsage(message)
         session.tokens = usage.reduce((sum, entry) => sum + totalTokens(entry), session.tokens ?? 0)
         for (const entry of usage) this.recordUsage(session.id, entry)
+        if (!answersPrompts(message, runtime.prompts)) return
         const succeeded = message.subtype === 'success' && !message.is_error
         const status = succeeded ? 'idle' : runtime.cancelled ? 'interrupted' : 'failed'
         if (message.subtype === 'success') {
