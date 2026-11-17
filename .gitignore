@@ -14,3 +14,13 @@ apps/website/
 .env
 .env.*
 !.env.example
+
+# Local agent/tooling state
+.claude/launch.json
+.claude/settings.local.json
+.claude/worktrees/
+
+# Local scratch output (prototypes, generated media, research drafts)
+/output/
+/reports/
+/research_notes/
