@@ -1,0 +1,1 @@
+- Agents: Claude Code, Codex, and Cursor now get the PATH from your login shell, so CLIs installed with Homebrew or a version manager, such as gh and node, are found when Owlto is opened from Finder. (#170)

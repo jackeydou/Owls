@@ -57,6 +57,7 @@ import { OwltoHost } from './host.js'
 import { registerIpc } from './ipc.js'
 import { applyAppMenu, type MenuDeps } from './menu.js'
 import { UserProfile } from './profile.js'
+import { adoptLoginShellPath } from './shell-path.js'
 import { OwltoStore } from './store.js'
 import { realWorkspace } from './workspace-folders.js'
 
@@ -191,6 +192,8 @@ function createWindow(): void {
 void app
   .whenReady()
   .then(() => {
+    // Read in the background while the window opens; agents connect once it settles.
+    const shellPath = adoptLoginShellPath()
     const root = getDataRoot()
     mkdirSync(root, { recursive: true })
     const store = new OwltoStore(join(root, 'owlto.db'), migrationsFolder())
@@ -404,7 +407,8 @@ void app
     applyAppMenu(store.settings(), menu)
     createWindow()
     updater.start()
-    service.connectAtStartup()
+    // Agent CLIs and the commands they run inherit PATH, so they start after the shell's is in.
+    void shellPath.then(() => service?.connectAtStartup())
     // After startup recovery, so a run missed while the app was closed reaches a ready Router.
     void router.recovered.then(() => {
       automations.start()

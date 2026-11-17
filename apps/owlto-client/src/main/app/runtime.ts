@@ -106,6 +106,7 @@ export {
   TOKEN_VARIABLE,
   tokenCredentialConfig
 } from './project-sources.js'
+export { mergePaths, parseShellPath, readLoginShellPath } from './shell-path.js'
 export { OwltoStore } from './store.js'
 export {
   isWorkspaceProject,

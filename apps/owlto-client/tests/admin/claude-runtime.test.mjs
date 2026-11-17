@@ -127,6 +127,26 @@ function fakeSdk() {
       yield init
       yield success
     },
+    // On resume the CLI first reports a background task the previous process left
+    // behind, with an empty result of its own, then answers the message (CLI 2.1.316).
+    async *resumed(_options, _signal, _control, prompt) {
+      yield init
+      yield {
+        type: 'system',
+        subtype: 'task_notification',
+        task_id: 'b1',
+        status: 'stopped',
+        summary: "Background shell command didn't finish before the previous session ended"
+      }
+      yield { ...success, result: '', num_turns: 0, origin: { kind: 'task-notification' } }
+      yield assistant('m6', [{ type: 'text', text: 'pong' }])
+      yield {
+        ...success,
+        result: 'pong',
+        user_message_uuid: prompt.uuid,
+        user_message_uuids: [prompt.uuid]
+      }
+    },
     async *steered(_options, _signal, control) {
       yield init
       const next = await control.next()
@@ -164,7 +184,12 @@ function fakeSdk() {
         if (first.done) return
         received.push(first.value.message)
         const { content } = first.value.message
-        yield* scripts[typeof content === 'string' ? content : 'attached'](options, signal, control)
+        yield* scripts[typeof content === 'string' ? content : 'attached'](
+          options,
+          signal,
+          control,
+          first.value
+        )
       })()
       return Object.assign(generator, {
         initializationResult: async () => ({
@@ -435,6 +460,41 @@ test('Claude service steers a message into the running turn', async () => {
       ]
     )
     assert.equal(await service.steer(session.id, { text: 'too late' }), 'not_running')
+  } finally {
+    service.close()
+    rmSync(project, { recursive: true, force: true })
+  }
+})
+
+test('Claude service ends a turn at its own result, not one the CLI emits for a task notice', async () => {
+  const project = realpathSync(mkdtempSync(join(tmpdir(), 'owlto-claude-resumed-')))
+  const service = new ClaudeService(memoryStore(project), () => {}, fakeSdk())
+  const settled = []
+  service.setTurnProfiles({
+    prepare: async () => {},
+    profile: () => null,
+    settled: (_sessionId, outcome) => settled.push(outcome)
+  })
+  try {
+    await service.connect()
+    const session = service.createSession({
+      provider: 'claude-code',
+      cwd: project,
+      model: null,
+      effort: null,
+      permission: 'workspace-write'
+    })
+    const state = () => service.sessionList().find((s) => s.id === session.id)
+    await service.send({ sessionId: session.id, commandId: crypto.randomUUID(), text: 'resumed' })
+    await until(() => settled.length > 0)
+    assert.deepEqual(settled, [{ status: 'completed', structured: null, text: 'pong' }])
+    assert.equal(state().status, 'idle')
+    assert.deepEqual(
+      state()
+        .items.filter((i) => i.kind === 'assistant')
+        .map((i) => i.text),
+      ['pong']
+    )
   } finally {
     service.close()
     rmSync(project, { recursive: true, force: true })
