@@ -269,6 +269,12 @@ export const defaultLayoutSettings: LayoutSettings = {
  */
 export const skinSchema = z.enum(['standard', 'doodle'])
 export type Skin = z.infer<typeof skinSchema>
+/**
+ * Where the user stands with first-run onboarding: not seen yet, skipped (the thread page
+ * offers it again), or done. It becomes `done` once anything it asks for is configured.
+ */
+export const onboardingStateSchema = z.enum(['pending', 'skipped', 'done'])
+export type OnboardingState = z.infer<typeof onboardingStateSchema>
 export const settingsSchema = z.object({
   executablePath: z.string().nullable(),
   /** How new workers run on each coding agent; rows from before it start from the defaults. */
@@ -322,7 +328,9 @@ export const settingsSchema = z.object({
   /** The app "Open in" uses; null picks the first installed editor. Added later. */
   openInApp: openInAppIdSchema.nullable().catch(null).default(null),
   /** The user's name and avatar; added later, and saved only through `saveProfile`. */
-  profile: profileSchema.catch(defaultProfile)
+  profile: profileSchema.catch(defaultProfile),
+  /** Added later; older rows start `pending`, and a configured app retires it at once. */
+  onboarding: onboardingStateSchema.catch('pending').default('pending')
 })
 export const projectSchema = z.object({
   id: z.string(),

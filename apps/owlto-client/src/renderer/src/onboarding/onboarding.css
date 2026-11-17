@@ -1,0 +1,634 @@
+/*
+ * First-run onboarding, in the layout of the website hero (apps/owlto-website): copy on top,
+ * a rising moon behind a row of owls that peek up from the bottom edge. The Doodle skin
+ * redraws it in ink in skin-doodle.css.
+ */
+.onb {
+  --onb-orb: color-mix(in srgb, #ffc94d 26%, var(--color-background));
+  --onb-dots: color-mix(in srgb, var(--color-foreground) 10%, transparent);
+  --onb-spring: cubic-bezier(0.2, 1.4, 0.4, 1);
+  --onb-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  overflow: hidden;
+  isolation: isolate;
+  -webkit-app-region: no-drag;
+}
+html[data-theme="dark"] .onb {
+  --onb-orb: #f3ecd2;
+}
+
+/* Sky: a dot grid that fades out, the moon, and stars at night. */
+.onb-sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.onb-sky::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 1px 1px, var(--onb-dots) 1.2px, transparent 0) 0 0 / 26px 26px;
+  mask-image: linear-gradient(#000 20%, transparent 85%);
+}
+.onb-moon {
+  position: absolute;
+  left: 50%;
+  bottom: -38vmin;
+  width: 84vmin;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--onb-orb);
+  translate: -50% 0;
+}
+html[data-theme="dark"] .onb-moon {
+  left: 88%;
+  bottom: auto;
+  top: 70px;
+  width: 12vmin;
+  box-shadow: 0 0 80px 18px rgb(243 236 210 / 0.18);
+}
+.onb-stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-image:
+    radial-gradient(2px 2px at 12% 18%, #fff 50%, transparent 51%),
+    radial-gradient(2px 2px at 31% 9%, #fff 50%, transparent 51%),
+    radial-gradient(3px 3px at 47% 27%, #ffd66b 50%, transparent 51%),
+    radial-gradient(2px 2px at 63% 13%, #fff 50%, transparent 51%),
+    radial-gradient(2px 2px at 78% 33%, #fff 50%, transparent 51%),
+    radial-gradient(2px 2px at 6% 42%, #fff 50%, transparent 51%),
+    radial-gradient(2px 2px at 22% 55%, #ffd66b 50%, transparent 51%),
+    radial-gradient(2px 2px at 95% 52%, #fff 50%, transparent 51%);
+}
+.onb-stars-b {
+  transform: scaleX(-1) translateY(9%);
+}
+html[data-theme="dark"] .onb-stars {
+  opacity: 0.7;
+  animation: onb-twinkle 3.2s ease-in-out infinite alternate;
+}
+html[data-theme="dark"] .onb-stars-b {
+  animation-delay: -1.6s;
+}
+@keyframes onb-twinkle {
+  to {
+    opacity: 0.25;
+  }
+}
+
+/* The title bar row: the window drags from here, and Skip sits on the right. */
+.onb-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex: none;
+  height: var(--owl-bar-height, 44px);
+  padding: 0 14px;
+  -webkit-app-region: drag;
+}
+.onb-skip {
+  padding: 4px 10px;
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  opacity: 0.75;
+  transition:
+    color 0.15s,
+    opacity 0.15s,
+    background-color 0.15s,
+    transform 0.1s;
+  -webkit-app-region: no-drag;
+}
+.onb-skip:hover {
+  color: var(--color-foreground);
+  opacity: 1;
+  background: var(--color-sidebar-hover);
+}
+.onb-skip:active {
+  transform: scale(0.95);
+}
+
+.onb-scroll {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+  padding: 0 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  text-align: center;
+}
+.onb-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(780px, 100%);
+  padding-top: clamp(0px, 3vh, 36px);
+  animation: onb-rise 0.6s var(--onb-ease) backwards;
+}
+@keyframes onb-rise {
+  from {
+    opacity: 0;
+    translate: 0 24px;
+  }
+}
+.onb-kicker {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.onb-steps {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.onb-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-card);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 600;
+}
+.onb-steps b {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-card-muted);
+  font-size: 12px;
+}
+.onb-steps li[data-state="current"] {
+  border-color: var(--color-foreground);
+  color: var(--color-foreground);
+}
+.onb-steps li[data-state="current"] b {
+  background: var(--color-foreground);
+  color: var(--color-background);
+}
+.onb-steps li[data-state="done"] b {
+  background: var(--owl-run);
+  color: #fff;
+}
+.onb h1 {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.6vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  text-wrap: balance;
+  outline: none;
+}
+.onb-sub {
+  max-width: 560px;
+  margin-top: 10px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-base);
+  line-height: var(--owl-leading-normal);
+  text-wrap: pretty;
+}
+
+.onb-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-lg);
+  background: var(--color-card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  text-align: left;
+}
+.onb-agents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.onb-agent {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  transition:
+    border-color 0.2s,
+    transform 0.25s var(--onb-spring);
+}
+.onb-agent[data-ready] {
+  border-color: color-mix(in srgb, var(--owl-run) 55%, transparent);
+}
+.onb-agent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.onb-agent-head .owlto-owl-avatar {
+  width: 44px;
+  height: 44px;
+}
+.onb-agent-head .router-agent-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-muted-foreground);
+}
+.onb-agent strong,
+.onb-engine strong {
+  font-size: var(--owl-text-base);
+  font-weight: 600;
+}
+.onb-agent > p,
+.onb-engine small {
+  margin-top: 2px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+}
+.onb-agent-foot {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin-top: 14px;
+}
+.onb-agent .onb-error {
+  margin-top: 8px;
+  color: var(--color-destructive);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+}
+.onb-connected {
+  display: inline-flex;
+  white-space: nowrap;
+  align-items: center;
+  gap: 4px;
+  color: var(--owl-run);
+  font-size: var(--owl-text-xs);
+  font-weight: 600;
+  animation: onb-pop 0.35s var(--onb-spring);
+}
+@keyframes onb-pop {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+
+.onb-engines {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+  margin-top: 26px;
+}
+.onb-engine {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.1s;
+}
+.onb-engine:hover {
+  border-color: var(--color-border-strong);
+}
+.onb-engine:active {
+  transform: scale(0.98);
+}
+.onb-engine[aria-pressed="true"] {
+  border-color: var(--color-foreground);
+  box-shadow: 0 0 0 1px var(--color-foreground);
+}
+.onb-engine .owlto-owl-avatar {
+  width: 40px;
+  height: 40px;
+}
+.onb-engine-text {
+  display: flex;
+  flex-direction: column;
+}
+.onb-engine .onb-connected {
+  position: absolute;
+  top: 18px;
+  right: 40px;
+}
+.onb-radio {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 50%;
+}
+.onb-engine[aria-pressed="true"] .onb-radio {
+  border: 5px solid var(--color-foreground);
+}
+.onb-detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 16px;
+  font-size: var(--owl-text-sm);
+  animation: onb-rise 0.35s var(--onb-ease) backwards;
+}
+.onb-owlto {
+  display: block;
+}
+.onb-owlto .owlto-settings-actions {
+  justify-content: flex-end;
+}
+
+.onb-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-top: 22px;
+}
+.onb-actions-center {
+  justify-content: center;
+  margin-top: 28px;
+}
+.onb-actions .onb-back:first-child:last-child {
+  margin-right: auto;
+}
+.onb-note {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+}
+.onb-workers {
+  width: 100%;
+  margin-top: 14px;
+  text-align: left;
+}
+.onb .onb-primary {
+  min-width: 120px;
+}
+
+/* Owls: the website hero's flock, standing on the bottom edge. */
+.onb-flock {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: none;
+  width: min(760px, 100%);
+  margin-top: auto;
+  padding-top: clamp(16px, 4vh, 48px);
+}
+.onb-owl {
+  position: relative;
+  flex: 0 1 calc(min(170px, 19vh) * var(--s));
+  margin-inline: -1.6%;
+  padding: 0;
+  border-radius: 0;
+  z-index: calc(var(--s) * 10);
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  transition: transform 0.35s var(--onb-spring);
+  animation: onb-peek 0.9s var(--onb-spring) backwards;
+  animation-delay: calc(0.3s + var(--i) * 110ms);
+}
+@keyframes onb-peek {
+  from {
+    translate: 0 105%;
+  }
+}
+.onb-owl:hover {
+  transform: translateY(-8px) rotate(-2deg);
+}
+.onb-owl:nth-child(even):hover {
+  transform: translateY(-8px) rotate(2deg);
+}
+.onb-owl:active {
+  transform: translateY(-2px) scale(0.97, 1.02);
+}
+.onb-owl-body {
+  display: block;
+  transform-origin: 50% 100%;
+}
+.onb-owl-body.is-hopping {
+  animation: onb-hop 0.5s var(--onb-spring);
+}
+@keyframes onb-hop {
+  30% {
+    transform: translateY(-22px) scale(1.04, 0.97);
+  }
+}
+.onb-owl-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.onb-owl-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: onb-blink 5.2s infinite;
+  animation-delay: calc(var(--i) * -1.37s);
+}
+@keyframes onb-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  97% {
+    transform: scaleY(0.06);
+  }
+}
+.onb-owl-pupil {
+  transform: translate(var(--px, 0px), var(--py, 0px));
+  transition: transform 0.14s ease-out;
+}
+.onb-hoot {
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  z-index: 30;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 14px 14px 14px 3px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.08);
+  font-size: var(--owl-text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: onb-hoot 1.5s var(--onb-ease) forwards;
+}
+@keyframes onb-hoot {
+  0% {
+    opacity: 0;
+    transform: translate(-30%, 10px) scale(0.6) rotate(-6deg);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-30%, -26px) scale(1) rotate(3deg);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-30%, -64px) scale(0.96) rotate(0);
+  }
+}
+.onb-hint {
+  position: absolute;
+  right: 22px;
+  bottom: 16px;
+  max-width: 180px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-style: italic;
+  line-height: 1.3;
+  text-align: right;
+  rotate: -3deg;
+  pointer-events: none;
+}
+@media (max-width: 860px) {
+  .onb-hint {
+    display: none;
+  }
+}
+@media (max-width: 680px) {
+  .onb-agents,
+  .onb-engines {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* After a skip: a card over the composer with the owls peeking up inside it. */
+.onb-setup-card {
+  --onb-orb: color-mix(in srgb, #ffc94d 24%, var(--color-card));
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 0 0 0 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-lg);
+  background: var(--color-card);
+  overflow: hidden;
+  isolation: isolate;
+}
+.onb-setup-card::before {
+  content: "";
+  position: absolute;
+  right: 4%;
+  bottom: -150px;
+  z-index: -1;
+  width: 260px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--onb-orb);
+}
+html[data-theme="dark"] .onb-setup-card {
+  --onb-orb: color-mix(in srgb, #f3ecd2 12%, var(--color-card));
+}
+.onb-setup-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px 0;
+}
+.onb-setup-text strong {
+  font-size: var(--owl-text-base);
+  font-weight: 600;
+}
+.onb-setup-text p {
+  margin: 2px 0 12px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.onb-flock.is-compact {
+  width: 250px;
+  margin: 0 8px 0 0;
+  padding-top: 18px;
+}
+.onb-flock.is-compact .onb-owl {
+  flex-basis: calc(62px * var(--s));
+}
+.onb-flock.is-compact .onb-owl:hover {
+  transform: translateY(-4px) rotate(-2deg);
+}
+.onb-flock.is-compact .onb-hoot {
+  top: 4px;
+  padding: 2px 8px;
+  font-size: var(--owl-text-xs);
+  animation-name: onb-hoot-near;
+}
+/* The card clips its overflow, so the small owls' hoots stay inside it. */
+@keyframes onb-hoot-near {
+  0% {
+    opacity: 0;
+    transform: translate(-30%, 8px) scale(0.6) rotate(-6deg);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-30%, -6px) scale(1) rotate(3deg);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-30%, -14px) scale(0.96) rotate(0);
+  }
+}
+@media (max-width: 620px) {
+  .onb-flock.is-compact {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onb-content,
+  .onb-owl,
+  .onb-owl-body.is-hopping,
+  .onb-owl-eye,
+  .onb-detail,
+  .onb-connected,
+  html[data-theme="dark"] .onb-stars {
+    animation: none;
+  }
+}
+fieldset.onb-engines {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+/* The last step has little to say: it sits midway between the top and the owls. */
+.onb-content[data-step="done"] {
+  margin-block: auto;
+}

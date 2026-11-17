@@ -4,6 +4,7 @@ import { automationsEn, automationsZh } from '../automations/i18n'
 import { cardsEn, cardsZh } from '../cards/i18n'
 import { feedbackEn, feedbackZh } from '../feedback/i18n'
 import { memoryEn, memoryZh } from '../memory/i18n'
+import { onboardingEn, onboardingZh } from '../onboarding/i18n'
 import { pullsEn, pullsZh } from '../pulls/i18n'
 import { routerEn, routerZh } from '../router/i18n'
 import { workerComposerEn, workerComposerZh } from '../router/i18n-worker-composer'
@@ -387,6 +388,7 @@ void i18next.use(initReactI18next).init({
         ...memoryEn,
         ...projectSettingsEn,
         ...profileEn,
+        ...onboardingEn,
         ...experimentsEn,
         ...updatesEn,
         ...usageEn,
@@ -407,6 +409,7 @@ void i18next.use(initReactI18next).init({
         ...memoryZh,
         ...projectSettingsZh,
         ...profileZh,
+        ...onboardingZh,
         ...experimentsZh,
         ...updatesZh,
         ...usageZh,

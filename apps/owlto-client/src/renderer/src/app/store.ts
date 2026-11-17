@@ -269,7 +269,8 @@ export const useAppStore = create<State>((set, get) => {
       workspaceDismissed: [],
       disconnectedAgents: [],
       openInApp: null,
-      profile: defaultProfile
+      profile: defaultProfile,
+      onboarding: 'pending'
     },
     connection: {
       status: 'disconnected',
@@ -583,7 +584,8 @@ export const useAppStore = create<State>((set, get) => {
           pullRequestsVisible: settings.pullRequestsVisible,
           pullRequestFollowUps: settings.pullRequestFollowUps,
           requestNotifications: settings.requestNotifications,
-          openInApp: settings.openInApp
+          openInApp: settings.openInApp,
+          onboarding: settings.onboarding
         })
       )
       if (saved) set({ settings: saved })

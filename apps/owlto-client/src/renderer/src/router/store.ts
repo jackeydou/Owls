@@ -70,8 +70,6 @@ type State = {
   /** Follows a worker's GitHub status until the returned function is called. */
   watchGitHub(routerId: string, workerId: string): () => void
   /** Lasts until the app restarts: the guide comes back while setup is incomplete. */
-  guideSkipped: boolean
-  skipGuide(): void
   send(
     routerId: string,
     text: string,
@@ -242,8 +240,6 @@ export const useRouterStore = create<State>((set, get) => {
       set({ forwarding: null })
       return router
     },
-    guideSkipped: false,
-    skipGuide: () => set({ guideSkipped: true }),
     send: async (routerId, text, workerId, cardIds = [], attachments = []) => {
       if (get().sending) return false
       set({ sending: true, error: null })

@@ -1,13 +1,14 @@
 import { ActionIconButton } from '@renderer/components/ui/action-button'
 import { MoonZIcon } from '@renderer/components/ui/icons'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
 import { useAppStore } from '../app/store'
 import { useDreamingStore, useDreamLocked } from '../memory/dreaming'
+import { SetupCard, useSetupCardVisible } from '../onboarding/SetupCard'
+import { useStartupSettled } from '../onboarding/state'
 import { threadTitle, useThreadTitle } from './activity'
 import { RequestTray } from './RequestTray'
-import { RouterGuide } from './RouterGuide'
 import { RouterSetupNotice, useRouterSetup } from './RouterSetup'
 import { RouterTimeline } from './RouterTimeline'
 import { useRouterStore } from './store'
@@ -48,17 +49,10 @@ export function RouterChat() {
   const untitled = useThreadTitle()
   const setup = useRouterSetup(router)
   const locked = useDreamLocked(router?.id)
-  const guideSkipped = useRouterStore((s) => s.guideSkipped)
-  const connecting = useAppStore(
-    (s) => s.connection.status === 'connecting' || s.claude.status === 'connecting'
-  )
-  // Agents connect as the app starts, so a working setup must not flash the guide. Later
-  // connections are the guide's own and leave it open.
-  const [settled, setSettled] = useState(!connecting)
-  useEffect(() => {
-    if (!connecting) setSettled(true)
-  }, [connecting])
+  // Agents connect as the app starts, so a working setup must not flash a setup notice.
+  const settled = useStartupSettled()
   const missing = settled ? setup : null
+  const setupCard = useSetupCardVisible()
   useEffect(() => {
     if (threadId) void loadItems(threadId)
   }, [threadId, loadItems])
@@ -75,21 +69,17 @@ export function RouterChat() {
         {router ? <DreamButton router={router} /> : null}
       </header>
       <div className="owlto-conversation-column">
-        {missing && !guideSkipped && !router?.itemCount ? (
-          <RouterGuide need={missing} />
-        ) : (
-          <RouterTimeline
-            router={router}
-            editor={
-              // A thread the user sent to Dreaming takes no input until the run ends.
-              <div className="router-editor-lock" inert={locked}>
-                {missing ? <RouterSetupNotice need={missing} /> : null}
-                {router ? <RequestTray routerId={router.id} /> : null}
-                <ThreadEditor router={router} />
-              </div>
-            }
-          />
-        )}
+        <RouterTimeline
+          router={router}
+          editor={
+            // A thread the user sent to Dreaming takes no input until the run ends.
+            <div className="router-editor-lock" inert={locked}>
+              {setupCard ? <SetupCard /> : missing ? <RouterSetupNotice need={missing} /> : null}
+              {router ? <RequestTray routerId={router.id} /> : null}
+              <ThreadEditor router={router} />
+            </div>
+          }
+        />
       </div>
     </main>
   )

@@ -1,0 +1,1 @@
+- Onboarding: first run is now a full-screen welcome in the website style, with interactive owls, two steps (connect coding agents, then pick who runs the Router), and a Skip that leaves a setup card on the thread page until anything is configured.
