@@ -1,0 +1,1 @@
+- Workers: a Claude Code worker no longer ends its turn with an empty report when the session resumes with a leftover background task; its real reply now reaches the Router. (#170)
