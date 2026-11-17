@@ -3,52 +3,52 @@ import { createRequire } from 'node:module'
 import test from 'node:test'
 
 const require = createRequire(import.meta.url)
-const { Analytics, PostHogClient, parseFlags } = require('../../out/main/app/runtime.js')
+const { Analytics, posthogSink } = require('../../out/main/app/runtime.js')
 
-const CONFIG = { key: 'phc_test', host: 'https://posthog.example/' }
 const NOW = new Date('2026-11-17T08:00:00.000Z')
+const INSTALL_ID = '6a1c1f1e-1111-4222-8333-444455556666'
 
-/** A transport that records requests and answers from `reply`. */
-function fakeTransport(reply = () => ({ ok: true, body: {} })) {
-  const requests = []
-  const transport = async (url, body) => {
-    const request = { url, body, ok: false }
-    requests.push(request)
-    const answer = await reply(url, body)
-    request.ok = answer.ok
-    return { ok: answer.ok, json: async () => answer.body }
+/** A sink standing in for the PostHog SDK: records captures, flag reads, and state. */
+function fakeSink({ flags = null } = {}) {
+  const sink = {
+    captured: [],
+    flagReads: 0,
+    paused: 0,
+    resumed: 0,
+    shutdowns: [],
+    capture: (message) => sink.captured.push(message),
+    flags: async () => {
+      sink.flagReads += 1
+      const values = typeof flags === 'function' ? flags() : flags
+      return values ? { get: (key) => values[key] } : null
+    },
+    pause: async () => {
+      sink.paused += 1
+    },
+    resume: async () => {
+      sink.resumed += 1
+    },
+    shutdown: async (timeoutMs) => {
+      sink.shutdowns.push(timeoutMs)
+    }
   }
-  return { requests, transport }
+  return sink
 }
 
-function harness({
-  usageData = true,
-  identity = null,
-  reply,
-  connectedAgents = ['codex', 'claude-code']
-} = {}) {
-  const { requests, transport } = fakeTransport(reply)
-  const settings = { usageData, language: 'en', connectedAgents }
+function harness({ usageData = true, identity = null, flags } = {}) {
+  const sink = fakeSink({ flags })
+  const settings = { usageData, language: 'en', connectedAgents: ['codex', 'claude-code'] }
   const saved = []
-  const timers = { started: 0, stopped: 0 }
-  const client = new PostHogClient(CONFIG, transport)
   const analytics = new Analytics({
-    client,
+    sink,
     settings: () => settings,
     loadIdentity: () => identity,
     saveIdentity: (value) => saved.push(value),
     context: { appVersion: '2026.11.1700-beta.1', os: 'macOS', osVersion: '15.1', arch: 'arm64' },
-    now: () => NOW,
-    every: () => {
-      timers.started += 1
-      return () => {
-        timers.stopped += 1
-      }
-    }
+    now: () => NOW
   })
-  const events = () =>
-    requests.filter((request) => request.ok).flatMap((request) => request.body.batch ?? [])
-  return { analytics, client, settings, saved, requests, events, timers }
+  const events = () => sink.captured.map((message) => message.event)
+  return { analytics, sink, settings, saved, events }
 }
 
 const appSettings = (overrides) => ({
@@ -59,68 +59,60 @@ const appSettings = (overrides) => ({
   ...overrides
 })
 
-test('the first launch records an install, then every launch records an open', async () => {
-  const { analytics, saved, requests, events } = harness()
+test('the first launch records an install, then every launch records an open', () => {
+  const { analytics, sink, saved, events } = harness()
   analytics.start()
-  await analytics.flush()
   assert.equal(saved.length, 1)
   assert.match(saved[0].distinctId, /^[0-9a-f-]{36}$/)
-  assert.equal(requests[0].url, 'https://posthog.example/batch/')
-  assert.equal(requests[0].body.api_key, 'phc_test')
-  assert.deepEqual(
-    events().map((event) => event.event),
-    ['app_installed', 'app_opened']
-  )
-  const opened = events()[1]
-  assert.equal(opened.distinct_id, saved[0].distinctId)
-  assert.equal(opened.timestamp, NOW.toISOString())
+  assert.deepEqual(events(), ['app_installed', 'app_opened'])
+  const opened = sink.captured[1]
+  assert.equal(opened.distinctId, saved[0].distinctId)
+  assert.equal(opened.timestamp.toISOString(), NOW.toISOString())
   assert.equal(opened.properties.connected_agents, 'claude-code,codex')
   assert.equal(opened.properties.$app_version, '2026.11.1700-beta.1')
   assert.equal(opened.properties.release_channel, 'beta')
   assert.equal(opened.properties.$os, 'macOS')
 })
 
-test('a saved identity is reused and no install is recorded', async () => {
-  const identity = {
-    distinctId: '6a1c1f1e-1111-4222-8333-444455556666',
-    firstSeenAt: NOW.toISOString()
-  }
-  const { analytics, saved, events } = harness({ identity })
+test('a saved identity is reused and no install is recorded', () => {
+  const identity = { distinctId: INSTALL_ID, firstSeenAt: NOW.toISOString() }
+  const { analytics, sink, saved } = harness({ identity })
   analytics.start()
-  await analytics.flush()
   assert.equal(saved.length, 0)
   assert.deepEqual(
-    events().map((event) => [event.event, event.distinct_id]),
-    [['app_opened', identity.distinctId]]
+    sink.captured.map((message) => [message.event, message.distinctId]),
+    [['app_opened', INSTALL_ID]]
   )
 })
 
 test('usage data off sends nothing and reads no flags', async () => {
-  const { analytics, requests, saved, timers } = harness({ usageData: false })
+  const { analytics, sink, saved } = harness({ usageData: false, flags: { a: true } })
   analytics.start()
   analytics.ipcSucceeded('router-send', undefined)
-  assert.equal(await analytics.flag('new-onboarding'), null)
-  await analytics.flush()
-  assert.equal(requests.length, 0)
+  assert.equal(await analytics.flag('a'), null)
+  assert.equal(sink.captured.length, 0)
+  assert.equal(sink.flagReads, 0)
+  assert.equal(sink.paused, 1)
   assert.equal(saved.length, 0)
-  assert.equal(timers.started, 0)
 })
 
-test('turning usage data off drops queued events and stops the timer', async () => {
-  const { analytics, client, settings, requests, timers } = harness()
+test('turning usage data off pauses the SDK, and back on resumes it', () => {
+  const { analytics, sink, settings } = harness()
   analytics.start()
-  assert.equal(client.pending, 2)
   settings.usageData = false
   analytics.settingsChanged(appSettings({ usageData: false }), appSettings({ usageData: true }))
-  assert.equal(client.pending, 0)
-  assert.equal(timers.stopped, 1)
   analytics.ipcSucceeded('router-create', {})
-  await analytics.flush()
-  assert.equal(requests.length, 0)
+  assert.equal(sink.paused, 1)
+  assert.equal(sink.captured.length, 2)
+  settings.usageData = true
+  analytics.settingsChanged(appSettings({ usageData: true }), appSettings({ usageData: false }))
+  analytics.ipcSucceeded('router-create', {})
+  assert.equal(sink.resumed, 1)
+  assert.equal(sink.captured.at(-1).event, 'thread_created')
 })
 
-test('tracked IPC calls become events without their payloads', async () => {
-  const { analytics, events } = harness()
+test('tracked IPC calls become events without their payloads', () => {
+  const { analytics, sink, events } = harness()
   analytics.start()
   analytics.ipcSucceeded('router-send', { text: 'secret message' })
   analytics.ipcSucceeded('pick-project', null)
@@ -128,20 +120,14 @@ test('tracked IPC calls become events without their payloads', async () => {
   analytics.ipcSucceeded('connect-claude', { status: 'error' })
   analytics.ipcSucceeded('connect-claude', { status: 'ready' })
   analytics.ipcSucceeded('memory-list', {})
-  await analytics.flush()
-  const tracked = events().slice(2)
-  assert.deepEqual(
-    tracked.map((event) => event.event),
-    ['message_sent', 'project_added', 'agent_connected']
-  )
-  assert.equal(tracked[1].properties.method, 'pick')
-  assert.equal(tracked[2].properties.agent, 'claude-code')
-  const sent = JSON.stringify(events())
-  assert.doesNotMatch(sent, /secret/)
+  assert.deepEqual(events().slice(2), ['message_sent', 'project_added', 'agent_connected'])
+  assert.equal(sink.captured[3].properties.method, 'pick')
+  assert.equal(sink.captured[4].properties.agent, 'claude-code')
+  assert.doesNotMatch(JSON.stringify(sink.captured), /secret/)
 })
 
-test('workers count once, and only when dispatched after launch', async () => {
-  const { analytics, events } = harness()
+test('workers count once, and only when dispatched after launch', () => {
+  const { analytics, sink } = harness()
   analytics.start()
   const worker = (id, createdAt) => ({
     type: 'worker',
@@ -150,94 +136,111 @@ test('workers count once, and only when dispatched after launch', async () => {
   analytics.observe(worker('old', '2026-11-16T08:00:00.000Z'))
   analytics.observe(worker('new', NOW.toISOString()))
   analytics.observe(worker('new', NOW.toISOString()))
-  await analytics.flush()
-  const started = events().filter((event) => event.event === 'worker_started')
+  const started = sink.captured.filter((message) => message.event === 'worker_started')
   assert.equal(started.length, 1)
   assert.equal(started[0].properties.agent, 'cursor')
   assert.equal(started[0].properties.in_project, false)
   assert.doesNotMatch(JSON.stringify(started), /private goal/)
 })
 
-test('finishing onboarding is recorded with how it ended', async () => {
-  const { analytics, events } = harness()
+test('finishing onboarding is recorded with how it ended', () => {
+  const { analytics, sink } = harness()
   analytics.start()
   analytics.settingsChanged(appSettings({ onboarding: 'skipped' }), appSettings())
   analytics.settingsChanged(
     appSettings({ onboarding: 'done' }),
     appSettings({ onboarding: 'skipped' })
   )
-  await analytics.flush()
-  const finished = events().filter((event) => event.event === 'onboarding_finished')
+  const finished = sink.captured.filter((message) => message.event === 'onboarding_finished')
   assert.deepEqual(
-    finished.map((event) => event.properties.result),
+    finished.map((message) => message.properties.result),
     ['skipped']
   )
 })
 
-test('flags are read once, and each flag reports its exposure once', async () => {
-  const { analytics, requests, events } = harness({
-    reply: (url) =>
-      url.includes('/flags')
-        ? {
-            ok: true,
-            body: {
-              flags: {
-                'new-onboarding': { key: 'new-onboarding', enabled: true, variant: 'test' },
-                'dark-launch': { key: 'dark-launch', enabled: false, variant: null }
-              }
-            }
-          }
-        : { ok: true, body: {} }
-  })
+test('flags are read once per launch and unknown flags are null', async () => {
+  const { analytics, sink } = harness({ flags: { 'new-onboarding': 'test', dark: false } })
   analytics.start()
   assert.equal(await analytics.flag('new-onboarding'), 'test')
-  assert.equal(await analytics.flag('new-onboarding'), 'test')
-  assert.equal(await analytics.flag('dark-launch'), false)
+  assert.equal(await analytics.flag('dark'), false)
   assert.equal(await analytics.flag('missing'), null)
-  const flagRequests = requests.filter((request) => request.url.includes('/flags'))
-  assert.equal(flagRequests.length, 1)
-  assert.equal(flagRequests[0].url, 'https://posthog.example/flags?v=2')
-  await analytics.flush()
-  const exposures = events().filter((event) => event.event === '$feature_flag_called')
-  assert.deepEqual(
-    exposures.map((event) => [
-      event.properties.$feature_flag,
-      event.properties.$feature_flag_response
-    ]),
-    [
-      ['new-onboarding', 'test'],
-      ['dark-launch', false],
-      ['missing', null]
-    ]
-  )
+  assert.equal(sink.flagReads, 1)
 })
 
-test('an unreachable PostHog keeps events queued for the next flush', async () => {
+test('an unreachable PostHog leaves flags null and tries again on the next read', async () => {
   let online = false
-  const { analytics, client, events } = harness({
-    reply: () => {
-      if (!online) throw new Error('offline')
-      return { ok: true, body: {} }
+  const { analytics, sink } = harness({ flags: () => (online ? { a: 'b' } : null) })
+  analytics.start()
+  assert.equal(await analytics.flag('a'), null)
+  online = true
+  assert.equal(await analytics.flag('a'), 'b')
+  assert.equal(sink.flagReads, 2)
+})
+
+test('closing shuts the SDK down once and stops capturing', async () => {
+  const { analytics, sink } = harness()
+  analytics.start()
+  await analytics.close(1500)
+  await analytics.close(1500)
+  analytics.ipcSucceeded('router-send', {})
+  assert.deepEqual(sink.shutdowns, [1500])
+  assert.equal(sink.captured.length, 2)
+})
+
+test('the PostHog SDK sends events and flag exposure to the configured host', async () => {
+  const requests = []
+  const flagsBody = {
+    flags: {
+      'new-onboarding': {
+        key: 'new-onboarding',
+        enabled: true,
+        variant: 'test',
+        reason: { code: 'condition_match' },
+        metadata: { id: 1, version: 1 }
+      }
     }
+  }
+  const fetch = async (url, options) => {
+    requests.push({ url, body: typeof options.body === 'string' ? JSON.parse(options.body) : null })
+    const json = url.includes('/flags') ? flagsBody : { status: 1 }
+    return {
+      status: 200,
+      text: async () => JSON.stringify(json),
+      json: async () => json,
+      headers: { get: () => null }
+    }
+  }
+  const analytics = new Analytics({
+    sink: posthogSink(
+      { key: 'phc_test', host: 'https://posthog.example' },
+      { fetch, disableCompression: true, fetchRetryCount: 0 }
+    ),
+    settings: () => ({ usageData: true, language: 'zh-CN', connectedAgents: [] }),
+    loadIdentity: () => ({ distinctId: INSTALL_ID, firstSeenAt: NOW.toISOString() }),
+    saveIdentity: () => {},
+    context: { appVersion: '2026.11.1700', os: 'macOS', osVersion: '15.1', arch: 'arm64' }
   })
   analytics.start()
-  await analytics.flush()
-  assert.equal(client.pending, 2)
-  assert.equal(await analytics.flag('new-onboarding'), null)
-  online = true
-  await analytics.flush()
-  assert.equal(client.pending, 0)
-  assert.deepEqual(
-    events().map((event) => event.event),
-    ['app_installed', 'app_opened', '$feature_flag_called']
-  )
-})
+  analytics.ipcSucceeded('router-send', { text: 'secret message' })
+  assert.equal(await analytics.flag('new-onboarding'), 'test')
+  await analytics.close(5000)
 
-test('flag replies parse both the v2 and the older shape', () => {
-  assert.deepEqual(
-    parseFlags({ flags: { a: { enabled: true, variant: 'b' }, c: { enabled: true }, d: {} } }),
-    { a: 'b', c: true }
-  )
-  assert.deepEqual(parseFlags({ featureFlags: { a: 'b', c: false, d: 3 } }), { a: 'b', c: false })
-  assert.equal(parseFlags('nope'), null)
+  assert.ok(requests.length > 0)
+  assert.ok(requests.every((request) => request.url.startsWith('https://posthog.example/')))
+  const batches = requests.filter((request) => request.url.includes('/batch'))
+  assert.ok(batches.every((request) => request.body.api_key === 'phc_test'))
+  const events = batches.flatMap((request) => request.body.batch)
+  assert.deepEqual(events.map((event) => event.event).sort(), [
+    '$feature_flag_called',
+    'app_opened',
+    'message_sent'
+  ])
+  assert.ok(events.every((event) => event.distinct_id === INSTALL_ID))
+  const exposure = events.find((event) => event.event === '$feature_flag_called')
+  assert.equal(exposure.properties.$feature_flag, 'new-onboarding')
+  assert.equal(exposure.properties.$feature_flag_response, 'test')
+  const opened = events.find((event) => event.event === 'app_opened')
+  assert.equal(opened.properties.language, 'zh-CN')
+  assert.equal(opened.properties.release_channel, 'stable')
+  assert.doesNotMatch(JSON.stringify(events), /secret/)
 })

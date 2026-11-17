@@ -8,7 +8,7 @@ import type { UpdateSnapshot } from '../../shared/updates.js'
 import type { UsageEntry } from '../../shared/usage-stats.js'
 import { analyticsBuildConfig } from '../analytics/build-config.js'
 import { loadIdentity, saveIdentity } from '../analytics/identity.js'
-import { PostHogClient } from '../analytics/posthog.js'
+import { posthogSink } from '../analytics/posthog.js'
 import { Analytics } from '../analytics/service.js'
 import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
@@ -223,7 +223,7 @@ void app
     if (analyticsConfig) {
       const identityPath = analyticsIdentityPath(root)
       analytics = new Analytics({
-        client: new PostHogClient(analyticsConfig),
+        sink: posthogSink(analyticsConfig),
         settings: () => store.settings(),
         loadIdentity: () => loadIdentity(identityPath),
         saveIdentity: (identity) => saveIdentity(identityPath, identity),
@@ -483,7 +483,7 @@ app.on('before-quit', (event) => {
   })
 })
 app.on('will-quit', (event) => {
-  if (analytics?.pending() && !analyticsFlushed) {
+  if (analytics && !analyticsFlushed) {
     analyticsFlushed = true
     event.preventDefault()
     void analytics.close(ANALYTICS_QUIT_TIMEOUT_MS).finally(() => app.quit())

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { FeatureFlagKey, FeatureFlagValue } from '../../shared/analytics.js'
 import type { AppEvent, AppSettings } from '../../shared/app.js'
-import type { EventProperties, PostHogClient } from './posthog.js'
+import type { AnalyticsSink, EventProperties, FlagSnapshot } from './posthog.js'
 
 /**
  * Every event Owlto sends. Properties are counts, flags, and enum values only: never message
@@ -20,7 +20,6 @@ export type AnalyticsEvent =
   | 'automation_saved'
   | 'note_saved'
   | 'feedback_sent'
-  | '$feature_flag_called'
 
 /** What successful IPC calls count as, by channel. Unlisted channels send nothing. */
 const IPC_EVENTS: Record<
@@ -44,16 +43,13 @@ const CONNECT_CHANNELS: Record<string, string> = {
   'connect-claude': 'claude-code',
   'connect-cursor': 'cursor'
 }
-/** Queued events go out on this beat, and at once when the queue reaches `FLUSH_AT`. */
-const FLUSH_INTERVAL_MS = 30_000
-const FLUSH_AT = 20
 /** Flags are read once per launch and again after this long. */
 const FLAGS_TTL_MS = 60 * 60_000
 
 /** The anonymous install id, kept in the data root; it is not tied to any account. */
 export type AnalyticsIdentity = { distinctId: string; firstSeenAt: string }
 export type AnalyticsDeps = {
-  client: PostHogClient
+  sink: AnalyticsSink
   settings: () => Pick<AppSettings, 'usageData' | 'language' | 'connectedAgents'>
   /** Reads the saved identity; null when there is none yet or it is unreadable. */
   loadIdentity: () => AnalyticsIdentity | null
@@ -61,61 +57,48 @@ export type AnalyticsDeps = {
   /** Sent with every event: app version, OS, and architecture. */
   context: { appVersion: string; os: string; osVersion: string; arch: string }
   now?: () => Date
-  /** Starts the periodic flush; returns its stop function. Tests pass a fake. */
-  every?: (run: () => void, ms: number) => () => void
-}
-
-const every = (run: () => void, ms: number): (() => void) => {
-  const timer = setInterval(run, ms)
-  timer.unref()
-  return () => clearInterval(timer)
 }
 
 /**
  * Anonymous install and usage analytics with PostHog feature flags for A/B tests. It exists
  * only in builds that carry a PostHog key, and sends nothing while the user has usage data off.
+ * The PostHog SDK batches, retries, and reports flag exposure; this class decides what to send.
  */
 export class Analytics {
   private identity: AnalyticsIdentity | null = null
-  private stopTimer: (() => void) | null = null
   private readonly startedAt: Date
   /** Workers already seen, so a worker counts as started once. */
   private readonly workers = new Set<string>()
-  private flagValues: { values: Record<string, FeatureFlagValue>; at: number } | null = null
-  private flagRead: Promise<Record<string, FeatureFlagValue>> | null = null
-  /** Flags whose exposure was already reported this launch. */
-  private readonly exposed = new Set<string>()
+  private flagSnapshot: { flags: FlagSnapshot; at: number } | null = null
+  private flagRead: Promise<FlagSnapshot | null> | null = null
+  private closed = false
   constructor(private readonly deps: AnalyticsDeps) {
     this.startedAt = this.now()
   }
   /** Records the launch, and the install on the first launch. */
   start(): void {
-    if (!this.enabled()) return
+    if (!this.enabled()) {
+      void this.deps.sink.pause()
+      return
+    }
     this.begin()
     this.capture('app_opened', {
       connected_agents: [...this.deps.settings().connectedAgents].sort().join(',')
     })
   }
   private begin(): void {
-    if (!this.identity) {
-      const saved = this.deps.loadIdentity()
-      if (saved) this.identity = saved
-      else {
-        this.identity = { distinctId: randomUUID(), firstSeenAt: this.now().toISOString() }
-        this.deps.saveIdentity(this.identity)
-        this.capture('app_installed')
-      }
+    if (this.identity) return
+    const saved = this.deps.loadIdentity()
+    if (saved) {
+      this.identity = saved
+      return
     }
-    this.stopTimer ??= (this.deps.every ?? every)(() => void this.flush(), FLUSH_INTERVAL_MS)
-  }
-  private stop(): void {
-    this.stopTimer?.()
-    this.stopTimer = null
-    this.deps.client.clear()
-    this.flagValues = null
+    this.identity = { distinctId: randomUUID(), firstSeenAt: this.now().toISOString() }
+    this.deps.saveIdentity(this.identity)
+    this.capture('app_installed')
   }
   private enabled(): boolean {
-    return this.deps.settings().usageData
+    return !this.closed && this.deps.settings().usageData
   }
   private now(): Date {
     return this.deps.now?.() ?? new Date()
@@ -123,12 +106,12 @@ export class Analytics {
   capture(event: AnalyticsEvent, properties: EventProperties = {}): void {
     if (!this.enabled() || !this.identity) return
     const { context } = this.deps
-    this.deps.client.enqueue({
+    this.deps.sink.capture({
+      distinctId: this.identity.distinctId,
       event,
-      timestamp: this.now().toISOString(),
+      timestamp: this.now(),
       properties: {
         ...properties,
-        $lib: 'owlto-desktop',
         $app_version: context.appVersion,
         $os: context.os,
         $os_version: context.osVersion,
@@ -137,15 +120,6 @@ export class Analytics {
         language: this.deps.settings().language
       }
     })
-    if (this.deps.client.pending >= FLUSH_AT) void this.flush()
-  }
-  flush(timeoutMs?: number): Promise<void> {
-    if (!this.identity || !this.enabled()) return Promise.resolve()
-    return this.deps.client.flush(this.identity.distinctId, timeoutMs)
-  }
-  /** Whether events are still waiting to go out, so quitting can send them first. */
-  pending(): boolean {
-    return this.enabled() && this.deps.client.pending > 0
   }
   /** Counts a successful IPC call when its channel is one Owlto tracks. */
   ipcSucceeded(channel: string, value: unknown): void {
@@ -172,65 +146,53 @@ export class Analytics {
   }
   settingsChanged(saved: AppSettings, previous: AppSettings): void {
     if (saved.usageData !== previous.usageData) {
-      if (saved.usageData) this.begin()
-      else this.stop()
+      if (saved.usageData) {
+        void this.deps.sink.resume()
+        this.begin()
+      } else {
+        void this.deps.sink.pause()
+        this.flagSnapshot = null
+      }
     }
     if (previous.onboarding === 'pending' && saved.onboarding !== 'pending')
       this.capture('onboarding_finished', { result: saved.onboarding })
   }
   /**
-   * A feature flag's value for this install, for A/B tests. The first read of each flag per
-   * launch reports the exposure PostHog experiments count. Null while usage data is off.
+   * A feature flag's value for this install, for A/B tests. The SDK reports the first read of
+   * each flag as the exposure PostHog experiments count. Null while usage data is off.
    */
   async flag(key: FeatureFlagKey): Promise<FeatureFlagValue> {
     if (!this.enabled()) return null
     this.begin()
-    const values = await this.readFlags()
-    const value = values[key] ?? null
-    if (!this.exposed.has(key)) {
-      this.exposed.add(key)
-      this.capture('$feature_flag_called', {
-        $feature_flag: key,
-        $feature_flag_response: value
-      })
-    }
-    return value
+    const flags = await this.readFlags()
+    return flags?.get(key) ?? null
   }
-  private readFlags(): Promise<Record<string, FeatureFlagValue>> {
-    const cached = this.flagValues
+  private readFlags(): Promise<FlagSnapshot | null> {
+    const cached = this.flagSnapshot
     if (cached && this.now().getTime() - cached.at < FLAGS_TTL_MS)
-      return Promise.resolve(cached.values)
-    if (!this.flagRead) {
-      const identity = this.identity
-      if (!identity) return Promise.resolve({})
-      this.flagRead = this.deps.client
-        .flags(identity.distinctId, {
-          $app_version: this.deps.context.appVersion,
-          language: this.deps.settings().language
-        })
-        .then((values) => {
-          // An unreachable PostHog keeps the last values, or none, until the next read.
-          if (values) this.flagValues = { values, at: this.now().getTime() }
-          return values ?? cached?.values ?? {}
-        })
-        .finally(() => {
-          this.flagRead = null
-        })
-    }
+      return Promise.resolve(cached.flags)
+    const identity = this.identity
+    if (!identity) return Promise.resolve(null)
+    this.flagRead ??= this.deps.sink
+      .flags(identity.distinctId, {
+        $app_version: this.deps.context.appVersion,
+        language: this.deps.settings().language
+      })
+      .then((flags) => {
+        // An unreachable PostHog keeps the last values, or none, until the next read.
+        if (flags) this.flagSnapshot = { flags, at: this.now().getTime() }
+        return flags ?? cached?.flags ?? null
+      })
+      .finally(() => {
+        this.flagRead = null
+      })
     return this.flagRead
   }
-  /** Sends what is queued, waiting at most `timeoutMs`, and stops the flush timer. */
+  /** Sends what is queued, waiting at most `timeoutMs`; nothing is sent after. */
   async close(timeoutMs: number): Promise<void> {
-    this.stopTimer?.()
-    this.stopTimer = null
-    let timeout: NodeJS.Timeout | undefined
-    await Promise.race([
-      this.flush(timeoutMs),
-      new Promise<void>((resolve) => {
-        timeout = setTimeout(resolve, timeoutMs)
-      })
-    ])
-    clearTimeout(timeout)
+    if (this.closed) return
+    this.closed = true
+    await this.deps.sink.shutdown(timeoutMs).catch(() => undefined)
   }
 }
 

@@ -241,14 +241,16 @@ PostHog; no other build does.
 
 - **Build-time only.** `electron.vite.config.ts` compiles `OWLTO_POSTHOG_KEY`
   into the main process only for a release build (`OWLTO_BUILD_MODE=release`).
-  Dev (`pnpm dev`), debug, and keyless builds compile an empty key, so the
-  analytics code is dropped from the desktop entry and nothing is sent. The app
-  never reads these variables at runtime.
+  Dev (`pnpm dev`), debug, and keyless builds still ship the `posthog-node`
+  package but compile an empty key, so the client is never created and nothing
+  is sent. The app never reads these variables at runtime.
 - **Host.** The optional `OWLTO_POSTHOG_HOST` repository variable picks the
   PostHog ingestion host (for example `https://eu.i.posthog.com`); it defaults to
   `https://us.i.posthog.com`.
-- **Client.** `src/main/analytics/` talks to PostHog's HTTP API (`/batch/` and
-  `/flags?v=2`) directly, with no SDK dependency. The anonymous install id lives
+- **Client.** `src/main/analytics/` uses the PostHog Node SDK (`posthog-node`)
+  behind a small `AnalyticsSink` adapter (`posthog.ts`). The SDK batches (20
+  events or 30 seconds), retries, and reports flag exposure; queued events are
+  flushed on quit and before an update installs. The anonymous install id lives
   in `analytics.json` in the data root.
 - **Events.** `app_installed`, `app_opened`, `onboarding_finished`,
   `thread_created`, `message_sent`, `message_forwarded`, `worker_started`,
@@ -258,13 +260,13 @@ PostHog; no other build does.
   names; add new events to the closed `AnalyticsEvent` union and the IPC table in
   `src/main/analytics/service.ts`.
 - **Opt-out.** Settings → Updates shows "Share anonymous usage data" only in
-  builds with analytics. Turning it off drops queued events and stops all
-  requests, including flag reads.
+  builds with analytics. Turning it off opts the SDK out, so no new events or
+  flag reads are sent.
 - **A/B tests.** Create a multivariate feature flag or experiment in PostHog,
   then read it with `useFeatureFlag('<key>')` in the renderer
   (`src/renderer/src/lib/feature-flags.ts`) or `analytics.flag('<key>')` in main.
-  The first read per launch sends `$feature_flag_called`, which PostHog
-  experiments count as exposure. Null means control: no analytics, usage data
+  The SDK sends `$feature_flag_called` on the first read of each flag, which
+  PostHog experiments count as exposure. Null means control: no analytics, usage data
   off, or PostHog unreachable.
 
 ## Automatic Updates
