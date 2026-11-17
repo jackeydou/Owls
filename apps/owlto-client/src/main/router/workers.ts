@@ -254,7 +254,11 @@ export class WorkerPool implements TurnProfiles {
     const { input, seen } = request
     const settings = this.host.settings()
     const project = this.projectFor(request.defaultProjectId, input)
-    const { provider, permission, ...selection } = chooseAgent(
+    const {
+      provider,
+      permission: configured,
+      ...selection
+    } = chooseAgent(
       { ...input, selection: request.selection },
       {
         project: project?.settings?.agents ?? null,
@@ -263,11 +267,13 @@ export class WorkerPool implements TurnProfiles {
         models: (p) => this.host.agentModels(p)
       }
     )
-    if (PERMISSION_RANK[permission] > PERMISSION_RANK[settings.router.maxPermission])
-      throw new RouterToolError(
-        'permission_not_allowed',
-        `The Router may grant at most ${settings.router.maxPermission}.`
-      )
+    const max = settings.router.maxPermission
+    const above = PERMISSION_RANK[configured] > PERMISSION_RANK[max]
+    // An access level the Router asked for must fit the cap. One that comes from the
+    // agent's own setting (Cursor defaults to full access) is lowered to the cap instead.
+    if (above && input.permission)
+      throw new RouterToolError('permission_not_allowed', `The Router may grant at most ${max}.`)
+    const permission = above ? max : configured
     const key = createHash('sha256')
       .update(project?.id ?? '')
       .update('\0')
