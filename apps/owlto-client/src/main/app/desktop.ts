@@ -6,6 +6,10 @@ import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
 import type { UsageEntry } from '../../shared/usage-stats.js'
+import { analyticsBuildConfig } from '../analytics/build-config.js'
+import { loadIdentity, saveIdentity } from '../analytics/identity.js'
+import { posthogSink } from '../analytics/posthog.js'
+import { Analytics } from '../analytics/service.js'
 import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
 import { AutomationStore } from '../automations/store.js'
@@ -25,6 +29,7 @@ import { MemoryStore } from '../memory/store.js'
 import { MemorySweeper } from '../memory/sweep.js'
 import { DreamingTriggers } from '../memory/triggers.js'
 import {
+  analyticsIdentityPath,
   attachmentsHome,
   getDataRoot,
   memoryDreamingHome,
@@ -79,6 +84,12 @@ let triggers: DreamingTriggers | null = null
 let updater: AppUpdater | null = null
 /** Notifies the user when a worker waits on them while Owlto is in the background. */
 let attention: WorkerAttention | null = null
+/** Anonymous usage analytics; null in every build but a release build with a PostHog key. */
+let analytics: Analytics | null = null
+/** Quitting waits once for queued analytics events, then quits for real. */
+let analyticsFlushed = false
+/** How long quitting waits for queued analytics events. */
+const ANALYTICS_QUIT_TIMEOUT_MS = 1500
 /** The Router's own Codex app-server; started only when the Codex engine runs. */
 const codexRouter = new CodexRouterServer()
 let quitApproved = false
@@ -98,6 +109,7 @@ function emit(event: AppEvent): void {
   router?.observe(event)
   triggers?.observe(event)
   attention?.observe(event)
+  analytics?.observe(event)
   if (window && !window.isDestroyed()) window.webContents.send('owlto:event', event)
 }
 function memoryChanged(): void {
@@ -207,6 +219,22 @@ void app
     const root = getDataRoot()
     mkdirSync(root, { recursive: true })
     const store = new OwltoStore(join(root, 'owlto.db'), migrationsFolder())
+    const analyticsConfig = analyticsBuildConfig()
+    if (analyticsConfig) {
+      const identityPath = analyticsIdentityPath(root)
+      analytics = new Analytics({
+        sink: posthogSink(analyticsConfig),
+        settings: () => store.settings(),
+        loadIdentity: () => loadIdentity(identityPath),
+        saveIdentity: (identity) => saveIdentity(identityPath, identity),
+        context: {
+          appVersion: app.getVersion(),
+          os: SYSTEM_NAMES[process.platform] ?? process.platform,
+          osVersion: process.getSystemVersion(),
+          arch: process.arch
+        }
+      })
+    }
     const claude = new ClaudeService(store, emit, { query, createSdkMcpServer })
     service = new OwltoHost(
       new CodexService(store, emit),
@@ -390,6 +418,9 @@ void app
       approveQuit: async () => {
         if (service?.hasActiveTasks() && !(await askToStopTasks())) return false
         quitApproved = true
+        // Squirrel installs on quit, so queued events go out here instead of delaying will-quit.
+        analyticsFlushed = true
+        await analytics?.close(ANALYTICS_QUIT_TIMEOUT_MS)
         return true
       }
     })
@@ -407,15 +438,18 @@ void app
       (saved, previous) => {
         if (saved.requestNotifications !== previous.requestNotifications)
           attention?.settingsChanged()
+        analytics?.settingsChanged(saved, previous)
         if (
           saved.language !== previous.language ||
           saved.pullRequestsVisible !== previous.pullRequestsVisible
         )
           applyAppMenu(saved, menu)
-      }
+      },
+      analytics
     )
     applyAppMenu(store.settings(), menu)
     createWindow()
+    analytics?.start()
     updater.start()
     // Agent CLIs and the commands they run inherit PATH, so they start after the shell's is in.
     void shellPath.then(() => service?.connectAtStartup())
@@ -448,7 +482,14 @@ app.on('before-quit', (event) => {
     }
   })
 })
-app.on('will-quit', () => {
+app.on('will-quit', (event) => {
+  if (analytics && !analyticsFlushed) {
+    analyticsFlushed = true
+    event.preventDefault()
+    void analytics.close(ANALYTICS_QUIT_TIMEOUT_MS).finally(() => app.quit())
+    return
+  }
+  analytics = null
   updater?.dispose()
   updater = null
   attention?.close()

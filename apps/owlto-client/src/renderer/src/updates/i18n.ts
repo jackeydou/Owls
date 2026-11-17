@@ -28,7 +28,10 @@ export const updatesEn = {
   'updates.popup.body': 'Owlto {{version}} has been downloaded. Restart to finish updating.',
   'updates.popup.update': 'Update',
   'updates.popup.later': 'Later',
-  'updates.popup.dismiss': 'Hide update notice'
+  'updates.popup.dismiss': 'Hide update notice',
+  'updates.usageData': 'Share anonymous usage data',
+  'updates.usageDataBody':
+    'Counts installs, launches, and which features get used, to help improve Owlto. Never includes your messages, code, files, or project names.'
 }
 
 export const updatesZh: Record<keyof typeof updatesEn, string> = {
@@ -60,5 +63,8 @@ export const updatesZh: Record<keyof typeof updatesEn, string> = {
   'updates.popup.body': 'Owlto {{version}} 已下载完成，重启后完成更新。',
   'updates.popup.update': '更新',
   'updates.popup.later': '稍后',
-  'updates.popup.dismiss': '隐藏更新提示'
+  'updates.popup.dismiss': '隐藏更新提示',
+  'updates.usageData': '发送匿名使用数据',
+  'updates.usageDataBody':
+    '统计安装、启动和功能使用情况，帮助改进 Owlto。不包含你的消息、代码、文件或项目名称。'
 }

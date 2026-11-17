@@ -22,6 +22,8 @@ export {
   WORKSPACE_ID,
   workerHome
 } from '../../shared/workspace.js'
+export { posthogSink } from '../analytics/posthog.js'
+export { Analytics } from '../analytics/service.js'
 export { PullRequestWatcher, pullRequestChanges } from '../automations/pull-request-events.js'
 export { AutomationService } from '../automations/service.js'
 export { AutomationStore } from '../automations/store.js'

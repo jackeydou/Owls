@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } from 'electron'
 import { z } from 'zod'
+import { featureFlagKeySchema } from '../../shared/analytics.js'
 import {
   type AppSettings,
   providerSchema,
@@ -50,6 +51,7 @@ import {
   workerArtifactActionSchema
 } from '../../shared/router.js'
 import { usageStatsRequestSchema } from '../../shared/usage-stats.js'
+import type { Analytics } from '../analytics/service.js'
 import type { AppUpdater } from '../updates/updater.js'
 import { macAppIcon } from './app-icon.js'
 import { applyAppLogo } from './app-logo.js'
@@ -68,7 +70,9 @@ export function registerIpc(
   host: OwltoHost,
   getWindow: () => BrowserWindow | null,
   updates: Pick<AppUpdater, 'snapshot' | 'check' | 'install' | 'channelChanged'>,
-  settingsSaved: (settings: AppSettings, previous: AppSettings) => void
+  settingsSaved: (settings: AppSettings, previous: AppSettings) => void,
+  /** Null in builds without analytics. */
+  analytics: Pick<Analytics, 'flag' | 'ipcSucceeded'> | null
 ): void {
   let lastProjectParent = app.getPath('home')
   const openIn = new OpenInApps(nodeOpenInPlatform(macAppIcon))
@@ -85,7 +89,9 @@ export function registerIpc(
           return { ok: false, error: { code: 'invalid_request', message: '' } }
         }
         try {
-          return { ok: true, value: await action(input) }
+          const value = await action(input)
+          analytics?.ipcSucceeded(channel, value)
+          return { ok: true, value }
         } catch (error) {
           return {
             ok: false,
@@ -114,6 +120,10 @@ export function registerIpc(
   })
   handle('profile', (input) => host.saveProfile(input))
   handle('profile-github-avatar', () => host.applyGitHubAvatar())
+  handle('feature-flag', (input) => {
+    const key = featureFlagKeySchema.parse(input)
+    return analytics ? analytics.flag(key) : null
+  })
   handle('respond', (input) => host.respond(respondSchema.parse(input)))
   handle('router-create', (input) => host.createThread(createThreadSchema.parse(input)))
   handle('router-items', (input) => host.threadItems(threadItemsSchema.parse(input)))

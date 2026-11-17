@@ -1,0 +1,1 @@
+- Analytics: release builds send anonymous usage data (installs, launches, feature use, never your messages, code, or files) to PostHog and can read feature flags for A/B tests. Turn it off in Settings → Updates. Dev and local builds send nothing.

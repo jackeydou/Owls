@@ -114,8 +114,14 @@ jobs:
           # Preserve the hard limit so the packaging hook can size the soft limit to the bundle.
           ulimit -S -n 65536
           echo "Open-file limit: $(ulimit -n)"
+          if [[ -z "${OWLTO_POSTHOG_KEY:-}" ]]; then
+            echo "::warning::OWLTO_POSTHOG_KEY is not set, so this build ships without usage analytics."
+          fi
           pnpm --dir apps/owlto-client run build:mac
         env:
+          # Usage analytics are compiled in only here; dev, debug, and local builds have none.
+          OWLTO_POSTHOG_KEY: ${{ secrets.OWLTO_POSTHOG_KEY }}
+          OWLTO_POSTHOG_HOST: ${{ vars.OWLTO_POSTHOG_HOST }}
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
           APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
