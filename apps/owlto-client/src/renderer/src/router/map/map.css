@@ -311,26 +311,6 @@
   align-items: center;
   gap: 6px;
 }
-.map-enter {
-  position: absolute;
-  right: 8px;
-  bottom: -11px;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: var(--owl-c);
-  color: var(--color-card);
-  font-size: 11px;
-  opacity: 0;
-}
-.map-node.project:hover .map-enter,
-.map-node.project:focus-within .map-enter,
-.map-node.project[aria-selected="true"] .map-enter {
-  opacity: 1;
-}
 .map-node.worker {
   display: flex;
   flex-direction: column;
