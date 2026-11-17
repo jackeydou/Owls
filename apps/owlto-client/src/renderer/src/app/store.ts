@@ -267,7 +267,7 @@ export const useAppStore = create<State>((set, get) => {
       requestNotifications: true,
       workspacePath: null,
       workspaceDismissed: [],
-      disconnectedAgents: [],
+      connectedAgents: [],
       openInApp: null,
       profile: defaultProfile,
       onboarding: 'pending'

@@ -1,0 +1,1 @@
+- Agents: Owlto no longer connects coding agents on its own. It detects which agent CLIs are installed, shows Not detected for missing ones, and connects only the agents you choose; startup reconnects only those. Existing installs keep the agents they had.

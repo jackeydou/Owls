@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider, CodexConnection, Failure } from '../../../shared/app'
 import { AgentIcon } from '../router/AgentIcon'
+import { useAgentPresence, useDetectAgents, useDetectedPath } from './agent-detection'
 import { failureMessage, uiFailure } from './failures'
 import { SettingRow } from './SettingRow'
 import { SettingsTabs } from './SettingsTabs'
@@ -18,11 +19,14 @@ function ConnectionButton({
   provider,
   status,
   running,
+  missing,
   onConnect
 }: {
   provider: AgentProvider
   status: CodexConnection['status']
   running: boolean
+  /** Its CLI was not found: connecting would only fail, so Browse is the way forward. */
+  missing: boolean
   onConnect(): void
 }) {
   const { t } = useTranslation()
@@ -40,10 +44,26 @@ function ConnectionButton({
     )
   const busy = status === 'connecting'
   return (
-    <Button size="sm" disabled={running} pending={busy} onClick={onConnect}>
+    <Button size="sm" disabled={running || missing} pending={busy} onClick={onConnect}>
       {busy ? t('agentConnecting') : status === 'error' ? t('agentReconnect') : t('agentConnect')}
     </Button>
   )
+}
+
+/**
+ * What the account and Location rows show before connecting: whether the CLI is on this
+ * Mac, and where. Nothing connects until the user presses Connect.
+ */
+function useDetectedRow(provider: AgentProvider, explicit: string | null, live: string | null) {
+  const { t } = useTranslation()
+  const presence = useAgentPresence(provider)
+  const detected = useDetectedPath(provider)
+  const missing = presence === 'missing'
+  return {
+    missing,
+    notConnected: missing ? t('agentNotDetected') : t('notConnected'),
+    path: live ?? explicit ?? detected ?? (missing ? t('agentNotDetected') : t('autoDetect'))
+  }
 }
 
 /** "Plan · Max" under the account, when the agent reports a plan. */
@@ -64,6 +84,7 @@ export function AgentsSettingsPane() {
   const current = useAppStore((s) => s.settingsAgent)
   const showAgentSettings = useAppStore((s) => s.showAgentSettings)
   const Pane = AGENT_PANES[current]
+  useDetectAgents()
   return (
     <section className="owlto-settings-section">
       <h2>{t('agents.title')}</h2>
@@ -128,12 +149,13 @@ function ClaudeSettingsPane() {
   const selectClaudeExecutable = useAppStore((s) => s.selectClaudeExecutable)
   const account = claude.account
   const ready = claude.status === 'ready'
+  const row = useDetectedRow('claude-code', settings.claudeExecutablePath, claude.executablePath)
   return (
     <>
       <SettingRow
         label={
           !ready
-            ? t('notConnected')
+            ? row.notConnected
             : account.kind === 'claude'
               ? (account.email ?? t('claudeAccount'))
               : account.kind === 'api-key'
@@ -150,6 +172,7 @@ function ClaudeSettingsPane() {
           provider="claude-code"
           status={claude.status}
           running={running}
+          missing={row.missing}
           onConnect={() => void connectClaude()}
         />
       </SettingRow>
@@ -159,7 +182,7 @@ function ClaudeSettingsPane() {
         </div>
       ) : null}
       <ExecutableRow
-        path={claude.executablePath ?? settings.claudeExecutablePath ?? t('autoDetect')}
+        path={row.path}
         version={claude.version}
         disabled={claude.status === 'connecting' || running}
         onBrowse={() => void selectClaudeExecutable()}
@@ -188,12 +211,13 @@ function CursorSettingsPane() {
   const selectCursorExecutable = useAppStore((s) => s.selectCursorExecutable)
   const account = cursor.account
   const ready = cursor.status === 'ready'
+  const row = useDetectedRow('cursor', settings.cursorExecutablePath, cursor.executablePath)
   return (
     <>
       <SettingRow
         label={
           !ready
-            ? t('notConnected')
+            ? row.notConnected
             : account.kind === 'cursor'
               ? (account.email ?? t('cursorAccount'))
               : account.kind === 'signed-out'
@@ -206,6 +230,7 @@ function CursorSettingsPane() {
           provider="cursor"
           status={cursor.status}
           running={running}
+          missing={row.missing}
           onConnect={() => void connectCursor()}
         />
       </SettingRow>
@@ -215,7 +240,7 @@ function CursorSettingsPane() {
         </div>
       ) : null}
       <ExecutableRow
-        path={cursor.executablePath ?? settings.cursorExecutablePath ?? t('autoDetect')}
+        path={row.path}
         version={cursor.version}
         disabled={cursor.status === 'connecting' || running}
         onBrowse={() => void selectCursorExecutable()}
@@ -246,6 +271,7 @@ function CodexSettingsPane() {
   const [loginError, setLoginError] = useState<Failure | null>(null)
   const account = connection.account
   const ready = connection.status === 'ready'
+  const row = useDetectedRow('codex', settings.executablePath, connection.executablePath)
   useEffect(() => {
     if (account.kind !== 'signed-out') setSigningIn(false)
   }, [account.kind])
@@ -268,7 +294,7 @@ function CodexSettingsPane() {
       <SettingRow
         label={
           !ready
-            ? t('notConnected')
+            ? row.notConnected
             : account.kind === 'chatgpt'
               ? (account.email ?? 'ChatGPT')
               : account.kind === 'api-key'
@@ -305,6 +331,7 @@ function CodexSettingsPane() {
             provider="codex"
             status={connection.status}
             running={running}
+            missing={row.missing}
             onConnect={() => void connect()}
           />
         </div>
@@ -315,7 +342,7 @@ function CodexSettingsPane() {
         </div>
       ) : null}
       <ExecutableRow
-        path={connection.executablePath ?? settings.executablePath ?? t('autoDetect')}
+        path={row.path}
         version={connection.version}
         disabled={connection.status === 'connecting' || running}
         onBrowse={() => void selectExecutable()}

@@ -321,10 +321,11 @@ export const settingsSchema = z.object({
    */
   workspaceDismissed: z.array(z.string()).catch([]).default([]),
   /**
-   * Agents the user disconnected, which stay disconnected at startup until they
-   * connect again; added later. Saved only through connecting and disconnecting.
+   * Agents the user connected. Only these connect at startup: Owlto never connects
+   * an agent the user did not pick. Saved only through connecting and disconnecting;
+   * rows from before it are migrated in the main-process store.
    */
-  disconnectedAgents: z.array(providerSchema).catch([]).default([]),
+  connectedAgents: z.array(providerSchema).catch([]).default([]),
   /** The app "Open in" uses; null picks the first installed editor. Added later. */
   openInApp: openInAppIdSchema.nullable().catch(null).default(null),
   /** The user's name and avatar; added later, and saved only through `saveProfile`. */
@@ -332,6 +333,18 @@ export const settingsSchema = z.object({
   /** Added later; older rows start `pending`, and a configured app retires it at once. */
   onboarding: onboardingStateSchema.catch('pending').default('pending')
 })
+/**
+ * Rows from before `connectedAgents` remembered the opposite, the agents the user
+ * disconnected, and connected every other one at startup. Those users keep the agents
+ * they had: every agent they had not disconnected. New installs start with none.
+ */
+export function migrateConnectedAgents(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || 'connectedAgents' in value) return value
+  const { disconnectedAgents, ...rest } = value as Record<string, unknown>
+  const disconnected = Array.isArray(disconnectedAgents) ? disconnectedAgents : []
+  const connectedAgents = providerSchema.options.filter((p) => !disconnected.includes(p)).sort()
+  return { ...rest, connectedAgents }
+}
 export const projectSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -346,7 +359,7 @@ export const settingsUpdateSchema = settingsSchema
     cursorExecutablePath: true,
     workspacePath: true,
     workspaceDismissed: true,
-    disconnectedAgents: true,
+    connectedAgents: true,
     profile: true
   })
   .strict()
@@ -492,6 +505,8 @@ export type CreateSession = {
 export type TurnInput = { text: string; attachments?: Attachment[]; author?: 'user' }
 export type SendMessage = { sessionId: string; commandId: string } & TurnInput
 export type RespondRequest = z.infer<typeof respondSchema>
+/** Where each agent's CLI was found on this Mac, or null when it was not found. */
+export type AgentDetection = Record<AgentProvider, { path: string | null }>
 export interface OwltoAPI {
   snapshot(): Promise<Reply<AppSnapshot>>
   connect(): Promise<Reply<CodexConnection>>
@@ -502,6 +517,8 @@ export interface OwltoAPI {
   selectCursorExecutable(): Promise<Reply<CursorConnection | null>>
   /** Disconnects one agent; it stays disconnected, across restarts, until connected again. */
   disconnectAgent(provider: AgentProvider): Promise<Reply<AgentConnection>>
+  /** Looks for each agent's CLI on this Mac without starting or connecting it. */
+  detectAgents(): Promise<Reply<AgentDetection>>
   signIn(): Promise<Reply<void>>
   cancelSignIn(): Promise<Reply<void>>
   saveSettings(settings: z.infer<typeof settingsUpdateSchema>): Promise<Reply<AppSettings>>

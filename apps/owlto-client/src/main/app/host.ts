@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import type { z } from 'zod'
 import type {
   AgentConnection,
+  AgentDetection,
   AgentProvider,
   AppSettings,
   AppSnapshot,
@@ -78,6 +79,7 @@ import type { ProjectPullRequests } from '../router/project-pull-requests.js'
 import type { RouterService, WorkerHost } from '../router/service.js'
 import type { WorkerGitHub } from '../router/worker-github.js'
 import type { UsageLedger } from '../usage/ledger.js'
+import { detectAgents } from './agent-detection.js'
 import type { AgentRuntime } from './agent-runtime.js'
 import { AttachmentStore } from './attachments.js'
 import { OwltoError } from './errors.js'
@@ -273,37 +275,50 @@ export class OwltoHost {
   }
   connect(): Promise<CodexConnection> {
     const connection = this.codex.connect()
-    this.rememberDisconnected('codex', false)
+    this.rememberConnected('codex', true)
     return connection
   }
   connectClaude(): Promise<ClaudeConnection> {
     const connection = this.claude.connect()
-    this.rememberDisconnected('claude-code', false)
+    this.rememberConnected('claude-code', true)
     return connection
   }
   connectCursor(): Promise<CursorConnection> {
     const connection = this.cursor.connect()
-    this.rememberDisconnected('cursor', false)
+    this.rememberConnected('cursor', true)
     return connection
   }
-  /** Connects every agent the user has not disconnected. */
+  /**
+   * Reconnects only the agents the user connected before; a new install connects none.
+   * Called once the login shell's PATH is in, which detection waits for too.
+   */
   connectAtStartup(): void {
-    const disconnected = new Set(this.codex.snapshot().settings.disconnectedAgents)
-    if (!disconnected.has('codex')) void this.codex.connect()
-    if (!disconnected.has('claude-code')) void this.claude.connect()
-    if (!disconnected.has('cursor')) void this.cursor.connect()
+    const connected = new Set(this.codex.snapshot().settings.connectedAgents)
+    if (connected.has('codex')) void this.codex.connect()
+    if (connected.has('claude-code')) void this.claude.connect()
+    if (connected.has('cursor')) void this.cursor.connect()
+    this.markPathReady()
+  }
+  private markPathReady: () => void = () => {}
+  private readonly pathReady = new Promise<void>((resolve) => {
+    this.markPathReady = resolve
+  })
+  /** Which agent CLIs are on this Mac, found without connecting any of them. */
+  async detectAgents(): Promise<AgentDetection> {
+    await this.pathReady
+    return detectAgents(this.codex.snapshot().settings)
   }
   disconnectAgent(provider: AgentProvider): AgentConnection {
     const connection = this.runtimes[provider].disconnect()
-    this.rememberDisconnected(provider, true)
+    this.rememberConnected(provider, false)
     return connection
   }
-  private rememberDisconnected(provider: AgentProvider, disconnected: boolean): void {
+  private rememberConnected(provider: AgentProvider, connected: boolean): void {
     const settings = this.codex.snapshot().settings
-    if (settings.disconnectedAgents.includes(provider) === disconnected) return
-    const rest = settings.disconnectedAgents.filter((p) => p !== provider)
-    const disconnectedAgents = (disconnected ? [...rest, provider] : rest).sort()
-    this.codex.saveSettings({ ...settings, disconnectedAgents })
+    if (settings.connectedAgents.includes(provider) === connected) return
+    const rest = settings.connectedAgents.filter((p) => p !== provider)
+    const connectedAgents = (connected ? [...rest, provider] : rest).sort()
+    this.codex.saveSettings({ ...settings, connectedAgents })
   }
   saveSettings(settings: AppSettings): AppSettings {
     const previous = this.codex.snapshot().settings

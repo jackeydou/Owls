@@ -1,4 +1,8 @@
-export { layoutSettingsSchema, settingsSchema } from '../../shared/app.js'
+export {
+  layoutSettingsSchema,
+  migrateConnectedAgents,
+  settingsSchema
+} from '../../shared/app.js'
 export { nextAutomationRun, scheduleFromInput } from '../../shared/automations.js'
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
 export * as feedback from '../../shared/feedback.js'
@@ -94,6 +98,7 @@ export { applyCommand } from '../sync/commands.js'
 export { SyncLog } from '../sync/sync-log.js'
 export { UsageLedger } from '../usage/ledger.js'
 export { claudeResultUsage, codexCallUsage } from '../usage/turn-usage.js'
+export { detectAgents } from './agent-detection.js'
 export { AttachmentStore, safeAttachmentName, turnText } from './attachments.js'
 export { WorkerAttention } from './attention.js'
 export { OwltoHost } from './host.js'

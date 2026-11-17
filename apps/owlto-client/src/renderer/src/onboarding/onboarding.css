@@ -632,3 +632,34 @@ fieldset.onb-engines {
 .onb-content[data-step="done"] {
   margin-block: auto;
 }
+/* An agent whose CLI is not on this Mac: no Connect, just the status and a re-check. */
+.onb-agent[data-missing] {
+  background: color-mix(in srgb, var(--color-card) 70%, transparent);
+}
+.onb-agent[data-missing] .onb-agent-head {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+.onb-missing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.onb-missing-label {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.onb-engine .onb-missing-label {
+  position: absolute;
+  top: 18px;
+  right: 40px;
+}
+.onb-engine:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.onb-engine:disabled:active {
+  transform: none;
+}
