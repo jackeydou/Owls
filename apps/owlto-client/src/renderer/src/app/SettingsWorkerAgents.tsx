@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   type AgentConfig,
   type AgentProvider,
+  agentPermissions,
   effortSchema,
   type Permission,
   providerSchema
@@ -22,7 +23,7 @@ function permissionHelp(provider: AgentProvider, permission: Permission): string
   if (permission === 'read-only') return 'readOnlyHelp'
   const full = permission === 'full-access'
   if (provider === 'claude-code') return full ? 'claudeFullAccessHelp' : 'claudePermissionHelp'
-  if (provider === 'cursor') return full ? 'cursorFullAccessHelp' : 'cursorPermissionHelp'
+  if (provider === 'cursor') return 'cursorFullAccessHelp'
   return full ? 'fullAccessHelp' : 'permissionHelp'
 }
 
@@ -115,7 +116,9 @@ function AgentConfigRows({ provider }: { provider: AgentProvider }) {
             <ChoiceSelect
               id={`${id}-permission`}
               value={config.permission}
-              choices={permissionChoices(t)}
+              choices={permissionChoices(t).filter((c) =>
+                agentPermissions(provider).includes(c.value)
+              )}
               onChange={(permission) => saveConfig({ permission })}
             />
           </SettingRow>

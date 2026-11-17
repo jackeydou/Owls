@@ -226,9 +226,10 @@ function inside(cwd: string, path: string): boolean {
 }
 
 /**
- * What Owlto does with a tool approval before asking the user. Workspace write
- * accepts reads and edits inside the session's folder and asks for commands,
- * like Claude Code's accept-edits mode; read-only also refuses edits outright.
+ * What Owlto does with a tool approval before asking the user. Settings offer
+ * Cursor only read-only and full access; workspace write remains for workers
+ * the Router dispatches at that level, and accepts reads and edits inside the
+ * session's folder and asks for commands. Read-only refuses edits outright.
  */
 export function approvalPolicy(
   permission: Permission,

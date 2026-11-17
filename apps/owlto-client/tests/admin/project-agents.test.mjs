@@ -35,3 +35,20 @@ test('picked models keep the user order and drop unchecked entries', () => {
   ])
   assert.deepEqual(agents.chosenModels(settingsWith(saved), 'cursor'), ['b', 'a'])
 })
+
+test('Cursor offers only read only and full access, and old workspace settings load as full access', () => {
+  assert.deepEqual(agents.agentPermissions('cursor'), ['read-only', 'full-access'])
+  assert.deepEqual(agents.agentPermissions('codex'), [
+    'read-only',
+    'workspace-write',
+    'full-access'
+  ])
+  assert.equal(agents.defaultAgentConfigs.cursor.permission, 'full-access')
+  const saved = {
+    ...agents.defaultAgentConfigs,
+    cursor: { model: null, effort: null, permission: 'workspace-write' }
+  }
+  const parsed = agents.agentConfigsSchema.parse(saved)
+  assert.equal(parsed.cursor.permission, 'full-access')
+  assert.equal(parsed.codex.permission, 'workspace-write')
+})

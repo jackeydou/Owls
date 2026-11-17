@@ -56,8 +56,13 @@ turn, so the Router's follow-ups queue for the next turn.
 | Owlto permission | Cursor |
 | --- | --- |
 | Read only | `ask` mode; edit approvals are refused outright |
-| Approve for me (`workspace-write`) | `agent` mode; reads and edits inside the task folder are approved, everything else asks |
+| `workspace-write` (not offered in Settings; only when the Router asks for it or caps a worker at it) | `agent` mode; reads and edits inside the task folder are approved, everything else asks |
 | Full access | `agent` mode; every approval is granted once |
+
+Settings offers Cursor only Read only and Full access, its native `ask` and
+`agent` modes: Cursor's own Auto-review classifier does not run over ACP, so
+there is no reviewer behind an "Approve for me" level. A saved Cursor setting of
+`workspace-write` loads as Full access.
 
 `session/request_permission` either answers from the policy above or becomes an
 approval card. `cursor/ask_question` becomes a question card; answers map back to
