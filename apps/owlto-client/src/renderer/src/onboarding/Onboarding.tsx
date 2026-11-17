@@ -6,7 +6,6 @@ import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type AgentProvider, providerSchema } from '../../../shared/app'
 import type { RouterEngineId } from '../../../shared/router'
-import { AppLogoMark } from '../app/AppLogo'
 import { failureMessage } from '../app/failures'
 import { type AgentSpeaker, OwlAvatar } from '../app/OwlAvatar'
 import { agentConnection, isAgentReady, useAppStore } from '../app/store'
@@ -345,10 +344,7 @@ export function Onboarding() {
       </header>
       <div className="onb-scroll">
         <section className="onb-content" key={step} data-step={step}>
-          <p className="onb-kicker">
-            <AppLogoMark />
-            {t('onboarding.kicker')}
-          </p>
+          <p className="onb-kicker">{t('onboarding.kicker')}</p>
           <Steps step={step} />
           <h1 id="onb-title" ref={heading} tabIndex={-1}>
             {t(copy.title)}

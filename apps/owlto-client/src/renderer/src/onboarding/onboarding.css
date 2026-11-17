@@ -144,20 +144,11 @@ html[data-theme="dark"] .onb-stars-b {
   }
 }
 .onb-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-.onb-kicker img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  transform: scale(1.24);
 }
 .onb-steps {
   display: flex;
