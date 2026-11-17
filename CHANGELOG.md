@@ -11,6 +11,21 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1600-beta.5
+
+### Highlights
+
+- Owlto connects only the coding agents you choose, and shows which ones are not installed.
+- The window opens maximized on first launch and remembers its size and position.
+
+### Changes
+
+- Agents: Owlto no longer connects coding agents on its own. It detects which agent CLIs are installed, shows Not detected for missing ones, and connects only the agents you choose; startup reconnects only those. Existing installs keep the agents they had. (#173)
+- Window: Owlto opens maximized on first launch and remembers its size, position, and maximized state across restarts and updates. (#174)
+- Analytics: release builds send anonymous usage data (installs, launches, feature use, never your messages, code, or files) to PostHog and can read feature flags for A/B tests. Turn it off in Settings → Updates. Dev and local builds send nothing. (#175)
+
+### Fixes
+
 ## 2026.11.1600-beta.4
 
 ### Highlights
