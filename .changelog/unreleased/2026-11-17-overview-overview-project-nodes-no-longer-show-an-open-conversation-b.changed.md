@@ -1,0 +1,1 @@
+- Overview: project nodes no longer show an Open conversation button; double-click or press Enter to open a project's conversation.

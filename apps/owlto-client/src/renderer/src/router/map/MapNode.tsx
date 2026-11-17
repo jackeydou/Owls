@@ -1,10 +1,5 @@
 import { Button } from '@renderer/components/ui/button'
-import {
-  ArrowRightIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  LoaderIcon
-} from '@renderer/components/ui/icons'
+import { ChevronDownIcon, ChevronRightIcon, LoaderIcon } from '@renderer/components/ui/icons'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapNode } from '../../../../shared/worker-map'
@@ -40,19 +35,7 @@ function routerLine(project: WorkerProject | undefined): string | null {
 function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerProject }) {
   const { t } = useTranslation()
   const dreaming = useDreaming(project?.router?.id)
-  const showChat = useAppStore((s) => s.showChat)
   const record = useAppStore((s) => s.projects.find((p) => p.id === node.projectId))
-  const enter = (
-    <button
-      type="button"
-      className="map-enter"
-      tabIndex={-1}
-      onClick={() => showChat(node.projectId)}
-    >
-      {t('map.enter')}
-      <ArrowRightIcon size={12} aria-hidden />
-    </button>
-  )
   const icon =
     node.projectId === WORKSPACE_ID ? (
       <WorkspaceIcon />
@@ -66,7 +49,6 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
           {icon}
           <strong>{project?.name}</strong>
         </span>
-        {enter}
       </>
     )
   const live = project.workers.filter((w) => w.status !== 'removed')
@@ -100,7 +82,6 @@ function ProjectBody({ node, project }: { node: ProjectNode; project?: WorkerPro
           </span>
         </span>
       )}
-      {enter}
     </>
   )
 }
