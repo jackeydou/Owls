@@ -35,7 +35,7 @@ const en = {
   agentLocation: 'Location',
   notConnected: 'Not connected',
   'permission.read-only': 'Read only',
-  'permission.workspace-write': 'Workspace access',
+  'permission.workspace-write': 'Approve for me',
   'permission.full-access': 'Full access',
   readOnlyHelp: 'Reads files only. Makes no changes.',
   permissionHelp:
@@ -214,7 +214,7 @@ const zh: Record<keyof typeof en, string> = {
   agentLocation: '位置',
   notConnected: '未连接',
   'permission.read-only': '只读',
-  'permission.workspace-write': '工作区访问',
+  'permission.workspace-write': '替我批准',
   'permission.full-access': '完全访问',
   readOnlyHelp: '只读取文件，不做任何修改。',
   permissionHelp: '可编辑项目文件，超出范围的安全操作由自动审查批准，其余先询问你。',

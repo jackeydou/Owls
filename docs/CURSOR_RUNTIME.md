@@ -56,7 +56,7 @@ turn, so the Router's follow-ups queue for the next turn.
 | Owlto permission | Cursor |
 | --- | --- |
 | Read only | `ask` mode; edit approvals are refused outright |
-| Workspace access | `agent` mode; reads and edits inside the task folder are approved, everything else asks |
+| Approve for me (`workspace-write`) | `agent` mode; reads and edits inside the task folder are approved, everything else asks |
 | Full access | `agent` mode; every approval is granted once |
 
 `session/request_permission` either answers from the policy above or becomes an

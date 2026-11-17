@@ -1,1 +1,1 @@
-- Workers: Workspace access now lets Claude Code auto mode and Codex auto-review approve safe actions, so fewer approval cards reach you.
+- Workers: Workspace access is now "Approve for me": Claude Code auto mode and Codex auto-review approve safe actions, so fewer approval cards reach you.
