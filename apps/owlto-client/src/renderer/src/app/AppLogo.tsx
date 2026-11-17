@@ -8,7 +8,6 @@ import trioCream from '../../../../resources/app-logos/trio-cream.png'
 import trioNight from '../../../../resources/app-logos/trio-night.png'
 import trioWhite from '../../../../resources/app-logos/trio-white.png'
 import type { AppLogo } from '../../../shared/app'
-import { useAppStore } from './store'
 
 export const appLogoIcons: Record<AppLogo, string> = {
   'duo-white': duoWhite,
@@ -20,9 +19,4 @@ export const appLogoIcons: Record<AppLogo, string> = {
   'trio-white': trioWhite,
   'trio-night': trioNight,
   'trio-cream': trioCream
-}
-
-export function AppLogoMark() {
-  const logo = useAppStore((s) => s.settings.appLogo)
-  return <img src={appLogoIcons[logo]} data-logo={logo} alt="" />
 }

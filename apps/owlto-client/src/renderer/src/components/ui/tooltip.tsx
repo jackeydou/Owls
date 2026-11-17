@@ -77,10 +77,6 @@ function getElementRef<T>(element: ReactElement): RefProp<T> {
   return (element.props as { ref?: RefProp<T> }).ref
 }
 
-export function TooltipProvider({ children }: { children: ReactNode }) {
-  return <>{children}</>
-}
-
 export function Tooltip({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [placement, setPlacement] = useState<Placement>('top')

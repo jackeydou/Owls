@@ -83,9 +83,6 @@ pnpm --filter owlto-client typecheck:web
 # Broad or cross-process changes
 pnpm --filter owlto-client typecheck
 
-# Plugin manifest validation
-pnpm --filter @owlto/sites-plugin test
-
 # Agent, tool, and admin behavior
 pnpm --filter owlto-client test:admin
 

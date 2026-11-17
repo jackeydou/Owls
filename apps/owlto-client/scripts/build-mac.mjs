@@ -43,9 +43,8 @@ console.log(
 )
 
 for (const command of [
-  ['pnpm', ['run', 'build:workspace-deps:with-node']],
+  ['pnpm', ['run', 'build:workspace-deps']],
   ['electron-vite', ['build']],
-  ['pnpm', ['run', 'prepare:computer-use-helper']],
   // The release workflow uploads artifacts after signature and notarization verification.
   [
     'electron-builder',

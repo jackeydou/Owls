@@ -7,7 +7,7 @@ import {
   type Permission,
   type ProjectAgents
 } from '../../shared/agents.js'
-import type { CodexModel, Effort } from '../../shared/app.js'
+import type { AgentModel, Effort } from '../../shared/app.js'
 import { RouterToolError } from './tools.js'
 
 /** What a worker runs on: the agent, its model and effort (null for the agent's own), and access. */
@@ -32,7 +32,7 @@ export type AgentChoiceContext = {
   agents: AgentConfigs
   ready(provider: AgentProvider): boolean
   /** The models the agent offers now; empty while unknown. */
-  models(provider: AgentProvider): CodexModel[]
+  models(provider: AgentProvider): AgentModel[]
 }
 
 /**

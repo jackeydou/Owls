@@ -263,11 +263,8 @@ Release MR flow:
 - Shared cross-process types: `apps/owlto-client/src/shared/`.
 - Database schema and migrations: `apps/owlto-client/src/main/app/schema.ts` and
   `apps/owlto-client/migrations/` (`owlto.db`).
-- Legacy Pi runtime (kept for reference, not built, type-checked, or tested):
-  `apps/owlto-client/legacy/`. Do not import from it or add code to it.
-- Plugin system design and implementation: `docs/PLUGIN_SYSTEM.md` and `apps/owlto-client/src/main/plugins/`.
 - Release notes: `docs/reference/RELEASING.md` and `release-notes/`.
-- Native mac helpers: `packages/mac-*`.
+- Native mac helper (raises file limits while signing): `packages/mac-process-limits`.
 - Agent app debugging: `apps/owlto-client/scripts/debug-app.mjs` and
   `.agents/skills/owlto-app-debug/SKILL.md`.
 
@@ -432,8 +429,6 @@ Release MR flow:
 
 ### Plugins, Skills, And Agents
 
-- Plugin behavior should follow `docs/PLUGIN_SYSTEM.md` and the existing
-  manifest/registry/validator boundaries.
 - Skill-loading and agent behavior should stay generic unless a repository,
   plugin, or manifest contract owns the policy.
 - When changing agent-facing behavior, update the relevant local skill, docs, or
@@ -482,9 +477,8 @@ Release MR flow:
   `pnpm --filter owlto-client typecheck:node` when feasible.
 - For cross-process or broad app changes, run
   `pnpm --filter owlto-client typecheck` and the relevant package tests.
-- For plugin manifest validation changes, run `pnpm --filter @owlto/sites-plugin test`.
 - For admin-agent changes, run `pnpm --filter owlto-client test:admin`.
-- For packaging changes, run the relevant build/package script or
-  explain why it was not feasible.
+- For packaging changes, run `pnpm --filter owlto-client test:packaging` and the
+  relevant build/package script, or explain why it was not feasible.
 - For docs-only changes, at minimum run `git diff --check` and any relevant
   changelog or release helper when those files are touched.

@@ -1,5 +1,5 @@
 import type { Session, SessionItem } from '../../shared/app.js'
-import { recordSchema, safeText } from '../codex/protocol.js'
+import { recordSchema, safeText } from '../app/values.js'
 import {
   contentChunkText,
   mergeToolCall,

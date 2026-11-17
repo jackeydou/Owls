@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { Failure } from '../../shared/app.js'
-import { safeText } from '../codex/protocol.js'
+import { safeText } from './values.js'
 
 export class OwltoError extends Error {
   constructor(

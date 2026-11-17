@@ -87,14 +87,13 @@ sends an SDK interrupt and aborts the process if the turn does not end.
 ## Verification
 
 ```bash
-pnpm --filter owlto-client test:claude
-pnpm --filter owlto-client test:ui
+pnpm --filter owlto-client test:admin
 pnpm --filter owlto-client verify:claude
 pnpm --filter owlto-client verify:claude --prompt
 pnpm --filter owlto-client verify:claude --tools
 ```
 
-`test:claude` drives the service through a scripted SDK. The UI smoke covers the
-agent picker, Claude approval cards, and settings. `verify:claude` uses the
+`claude-runtime.test.mjs` (in `test:admin`) drives the service through a
+scripted SDK. `verify:claude` uses the
 local CLI and account; `--prompt` and `--tools` send small requests in a
 temporary directory and check native resume, file changes, and commands.

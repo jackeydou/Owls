@@ -1,13 +1,5 @@
 import assert from 'node:assert/strict'
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
@@ -31,12 +23,6 @@ async function loadOwltoPathsForTest() {
   getPath(name) {
     if (name !== 'userData') throw new Error('unexpected app path')
     return globalThis.__owltoPathsUserData
-  },
-  relaunch() {
-    globalThis.__owltoPathsRelaunched = true
-  },
-  exit(code) {
-    globalThis.__owltoPathsExitCode = code
   }
 }\n`
     )
@@ -65,68 +51,8 @@ function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
 }
 
-test('getDataRoot reads persisted bootstrap from Electron userData', async () => {
+test('getDataRoot prefers the startup arg, then the profile bootstrap, then its mirror', async () => {
   const root = mkdtempSync(join(process.cwd(), '.owlto-paths-test-'))
-  const previousArgv = process.argv
-  const loaded = await loadOwltoPathsForTest()
-  try {
-    const userData = join(root, 'profile')
-    const defaultRoot = join(root, 'default-data')
-    const persistedRoot = join(root, 'persisted-data')
-    globalThis.__owltoPathsUserData = userData
-    globalThis.__owltoPathsDefaultDataRoot = defaultRoot
-    process.argv = ['electron']
-
-    writeJson(join(userData, 'owlto-bootstrap.json'), { dataRoot: persistedRoot })
-
-    assert.equal(loaded.module.getDataRoot(), persistedRoot)
-    loaded.module.writeBootstrapIfMissing()
-    assert.deepEqual(JSON.parse(readFileSync(join(userData, 'owlto-bootstrap.json'), 'utf8')), {
-      dataRoot: persistedRoot
-    })
-    assert.deepEqual(JSON.parse(readFileSync(join(defaultRoot, 'owlto-bootstrap.json'), 'utf8')), {
-      dataRoot: persistedRoot
-    })
-  } finally {
-    process.argv = previousArgv
-    loaded.cleanup()
-    rmSync(root, { recursive: true, force: true })
-    delete globalThis.__owltoPathsUserData
-    delete globalThis.__owltoPathsDefaultDataRoot
-  }
-})
-
-test('writeBootstrapIfMissing migrates a non-temporary legacy bootstrap into userData', async () => {
-  const root = mkdtempSync(join(process.cwd(), '.owlto-paths-test-'))
-  const previousArgv = process.argv
-  const loaded = await loadOwltoPathsForTest()
-  try {
-    const userData = join(root, 'profile')
-    const defaultRoot = join(root, 'default-data')
-    const legacyRoot = join(root, 'legacy-data')
-    globalThis.__owltoPathsUserData = userData
-    globalThis.__owltoPathsDefaultDataRoot = defaultRoot
-    process.argv = ['electron']
-
-    writeJson(join(defaultRoot, 'owlto-bootstrap.json'), { dataRoot: legacyRoot })
-
-    assert.equal(loaded.module.getDataRoot(), legacyRoot)
-    loaded.module.writeBootstrapIfMissing()
-    assert.deepEqual(JSON.parse(readFileSync(join(userData, 'owlto-bootstrap.json'), 'utf8')), {
-      dataRoot: legacyRoot
-    })
-  } finally {
-    process.argv = previousArgv
-    loaded.cleanup()
-    rmSync(root, { recursive: true, force: true })
-    delete globalThis.__owltoPathsUserData
-    delete globalThis.__owltoPathsDefaultDataRoot
-  }
-})
-
-test('temporary legacy bootstrap roots are ignored instead of migrated', async () => {
-  const root = mkdtempSync(join(process.cwd(), '.owlto-paths-test-'))
-  const sideIpcRoot = mkdtempSync(join(tmpdir(), 'owlto-side-ipc-'))
   const previousArgv = process.argv
   const loaded = await loadOwltoPathsForTest()
   try {
@@ -135,126 +61,39 @@ test('temporary legacy bootstrap roots are ignored instead of migrated', async (
     globalThis.__owltoPathsUserData = userData
     globalThis.__owltoPathsDefaultDataRoot = defaultRoot
     process.argv = ['electron']
-
-    writeJson(join(defaultRoot, 'owlto-bootstrap.json'), {
-      dataRoot: join(sideIpcRoot, 'data')
-    })
-
     assert.equal(loaded.module.getDataRoot(), defaultRoot)
-    loaded.module.writeBootstrapIfMissing()
-    assert.deepEqual(JSON.parse(readFileSync(join(userData, 'owlto-bootstrap.json'), 'utf8')), {
-      dataRoot: defaultRoot
+
+    writeJson(join(defaultRoot, 'owlto-bootstrap.json'), { dataRoot: join(root, 'mirror') })
+    assert.equal(loaded.module.getDataRoot(), join(root, 'mirror'))
+
+    writeJson(join(userData, 'owlto-bootstrap.json'), { dataRoot: join(root, 'profile-data') })
+    assert.equal(loaded.module.getDataRoot(), join(root, 'profile-data'))
+
+    process.argv = ['electron', '--owlto-data-root', join(root, 'arg-data')]
+    assert.equal(loaded.module.getDataRoot(), join(root, 'arg-data'))
+  } finally {
+    process.argv = previousArgv
+    loaded.cleanup()
+    rmSync(root, { recursive: true, force: true })
+    delete globalThis.__owltoPathsUserData
+    delete globalThis.__owltoPathsDefaultDataRoot
+  }
+})
+
+test('a bootstrap pointing into a temporary folder is ignored', async () => {
+  const root = mkdtempSync(join(process.cwd(), '.owlto-paths-test-'))
+  const previousArgv = process.argv
+  const loaded = await loadOwltoPathsForTest()
+  try {
+    const userData = join(root, 'profile')
+    const defaultRoot = join(root, 'default-data')
+    globalThis.__owltoPathsUserData = userData
+    globalThis.__owltoPathsDefaultDataRoot = defaultRoot
+    process.argv = ['electron']
+    writeJson(join(userData, 'owlto-bootstrap.json'), {
+      dataRoot: join(realpathSync(tmpdir()), 'owlto-temp-root')
     })
-    assert.equal(existsSync(join(defaultRoot, 'owlto-bootstrap.json')), false)
-  } finally {
-    process.argv = previousArgv
-    loaded.cleanup()
-    rmSync(root, { recursive: true, force: true })
-    rmSync(sideIpcRoot, { recursive: true, force: true })
-    delete globalThis.__owltoPathsUserData
-    delete globalThis.__owltoPathsDefaultDataRoot
-  }
-})
-
-test('profile bootstrap default removes stale legacy bootstrap mirrors', async () => {
-  const root = mkdtempSync(join(process.cwd(), '.owlto-paths-test-'))
-  const previousArgv = process.argv
-  const loaded = await loadOwltoPathsForTest()
-  try {
-    const userData = join(root, 'profile')
-    const defaultRoot = join(root, 'default-data')
-    const staleRoot = join(root, 'stale-data')
-    globalThis.__owltoPathsUserData = userData
-    globalThis.__owltoPathsDefaultDataRoot = defaultRoot
-    process.argv = ['electron']
-
-    writeJson(join(userData, 'owlto-bootstrap.json'), { dataRoot: defaultRoot })
-    writeJson(join(defaultRoot, 'owlto-bootstrap.json'), { dataRoot: staleRoot })
-
     assert.equal(loaded.module.getDataRoot(), defaultRoot)
-    loaded.module.writeBootstrapIfMissing()
-    assert.equal(existsSync(join(defaultRoot, 'owlto-bootstrap.json')), false)
-  } finally {
-    process.argv = previousArgv
-    loaded.cleanup()
-    rmSync(root, { recursive: true, force: true })
-    delete globalThis.__owltoPathsUserData
-    delete globalThis.__owltoPathsDefaultDataRoot
-  }
-})
-
-test('startup data-root args are process-local and are not persisted', async () => {
-  const root = mkdtempSync(join(process.cwd(), '.owlto-paths-test-'))
-  const previousArgv = process.argv
-  const loaded = await loadOwltoPathsForTest()
-  try {
-    const userData = join(root, 'profile')
-    const defaultRoot = join(root, 'default-data')
-    const argRoot = join(tmpdir(), 'owlto-side-ipc-test', 'data')
-    globalThis.__owltoPathsUserData = userData
-    globalThis.__owltoPathsDefaultDataRoot = defaultRoot
-    process.argv = ['electron', '--owlto-data-root', argRoot]
-
-    assert.equal(loaded.module.getDataRoot(), argRoot)
-    loaded.module.writeBootstrapIfMissing()
-    assert.equal(existsSync(join(userData, 'owlto-bootstrap.json')), false)
-  } finally {
-    process.argv = previousArgv
-    loaded.cleanup()
-    rmSync(root, { recursive: true, force: true })
-    delete globalThis.__owltoPathsUserData
-    delete globalThis.__owltoPathsDefaultDataRoot
-  }
-})
-
-test('applyNewDataRoot rejects temporary folders before writing bootstrap', async () => {
-  const root = mkdtempSync(join(process.cwd(), '.owlto-paths-test-'))
-  const tempRoot = mkdtempSync(join(tmpdir(), 'owlto-settings-root-'))
-  const previousArgv = process.argv
-  const loaded = await loadOwltoPathsForTest()
-  try {
-    const userData = join(root, 'profile')
-    const defaultRoot = join(root, 'default-data')
-    globalThis.__owltoPathsUserData = userData
-    globalThis.__owltoPathsDefaultDataRoot = defaultRoot
-    process.argv = ['electron']
-
-    assert.throws(
-      () => loaded.module.applyNewDataRoot(join(tempRoot, 'data')),
-      /Temporary folders cannot be saved as the Owlto data root/
-    )
-    assert.equal(existsSync(join(userData, 'owlto-bootstrap.json')), false)
-    assert.equal(globalThis.__owltoPathsRelaunched, undefined)
-    assert.equal(globalThis.__owltoPathsExitCode, undefined)
-  } finally {
-    process.argv = previousArgv
-    loaded.cleanup()
-    rmSync(root, { recursive: true, force: true })
-    rmSync(tempRoot, { recursive: true, force: true })
-    delete globalThis.__owltoPathsUserData
-    delete globalThis.__owltoPathsDefaultDataRoot
-    delete globalThis.__owltoPathsRelaunched
-    delete globalThis.__owltoPathsExitCode
-  }
-})
-
-test('applyNewDataRoot rejects realpath aliases of temporary folders', async () => {
-  const root = mkdtempSync(join(process.cwd(), '.owlto-paths-test-'))
-  const previousArgv = process.argv
-  const loaded = await loadOwltoPathsForTest()
-  try {
-    const userData = join(root, 'profile')
-    const defaultRoot = join(root, 'default-data')
-    globalThis.__owltoPathsUserData = userData
-    globalThis.__owltoPathsDefaultDataRoot = defaultRoot
-    process.argv = ['electron']
-
-    assert.throws(
-      () =>
-        loaded.module.applyNewDataRoot(join(realpathSync(tmpdir()), 'owlto-settings-root-alias')),
-      /Temporary folders cannot be saved as the Owlto data root/
-    )
-    assert.equal(existsSync(join(userData, 'owlto-bootstrap.json')), false)
   } finally {
     process.argv = previousArgv
     loaded.cleanup()

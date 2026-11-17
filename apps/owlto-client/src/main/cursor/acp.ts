@@ -2,7 +2,7 @@ import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import { z } from 'zod'
 import { OwltoError } from '../app/errors.js'
-import { safeText } from '../codex/protocol.js'
+import { safeText } from '../app/values.js'
 
 /** One JSON-RPC 2.0 message. Requests carry `id` and `method`; notifications only `method`. */
 const frameSchema = z.object({

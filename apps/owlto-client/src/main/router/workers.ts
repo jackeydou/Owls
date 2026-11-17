@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto'
 import type {
+  AgentModel,
   AgentProvider,
   AppEvent,
   AppSettings,
-  CodexModel,
   CreateSession,
   Project,
   RespondRequest,
@@ -23,7 +23,7 @@ import {
 } from '../../shared/router.js'
 import type { SessionPlace } from '../app/agent-runtime.js'
 import { OwltoError } from '../app/errors.js'
-import { safeText } from '../codex/protocol.js'
+import { safeText } from '../app/values.js'
 import { chooseAgent } from './agent-choice.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
 import {
@@ -143,7 +143,7 @@ export type WorkerHost = {
   settings(): AppSettings
   providerReady(provider: AgentProvider): boolean
   /** The models the agent offers now; empty while it is not connected. */
-  agentModels(provider: AgentProvider): CodexModel[]
+  agentModels(provider: AgentProvider): AgentModel[]
   /** `place` marks a session in a project's worktree or in the workspace folder. */
   createSession(input: CreateSession, place?: SessionPlace): Session
   /** Removes a stopped worker's session; the `removed` event does the rest. */
@@ -211,7 +211,8 @@ export class WorkerPool implements TurnProfiles {
     private readonly workspaces: WorkerWorkspaces,
     private readonly reportEndpoint: (sessionId: string) => Promise<string>,
     /** The tools besides `report` a worker gets in its turns. */
-    private readonly extraTools: (worker: RouterWorker) => WorkerTool[] = () => []
+    private readonly extraTools: (worker: RouterWorker) => WorkerTool[] = () => [],
+    private readonly codexStartGapMs = CODEX_START_GAP_MS
   ) {
     for (const worker of store.workers()) {
       this.workers.set(worker.id, worker)
@@ -850,7 +851,7 @@ export class WorkerPool implements TurnProfiles {
     if (worker.provider === 'codex') {
       const now = Date.now()
       const at = Math.max(now, this.nextCodexStart)
-      this.nextCodexStart = at + CODEX_START_GAP_MS
+      this.nextCodexStart = at + this.codexStartGapMs
       if (at > now) await sleep(at - now)
       // Removed while waiting.
       if (this.closed || this.status(worker) !== 'starting') return true

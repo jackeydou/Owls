@@ -5,7 +5,8 @@ import { delimiter, join } from 'node:path'
 import { createInterface } from 'node:readline'
 import appPackage from '../../../package.json'
 import { OwltoError } from '../app/errors.js'
-import { frameSchema, type RpcFrame, safeText } from './protocol.js'
+import { safeText } from '../app/values.js'
+import { frameSchema, type RpcFrame } from './protocol.js'
 
 type Pending = {
   resolve: (value: unknown) => void

@@ -236,7 +236,8 @@ function app() {
     undefined,
     undefined,
     undefined,
-    automations
+    automations,
+    0
   )
   fake.turns.profiles = router
   return { router, store, automations, runs, fake, tools: () => tools }
