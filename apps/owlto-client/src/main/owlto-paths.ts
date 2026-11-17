@@ -228,6 +228,11 @@ export function writeBootstrapIfMissing(): void {
   }
 }
 
+/** The anonymous analytics install id; only release builds with analytics write it. */
+export function analyticsIdentityPath(root: string): string {
+  return join(root, 'analytics.json')
+}
+
 export function storeFilePath(root: string): string {
   return join(root, STORE_FILENAME)
 }

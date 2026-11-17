@@ -58,6 +58,7 @@ export class OwltoStore {
           pullRequestsVisible: true,
           pullRequestFollowUps: true,
           requestNotifications: true,
+          usageData: true,
           workspacePath: null,
           workspaceDismissed: [],
           connectedAgents: [],

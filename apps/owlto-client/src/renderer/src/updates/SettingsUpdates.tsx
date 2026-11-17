@@ -1,6 +1,7 @@
 import { ActionButton } from '@renderer/components/ui/action-button'
 import { RefreshIcon, RotateCcwIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
+import { Switch } from '@renderer/components/ui/switch'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { type UpdateState, updateChannelSchema } from '../../../shared/updates'
@@ -125,6 +126,19 @@ export function SettingsUpdatesPane() {
           )}
         </>
       )}
+      {__OWLTO_ANALYTICS__ ? (
+        <SettingRow
+          label={t('updates.usageData')}
+          htmlFor="owlto-usage-data"
+          description={t('updates.usageDataBody')}
+        >
+          <Switch
+            id="owlto-usage-data"
+            checked={settings.usageData}
+            onCheckedChange={(usageData) => void saveSettings({ ...settings, usageData })}
+          />
+        </SettingRow>
+      ) : null}
     </section>
   )
 }

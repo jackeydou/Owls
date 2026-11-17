@@ -7,6 +7,7 @@ import {
   permissionSchema,
   providerSchema
 } from './agents.js'
+import type { FeatureFlagKey, FeatureFlagValue } from './analytics.js'
 import { type Attachment, attachmentSchema, type StageAttachment } from './attachments.js'
 import type { Automation, AutomationEnable, AutomationSave } from './automations.js'
 import {
@@ -311,6 +312,12 @@ export const settingsSchema = z.object({
    */
   requestNotifications: z.boolean().catch(true).default(true),
   /**
+   * Sends anonymous usage data (installs, launches, feature use, no content) in release
+   * builds that carry analytics; added later, so older rows have it on. Builds without
+   * analytics ignore it.
+   */
+  usageData: z.boolean().catch(true).default(true),
+  /**
    * Where workers run tasks that belong to no project. Null uses the default,
    * `~/Owlto/Workspace`; added later, so older rows get it.
    */
@@ -600,6 +607,8 @@ export interface OwltoAPI {
   agentUsage(refresh: boolean): Promise<Reply<UsageOverview>>
   /** Token usage recorded on this device over a range, for one agent or all, summed for the usage page. */
   usageStats(request: UsageStatsRequest): Promise<Reply<UsageStats>>
+  /** A PostHog feature flag for A/B tests; null in builds without analytics or with usage data off. */
+  featureFlag(key: FeatureFlagKey): Promise<Reply<FeatureFlagValue>>
   onEvent(listener: (event: AppEvent) => void): () => void
   /** Commands chosen in the native application menu (macOS). */
   onMenuCommand(listener: (command: MenuCommand) => void): () => void

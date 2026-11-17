@@ -221,6 +221,9 @@ Configure these GitHub Actions repository secrets before publishing:
 - `APPLE_API_KEY_ID`: App Store Connect API key ID.
 - `APPLE_API_ISSUER`: App Store Connect API issuer ID.
 - `APPLE_TEAM_ID`: Apple Developer team ID.
+- `OWLTO_POSTHOG_KEY` (optional): PostHog project API key (`phc_…`) for usage
+  analytics. Without it the release ships without analytics and the workflow
+  logs a warning. See [Usage Analytics](#usage-analytics).
 
 If the signing log shows `Apple Development`, replace `MAC_CSC_LINK` with a
 Developer ID Application certificate exported with its private key and update
@@ -230,6 +233,39 @@ for this outside-the-App-Store distribution flow.
 The release assets include the DMG for manual installation, the ZIP that
 installed apps update from, binary delta patches when one could be made, and
 SHA-256 checksums.
+
+## Usage Analytics
+
+Release builds made by the Release macOS workflow send anonymous usage data to
+PostHog; no other build does.
+
+- **Build-time only.** `electron.vite.config.ts` compiles `OWLTO_POSTHOG_KEY`
+  into the main process only for a release build (`OWLTO_BUILD_MODE=release`).
+  Dev (`pnpm dev`), debug, and keyless builds compile an empty key, so the
+  analytics code is dropped from the desktop entry and nothing is sent. The app
+  never reads these variables at runtime.
+- **Host.** The optional `OWLTO_POSTHOG_HOST` repository variable picks the
+  PostHog ingestion host (for example `https://eu.i.posthog.com`); it defaults to
+  `https://us.i.posthog.com`.
+- **Client.** `src/main/analytics/` talks to PostHog's HTTP API (`/batch/` and
+  `/flags?v=2`) directly, with no SDK dependency. The anonymous install id lives
+  in `analytics.json` in the data root.
+- **Events.** `app_installed`, `app_opened`, `onboarding_finished`,
+  `thread_created`, `message_sent`, `message_forwarded`, `worker_started`,
+  `project_added`, `agent_connected`, `automation_saved`, `note_saved`, and
+  `feedback_sent`. Properties are enums, counts, and the app version, OS, and
+  architecture. Never send message text, code, file names, paths, or project
+  names; add new events to the closed `AnalyticsEvent` union and the IPC table in
+  `src/main/analytics/service.ts`.
+- **Opt-out.** Settings → Updates shows "Share anonymous usage data" only in
+  builds with analytics. Turning it off drops queued events and stops all
+  requests, including flag reads.
+- **A/B tests.** Create a multivariate feature flag or experiment in PostHog,
+  then read it with `useFeatureFlag('<key>')` in the renderer
+  (`src/renderer/src/lib/feature-flags.ts`) or `analytics.flag('<key>')` in main.
+  The first read per launch sends `$feature_flag_called`, which PostHog
+  experiments count as exposure. Null means control: no analytics, usage data
+  off, or PostHog unreachable.
 
 ## Automatic Updates
 

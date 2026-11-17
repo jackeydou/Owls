@@ -12,17 +12,41 @@ function resolveBuildMode(command: string): 'debug' | 'release' {
   return command === 'serve' ? 'debug' : 'release'
 }
 
+const DEFAULT_POSTHOG_HOST = 'https://us.i.posthog.com'
+
+/**
+ * The PostHog project compiled into this build. Only a release build whose environment
+ * has `OWLTO_POSTHOG_KEY` (the Release macOS workflow, from a repository secret) gets one;
+ * every other build compiles in an empty key and never starts analytics. This is a
+ * build-time input like `OWLTO_BUILD_MODE`, not a runtime setting: the app never reads it.
+ */
+function resolvePostHog(buildMode: 'debug' | 'release'): { key: string; host: string } {
+  const key = buildMode === 'release' ? (process.env.OWLTO_POSTHOG_KEY ?? '').trim() : ''
+  const host = (process.env.OWLTO_POSTHOG_HOST ?? '').trim() || DEFAULT_POSTHOG_HOST
+  if (key && !/^phc_[A-Za-z0-9]+$/.test(key))
+    throw new Error('OWLTO_POSTHOG_KEY must be a PostHog project API key (phc_...).')
+  if (key && !/^https:\/\/[^/\s]+\/?$/.test(host))
+    throw new Error('OWLTO_POSTHOG_HOST must be an https origin, such as https://us.i.posthog.com.')
+  return { key, host: key ? host : '' }
+}
+
 export default defineConfig(({ command, mode }) => {
   const buildMode = resolveBuildMode(command)
   const enableReactScan = command === 'serve' && mode === 'react-scan'
+  const posthog = resolvePostHog(command === 'serve' ? 'debug' : buildMode)
   const define = {
     __OWLTO_BUILD_MODE__: JSON.stringify(buildMode),
-    __OWLTO_DEV__: JSON.stringify(command === 'serve')
+    __OWLTO_DEV__: JSON.stringify(command === 'serve'),
+    __OWLTO_ANALYTICS__: JSON.stringify(Boolean(posthog.key))
   }
 
   return {
     main: {
-      define,
+      define: {
+        ...define,
+        __OWLTO_POSTHOG_KEY__: JSON.stringify(posthog.key),
+        __OWLTO_POSTHOG_HOST__: JSON.stringify(posthog.host)
+      },
       resolve: {
         conditions: ['import', 'node']
       },

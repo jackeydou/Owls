@@ -67,6 +67,7 @@ const api: OwltoAPI = {
   sendFeedback: (input) => ipcRenderer.invoke('owlto:feedback-send', input),
   agentUsage: (refresh: boolean) => ipcRenderer.invoke('owlto:agent-usage', refresh),
   usageStats: (request) => ipcRenderer.invoke('owlto:usage-stats', request),
+  featureFlag: (key) => ipcRenderer.invoke('owlto:feature-flag', key),
   onEvent: (listener) => {
     const handler = (_: Electron.IpcRendererEvent, event: AppEvent) => listener(event)
     ipcRenderer.on('owlto:event', handler)
