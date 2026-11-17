@@ -37,6 +37,10 @@ const en = {
   'permission.read-only': 'Read only',
   'permission.workspace-write': 'Approve for me',
   'permission.full-access': 'Full access',
+  'permissionChoice.read-only': 'Reads files only. Makes no changes.',
+  'permissionChoice.workspace-write': 'Only asks for actions that look unsafe',
+  'permissionChoice.full-access':
+    'Unrestricted access to the internet and any file on your computer',
   readOnlyHelp: 'Reads files only. Makes no changes.',
   permissionHelp:
     'Edits project files. Auto-review approves safe steps beyond that and asks you about the rest.',
@@ -216,6 +220,9 @@ const zh: Record<keyof typeof en, string> = {
   'permission.read-only': '只读',
   'permission.workspace-write': '替我批准',
   'permission.full-access': '完全访问',
+  'permissionChoice.read-only': '只读取文件，不做任何修改。',
+  'permissionChoice.workspace-write': '只有看起来有风险的操作才会询问你',
+  'permissionChoice.full-access': '可不受限制地访问网络和电脑上的任何文件',
   readOnlyHelp: '只读取文件，不做任何修改。',
   permissionHelp: '可编辑项目文件，超出范围的安全操作由自动审查批准，其余先询问你。',
   fullAccessHelp: '可在项目外操作，必要时仍会询问。',

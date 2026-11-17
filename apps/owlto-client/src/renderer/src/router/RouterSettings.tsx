@@ -1,11 +1,11 @@
 import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
+import { ChoiceSelect } from '@renderer/components/ui/choice-select'
 import { CheckIcon, KeyIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import { Switch } from '@renderer/components/ui/switch'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { permissionSchema } from '../../../shared/app'
 import {
   type OwltoModelSettings,
   owltoModelSchema,
@@ -13,6 +13,7 @@ import {
   owltoThinkingSchema,
   routerEngineSchema
 } from '../../../shared/router'
+import { permissionChoices } from '../app/permission-choices'
 import { SettingRow } from '../app/SettingRow'
 import { useAppStore } from '../app/store'
 import { useRouterStore } from './store'
@@ -123,22 +124,12 @@ export function WorkerLimitRows() {
         htmlFor="router-permission"
         description={t('routerSettings.maxPermissionHelp')}
       >
-        <Select
+        <ChoiceSelect
           id="router-permission"
           value={settings.router.maxPermission}
-          onChange={(event) =>
-            void saveRouter({
-              ...settings.router,
-              maxPermission: permissionSchema.parse(event.target.value)
-            })
-          }
-        >
-          {permissionSchema.options.map((permission) => (
-            <option value={permission} key={permission}>
-              {t(`permission.${permission}`)}
-            </option>
-          ))}
-        </Select>
+          choices={permissionChoices(t)}
+          onChange={(maxPermission) => void saveRouter({ ...settings.router, maxPermission })}
+        />
       </SettingRow>
       <SettingRow
         label={t('routerSettings.worktrees')}
