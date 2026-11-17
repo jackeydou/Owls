@@ -75,6 +75,9 @@ const en = {
   'workerAgents.none': 'No coding agent is connected.',
   'workerAgents.listSeparator': ', ',
   'workerAgents.connect': 'Connect in Agents settings',
+  requestNotifications: 'Notify me when a worker needs me',
+  requestNotificationsBody:
+    'While Owlto is in the background, show a notification and a dock badge when a worker asks for approval or has a question.',
   workspaceFolder: 'Workspace folder',
   workspaceFolderBody: 'Where tasks outside any project run.',
   workspaceFolderChoose: 'Choose folder',
@@ -252,6 +255,9 @@ const zh: Record<keyof typeof en, string> = {
   'workerAgents.none': '还没有连接编码 Agent。',
   'workerAgents.listSeparator': '、',
   'workerAgents.connect': '去 Agents 设置连接',
+  requestNotifications: 'Worker 需要我时通知我',
+  requestNotificationsBody:
+    'Owlto 在后台时，Worker 请求批准或提问会弹出通知，并在 Dock 图标上显示数量。',
   workspaceFolder: '工作目录',
   workspaceFolderBody: '不属于任何项目的任务在这里运行。',
   workspaceFolderChoose: '选择文件夹',

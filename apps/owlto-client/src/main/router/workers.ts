@@ -948,7 +948,7 @@ export class WorkerPool implements TurnProfiles {
   private status(worker: RouterWorker): RouterWorker['status'] {
     return worker.status
   }
-  private bySession(sessionId: string): RouterWorker | undefined {
+  bySession(sessionId: string): RouterWorker | undefined {
     for (const worker of this.workers.values()) if (worker.sessionId === sessionId) return worker
     return undefined
   }

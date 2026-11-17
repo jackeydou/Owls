@@ -828,6 +828,10 @@ export class RouterService implements TurnProfiles {
   worker(workerId: string): RouterWorker | undefined {
     return this.pool.get(workerId)
   }
+  /** The worker running a session; undefined for a task session that is not a worker. */
+  workerForSession(sessionId: string): RouterWorker | undefined {
+    return this.pool.bySession(sessionId)
+  }
   async remoteBranch(workerId: string): Promise<WorkerRemoteBranch | null> {
     const worker = this.pool.get(workerId)
     const workspace = worker?.workspace
