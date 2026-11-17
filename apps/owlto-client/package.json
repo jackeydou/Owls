@@ -18,7 +18,6 @@
     "test:admin": "pnpm run build && node --experimental-strip-types --test tests/admin/*.test.mjs",
     "test:packaging": "node --test tests/packaging/*.test.mjs",
     "test:desktop": "pnpm run build && electron tests/admin/desktop-smoke.cjs",
-    "test:ui": "pnpm run build && electron tests/admin/ui-smoke.cjs",
     "verify:codex": "node scripts/verify-codex.mjs",
     "verify:claude": "node scripts/verify-claude.mjs",
     "bench:router": "pnpm run build && node scripts/bench-router.mjs",

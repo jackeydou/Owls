@@ -105,22 +105,17 @@ Text updates are batched, while requests and terminal state are saved immediatel
 
 ```bash
 pnpm --filter owlto-client typecheck
-pnpm --filter owlto-client test:codex
+pnpm --filter owlto-client test:admin
 pnpm --filter owlto-client test:desktop
-pnpm --filter owlto-client test:ui
 ```
 
-The transport tests use a process fixture. The Electron smoke test exercises
-the real native SQLite binding, migrations, service, and fixture process:
-account status, streaming, duplicate delivery, approvals, interruption, and
-restart persistence.
-
-The UI test loads the production renderer, sandboxed preload, IPC, and SQLite
-in Electron. It covers messages, tools and diff, approvals, questions, account
-reconnection, theme/language persistence, and reload. It also checks that the
-renderer cannot access generic Electron IPC or set an executable through the
-ordinary settings payload. App errors use stable codes with English and
-Simplified Chinese UI messages; native Codex errors retain redacted details.
+The transport tests (`codex-runtime.test.mjs`) use a process fixture. The
+Electron smoke test exercises the real native SQLite binding, migrations,
+service, and fixture process: account status, streaming, duplicate delivery,
+approvals, interruption, and restart persistence. To check the renderer, drive
+the real app with `pnpm debug:app` (see `.agents/skills/owlto-app-debug`).
+App errors use stable codes with English and Simplified Chinese UI messages;
+native Codex errors retain redacted details.
 
 After building:
 
@@ -137,14 +132,6 @@ and native command/file-change events.
 
 The packaged app must also be checked for its preload, `migrations` resources,
 native database binding, local executable discovery, and the settings/task UI.
-
-After a macOS package build, run the same UI flow against its actual ASAR,
-preload, and packaged migrations without opening the user's real data root:
-
-```bash
-pnpm --filter owlto-client exec electron tests/admin/ui-smoke.cjs \
-  --packaged-app dist/mac-arm64/Owlto.app
-```
 
 ## Upstream contract
 

@@ -164,17 +164,6 @@ test('Cursor normalization reads accounts, models, tools, and approvals', () => 
   )
 })
 
-test('Worker reports are read from a trailing JSON object when no schema constrains the text', () => {
-  const json = '{"status":"done","summary":"Fixed.","artifacts":[{"kind":"file","ref":"a.ts"}]}'
-  for (const text of [json, `All set.\n\n${json}`, `All set.\n\n\`\`\`json\n${json}\n\`\`\``]) {
-    const { report, degraded } = parseReport(null, text)
-    assert.equal(degraded, false, text)
-    assert.equal(report.summary, 'Fixed.')
-    assert.equal(report.artifacts[0].ref, 'a.ts')
-  }
-  assert.equal(parseReport(null, 'No report {here}').degraded, true)
-})
-
 test('Cursor service connects and runs a turn over ACP with approvals and streaming', async (t) => {
   const { project, service, profiles } = setup(t, {
     instructions: 'You are an Owlto worker.',

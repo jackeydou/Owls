@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto'
 import type {
+  AgentModel,
   AgentProvider,
   AppEvent,
   AppSettings,
-  AgentModel,
   CreateSession,
   Project,
   RespondRequest,
@@ -211,7 +211,8 @@ export class WorkerPool implements TurnProfiles {
     private readonly workspaces: WorkerWorkspaces,
     private readonly reportEndpoint: (sessionId: string) => Promise<string>,
     /** The tools besides `report` a worker gets in its turns. */
-    private readonly extraTools: (worker: RouterWorker) => WorkerTool[] = () => []
+    private readonly extraTools: (worker: RouterWorker) => WorkerTool[] = () => [],
+    private readonly codexStartGapMs = CODEX_START_GAP_MS
   ) {
     for (const worker of store.workers()) {
       this.workers.set(worker.id, worker)
@@ -850,7 +851,7 @@ export class WorkerPool implements TurnProfiles {
     if (worker.provider === 'codex') {
       const now = Date.now()
       const at = Math.max(now, this.nextCodexStart)
-      this.nextCodexStart = at + CODEX_START_GAP_MS
+      this.nextCodexStart = at + this.codexStartGapMs
       if (at > now) await sleep(at - now)
       // Removed while waiting.
       if (this.closed || this.status(worker) !== 'starting') return true

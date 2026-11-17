@@ -1,9 +1,9 @@
 import { isAbsolute, relative, resolve } from 'node:path'
 import { z } from 'zod'
 import type { Permission } from '../../shared/agents.js'
-import type { AgentRequest, AgentModel, CursorAccount, SessionItem } from '../../shared/app.js'
-import { fileDiff } from '../claude/normalize.js'
+import type { AgentModel, AgentRequest, CursorAccount, SessionItem } from '../../shared/app.js'
 import { recordSchema, safeText, string } from '../app/values.js'
+import { fileDiff } from '../claude/normalize.js'
 import type { TurnProfile } from '../router/service.js'
 
 /** Owlto permission choices mapped onto Cursor's session modes. */

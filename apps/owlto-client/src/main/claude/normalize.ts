@@ -1,7 +1,7 @@
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk/core'
 import { z } from 'zod'
 import type { Permission } from '../../shared/agents.js'
-import type { AgentRequest, ClaudeAccount, AgentModel, SessionItem } from '../../shared/app.js'
+import type { AgentModel, AgentRequest, ClaudeAccount, SessionItem } from '../../shared/app.js'
 import { effortSchema } from '../../shared/app.js'
 import { recordSchema, safeText, string } from '../app/values.js'
 

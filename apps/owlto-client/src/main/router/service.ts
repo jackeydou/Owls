@@ -54,6 +54,7 @@ import { RouterToolError, routerTools } from './tools.js'
 import { LocalWorkers, type WorkerTarget } from './worker-target.js'
 import {
   activeWorker,
+  CODEX_START_GAP_MS,
   type TurnOutcome,
   type TurnProfile,
   type TurnProfiles,
@@ -140,7 +141,9 @@ export class RouterService implements TurnProfiles {
     /** Keeps the token usage the engines report, for the usage page. */
     private readonly recordUsage: (entry: UsageEntry) => void = () => {},
     /** Scheduled automations; their tools are left out without it. */
-    private readonly automations: AutomationService | null = null
+    private readonly automations: AutomationService | null = null,
+    /** Gap between Codex worker starts; tests pass 0 so they do not wait. */
+    codexStartGapMs = CODEX_START_GAP_MS
   ) {
     // A batch still sending when the app stopped may or may not have reached the model.
     for (const batch of store.batches('sending')) store.finishBatch(batch.id, 'dispatch_unknown')
@@ -184,7 +187,8 @@ export class RouterService implements TurnProfiles {
       },
       workspaces,
       (sessionId) => this.reports.endpoint(sessionId),
-      (worker) => this.workerTools(worker)
+      (worker) => this.workerTools(worker),
+      codexStartGapMs
     )
     this.reports = new WorkerReportServer((sessionId) => this.pool.profile(sessionId))
     this.workers = new LocalWorkers(this.pool)

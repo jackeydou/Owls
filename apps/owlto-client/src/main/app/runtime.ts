@@ -35,7 +35,6 @@ export { ClaudeService } from '../claude/service.js'
 export { parseClaudeUsage } from '../claude/usage.js'
 export { CodexClient, discoverExecutable } from '../codex/client.js'
 export { approvalOptions, normalizeItem, parseModels } from '../codex/protocol.js'
-export { safeText } from './values.js'
 export { CodexService } from '../codex/service.js'
 export { parseCodexRateLimits } from '../codex/usage.js'
 export { AcpConnection } from '../cursor/acp.js'
@@ -116,6 +115,7 @@ export {
 } from './project-sources.js'
 export { mergePaths, parseShellPath, readLoginShellPath } from './shell-path.js'
 export { OwltoStore } from './store.js'
+export { safeText } from './values.js'
 export { readWindowState, restorableBounds, writeWindowState } from './window-state.js'
 export {
   isWorkspaceProject,
