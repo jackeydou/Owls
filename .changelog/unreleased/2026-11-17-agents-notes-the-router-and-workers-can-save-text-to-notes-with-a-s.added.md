@@ -1,0 +1,1 @@
+- Notes: the Router and workers can save text to Notes with a save_note tool.
