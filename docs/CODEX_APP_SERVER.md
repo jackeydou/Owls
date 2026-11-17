@@ -71,9 +71,13 @@ arrived yet.
 ## Permissions
 
 Read only and workspace access select Codex's corresponding sandbox modes.
-Full access selects native danger-full-access while keeping on-request
-approvals routed to the user. Native rules can resolve some actions without
-creating an approval request.
+Full access selects native danger-full-access. Every mode uses the on-request
+approval policy. Approve for me (`workspace-write`) and full access set `approvalsReviewer` to
+`auto_review`, so Codex's reviewer agent settles sandbox escalations (network,
+paths outside the writable roots) and only the ones it cannot settle reach the
+user. Read only keeps `user` as the reviewer so nothing approves its way out of
+that sandbox. Native rules can resolve some actions without creating an
+approval request.
 
 Owlto does not claim to intercept every native tool or enforce the previous
 Pi tool gate. Unknown native control requests are rejected.

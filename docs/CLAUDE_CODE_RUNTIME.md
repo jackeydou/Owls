@@ -49,11 +49,13 @@ ID and passed as `resume` on later turns.
 | Owlto permission | Claude Code |
 | --- | --- |
 | Read only | `default` mode with `Edit`, `NotebookEdit`, `Write` disallowed |
-| Workspace access | `acceptEdits` |
+| Approve for me (`workspace-write`) | `auto` when the model reports `supportsAutoMode`, else `acceptEdits` |
 | Full access | `bypassPermissions` (`allowDangerouslySkipPermissions`) |
 
 Claude Code has no OS sandbox by default, so read-only relies on removed edit
-tools and approval prompts. Full access skips every approval, like the CLI's
+tools and approval prompts. In auto mode Claude Code's classifier approves
+low-risk actions and sends the rest through `canUseTool`, so they still reach
+the user as approval cards. Full access skips every approval, like the CLI's
 `--dangerously-skip-permissions`.
 
 Every turn passes folders as `additionalDirectories`, so reading files and

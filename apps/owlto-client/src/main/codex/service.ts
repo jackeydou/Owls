@@ -41,6 +41,7 @@ import { codexToolName } from '../router/worker-tools.js'
 import { codexCallUsage } from '../usage/turn-usage.js'
 import { CodexClient, discoverExecutable } from './client.js'
 import {
+  approvalOptions,
   normalizeItem,
   parseModels,
   type RpcFrame,
@@ -345,9 +346,7 @@ export class CodexService {
       const policy = {
         cwd: session.cwd,
         model: session.model,
-        approvalPolicy: 'on-request',
-        approvalsReviewer: 'user',
-        sandbox: session.permission === 'full-access' ? 'danger-full-access' : session.permission,
+        ...approvalOptions(session.permission),
         // A dotted key adds to the user's `sandbox_workspace_write` settings
         // (such as network access) instead of replacing them.
         ...(session.permission === 'workspace-write' && writableRoots.length

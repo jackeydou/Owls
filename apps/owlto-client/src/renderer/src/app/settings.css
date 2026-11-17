@@ -89,6 +89,7 @@
 }
 /* One control column, so every row's right edge and width line up. */
 .owlto-setting-row select,
+.owlto-setting-row .owlto-select-button,
 .owlto-setting-row .router-input {
   flex-shrink: 0;
   width: 200px;
@@ -97,7 +98,8 @@
   font-size: var(--owl-text-sm);
 }
 /* A choice longer than the column widens its select instead of wrapping onto a second line. */
-.owlto-setting-row select {
+.owlto-setting-row select,
+.owlto-setting-row .owlto-select-button {
   width: auto;
   min-width: 200px;
   max-width: 100%;

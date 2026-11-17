@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { Permission } from '../../shared/agents.js'
 import type { CodexModel, SessionItem } from '../../shared/app.js'
 import { effortSchema } from '../../shared/app.js'
 
@@ -22,6 +23,25 @@ export function safeText(value: unknown): string {
     .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]')
     .replace(/\b(sk-[a-zA-Z0-9_-]{12,}|eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_.-]+)/g, '[redacted]')
 }
+/**
+ * Maps an Owlto permission onto a Codex worker's sandbox and approvals. Once
+ * the sandbox may write, escalations (network, paths outside the writable
+ * roots) go to Codex's auto-review agent first, so only the requests it cannot
+ * settle reach the user. Read only keeps the user as the reviewer, so nothing
+ * can approve its way out of that sandbox.
+ */
+export function approvalOptions(permission: Permission): {
+  approvalPolicy: 'on-request'
+  approvalsReviewer: 'user' | 'auto_review'
+  sandbox: 'read-only' | 'workspace-write' | 'danger-full-access'
+} {
+  return {
+    approvalPolicy: 'on-request',
+    approvalsReviewer: permission === 'read-only' ? 'user' : 'auto_review',
+    sandbox: permission === 'full-access' ? 'danger-full-access' : permission
+  }
+}
+
 export function parseModels(value: unknown): CodexModel[] {
   const response = z
     .object({

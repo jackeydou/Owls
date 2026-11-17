@@ -303,9 +303,9 @@
    * the trigger's right padding instead of hugging the edge, and the popover reuses the menu
    * surface: rounded card, soft shadow, padded rows, a tinted selected row, a trailing check.
    */
-  .owlto-select {
+  .owlto-select,
+  .owlto-select-button {
     --owlto-select-fill: color-mix(in srgb, var(--color-foreground) 2.5%, var(--color-card));
-    appearance: base-select;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -327,16 +327,25 @@
       background-color 120ms ease,
       border-color 120ms ease;
   }
-  .owlto-select:hover:not(:disabled) {
+  .owlto-select {
+    appearance: base-select;
+  }
+  .owlto-select:hover:not(:disabled),
+  .owlto-select-button:hover:not(:disabled),
+  .owlto-select-button[data-state="open"] {
     background: color-mix(in srgb, var(--color-foreground) 5%, var(--color-card));
   }
-  .owlto-select:focus-visible {
+  .owlto-select:focus-visible,
+  .owlto-select-button:focus-visible {
     border-color: var(--owl-field-focus-border);
     box-shadow: var(--owl-field-focus-shadow);
   }
-  .owlto-select:disabled {
+  .owlto-select:disabled,
+  .owlto-select-button:disabled {
     opacity: 0.5;
   }
+  /* A menu-backed select (components/ui/choice-select.tsx) draws the same chevron itself. */
+  .owlto-select-button::after,
   .owlto-select::picker-icon {
     content: "";
     flex-shrink: 0;

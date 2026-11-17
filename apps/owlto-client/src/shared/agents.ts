@@ -13,11 +13,26 @@ export const agentConfigSchema = z.object({
   permission: permissionSchema
 })
 export type AgentConfig = z.infer<typeof agentConfigSchema>
-export const agentConfigsSchema = z.object({
-  codex: agentConfigSchema,
-  'claude-code': agentConfigSchema,
-  cursor: agentConfigSchema
-})
+/**
+ * The permissions each agent offers in Settings. Cursor has no reviewer that
+ * works over ACP, so it keeps only its native modes: `ask` (read only) and
+ * `agent` (full access).
+ */
+export function agentPermissions(provider: AgentProvider): Permission[] {
+  return provider === 'cursor' ? ['read-only', 'full-access'] : [...permissionSchema.options]
+}
+export const agentConfigsSchema = z
+  .object({
+    codex: agentConfigSchema,
+    'claude-code': agentConfigSchema,
+    cursor: agentConfigSchema
+  })
+  // Settings saved before Cursor dropped workspace access move to its agent mode.
+  .transform((configs) =>
+    configs.cursor.permission === 'workspace-write'
+      ? { ...configs, cursor: { ...configs.cursor, permission: 'full-access' as const } }
+      : configs
+  )
 export type AgentConfigs = z.infer<typeof agentConfigsSchema>
 export const defaultAgentConfig: AgentConfig = {
   model: null,
@@ -27,7 +42,7 @@ export const defaultAgentConfig: AgentConfig = {
 export const defaultAgentConfigs: AgentConfigs = {
   codex: defaultAgentConfig,
   'claude-code': defaultAgentConfig,
-  cursor: defaultAgentConfig
+  cursor: { ...defaultAgentConfig, permission: 'full-access' }
 }
 
 /** Most models one agent's list keeps for a project. */

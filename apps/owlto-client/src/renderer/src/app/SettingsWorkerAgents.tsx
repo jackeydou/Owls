@@ -1,4 +1,5 @@
 import { Button } from '@renderer/components/ui/button'
+import { ChoiceSelect } from '@renderer/components/ui/choice-select'
 import { ChevronDownIcon, ChevronRightIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import { useId, useState } from 'react'
@@ -7,12 +8,13 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   type AgentConfig,
   type AgentProvider,
+  agentPermissions,
   effortSchema,
   type Permission,
-  permissionSchema,
   providerSchema
 } from '../../../shared/agents'
 import { AgentIcon } from '../router/AgentIcon'
+import { permissionChoices } from './permission-choices'
 import { SettingRow } from './SettingRow'
 import { agentConnection, isAgentReady, useAppStore } from './store'
 
@@ -21,7 +23,7 @@ function permissionHelp(provider: AgentProvider, permission: Permission): string
   if (permission === 'read-only') return 'readOnlyHelp'
   const full = permission === 'full-access'
   if (provider === 'claude-code') return full ? 'claudeFullAccessHelp' : 'claudePermissionHelp'
-  if (provider === 'cursor') return full ? 'cursorFullAccessHelp' : 'cursorPermissionHelp'
+  if (provider === 'cursor') return 'cursorFullAccessHelp'
   return full ? 'fullAccessHelp' : 'permissionHelp'
 }
 
@@ -111,19 +113,14 @@ function AgentConfigRows({ provider }: { provider: AgentProvider }) {
             htmlFor={`${id}-permission`}
             description={t(permissionHelp(provider, config.permission))}
           >
-            <Select
+            <ChoiceSelect
               id={`${id}-permission`}
               value={config.permission}
-              onChange={(event) =>
-                saveConfig({ permission: permissionSchema.parse(event.target.value) })
-              }
-            >
-              {permissionSchema.options.map((permission) => (
-                <option key={permission} value={permission}>
-                  {t(`permission.${permission}`)}
-                </option>
-              ))}
-            </Select>
+              choices={permissionChoices(t).filter((c) =>
+                agentPermissions(provider).includes(c.value)
+              )}
+              onChange={(permission) => saveConfig({ permission })}
+            />
           </SettingRow>
         </div>
       ) : null}

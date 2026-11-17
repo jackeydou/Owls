@@ -346,12 +346,14 @@ html[data-skin="doodle"] .owl-floating[role="tooltip"],
 html[data-skin="doodle"] [data-slot="tooltip"].owl-floating {
   box-shadow: var(--doodle-shadow-sm);
 }
-html[data-skin="doodle"] .owlto-select {
+html[data-skin="doodle"] .owlto-select,
+html[data-skin="doodle"] .owlto-select-button {
   border: var(--doodle-border);
   background: var(--doodle-card);
   box-shadow: var(--doodle-shadow-sm);
 }
-html[data-skin="doodle"] .owlto-select:focus-visible {
+html[data-skin="doodle"] .owlto-select:focus-visible,
+html[data-skin="doodle"] .owlto-select-button:focus-visible {
   border-color: var(--owl-field-focus-border);
   box-shadow: var(--owl-field-focus-shadow);
 }
