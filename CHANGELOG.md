@@ -11,6 +11,22 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1600-beta.4
+
+### Highlights
+
+- A new full-screen welcome on first run walks you through connecting coding agents and picking who runs the Router.
+- Agents opened from Finder now find CLIs installed with Homebrew or a version manager, such as gh and node.
+
+### Changes
+
+- Onboarding: first run is now a full-screen welcome in the website style, with interactive owls, two steps (connect coding agents, then pick who runs the Router), and a Skip that leaves a setup card on the thread page until anything is configured. (#171)
+
+### Fixes
+
+- Agents: Claude Code, Codex, and Cursor now get the PATH from your login shell, so CLIs installed with Homebrew or a version manager, such as gh and node, are found when Owlto is opened from Finder. (#170)
+- Workers: a Claude Code worker no longer ends its turn with an empty report when the session resumes with a leftover background task; its real reply now reaches the Router. (#170)
+
 ## 2026.11.1600-beta.3
 
 ### Highlights
