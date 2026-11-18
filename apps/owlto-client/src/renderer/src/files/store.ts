@@ -3,35 +3,47 @@ import type { Failure } from '../../../shared/app'
 import type { FilePreviewResult, FileTarget } from '../../../shared/file-preview'
 import { useAppStore } from '../app/store'
 
-/** How many files Back can step through. */
-const HISTORY_LIMIT = 30
+/** Past this many open files, opening another closes the oldest. */
+const TAB_LIMIT = 8
 
-type FileViewer = {
-  /** The file on screen, or null before any file was opened. */
-  target: FileTarget | null
+/** One open file in the viewer's tab row. */
+export type FileTab = {
+  id: number
+  target: FileTarget
   /** The file, or why it is not shown; null while the first read runs. */
   preview: FilePreviewResult | null
   /** Why the read itself failed; the preview is null then. */
   error: Failure | null
   loading: boolean
-  /** Files opened before this one, newest last. */
-  history: FileTarget[]
-  /** Shows a file in the right sidebar's viewer tab, opening the sidebar on that tab. */
+}
+
+type FileViewer = {
+  tabs: FileTab[]
+  activeId: number | null
+  /** Shows a file in the right sidebar's viewer, in its tab if it is open, else a new one. */
   openFile(target: FileTarget): void
-  back(): void
-  /** Reads the file on screen again, e.g. after an agent changed it. */
+  activate(id: number): void
+  close(id: number): void
+  /** Reads the active file again, e.g. after an agent changed it. Resolves true on success. */
   reload(): Promise<boolean>
 }
 
-const sameTarget = (a: FileTarget | null, b: FileTarget) =>
-  a !== null && a.ref === b.ref && JSON.stringify(a.base) === JSON.stringify(b.base)
+const sameTarget = (a: FileTarget, b: FileTarget) =>
+  a.ref === b.ref && JSON.stringify(a.base) === JSON.stringify(b.base)
+
+let nextId = 1
 
 export const useFilesStore = create<FileViewer>((set, get) => {
-  let request = 0
-  /** Reads a file; a reload keeps the file on screen until the new read lands. Resolves true on success. */
-  const load = async (target: FileTarget, keep = false): Promise<boolean> => {
-    const id = ++request
-    set(keep ? { loading: true } : { target, preview: null, loading: true, error: null })
+  /** The latest read per tab, so a slow read never overwrites a newer one. */
+  const requests = new Map<number, number>()
+  const patch = (id: number, change: Partial<FileTab>) =>
+    set((state) => ({
+      tabs: state.tabs.map((tab) => (tab.id === id ? { ...tab, ...change } : tab))
+    }))
+  const load = async (id: number, target: FileTarget): Promise<boolean> => {
+    const request = (requests.get(id) ?? 0) + 1
+    requests.set(id, request)
+    patch(id, { loading: true })
     const reply = await window.owlto.previewFile(target).catch(
       (error: unknown) =>
         ({
@@ -42,9 +54,9 @@ export const useFilesStore = create<FileViewer>((set, get) => {
           }
         }) as const
     )
-    // A later click wins over a slow read.
-    if (id !== request) return false
-    set(
+    if (requests.get(id) !== request) return false
+    patch(
+      id,
       reply.ok
         ? { preview: reply.value, error: null, loading: false }
         : { preview: null, error: reply.error, loading: false }
@@ -52,28 +64,39 @@ export const useFilesStore = create<FileViewer>((set, get) => {
     return reply.ok
   }
   return {
-    target: null,
-    preview: null,
-    error: null,
-    loading: false,
-    history: [],
+    tabs: [],
+    activeId: null,
     openFile: (target) => {
       useAppStore.getState().showRightPanel('files')
-      const { target: current, history } = get()
-      if (sameTarget(current, target)) return void load(target, true)
-      set({ history: current ? [...history, current].slice(-HISTORY_LIMIT) : history })
-      void load(target)
+      const open = get().tabs.find((tab) => sameTarget(tab.target, target))
+      if (open) {
+        set({ activeId: open.id })
+        void load(open.id, target)
+        return
+      }
+      const tab: FileTab = { id: nextId++, target, preview: null, error: null, loading: true }
+      const tabs = [...get().tabs, tab]
+      for (const dropped of tabs.splice(0, Math.max(0, tabs.length - TAB_LIMIT)))
+        requests.delete(dropped.id)
+      set({ tabs, activeId: tab.id })
+      void load(tab.id, target)
     },
-    back: () => {
-      const { history } = get()
-      const previous = history.at(-1)
-      if (!previous) return
-      set({ history: history.slice(0, -1) })
-      void load(previous)
+    activate: (id) => set({ activeId: id }),
+    close: (id) => {
+      const { tabs, activeId } = get()
+      const index = tabs.findIndex((tab) => tab.id === id)
+      if (index < 0) return
+      requests.delete(id)
+      const rest = tabs.filter((tab) => tab.id !== id)
+      // Closing the active tab moves to its neighbor, as editors do.
+      const next =
+        activeId === id ? ((rest[index] ?? rest[index - 1] ?? null)?.id ?? null) : activeId
+      set({ tabs: rest, activeId: next })
     },
     reload: async () => {
-      const { target } = get()
-      return target ? load(target, true) : false
+      const { tabs, activeId } = get()
+      const tab = tabs.find((t) => t.id === activeId)
+      return tab ? load(tab.id, tab.target) : false
     }
   }
 })

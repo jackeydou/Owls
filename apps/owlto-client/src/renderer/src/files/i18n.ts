@@ -9,12 +9,13 @@ export const filesEn = {
   'files.truncated': 'Showing the first 1 MB of {{size}}.',
   'files.emptyFolder': 'This folder is empty.',
   'files.folderTruncated': 'Showing the first 500 items.',
-  'files.back': 'Back',
   'files.reload': 'Reload',
   'files.copyPath': 'Copy path',
-  'files.mode': 'Markdown view',
-  'files.preview': 'Preview',
-  'files.source': 'Source'
+  'files.close': 'Close {{name}}',
+  'files.more': 'More',
+  'files.reveal': 'Show in {{app}}',
+  'files.showSource': 'Show source',
+  'files.showPreview': 'Show preview'
 }
 export const filesZh: Record<keyof typeof filesEn, string> = {
   'files.openLabel': '在文件查看器中打开 {{path}}',
@@ -26,10 +27,11 @@ export const filesZh: Record<keyof typeof filesEn, string> = {
   'files.truncated': '文件共 {{size}}，只显示前 1 MB。',
   'files.emptyFolder': '这个文件夹是空的。',
   'files.folderTruncated': '只显示前 500 项。',
-  'files.back': '返回',
   'files.reload': '重新读取',
   'files.copyPath': '复制路径',
-  'files.mode': 'Markdown 视图',
-  'files.preview': '预览',
-  'files.source': '源码'
+  'files.close': '关闭 {{name}}',
+  'files.more': '更多',
+  'files.reveal': '在 {{app}} 中显示',
+  'files.showSource': '查看源码',
+  'files.showPreview': '查看预览'
 }

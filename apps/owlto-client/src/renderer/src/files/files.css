@@ -68,75 +68,89 @@
 
 .file-viewer {
   flex: 1;
+  gap: 0;
   min-height: 0;
-  gap: 6px;
+  margin: 0 -8px -12px;
 }
-.file-viewer-head {
+/* Open files, editor style: the active tab is a filled chip, the rest plain text. */
+.file-viewer-tabs {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
   min-height: 40px;
-  padding: 0 0 0 4px;
+  padding: 0 8px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--color-border);
 }
-.file-viewer-title {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  padding-left: 4px;
-  line-height: var(--owl-leading-tight);
-}
-.file-viewer-title strong {
-  overflow: hidden;
-  color: var(--color-foreground);
-  font-size: var(--owl-text-sm);
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.file-viewer-title > span {
-  overflow: hidden;
-  color: var(--color-muted-foreground);
-  font-family: var(--font-mono);
-  font-size: var(--owl-text-2xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.file-viewer-title strong span {
-  color: var(--color-muted-foreground);
-  font-weight: 400;
-}
-.file-viewer-actions {
+.file-viewer-tab {
   display: flex;
   align-items: center;
-  gap: 2px;
   flex-shrink: 0;
-}
-.file-viewer-actions .open-in {
-  margin-left: 2px;
-}
-.file-viewer-mode {
-  display: flex;
-  margin-right: 2px;
-  padding: 2px;
+  max-width: 200px;
+  height: 30px;
+  padding: 0 2px 0 10px;
   border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+  transition: background 120ms ease;
+}
+.file-viewer-tab:hover {
   background: var(--color-sidebar-hover);
 }
-.file-viewer-mode button {
-  height: 22px;
-  padding: 0 8px;
-  border-radius: var(--owl-radius-xs);
+.file-viewer-tab[data-active] {
+  background: var(--color-sidebar-active);
   color: var(--color-foreground);
-  font-size: var(--owl-text-2xs);
-  transition: transform 120ms ease;
 }
-.file-viewer-mode button:active {
-  transform: scale(0.96);
+.file-viewer-tab > button:first-child {
+  overflow: hidden;
+  font-size: var(--owl-text-sm);
+  font-style: italic;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.file-viewer-mode button[aria-pressed="true"] {
-  background: var(--color-card);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-foreground) 12%, transparent);
+.file-viewer-tab > button:first-child:active {
+  opacity: 0.7;
+}
+.file-viewer-tab .file-viewer-tab-close {
+  width: 24px;
+  height: 24px;
+  margin-left: 4px;
+  color: inherit;
+}
+/* The active file's path, folder by folder, with its one menu at the end. */
+.file-viewer-path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 6px 0 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.file-viewer-crumbs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  white-space: nowrap;
+}
+/* Long paths drop their leading folders first; the file name stays visible. */
+.file-viewer-crumbs span {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-viewer-crumbs span:last-child {
+  flex-shrink: 0;
+  max-width: 100%;
+}
+.file-viewer-crumbs i {
+  padding: 0 4px;
+  font-style: normal;
 }
 .file-viewer-body {
   display: flex;
@@ -144,9 +158,6 @@
   flex-direction: column;
   min-height: 0;
   overflow: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--owl-radius-md);
-  background: var(--color-card);
   -webkit-app-region: no-drag;
 }
 .file-viewer-body[aria-busy="true"] {
@@ -179,11 +190,11 @@
 
 .file-code {
   min-width: max-content;
-  padding: 8px 0;
+  padding: 10px 0;
   color: var(--color-foreground);
   font-family: var(--font-mono);
-  font-size: 12.5px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.7;
   tab-size: 2;
 }
 .file-code-line {
@@ -197,9 +208,9 @@
   position: sticky;
   left: 0;
   flex-shrink: 0;
-  width: calc(var(--file-gutter) + 24px);
-  padding-right: 12px;
-  background: var(--color-card);
+  width: calc(var(--file-gutter) + 32px);
+  padding-right: 16px;
+  background: var(--color-sidebar);
   color: var(--color-muted-foreground);
   opacity: 0.6;
   text-align: right;
@@ -247,7 +258,6 @@
   flex: 1;
   place-items: center;
   padding: 16px;
-  background-color: var(--color-card);
   background-image:
     linear-gradient(45deg, var(--color-border-light) 25%, transparent 25%),
     linear-gradient(-45deg, var(--color-border-light) 25%, transparent 25%),
@@ -295,21 +305,13 @@
   white-space: nowrap;
 }
 
-/* Doodle: the viewer is a paper card with an ink outline, and the toggle a pressed chip. */
-html[data-skin="doodle"] .file-viewer-body {
-  border: var(--doodle-border);
-  box-shadow: var(--doodle-shadow-sm);
-}
-html[data-skin="doodle"] .file-viewer-mode {
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px var(--doodle-line);
-}
-html[data-skin="doodle"] .file-viewer-mode button[aria-pressed="true"] {
+/* Doodle: the active tab is an amber chip with an ink outline. */
+html[data-skin="doodle"] .file-viewer-tab[data-active] {
   background: var(--doodle-amber);
+  box-shadow: inset 0 0 0 1.5px var(--doodle-line);
   color: var(--doodle-ink);
-  box-shadow: none;
 }
-html[data-skin="doodle"] .file-viewer-title strong {
-  font-family: var(--doodle-display);
-  font-style: italic;
+html[data-skin="doodle"] .file-viewer-tabs,
+html[data-skin="doodle"] .file-viewer-path {
+  border-bottom: var(--doodle-border-thin);
 }
