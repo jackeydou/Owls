@@ -1,4 +1,4 @@
-import { type AgentProvider, providerSchema } from '../../shared/agents.js'
+import { type AgentProvider, providerSchema, workerBrowserEnabled } from '../../shared/agents.js'
 import type {
   AppEvent,
   Failure,
@@ -658,19 +658,22 @@ export class RouterService implements TurnProfiles {
   }
 
   /**
-   * Gives workers Owlto's browser tool. It runs scripts outside the agent's sandbox, so
-   * read-only workers never get it: a script could write files or reach the network.
+   * Gives workers Owlto's browser tool where their agent's setting allows it (Codex and
+   * Cursor, never read-only; see `workerBrowserEnabled`). Scripts run outside the agent's
+   * sandbox.
    */
   attachBrowser(browser: WorkerBrowser): void {
     this.browser = browser
   }
 
-  /** Owlto's worker tools besides `report`: automations, and the browser for writing workers. */
+  /** Owlto's worker tools besides `report`: automations, and the browser where allowed. */
   private workerTools(worker: RouterWorker): WorkerTool[] {
-    const browser =
-      this.browser && worker.permission !== 'read-only'
-        ? [browserTool(this.browser, worker.id)]
-        : []
+    const enabled = workerBrowserEnabled(
+      this.host.settings().agents,
+      worker.provider,
+      worker.permission
+    )
+    const browser = this.browser && enabled ? [browserTool(this.browser, worker.id)] : []
     return [...this.workerAutomationTools(worker), ...browser]
   }
 

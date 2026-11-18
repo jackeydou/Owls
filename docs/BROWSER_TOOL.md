@@ -1,11 +1,18 @@
 # Owlto Browser Tool
 
-Router workers that may write (Approve for me or Full access) get one Owlto
-tool, `browser` (`owlto_browser` on Codex), that drives a real Chrome window by
-running a Playwright script. It is served like the other worker tools: Claude
-Code through the in-process `owlto` MCP server, Codex as a dynamic tool, and
-Cursor through the local HTTP MCP server. Read-only workers never get it,
-because a script runs outside the agent's sandbox.
+Codex and Cursor workers get one Owlto tool, `browser` (`owlto_browser` on
+Codex), that drives a real Chrome window by running a Playwright script. It is
+served like the other worker tools: Codex as a dynamic tool and Cursor through
+the local HTTP MCP server.
+
+Each agent has a Browser switch in Settings → Router & Workers
+(`settings.agents.codex.browser`, `settings.agents.cursor.browser`), on by
+default. Read-only workers never get the tool, whatever the switch says, and
+the switch shows off and disabled while the agent's permission is read only,
+because a script runs outside the agent's sandbox. Claude Code workers do not
+get it; they use Claude in Chrome (`settings.agents['claude-code'].chrome`).
+`workerBrowserEnabled` in `shared/agents.ts` is the one rule both the Router
+and Settings read.
 
 ## Why a script, not browser MCP tools
 

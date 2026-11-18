@@ -161,9 +161,9 @@ function fakeHost() {
   const turns = { profiles: null }
   const settings = {
     agents: {
-      codex: { model: 'gpt-test', effort: null, permission: 'workspace-write' },
-      'claude-code': { model: null, effort: null, permission: 'workspace-write' },
-      cursor: { model: null, effort: null, permission: 'workspace-write' }
+      codex: { model: 'gpt-test', effort: null, permission: 'workspace-write', browser: true },
+      'claude-code': { model: null, effort: null, permission: 'workspace-write', chrome: true },
+      cursor: { model: null, effort: null, permission: 'workspace-write', browser: true }
     },
     router: {
       engine: 'owlto',
@@ -326,7 +326,7 @@ test('the Router creates an automation whose run comes back to its thread', asyn
   automations.close()
 })
 
-test('writing workers get the browser tool, scoped to their own tab; read-only workers do not', async () => {
+test('Codex and Cursor workers get the browser tool when their setting allows it, never read-only', async () => {
   const { router, automations, runs, fake, tools } = app()
   const calls = []
   router.attachBrowser({
@@ -362,6 +362,23 @@ test('writing workers get the browser tool, scoped to their own tab; read-only w
   assert.equal(
     router.profile(reader.sessionId).tools.some((t) => t.name === 'browser'),
     false
+  )
+
+  fake.host.settings().agents.codex.browser = false
+  const off = await dispatch({ goal: 'Check another page' })
+  await waitFor(() => fake.sent.length === 3, 'the worker turn with the browser off')
+  assert.equal(
+    router.profile(off.sessionId).tools.some((t) => t.name === 'browser'),
+    false,
+    'the Codex browser switch turns the tool off'
+  )
+  const claude = await dispatch({ goal: 'Check with Claude', provider: 'claude-code' })
+  await waitFor(() => fake.sent.length === 4, 'the Claude worker turn')
+  assert.equal(claude.provider, 'claude-code')
+  assert.equal(
+    router.profile(claude.sessionId).tools.some((t) => t.name === 'browser'),
+    false,
+    'Claude Code workers use Claude in Chrome instead'
   )
   router.close()
   automations.close()

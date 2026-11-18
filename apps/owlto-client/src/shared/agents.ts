@@ -19,6 +19,23 @@ export const claudeAgentConfigSchema = agentConfigSchema.extend({
 })
 export type ClaudeAgentConfig = z.infer<typeof claudeAgentConfigSchema>
 /**
+ * Codex and Cursor choose whether their workers get Owlto's browser tool. Claude Code uses
+ * Claude in Chrome instead. Read-only workers never get it, whatever this says.
+ */
+export const browserAgentConfigSchema = agentConfigSchema.extend({
+  browser: z.boolean().default(true)
+})
+export type BrowserAgentConfig = z.infer<typeof browserAgentConfigSchema>
+/** Whether a worker on this agent, at this permission, gets Owlto's browser tool. */
+export function workerBrowserEnabled(
+  configs: AgentConfigs,
+  provider: AgentProvider,
+  permission: Permission
+): boolean {
+  if (permission === 'read-only' || provider === 'claude-code') return false
+  return configs[provider].browser
+}
+/**
  * The permissions each agent offers in Settings. Cursor has no reviewer that
  * works over ACP, so it keeps only its native modes: `ask` (read only) and
  * `agent` (full access).
@@ -28,9 +45,9 @@ export function agentPermissions(provider: AgentProvider): Permission[] {
 }
 export const agentConfigsSchema = z
   .object({
-    codex: agentConfigSchema,
+    codex: browserAgentConfigSchema,
     'claude-code': claudeAgentConfigSchema,
-    cursor: agentConfigSchema
+    cursor: browserAgentConfigSchema
   })
   // Settings saved before Cursor dropped workspace access move to its agent mode.
   .transform((configs) =>
@@ -45,9 +62,9 @@ export const defaultAgentConfig: AgentConfig = {
   permission: 'workspace-write'
 }
 export const defaultAgentConfigs: AgentConfigs = {
-  codex: defaultAgentConfig,
+  codex: { ...defaultAgentConfig, browser: true },
   'claude-code': { ...defaultAgentConfig, chrome: true },
-  cursor: { ...defaultAgentConfig, permission: 'full-access' }
+  cursor: { ...defaultAgentConfig, permission: 'full-access', browser: true }
 }
 
 /** Most models one agent's list keeps for a project. */

@@ -12,7 +12,8 @@ import {
   agentPermissions,
   effortSchema,
   type Permission,
-  providerSchema
+  providerSchema,
+  workerBrowserEnabled
 } from '../../../shared/agents'
 import { AgentIcon } from '../router/AgentIcon'
 import { permissionChoices } from './permission-choices'
@@ -143,7 +144,30 @@ function AgentConfigRows({ provider }: { provider: AgentProvider }) {
                 }
               />
             </SettingRow>
-          ) : null}
+          ) : (
+            <SettingRow
+              label={t('browserTool')}
+              htmlFor={`${id}-browser`}
+              description={t(
+                config.permission === 'read-only' ? 'browserToolReadOnly' : 'browserToolHelp'
+              )}
+            >
+              <Switch
+                id={`${id}-browser`}
+                checked={workerBrowserEnabled(settings.agents, provider, config.permission)}
+                disabled={config.permission === 'read-only'}
+                onCheckedChange={(browser) =>
+                  void save({
+                    ...settings,
+                    agents: {
+                      ...settings.agents,
+                      [provider]: { ...settings.agents[provider], browser }
+                    }
+                  })
+                }
+              />
+            </SettingRow>
+          )}
         </div>
       ) : null}
     </div>
