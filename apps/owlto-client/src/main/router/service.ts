@@ -24,7 +24,6 @@ import type {
   SendRouterMessage,
   SetRouterKey,
   WorkerAction,
-  WorkerArtifactAction,
   WorkerPullRequestLink,
   WorkerReport
 } from '../../shared/router.js'
@@ -478,15 +477,6 @@ export class RouterService implements TurnProfiles {
     if (!worker || worker.routerId !== this.ownRouter(input.routerId).id)
       throw new OwltoError('request_unavailable', 'This worker no longer exists.')
     return worker.sessionId
-  }
-
-  /** A file the worker reported, with the session whose folder a relative path is under. */
-  workerArtifact(input: WorkerArtifactAction): { sessionId: string; ref: string } {
-    const sessionId = this.workerSession(input)
-    const artifact = this.pool.get(input.workerId)?.report?.artifacts[input.index]
-    if (artifact?.kind !== 'file')
-      throw new OwltoError('request_unavailable', 'This file is no longer in the report.')
-    return { sessionId, ref: artifact.ref }
   }
 
   /** Worker calls report model-facing errors; the user gets a stable failure instead. */

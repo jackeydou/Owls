@@ -1,6 +1,7 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
 import {
   CardsIcon,
+  FileCodeIcon,
   FolderIcon,
   FolderOpenTiltIcon,
   PlusIcon,
@@ -14,6 +15,7 @@ import type { Card } from '../../../shared/cards'
 import { useAppStore } from '../app/store'
 import { NEW_CARD } from '../cards/CardEditor'
 import { useCardsStore } from '../cards/store'
+import { FileViewerPane } from '../files/FileViewer'
 import { ProjectsPane } from './ProjectsSidebar'
 import { usePaneWidth } from './pane-width'
 
@@ -120,8 +122,9 @@ function PanelTab({
 /** The right-hand sidebar: one list at a time, picked from the icons in its head. */
 export function RightSidebar() {
   const { t } = useTranslation()
-  const { width, handle } = usePaneWidth('projects', 'left')
   const panel = useAppStore((s) => s.settings.layout.rightPanel)
+  // The file viewer keeps its own, wider width, so code has room without widening the lists.
+  const { width, handle } = usePaneWidth(panel === 'files' ? 'files' : 'projects', 'left')
   return (
     <aside className="router-projects" style={{ width }} aria-label={t('router.rightSidebar')}>
       <header className="router-projects-head">
@@ -134,9 +137,16 @@ export function RightSidebar() {
             }
           />
           <PanelTab panel="cards" current={panel} icon={<CardsIcon size={18} />} />
+          <PanelTab panel="files" current={panel} icon={<FileCodeIcon size={18} />} />
         </nav>
       </header>
-      {panel === 'cards' ? <CardsPane /> : <ProjectsPane />}
+      {panel === 'files' ? (
+        <FileViewerPane />
+      ) : panel === 'cards' ? (
+        <CardsPane />
+      ) : (
+        <ProjectsPane />
+      )}
       <ResizeHandle {...handle} />
     </aside>
   )

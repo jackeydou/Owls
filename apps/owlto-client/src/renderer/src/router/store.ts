@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Failure, Reply, Router, ThreadItem } from '../../../shared/app'
 import type { Attachment } from '../../../shared/attachments'
+import type { OpenFileIn } from '../../../shared/file-preview'
 import type { WorkerGitHubStatus } from '../../../shared/github'
 import type { OpenInApp, OpenWorkerIn } from '../../../shared/open-in'
 import type {
@@ -8,8 +9,7 @@ import type {
   OwltoProviderId,
   PendingMessageAction,
   RouterProviderInfo,
-  RouterWorker,
-  WorkerArtifactAction
+  RouterWorker
 } from '../../../shared/router'
 import { UIError, uiFailure } from '../app/failures'
 
@@ -91,7 +91,8 @@ type State = {
   /** Resolves true once the app was asked to open the worker's folder. */
   openWorkerIn(input: OpenWorkerIn): Promise<boolean>
   /** Resolves true once the reported file was opened; a failure shows as an error. */
-  openWorkerArtifact(input: WorkerArtifactAction): Promise<boolean>
+  /** Opens a file shown in the file viewer in an installed app; true once it opened. */
+  openFileIn(input: OpenFileIn): Promise<boolean>
   removeWorker(routerId: string, workerId: string): Promise<void>
   discardWorktree(routerId: string, workerId: string): Promise<void>
   showPanel(panel: RouterPanel | null): void
@@ -299,9 +300,9 @@ export const useRouterStore = create<State>((set, get) => {
       })
       return opened === true
     },
-    openWorkerArtifact: async (input) => {
+    openFileIn: async (input) => {
       const opened = await action(async () => {
-        const reply = await window.owlto.openWorkerArtifact(input)
+        const reply = await window.owlto.openFileIn(input)
         return reply.ok ? { ok: true as const, value: true } : reply
       })
       return opened === true

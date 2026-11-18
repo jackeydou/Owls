@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { access, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { extname, join } from 'node:path'
+import { dirname, extname, join } from 'node:path'
 import { promisify } from 'node:util'
 import type { OpenInApp, OpenInAppId, OpenInAppKind } from '../../shared/open-in.js'
 import { OwltoError } from './errors.js'
@@ -297,6 +297,20 @@ export class OpenInApps {
   async open(appId: OpenInAppId, folder: string): Promise<void> {
     if (!(await this.os.isFolder(folder)))
       throw new OwltoError('request_unavailable', 'This folder no longer exists.')
+    await this.os.open((await this.entry(appId)).path, folder)
+  }
+
+  /** Opens a file in an editor; a terminal opens the folder the file is in. */
+  async openFile(appId: OpenInAppId, path: string): Promise<void> {
+    if (!(await this.os.exists(path)))
+      throw new OwltoError('request_unavailable', 'This file no longer exists.')
+    const entry = await this.entry(appId)
+    const target =
+      entry.app.kind === 'terminal' && !(await this.os.isFolder(path)) ? dirname(path) : path
+    await this.os.open(entry.path, target)
+  }
+
+  private async entry(appId: OpenInAppId): Promise<{ app: OpenInApp; path: string }> {
     let entry = (await this.installed()).get(appId)
     if (!entry) {
       // The app may have been installed or moved since the last scan.
@@ -304,7 +318,7 @@ export class OpenInApps {
       entry = (await this.installed()).get(appId)
     }
     if (!entry) throw new OwltoError('request_unavailable', 'This app is not installed.')
-    await this.os.open(entry.path, folder)
+    return entry
   }
 
   private installed(): Promise<Map<OpenInAppId, { app: OpenInApp; path: string }>> {

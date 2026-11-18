@@ -4,13 +4,13 @@ import {
   GlobeIcon,
   ScrollTextIcon
 } from '@renderer/components/ui/icons'
-import { useAction } from '@renderer/components/ui/use-action'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Streamdown } from 'streamdown'
-import type { WorkerAction, WorkerArtifactAction, WorkerReport } from '../../../shared/router'
+import type { WorkerReport } from '../../../shared/router'
 import { MarkdownLink, markdownLinkComponents } from '../app/MarkdownLink'
-import { useRouterStore } from './store'
+import { FileLink } from '../files/FileLink'
+import { markdownRemarkPlugins } from '../files/remark-file-links'
 
 type Artifact = WorkerReport['artifacts'][number]
 
@@ -44,7 +44,11 @@ function NoteArtifact({ text }: { text: string }) {
         className="owlto-markdown markdown-body worker-artifact-note-body"
         data-folded={long && !open ? '' : undefined}
       >
-        <Streamdown controls={false} components={markdownLinkComponents}>
+        <Streamdown
+          controls={false}
+          components={markdownLinkComponents}
+          remarkPlugins={markdownRemarkPlugins}
+        >
           {text}
         </Streamdown>
       </div>
@@ -63,57 +67,20 @@ function NoteArtifact({ text }: { text: string }) {
   )
 }
 
-/** A reported file: its name opens it in its default app, with its folder beside it. */
-function FileArtifact({
-  entry,
-  projectPath,
-  target
-}: {
-  entry: Artifact
-  projectPath: string
-  target: WorkerArtifactAction | null
-}) {
-  const { t } = useTranslation()
-  const openWorkerArtifact = useRouterStore((s) => s.openWorkerArtifact)
-  // The file opening in another app is the result; a failure shows as the store's error.
-  const { phase, run } = useAction(async () => {
-    if (!target || !(await openWorkerArtifact(target))) throw new Error('open failed')
-    return 'quiet'
-  })
+/** A reported file: its name opens it in the file viewer, with its folder beside it. */
+function FileArtifact({ entry, projectPath }: { entry: Artifact; projectPath: string }) {
   const { name, folder } = filePath(entry.ref, projectPath)
-  if (!target)
-    return (
-      <span className="worker-artifact-ref">
-        <span className="worker-artifact-name">{name}</span>
-        {folder ? <span className="worker-artifact-folder">{folder}</span> : null}
-      </span>
-    )
   return (
     <span className="worker-artifact-ref">
-      <button
-        type="button"
-        className="worker-artifact-name"
-        data-phase={phase}
-        aria-busy={phase === 'pending'}
-        aria-label={t('worker.artifactOpen', { name })}
-        onClick={() => void run()}
-      >
+      <FileLink path={entry.ref.trim()} className="worker-artifact-name">
         {name}
-      </button>
+      </FileLink>
       {folder ? <span className="worker-artifact-folder">{folder}</span> : null}
     </span>
   )
 }
 
-function ArtifactBody({
-  entry,
-  projectPath,
-  target
-}: {
-  entry: Artifact
-  projectPath: string
-  target: WorkerArtifactAction | null
-}) {
+function ArtifactBody({ entry, projectPath }: { entry: Artifact; projectPath: string }) {
   if (entry.kind === 'note') return <NoteArtifact text={entry.ref} />
   if (entry.kind === 'url')
     return (
@@ -121,7 +88,7 @@ function ArtifactBody({
         <MarkdownLink href={entry.ref.trim()}>{urlLabel(entry.ref.trim())}</MarkdownLink>
       </span>
     )
-  return <FileArtifact entry={entry} projectPath={projectPath} target={target} />
+  return <FileArtifact entry={entry} projectPath={projectPath} />
 }
 
 const ICONS = { file: FileIcon, url: GlobeIcon, note: ScrollTextIcon } as const
@@ -132,16 +99,10 @@ const ICONS = { file: FileIcon, url: GlobeIcon, note: ScrollTextIcon } as const
  */
 export function WorkerArtifacts({
   artifacts,
-  projectPath,
-  current
+  projectPath
 }: {
   artifacts: WorkerReport['artifacts']
   projectPath: string
-  /**
-   * The worker these are the latest report of. Main finds a file by its place in that report,
-   * so an earlier report's files, passed null, are shown but cannot be opened.
-   */
-  current: WorkerAction | null
 }) {
   const { t } = useTranslation()
   if (!artifacts.length) return null
@@ -161,11 +122,7 @@ export function WorkerArtifacts({
                 {index + 1}
               </span>
               <Icon size={14} aria-label={t(`worker.artifactKind.${entry.kind}`)} />
-              <ArtifactBody
-                entry={entry}
-                projectPath={projectPath}
-                target={current ? { ...current, index } : null}
-              />
+              <ArtifactBody entry={entry} projectPath={projectPath} />
             </li>
           )
         })}

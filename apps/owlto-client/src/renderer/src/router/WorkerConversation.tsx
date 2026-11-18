@@ -1,16 +1,13 @@
 import { AlertCircleIcon, ChevronRightIcon } from '@renderer/components/ui/icons'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AgentProvider, Session, SessionItem } from '../../../shared/app'
-import {
-  type RouterWorker,
-  type WorkerAction,
-  type WorkerReport,
-  workerReportSchema
-} from '../../../shared/router'
+import type { FileBase } from '../../../shared/file-preview'
+import { type RouterWorker, type WorkerReport, workerReportSchema } from '../../../shared/router'
 import { ConversationItem, RequestCard } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { OwlAvatar } from '../app/OwlAvatar'
+import { FileBaseContext } from '../files/FileLink'
 import { isWorking, openRequests } from './activity'
 import { WorkerArtifacts } from './WorkerArtifacts'
 import { WorkerUserMessage } from './WorkerUserMessage'
@@ -52,11 +49,8 @@ function ReportMessage({
   provider,
   projectPath,
   degraded,
-  id,
-  current
+  id
 }: {
-  /** The worker whose latest report this is; null for an earlier report, whose files cannot open. */
-  current: WorkerAction | null
   report: WorkerReport
   agent: string
   provider: AgentProvider
@@ -77,7 +71,7 @@ function ReportMessage({
     <div className="worker-report">
       {degraded ? <p className="worker-report-note">{t('worker.degraded')}</p> : null}
       <ConversationItem item={item} agent={agent} speaker={provider} />
-      <WorkerArtifacts artifacts={report.artifacts} projectPath={projectPath} current={current} />
+      <WorkerArtifacts artifacts={report.artifacts} projectPath={projectPath} />
     </div>
   )
 }
@@ -119,6 +113,10 @@ export function WorkerConversation({
 }) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
+  const fileBase = useMemo<FileBase>(
+    () => ({ kind: 'worker', routerId: worker.routerId, workerId: worker.id }),
+    [worker.routerId, worker.id]
+  )
   if (!session) return <p className="router-panel-empty">{t('worker.notStarted')}</p>
   const agent = t(`agent.${session.provider}`)
   const settled = worker.report !== null && ['reported', 'idle'].includes(worker.status)
@@ -151,54 +149,54 @@ export function WorkerConversation({
           provider={session.provider}
           projectPath={projectPath}
           degraded={false}
-          current={null}
         />
       )
     return <ConversationItem key={item.id} item={item} agent={agent} speaker={session.provider} />
   }
   return (
-    <div className="worker-conversation">
-      {folded ? (
-        <button
-          type="button"
-          className="worker-fold"
-          aria-expanded={expanded}
-          onClick={() => {
-            onToggleFold?.()
-            setExpanded((open) => !open)
-          }}
-        >
-          <ChevronRightIcon size={14} />
-          <span>
-            {t(expanded ? 'worker.hideEarlier' : 'worker.showEarlier', { count: folded })}
-          </span>
-        </button>
-      ) : null}
-      {!settled || expanded ? before.map(renderItem) : null}
-      {settled && worker.report ? (
-        <ReportMessage
-          id={reportIndex >= 0 ? session.items[reportIndex].id : `${worker.id}:report`}
-          report={worker.report}
-          agent={agent}
-          provider={session.provider}
-          projectPath={projectPath}
-          degraded={worker.degraded}
-          current={{ routerId: worker.routerId, workerId: worker.id }}
-        />
-      ) : null}
-      {after.map(renderItem)}
-      {isWorking(worker) && !session.error ? (
-        <WorkingIndicator provider={session.provider} agent={agent} />
-      ) : null}
-      {openRequests(session).map((request) => (
-        <RequestCard key={request.id} request={request} sessionId={session.id} agent={agent} />
-      ))}
-      {session.error ? (
-        <div className="owlto-inline-error" role="alert">
-          <AlertCircleIcon size={17} />
-          <span>{failureMessage(session.error)}</span>
-        </div>
-      ) : null}
-    </div>
+    <FileBaseContext.Provider value={fileBase}>
+      <div className="worker-conversation">
+        {folded ? (
+          <button
+            type="button"
+            className="worker-fold"
+            aria-expanded={expanded}
+            onClick={() => {
+              onToggleFold?.()
+              setExpanded((open) => !open)
+            }}
+          >
+            <ChevronRightIcon size={14} />
+            <span>
+              {t(expanded ? 'worker.hideEarlier' : 'worker.showEarlier', { count: folded })}
+            </span>
+          </button>
+        ) : null}
+        {!settled || expanded ? before.map(renderItem) : null}
+        {settled && worker.report ? (
+          <ReportMessage
+            id={reportIndex >= 0 ? session.items[reportIndex].id : `${worker.id}:report`}
+            report={worker.report}
+            agent={agent}
+            provider={session.provider}
+            projectPath={projectPath}
+            degraded={worker.degraded}
+          />
+        ) : null}
+        {after.map(renderItem)}
+        {isWorking(worker) && !session.error ? (
+          <WorkingIndicator provider={session.provider} agent={agent} />
+        ) : null}
+        {openRequests(session).map((request) => (
+          <RequestCard key={request.id} request={request} sessionId={session.id} agent={agent} />
+        ))}
+        {session.error ? (
+          <div className="owlto-inline-error" role="alert">
+            <AlertCircleIcon size={17} />
+            <span>{failureMessage(session.error)}</span>
+          </div>
+        ) : null}
+      </div>
+    </FileBaseContext.Provider>
   )
 }

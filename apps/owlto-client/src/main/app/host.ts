@@ -1,5 +1,5 @@
 import { mkdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import type { z } from 'zod'
 import type {
   AgentConnection,
@@ -29,6 +29,7 @@ import type {
   cardSaveSchema
 } from '../../shared/cards.js'
 import type { FeedbackDiagnostics, FeedbackInput, FeedbackResult } from '../../shared/feedback.js'
+import type { FileBase, FilePreviewResult, FileTarget } from '../../shared/file-preview.js'
 import type { GitHubAccount, PullRequestOverview } from '../../shared/github.js'
 import type {
   MemoryCategoryAction,
@@ -56,13 +57,12 @@ import type {
   SendRouterMessage,
   SetRouterKey,
   ThreadItemsRequest,
-  WorkerAction,
-  WorkerArtifactAction
+  WorkerAction
 } from '../../shared/router.js'
 import { type UsageOverview, unavailableUsage } from '../../shared/usage.js'
 import type { UsageStats, UsageStatsRequest } from '../../shared/usage-stats.js'
 import { isInPlay } from '../../shared/worker-map.js'
-import { artifactFilePath, type WorkspaceListing, workerHome } from '../../shared/workspace.js'
+import { type WorkspaceListing, workerHome } from '../../shared/workspace.js'
 import type { PullRequestWatcher } from '../automations/pull-request-events.js'
 import type { AutomationService } from '../automations/service.js'
 import type { CardService } from '../cards/service.js'
@@ -83,6 +83,7 @@ import { detectAgents } from './agent-detection.js'
 import type { AgentRuntime } from './agent-runtime.js'
 import { AttachmentStore } from './attachments.js'
 import { OwltoError } from './errors.js'
+import { containingRoot, type PreviewRoot, previewFileRef } from './file-preview.js'
 import type { UserProfile } from './profile.js'
 import { cloneGitHubProject, createQuickProject } from './project-sources.js'
 import {
@@ -391,12 +392,40 @@ export class OwltoHost {
     if (!session) throw new OwltoError('request_unavailable', 'This worker no longer exists.')
     return session.cwd
   }
-  /** The absolute path of a file a worker reported. */
-  workerArtifactPath(input: WorkerArtifactAction): string {
-    const { sessionId, ref } = this.requireRouter().workerArtifact(input)
-    const session = this.snapshot().sessions.find((s) => s.id === sessionId)
-    const path = session ? artifactFilePath(ref, session.cwd) : null
-    if (!path) throw new OwltoError('request_unavailable', 'This file is no longer available.')
+  /**
+   * Folders the file viewer may read from: projects, the workspace, and every worker's
+   * folder, which covers worktrees outside both.
+   */
+  private previewRoots(): PreviewRoot[] {
+    const { projects, sessions } = this.snapshot()
+    const roots: PreviewRoot[] = projects.map((p) => ({ path: p.path, name: p.name }))
+    const workspace = this.workspaceFolder()
+    roots.push({ path: workspace, name: basename(workspace) || workspace })
+    for (const session of sessions)
+      roots.push({ path: session.cwd, name: basename(session.cwd) || session.cwd })
+    return roots
+  }
+  /** The folders a relative path is tried under, most specific first. */
+  private previewBases(base: FileBase): string[] {
+    if (base.kind === 'none') return []
+    if (base.kind === 'file') return [dirname(base.path)]
+    if (base.kind === 'worker') return [this.workerFolder(base)]
+    const { workers, sessions, projects } = this.snapshot()
+    const folders = workers
+      .filter((w) => w.routerId === base.routerId && w.status !== 'removed')
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map((w) => sessions.find((s) => s.id === w.sessionId)?.cwd)
+      .filter((cwd): cwd is string => typeof cwd === 'string')
+    return [...new Set([...folders, this.workspaceFolder(), ...projects.map((p) => p.path)])]
+  }
+  /** A file a message points at, read for the viewer. */
+  previewFile(target: FileTarget): Promise<FilePreviewResult> {
+    return previewFileRef(target.ref, this.previewBases(target.base), this.previewRoots())
+  }
+  /** The path of a previewed file once it is checked to be under a root, for opening elsewhere. */
+  async previewedPath(path: string): Promise<string> {
+    if (!(await containingRoot(path, this.previewRoots())))
+      throw new OwltoError('request_unavailable', 'This file cannot be opened from Owlto.')
     return path
   }
   routerProviders(): RouterProviderInfo[] {

@@ -3,6 +3,9 @@ import { CheckIcon, CopyIcon, ExternalLinkIcon } from '@renderer/components/ui/i
 import { AnchoredPopover, type PopoverPoint } from '@renderer/components/ui/popover'
 import { type ComponentProps, type MouseEvent, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { isLocalHref } from '../../../shared/file-preview'
+import { FileLink, InlineFileCode } from '../files/FileLink'
+import { fileHrefPath } from '../files/remark-file-links'
 
 const WEB_URL = /^https?:\/\//i
 
@@ -14,11 +17,19 @@ function openExternal(url: string): void {
 const isMac = () => document.documentElement.dataset.platform === 'darwin'
 
 /**
- * A Markdown link in agent output. A click asks first in a popover anchored to the
- * link; Cmd-click (Ctrl-click off macOS) opens it right away. Anything that is not a
- * web URL, including a link still streaming in, is plain text.
+ * A Markdown link in agent output. A web link asks first in a popover anchored to the
+ * link; Cmd-click (Ctrl-click off macOS) opens it right away. A local file opens in the
+ * right sidebar's file viewer. Anything else, including a link still streaming in, is
+ * plain text.
  */
 export function MarkdownLink({ href = '', children }: ComponentProps<'a'>) {
+  const filePath = fileHrefPath(href) ?? (isLocalHref(href) ? href : null)
+  if (filePath !== null)
+    return (
+      <FileLink path={filePath} className="owlto-markdown-link owlto-markdown-file-link">
+        {children}
+      </FileLink>
+    )
   if (!WEB_URL.test(href)) return <span className="owlto-markdown-link-text">{children}</span>
   return <WebLink href={href}>{children}</WebLink>
 }
@@ -108,5 +119,8 @@ function WebLink({ href, children }: { href: string; children: ReactNode }) {
   )
 }
 
-/** Streamdown components that route every Markdown link through {@link MarkdownLink}. */
-export const markdownLinkComponents = { a: MarkdownLink }
+/**
+ * Streamdown components that route every Markdown link through {@link MarkdownLink}, and
+ * make inline code that names a file open it in the file viewer.
+ */
+export const markdownLinkComponents = { a: MarkdownLink, inlineCode: InlineFileCode }

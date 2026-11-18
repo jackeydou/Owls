@@ -1,0 +1,315 @@
+/* The right sidebar's file viewer, and the file links in messages that open it. */
+:root {
+  /* Syntax colors for gpu-lexer's span types, close to GitHub's light and dark themes. */
+  --owl-syntax-comment: #6e7781;
+  --owl-syntax-string: #0a3069;
+  --owl-syntax-number: #0550ae;
+  --owl-syntax-keyword: #cf222e;
+  --owl-syntax-type: #953800;
+  --owl-syntax-function: #8250df;
+  --owl-syntax-constant: #0550ae;
+  --owl-syntax-operator: #cf222e;
+  --owl-file-line-mark: color-mix(in srgb, #f0b400 18%, transparent);
+}
+[data-theme="dark"] {
+  --owl-syntax-comment: #8b949e;
+  --owl-syntax-string: #a5d6ff;
+  --owl-syntax-number: #79c0ff;
+  --owl-syntax-keyword: #ff7b72;
+  --owl-syntax-type: #ffa657;
+  --owl-syntax-function: #d2a8ff;
+  --owl-syntax-constant: #79c0ff;
+  --owl-syntax-operator: #ff7b72;
+  --owl-file-line-mark: color-mix(in srgb, #f0b400 16%, transparent);
+}
+
+/* A file named in a message: link-blue text that reads as part of the sentence. */
+.owlto-file-link,
+.owlto-file-code {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--owl-link);
+  font: inherit;
+  font-weight: 500;
+  text-align: inherit;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+.owlto-file-link:hover,
+.owlto-file-code:hover {
+  color: var(--owl-link-hover);
+}
+.owlto-file-link:active,
+.owlto-file-code:active {
+  opacity: 0.7;
+}
+.owlto-file-code code {
+  color: inherit;
+}
+.owlto-file-code:hover code {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.owlto-activity-paths {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+}
+.owlto-activity-paths .owlto-file-link {
+  font-weight: 400;
+}
+
+.file-viewer {
+  flex: 1;
+  min-height: 0;
+  gap: 6px;
+}
+.file-viewer-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 0 0 4px;
+}
+.file-viewer-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding-left: 4px;
+  line-height: var(--owl-leading-tight);
+}
+.file-viewer-title strong {
+  overflow: hidden;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-viewer-title > span {
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-2xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-viewer-title strong span {
+  color: var(--color-muted-foreground);
+  font-weight: 400;
+}
+.file-viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.file-viewer-actions .open-in {
+  margin-left: 2px;
+}
+.file-viewer-mode {
+  display: flex;
+  margin-right: 2px;
+  padding: 2px;
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-sidebar-hover);
+}
+.file-viewer-mode button {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-foreground);
+  font-size: var(--owl-text-2xs);
+  transition: transform 120ms ease;
+}
+.file-viewer-mode button:active {
+  transform: scale(0.96);
+}
+.file-viewer-mode button[aria-pressed="true"] {
+  background: var(--color-card);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-foreground) 12%, transparent);
+}
+.file-viewer-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-md);
+  background: var(--color-card);
+  -webkit-app-region: no-drag;
+}
+.file-viewer-body[aria-busy="true"] {
+  opacity: 0.7;
+}
+.file-viewer-state {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 16px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  text-align: center;
+}
+.file-viewer-state code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: var(--owl-text-2xs);
+}
+.file-viewer-note {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+
+.file-code {
+  min-width: max-content;
+  padding: 8px 0;
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  tab-size: 2;
+}
+.file-code-line {
+  display: flex;
+  padding-right: 16px;
+}
+.file-code-line[data-marked] {
+  background: var(--owl-file-line-mark);
+}
+.file-code-number {
+  position: sticky;
+  left: 0;
+  flex-shrink: 0;
+  width: calc(var(--file-gutter) + 24px);
+  padding-right: 12px;
+  background: var(--color-card);
+  color: var(--color-muted-foreground);
+  opacity: 0.6;
+  text-align: right;
+  user-select: none;
+}
+.file-code-line[data-marked] .file-code-number {
+  background: transparent;
+  opacity: 1;
+}
+.file-code-text {
+  white-space: pre;
+}
+.file-code [data-syntax="comment"] {
+  color: var(--owl-syntax-comment);
+  font-style: italic;
+}
+.file-code [data-syntax="string"] {
+  color: var(--owl-syntax-string);
+}
+.file-code [data-syntax="number"] {
+  color: var(--owl-syntax-number);
+}
+.file-code [data-syntax="keyword"] {
+  color: var(--owl-syntax-keyword);
+}
+.file-code [data-syntax="type"] {
+  color: var(--owl-syntax-type);
+}
+.file-code [data-syntax="function"] {
+  color: var(--owl-syntax-function);
+}
+.file-code [data-syntax="constant"] {
+  color: var(--owl-syntax-constant);
+}
+.file-code [data-syntax="operator"] {
+  color: var(--owl-syntax-operator);
+}
+
+.file-viewer-markdown {
+  padding: 12px 16px 20px;
+  font-size: var(--owl-text-sm);
+}
+.file-viewer-image {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: 16px;
+  background-color: var(--color-card);
+  background-image:
+    linear-gradient(45deg, var(--color-border-light) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-border-light) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--color-border-light) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--color-border-light) 75%);
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  background-size: 16px 16px;
+}
+.file-viewer-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.file-viewer-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px;
+}
+.file-viewer-folder button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-foreground);
+  font-size: var(--owl-text-xs);
+  text-align: left;
+  transition: transform 120ms ease;
+}
+.file-viewer-folder button:hover {
+  background: var(--color-sidebar-hover);
+}
+.file-viewer-folder button:active {
+  transform: scale(0.98);
+}
+.file-viewer-folder button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Doodle: the viewer is a paper card with an ink outline, and the toggle a pressed chip. */
+html[data-skin="doodle"] .file-viewer-body {
+  border: var(--doodle-border);
+  box-shadow: var(--doodle-shadow-sm);
+}
+html[data-skin="doodle"] .file-viewer-mode {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--doodle-line);
+}
+html[data-skin="doodle"] .file-viewer-mode button[aria-pressed="true"] {
+  background: var(--doodle-amber);
+  color: var(--doodle-ink);
+  box-shadow: none;
+}
+html[data-skin="doodle"] .file-viewer-title strong {
+  font-family: var(--doodle-display);
+  font-style: italic;
+}
