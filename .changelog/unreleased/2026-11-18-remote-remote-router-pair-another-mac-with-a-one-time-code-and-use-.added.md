@@ -1,0 +1,1 @@
+- Remote Router: pair another Mac with a one-time code and use its Router from this one; its workers run there and results show up here, over an encrypted direct connection (same network or Tailscale). (#192)
