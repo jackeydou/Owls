@@ -44,6 +44,9 @@ hosted on any other static host or CDN.
 - `src/docs/<locale>/*.md`: the docs pages, one Markdown file per page (see
   below). `src/docs.mjs` loads and renders them; `src/markdown.mjs` is the small
   Markdown renderer they use.
+- `src/changelog.mjs`: the changelog page at `/changelog/` and `/zh/changelog/`
+  plus the Atom feed at `/changelog/feed.xml`, all built from the repository's
+  root `CHANGELOG.md` (see below).
 - `public/assets/`: `styles.css`, `app.js`, and the rendered `og.png`.
 - `build.mjs`: renders `/` (English), `/zh/` (Simplified Chinese), and every
   docs page under `/docs/` and `/zh/docs/`, copies owl
@@ -97,6 +100,17 @@ headings get Chinese anchor ids, so link to them by their own text.
 Docs describe the app as it is: check behavior and UI labels against
 `apps/owlto-client` (and its i18n files for the exact English and Chinese
 labels) before writing, and bump `updated` when you re-check a page.
+
+## Changelog
+
+The changelog page has no copy of its own: the build reads the root
+`CHANGELOG.md`, which release PRs already compose. Each `## <version>` section
+(CalVer, `YEAR.MONTH.DDNN[-beta.N]`) becomes one release dated from its version;
+`Unreleased` and other headings are skipped. `### Highlights` lead each release,
+and `### Changes` and `### Fixes` fold under "All changes" (open for the latest
+release). Trailing PR numbers such as `(#182)` are dropped, and an `Area:`
+prefix becomes a small label. Entries stay in English on the Chinese page.
+Redeploy the site after a release so the page picks up the new version.
 
 ## Adding a locale
 

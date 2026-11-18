@@ -7,6 +7,7 @@ import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { CHANGELOG_ROUTE, changelogFeed, loadChangelog, renderChangelog } from './src/changelog.mjs'
 import en from './src/content/en.mjs'
 import zh from './src/content/zh.mjs'
 import { checkDocs, docsText, docUrl, loadDocs, renderDoc } from './src/docs.mjs'
@@ -69,8 +70,8 @@ Sitemap: ${SITE_URL}/sitemap.xml
 
 // One <url> per page and locale, each listing every locale's version of the
 // page plus x-default (the English page).
-function sitemap(lastmod, docsByLocale) {
-  const routes = ['', ...docsByLocale[LOCALES[0].code].map((doc) => doc.route)]
+function sitemap(lastmod, docsByLocale, releases) {
+  const routes = ['', CHANGELOG_ROUTE, ...docsByLocale[LOCALES[0].code].map((doc) => doc.route)]
   const urls = routes.flatMap((route) => {
     const links = LOCALES.map(
       (l) =>
@@ -80,7 +81,7 @@ function sitemap(lastmod, docsByLocale) {
       const doc = docsByLocale[locale.code].find((item) => item.route === route)
       return `  <url>
     <loc>${SITE_URL}/${locale.path}${route}</loc>
-    <lastmod>${doc?.updated ?? lastmod}</lastmod>
+    <lastmod>${route === CHANGELOG_ROUTE ? releases[0].date : (doc?.updated ?? lastmod)}</lastmod>
 ${links}
     <xhtml:link rel="alternate" hreflang="x-default" href="${SITE_URL}/${LOCALES[0].path}${route}"/>
   </url>`
@@ -119,6 +120,7 @@ ${docLinks}
 
 - [Website](${SITE_URL}/): product overview, features, and FAQ
 - [Website (简体中文)](${SITE_URL}/zh/): the same page in Simplified Chinese
+- [Changelog](${SITE_URL}/${CHANGELOG_ROUTE}): what changed in each release, newest first
 - [Full text for LLMs](${SITE_URL}/llms-full.txt): every feature, the setup steps, the FAQ, and the docs in one file
 - [Download](${DOWNLOAD_URL}): latest .dmg on GitHub Releases
 - [Source code](${REPO_URL}): GitHub repository and README
@@ -245,6 +247,7 @@ export function build() {
     LOCALES.map((locale) => [locale.code, loadDocs(locale, CONTENT[locale.code].docs.groupOrder)])
   )
   checkDocs(docsByLocale)
+  const releases = loadChangelog()
   for (const locale of LOCALES) {
     const t = CONTENT[locale.code]
     const docs = docsByLocale[locale.code]
@@ -252,12 +255,17 @@ export function build() {
     for (const doc of docs) {
       write(`${locale.path}${doc.route}index.html`, renderDoc({ t, locale, doc, docs }))
     }
+    write(
+      `${locale.path}${CHANGELOG_ROUTE}index.html`,
+      renderChangelog({ t, locale, releases, docs })
+    )
   }
   write('robots.txt', robots())
-  write('sitemap.xml', sitemap(new Date().toISOString().slice(0, 10), docsByLocale))
+  write('sitemap.xml', sitemap(new Date().toISOString().slice(0, 10), docsByLocale, releases))
   write('llms.txt', llms(en, docsByLocale.en))
   write('llms-full.txt', llmsFull(en, LOCALES[0], docsByLocale.en))
   write('zh/llms-full.txt', llmsFull(zh, LOCALES[1], docsByLocale.zh))
+  write(`${CHANGELOG_ROUTE}feed.xml`, changelogFeed(en, releases))
   write('site.webmanifest', manifest())
   write('404.html', notFound())
   // GitHub Pages: serve files as-is, without Jekyll processing.

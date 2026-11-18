@@ -83,6 +83,9 @@ pnpm run release:version -- --stable --date 2026-05-20
   release notes must cover all user-facing changes since the previous stable
   release, including changes that shipped in intervening beta versions.
 - Keep section order: `Highlights`, `Changes`, `Fixes`.
+- The website changelog page (`apps/owlto-website`, `/changelog/`) renders
+  `CHANGELOG.md` as is (PR numbers dropped), so every entry there is public
+  copy. After publishing, remind the owner to redeploy the site.
 - Agent drafts `Highlights` from the full release scope; release owner reviews.
 - Highlights should be 1-5 outcome-oriented bullets. Prefer primary workflow
   changes, visible capabilities, release blockers fixed, and

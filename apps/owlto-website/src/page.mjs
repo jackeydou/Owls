@@ -156,6 +156,7 @@ export function nav({ t, locale, home = '', otherHref, current = null, prefix })
     [`${home}#how`, t.nav.how, null],
     [`${home}#features`, t.nav.features, null],
     [`${home}docs/`, t.nav.docs, 'docs'],
+    [`${home}changelog/`, t.nav.changelog, 'changelog'],
     [`${home}#faq`, t.nav.faq, null]
   ]
   return `<a class="skip" href="#main">${esc(t.nav.skip)}</a>
@@ -595,6 +596,7 @@ export function footer({ t, locale, home = '', otherHref, docs, prefix }) {
     <h2>${esc(t.footer.project)}</h2>
     <a href="${REPO_URL}" rel="noopener">GitHub</a>
     <a href="${DOWNLOAD_URL}" rel="noopener">${esc(t.footer.releases)}</a>
+    <a href="${home}changelog/">${esc(t.footer.changelog)}</a>
     <a href="${ISSUES_URL}" rel="noopener">${esc(t.footer.issues)}</a>
     <a href="${CONTRIBUTING_URL}" rel="noopener">${esc(t.footer.contributing)}</a>
     <a href="${LICENSE_URL}" rel="noopener">${esc(t.footer.license)}</a>

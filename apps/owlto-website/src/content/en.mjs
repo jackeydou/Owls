@@ -15,6 +15,7 @@ export default {
     start: 'Get started',
     faq: 'FAQ',
     docs: 'Docs',
+    changelog: 'Changelog',
     download: 'Download',
     github: 'GitHub',
     theme: 'Switch between day and night',
@@ -508,6 +509,25 @@ export default {
       reference: 'Reference and help'
     }
   },
+  changelog: {
+    label: 'Changelog',
+    title: 'Owlto changelog',
+    description:
+      'Every Owlto release in plain words: the new features, changes, and fixes in each version of the Mac app that runs Claude Code, Codex, and Cursor as one team.',
+    lead: 'What is new in each version of Owlto, newest first. Owlto updates itself, so you get these on the next restart.',
+    menu: 'All versions',
+    versions: 'Versions',
+    latest: 'Latest',
+    beta: 'Beta',
+    details: 'All changes',
+    changes: 'Changes',
+    fixes: 'Fixes',
+    download: 'Download the latest version',
+    feed: 'Subscribe (Atom feed)',
+    updated: 'Latest release',
+    source: 'View CHANGELOG.md on GitHub',
+    languageNote: null
+  },
   footer: {
     tagline: 'Your Owlto (auto) agent team: coding owls on your Mac.',
     product: 'Product',
@@ -515,6 +535,7 @@ export default {
     docs: 'Docs',
     docsHome: 'Documentation',
     releases: 'Releases',
+    changelog: 'Changelog',
     issues: 'Report an issue',
     contributing: 'Contributing',
     license: 'AGPL-3.0 license',
