@@ -82,12 +82,26 @@
   font-weight: 500;
 }
 .projects-card-path {
-  overflow: hidden;
+  display: flex;
+  align-self: flex-start;
+  max-width: 100%;
+  min-width: 0;
   color: var(--color-muted-foreground);
   font-family: var(--font-mono);
   font-size: var(--owl-text-2xs);
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* The parent folders give way first; the folder's own name only when it alone is too long. */
+.projects-card-path > span {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+.projects-card-path > .head {
+  flex: 0 100000 auto;
+}
+.projects-card-path > .tail {
+  flex: 0 1 auto;
 }
 .projects-card-body {
   display: -webkit-box;
@@ -125,6 +139,13 @@
   top: 10px;
   right: 10px;
   color: var(--color-muted-foreground);
+  opacity: 0;
+  transition: opacity 100ms;
+}
+/* Shown only while the card is hovered or holds keyboard focus. */
+.projects-card:hover .projects-card-edit,
+.projects-card:focus-within .projects-card-edit {
+  opacity: 1;
 }
 .projects-card-edit:hover {
   color: var(--color-foreground);

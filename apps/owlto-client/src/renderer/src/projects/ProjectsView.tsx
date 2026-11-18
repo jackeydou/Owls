@@ -1,5 +1,6 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { FolderPlusIcon, PencilIcon } from '@renderer/components/ui/icons'
+import { FolderPlusIcon, SettingsIcon } from '@renderer/components/ui/icons'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Project } from '../../../shared/app'
@@ -46,6 +47,29 @@ function useCardStats(id: string) {
   }, [routers, workers, homes, id])
 }
 
+/**
+ * A folder path on one line. A long one loses the middle, not the end, so the folder's own
+ * name stays readable; hovering shows the whole path.
+ */
+function CardPath({ path }: { path: string }) {
+  const cut = path.lastIndexOf('/', path.length - 2)
+  const head = cut > 0 ? path.slice(0, cut) : ''
+  const tail = cut > 0 ? path.slice(cut) : path
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <code className="projects-card-path">
+          {head ? <span className="head">{head}</span> : null}
+          <span className="tail">{tail}</span>
+        </code>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="break-all">
+        {path}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 function ProjectCard({ entry }: { entry: CardEntry }) {
   const { t } = useTranslation()
   const showChat = useAppStore((s) => s.showChat)
@@ -69,7 +93,7 @@ function ProjectCard({ entry }: { entry: CardEntry }) {
             <span className="projects-card-badge">{t('projectsPage.default')}</span>
           ) : null}
         </span>
-        <code className="projects-card-path">{entry.path}</code>
+        {entry.path ? <CardPath path={entry.path} /> : null}
         <span className={entry.description ? 'projects-card-body' : 'projects-card-body muted'}>
           {entry.description ?? t('projectsPage.noDescription')}
         </span>
@@ -90,7 +114,7 @@ function ProjectCard({ entry }: { entry: CardEntry }) {
         className="projects-card-edit"
         label={editLabel}
         tooltip={editLabel}
-        icon={<PencilIcon size={15} />}
+        icon={<SettingsIcon size={15} />}
         onClick={entry.onEdit}
       />
     </li>
