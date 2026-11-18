@@ -119,7 +119,7 @@ export class WorkerReportServer {
         : request.params.name === REPORT_TOOL_NAME
           ? toolset.report.call(input)
           : other
-            ? other.call(input)
+            ? await other.call(input)
             : { ok: false, text: `Unknown tool ${request.params.name}.` }
       return { content: [{ type: 'text', text: result.text }], isError: !result.ok }
     })

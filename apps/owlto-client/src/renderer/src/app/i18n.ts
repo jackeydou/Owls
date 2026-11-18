@@ -71,6 +71,9 @@ const en = {
   claudePermissionHelp:
     'Reads your projects and Workspace freely. Edits task files. Auto mode approves safe commands and asks you about the rest.',
   claudeFullAccessHelp: 'Approves every action without asking.',
+  claudeChrome: 'Claude in Chrome',
+  claudeChromeHelp:
+    'Lets workers use your Chrome through the Claude in Chrome extension. Needs the extension installed and signed in.',
   cursorAccount: 'Cursor account',
   cursorSignInHelp: 'To switch accounts, run cursor-agent login in Terminal, then reconnect.',
   cursorWorkerOnly: 'Runs workers only, not the Router.',
@@ -255,6 +258,8 @@ const zh: Record<keyof typeof en, string> = {
   claudePermissionHelp:
     '可直接读取所有项目和 Workspace，可编辑任务文件，安全的命令由自动模式批准，其余先询问你。',
   claudeFullAccessHelp: '所有操作直接执行，不再询问。',
+  claudeChrome: 'Claude in Chrome',
+  claudeChromeHelp: '让 Worker 通过 Claude in Chrome 扩展使用你的 Chrome。需要先安装扩展并登录。',
   cursorAccount: 'Cursor 账号',
   cursorSignInHelp: '切换账号：在终端运行 cursor-agent login 后重新连接。',
   cursorWorkerOnly: '只能做 Worker，不能当协调者。',

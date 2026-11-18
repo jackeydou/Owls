@@ -406,6 +406,10 @@ export class ClaudeService {
               }
             : {}),
           ...this.accessOptions(session),
+          // Claude in Chrome is a CLI flag; turning it off is explicit so a user default can't add it.
+          extraArgs: this.store.settings().agents['claude-code'].chrome
+            ? { chrome: null }
+            : { 'no-chrome': null },
           ...(session.model ? { model: session.model } : {}),
           ...(session.effort ? { effort: claudeEffortSchema.parse(session.effort) } : {}),
           ...(session.threadId ? { resume: session.threadId } : {}),
@@ -822,7 +826,7 @@ export class ClaudeService {
           description: tool.description,
           inputSchema: tool.schema as unknown as SdkMcpToolDefinition['inputSchema'],
           handler: async (args: unknown) => {
-            const result = tool.call(args)
+            const result = await tool.call(args)
             return {
               content: [{ type: 'text' as const, text: result.text }],
               ...(result.ok ? {} : { isError: true })

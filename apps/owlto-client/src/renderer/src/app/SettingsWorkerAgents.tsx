@@ -2,6 +2,7 @@ import { Button } from '@renderer/components/ui/button'
 import { ChoiceSelect } from '@renderer/components/ui/choice-select'
 import { ChevronDownIcon, ChevronRightIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
+import { Switch } from '@renderer/components/ui/switch'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
@@ -122,6 +123,27 @@ function AgentConfigRows({ provider }: { provider: AgentProvider }) {
               onChange={(permission) => saveConfig({ permission })}
             />
           </SettingRow>
+          {provider === 'claude-code' ? (
+            <SettingRow
+              label={t('claudeChrome')}
+              htmlFor={`${id}-chrome`}
+              description={t('claudeChromeHelp')}
+            >
+              <Switch
+                id={`${id}-chrome`}
+                checked={settings.agents['claude-code'].chrome}
+                onCheckedChange={(chrome) =>
+                  void save({
+                    ...settings,
+                    agents: {
+                      ...settings.agents,
+                      'claude-code': { ...settings.agents['claude-code'], chrome }
+                    }
+                  })
+                }
+              />
+            </SettingRow>
+          ) : null}
         </div>
       ) : null}
     </div>

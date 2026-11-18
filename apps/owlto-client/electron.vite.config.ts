@@ -56,7 +56,9 @@ export default defineConfig(({ command, mode }) => {
           input: {
             index: resolve('src/main/app/desktop.ts'),
             'app/runtime': resolve('src/main/app/runtime.ts'),
-            'app/ipc': resolve('src/main/app/ipc.ts')
+            'app/ipc': resolve('src/main/app/ipc.ts'),
+            // The browser host runs in its own utility process (see browser/runner.ts).
+            'browser/host': resolve('src/main/browser/host.ts')
           }
         },
         externalizeDeps: {

@@ -13,6 +13,7 @@ import { Analytics } from '../analytics/service.js'
 import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
 import { AutomationStore } from '../automations/store.js'
+import { BrowserHost } from '../browser/runner.js'
 import { CardService } from '../cards/service.js'
 import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
@@ -30,6 +31,7 @@ import { DreamingTriggers } from '../memory/triggers.js'
 import {
   analyticsIdentityPath,
   attachmentsHome,
+  browserHome,
   getDataRoot,
   memoryDreamingHome,
   notesHome,
@@ -84,6 +86,7 @@ let triggers: DreamingTriggers | null = null
 let updater: AppUpdater | null = null
 /** Notifies the user when a worker waits on them while Owlto is in the background. */
 let attention: WorkerAttention | null = null
+let browser: BrowserHost | null = null
 /** Anonymous usage analytics; null in every build but a release build with a PostHog key. */
 let analytics: Analytics | null = null
 /** Quitting waits once for queued analytics events, then quits for real. */
@@ -293,6 +296,12 @@ void app
       automations
     )
     service.attachRouter(router)
+    browser = new BrowserHost({
+      entry: join(__dirname, 'browser/host.js'),
+      profileDir: () => join(browserHome(), 'profile'),
+      shotsDir: () => join(browserHome(), 'screenshots')
+    })
+    router.attachBrowser(browser)
     attention = new WorkerAttention(
       electronAttention({
         settings,
@@ -495,6 +504,8 @@ app.on('will-quit', (event) => {
   updater = null
   attention?.close()
   attention = null
+  browser?.close()
+  browser = null
   service?.close()
   codexRouter.close()
   service = null

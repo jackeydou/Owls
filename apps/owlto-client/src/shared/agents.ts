@@ -13,6 +13,11 @@ export const agentConfigSchema = z.object({
   permission: permissionSchema
 })
 export type AgentConfig = z.infer<typeof agentConfigSchema>
+/** Claude Code also chooses whether its workers get Claude in Chrome (`--chrome`). */
+export const claudeAgentConfigSchema = agentConfigSchema.extend({
+  chrome: z.boolean().default(true)
+})
+export type ClaudeAgentConfig = z.infer<typeof claudeAgentConfigSchema>
 /**
  * The permissions each agent offers in Settings. Cursor has no reviewer that
  * works over ACP, so it keeps only its native modes: `ask` (read only) and
@@ -24,7 +29,7 @@ export function agentPermissions(provider: AgentProvider): Permission[] {
 export const agentConfigsSchema = z
   .object({
     codex: agentConfigSchema,
-    'claude-code': agentConfigSchema,
+    'claude-code': claudeAgentConfigSchema,
     cursor: agentConfigSchema
   })
   // Settings saved before Cursor dropped workspace access move to its agent mode.
@@ -41,7 +46,7 @@ export const defaultAgentConfig: AgentConfig = {
 }
 export const defaultAgentConfigs: AgentConfigs = {
   codex: defaultAgentConfig,
-  'claude-code': defaultAgentConfig,
+  'claude-code': { ...defaultAgentConfig, chrome: true },
   cursor: { ...defaultAgentConfig, permission: 'full-access' }
 }
 

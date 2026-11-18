@@ -38,6 +38,7 @@ import {
   type UpdateAutomationInput,
   workerAutomationTools
 } from '../automations/tools.js'
+import { browserTool, type WorkerBrowser } from '../browser/tool.js'
 import type { CapturedContent } from '../cards/service.js'
 import type { RouterMemory } from '../memory/service.js'
 import type { RouterCredentials } from './credentials.js'
@@ -52,6 +53,7 @@ import type { RouterStore } from './store.js'
 import { ThreadLog } from './thread-log.js'
 import { RouterToolError, routerTools } from './tools.js'
 import { LocalWorkers, type WorkerTarget } from './worker-target.js'
+import type { WorkerTool } from './worker-tools.js'
 import {
   activeWorker,
   CODEX_START_GAP_MS,
@@ -128,6 +130,7 @@ export class RouterService implements TurnProfiles {
   private readonly workers: WorkerTarget
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private closed = false
+  private browser: WorkerBrowser | null = null
 
   constructor(
     private readonly store: RouterStore,
@@ -654,8 +657,25 @@ export class RouterService implements TurnProfiles {
     )
   }
 
+  /**
+   * Gives workers Owlto's browser tool. It runs scripts outside the agent's sandbox, so
+   * read-only workers never get it: a script could write files or reach the network.
+   */
+  attachBrowser(browser: WorkerBrowser): void {
+    this.browser = browser
+  }
+
+  /** Owlto's worker tools besides `report`: automations, and the browser for writing workers. */
+  private workerTools(worker: RouterWorker): WorkerTool[] {
+    const browser =
+      this.browser && worker.permission !== 'read-only'
+        ? [browserTool(this.browser, worker.id)]
+        : []
+    return [...this.workerAutomationTools(worker), ...browser]
+  }
+
   /** The automation tools a worker gets: its runs come back to it unless it asks for the Router. */
-  private workerTools(worker: RouterWorker) {
+  private workerAutomationTools(worker: RouterWorker): WorkerTool[] {
     const automations = this.automations
     if (!automations) return []
     const owned = (id: string) => {

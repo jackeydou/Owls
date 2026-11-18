@@ -326,6 +326,47 @@ test('the Router creates an automation whose run comes back to its thread', asyn
   automations.close()
 })
 
+test('writing workers get the browser tool, scoped to their own tab; read-only workers do not', async () => {
+  const { router, automations, runs, fake, tools } = app()
+  const calls = []
+  router.attachBrowser({
+    run: async (key, code, timeoutMs) => {
+      calls.push({ key, code, timeoutMs })
+      return { ok: true, text: 'Result: done' }
+    }
+  })
+  const thread = router.createThread({ projectId: null })
+  router.send({ routerId: thread.id, commandId: crypto.randomUUID(), text: 'hi' })
+  await waitFor(() => runs.length === 1, 'the first batch')
+  const dispatch = async (input) =>
+    router.worker(
+      JSON.parse(
+        await tools()
+          .find((t) => t.name === 'dispatch_task')
+          .execute(input)
+      ).workerId
+    )
+  const writer = await dispatch({ goal: 'Check the page' })
+  await waitFor(() => fake.sent.length === 1, 'the writing worker turn')
+  const tool = router.profile(writer.sessionId).tools.find((t) => t.name === 'browser')
+  assert.ok(tool, 'a workspace-write worker gets the browser tool')
+  const result = await tool.call({ code: 'return 1' })
+  assert.deepEqual(result, { ok: true, text: 'Result: done' })
+  assert.deepEqual(calls, [{ key: writer.id, code: 'return 1', timeoutMs: 60_000 }])
+  const bad = await tool.call({ code: '' })
+  assert.equal(bad.ok, false)
+  assert.match(bad.text, /^Invalid browser input\./)
+
+  const reader = await dispatch({ goal: 'Read the docs', permission: 'read-only' })
+  await waitFor(() => fake.sent.length === 2, 'the read-only worker turn')
+  assert.equal(
+    router.profile(reader.sessionId).tools.some((t) => t.name === 'browser'),
+    false
+  )
+  router.close()
+  automations.close()
+})
+
 test('a worker schedules its own follow-up, and a user automation opens its own thread', async () => {
   const { router, store, automations, runs, fake, tools } = app()
   const thread = router.createThread({ projectId: null })
