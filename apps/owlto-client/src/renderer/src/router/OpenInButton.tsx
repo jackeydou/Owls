@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui
 import { useAction } from '@renderer/components/ui/use-action'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { OpenInApp } from '../../../shared/open-in'
+import type { OpenInApp, OpenInAppId } from '../../../shared/open-in'
 import type { RouterWorker } from '../../../shared/router'
 import { useAppStore } from '../app/store'
 import { useRouterStore } from './store'
@@ -50,10 +50,24 @@ function groups(apps: OpenInApp[]): OpenInApp[][] {
  * one opens the folder there and makes it the default.
  */
 export function OpenInButton({ worker }: { worker: RouterWorker }) {
+  const openWorkerIn = useRouterStore((s) => s.openWorkerIn)
+  // A released worktree has no folder left to open.
+  if (worker.workspace.kind === 'worktree' && worker.workspace.state === 'released') return null
+  return (
+    <OpenInSplitButton
+      open={(appId) => openWorkerIn({ routerId: worker.routerId, workerId: worker.id, appId })}
+    />
+  )
+}
+
+/**
+ * The split button itself, for anything that opens in an installed app: a worker's folder,
+ * or the file in the file viewer. `open` resolves true once the app opened it.
+ */
+export function OpenInSplitButton({ open }: { open: (appId: OpenInAppId) => Promise<boolean> }) {
   const { t } = useTranslation()
   const apps = useRouterStore((s) => s.openInApps)
   const loadOpenInApps = useRouterStore((s) => s.loadOpenInApps)
-  const openWorkerIn = useRouterStore((s) => s.openWorkerIn)
   const settings = useAppStore((s) => s.settings)
   const saveSettings = useAppStore((s) => s.saveSettings)
   const target = useRef<OpenInApp | null>(null)
@@ -67,12 +81,7 @@ export function OpenInButton({ worker }: { worker: RouterWorker }) {
     target.current = null
     if (!app) return 'quiet'
     if (app.id !== settings.openInApp) void saveSettings({ ...settings, openInApp: app.id })
-    const opened = await openWorkerIn({
-      routerId: worker.routerId,
-      workerId: worker.id,
-      appId: app.id
-    })
-    if (!opened) throw new Error('open failed')
+    if (!(await open(app.id))) throw new Error('open failed')
     return 'done'
   })
 
@@ -80,8 +89,6 @@ export function OpenInButton({ worker }: { worker: RouterWorker }) {
     if (apps === null) void loadOpenInApps()
   }, [apps, loadOpenInApps])
 
-  // A released worktree has no folder left to open.
-  if (worker.workspace.kind === 'worktree' && worker.workspace.state === 'released') return null
   if (!current || !apps) return null
   const label = t('openIn.open', { app: current.name })
   return (

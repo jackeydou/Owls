@@ -1,0 +1,317 @@
+/* The right sidebar's file viewer, and the file links in messages that open it. */
+:root {
+  /* Syntax colors for gpu-lexer's span types, close to GitHub's light and dark themes. */
+  --owl-syntax-comment: #6e7781;
+  --owl-syntax-string: #0a3069;
+  --owl-syntax-number: #0550ae;
+  --owl-syntax-keyword: #cf222e;
+  --owl-syntax-type: #953800;
+  --owl-syntax-function: #8250df;
+  --owl-syntax-constant: #0550ae;
+  --owl-syntax-operator: #cf222e;
+  --owl-file-line-mark: color-mix(in srgb, #f0b400 18%, transparent);
+}
+[data-theme="dark"] {
+  --owl-syntax-comment: #8b949e;
+  --owl-syntax-string: #a5d6ff;
+  --owl-syntax-number: #79c0ff;
+  --owl-syntax-keyword: #ff7b72;
+  --owl-syntax-type: #ffa657;
+  --owl-syntax-function: #d2a8ff;
+  --owl-syntax-constant: #79c0ff;
+  --owl-syntax-operator: #ff7b72;
+  --owl-file-line-mark: color-mix(in srgb, #f0b400 16%, transparent);
+}
+
+/* A file named in a message: link-blue text that reads as part of the sentence. */
+.owlto-file-link,
+.owlto-file-code {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--owl-link);
+  font: inherit;
+  font-weight: 500;
+  text-align: inherit;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+.owlto-file-link:hover,
+.owlto-file-code:hover {
+  color: var(--owl-link-hover);
+}
+.owlto-file-link:active,
+.owlto-file-code:active {
+  opacity: 0.7;
+}
+.owlto-file-code code {
+  color: inherit;
+}
+.owlto-file-code:hover code {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.owlto-activity-paths {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-xs);
+}
+.owlto-activity-paths .owlto-file-link {
+  font-weight: 400;
+}
+
+.file-viewer {
+  flex: 1;
+  gap: 0;
+  min-height: 0;
+  margin: 0 -8px -12px;
+}
+/* Open files, editor style: the active tab is a filled chip, the rest plain text. */
+.file-viewer-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 8px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--color-border);
+}
+.file-viewer-tab {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  max-width: 200px;
+  height: 30px;
+  padding: 0 2px 0 10px;
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+  transition: background 120ms ease;
+}
+.file-viewer-tab:hover {
+  background: var(--color-sidebar-hover);
+}
+.file-viewer-tab[data-active] {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+.file-viewer-tab > button:first-child {
+  overflow: hidden;
+  font-size: var(--owl-text-sm);
+  font-style: italic;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-viewer-tab > button:first-child:active {
+  opacity: 0.7;
+}
+.file-viewer-tab .file-viewer-tab-close {
+  width: 24px;
+  height: 24px;
+  margin-left: 4px;
+  color: inherit;
+}
+/* The active file's path, folder by folder, with its one menu at the end. */
+.file-viewer-path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 6px 0 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.file-viewer-crumbs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  white-space: nowrap;
+}
+/* Long paths drop their leading folders first; the file name stays visible. */
+.file-viewer-crumbs span {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-viewer-crumbs span:last-child {
+  flex-shrink: 0;
+  max-width: 100%;
+}
+.file-viewer-crumbs i {
+  padding: 0 4px;
+  font-style: normal;
+}
+.file-viewer-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  -webkit-app-region: no-drag;
+}
+.file-viewer-body[aria-busy="true"] {
+  opacity: 0.7;
+}
+.file-viewer-state {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 16px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  text-align: center;
+}
+.file-viewer-state code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: var(--owl-text-2xs);
+}
+.file-viewer-note {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+
+.file-code {
+  min-width: max-content;
+  padding: 10px 0;
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  tab-size: 2;
+}
+.file-code-line {
+  display: flex;
+  padding-right: 16px;
+}
+.file-code-line[data-marked] {
+  background: var(--owl-file-line-mark);
+}
+.file-code-number {
+  position: sticky;
+  left: 0;
+  flex-shrink: 0;
+  width: calc(var(--file-gutter) + 32px);
+  padding-right: 16px;
+  background: var(--color-sidebar);
+  color: var(--color-muted-foreground);
+  opacity: 0.6;
+  text-align: right;
+  user-select: none;
+}
+.file-code-line[data-marked] .file-code-number {
+  background: transparent;
+  opacity: 1;
+}
+.file-code-text {
+  white-space: pre;
+}
+.file-code [data-syntax="comment"] {
+  color: var(--owl-syntax-comment);
+  font-style: italic;
+}
+.file-code [data-syntax="string"] {
+  color: var(--owl-syntax-string);
+}
+.file-code [data-syntax="number"] {
+  color: var(--owl-syntax-number);
+}
+.file-code [data-syntax="keyword"] {
+  color: var(--owl-syntax-keyword);
+}
+.file-code [data-syntax="type"] {
+  color: var(--owl-syntax-type);
+}
+.file-code [data-syntax="function"] {
+  color: var(--owl-syntax-function);
+}
+.file-code [data-syntax="constant"] {
+  color: var(--owl-syntax-constant);
+}
+.file-code [data-syntax="operator"] {
+  color: var(--owl-syntax-operator);
+}
+
+.file-viewer-markdown {
+  padding: 12px 16px 20px;
+  font-size: var(--owl-text-sm);
+}
+.file-viewer-image {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: 16px;
+  background-image:
+    linear-gradient(45deg, var(--color-border-light) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-border-light) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--color-border-light) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--color-border-light) 75%);
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  background-size: 16px 16px;
+}
+.file-viewer-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.file-viewer-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px;
+}
+.file-viewer-folder button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-foreground);
+  font-size: var(--owl-text-xs);
+  text-align: left;
+  transition: transform 120ms ease;
+}
+.file-viewer-folder button:hover {
+  background: var(--color-sidebar-hover);
+}
+.file-viewer-folder button:active {
+  transform: scale(0.98);
+}
+.file-viewer-folder button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Doodle: the active tab is an amber chip with an ink outline. */
+html[data-skin="doodle"] .file-viewer-tab[data-active] {
+  background: var(--doodle-amber);
+  box-shadow: inset 0 0 0 1.5px var(--doodle-line);
+  color: var(--doodle-ink);
+}
+html[data-skin="doodle"] .file-viewer-tabs,
+html[data-skin="doodle"] .file-viewer-path {
+  border-bottom: var(--doodle-border-thin);
+}

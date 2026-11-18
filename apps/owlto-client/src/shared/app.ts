@@ -20,6 +20,7 @@ import {
   cardRefSchema
 } from './cards.js'
 import type { FeedbackDiagnostics, FeedbackInput, FeedbackResult } from './feedback.js'
+import type { FilePreviewResult, FileTarget, OpenFileIn } from './file-preview.js'
 import type { GitHubAccount, PullRequestOverview, WorkerGitHubStatus } from './github.js'
 import {
   defaultMemorySettings,
@@ -59,8 +60,7 @@ import {
   type SetRouterKey,
   type ThreadItemsRequest,
   unknownBatchSchema,
-  type WorkerAction,
-  type WorkerArtifactAction
+  type WorkerAction
 } from './router.js'
 import { type UpdateSnapshot, updateChannelSchema } from './updates.js'
 import type { UsageOverview } from './usage.js'
@@ -223,12 +223,14 @@ export const paneWidthBounds = {
   sidebar: { min: 200, max: 440, initial: 264 },
   projects: { min: 220, max: 480, initial: 304 },
   panel: { min: 360, max: 960, initial: 480 },
-  card: { min: 340, max: 960, initial: 460 }
+  card: { min: 340, max: 960, initial: 460 },
+  /** The right sidebar while it shows the file viewer, which wants room for code. */
+  files: { min: 320, max: 960, initial: 520 }
 } as const
 export type ResizablePane = keyof typeof paneWidthBounds
 /** A width the user dragged to, or null to follow the pane's current default. */
 const paneWidthSchema = z.number().int().positive().nullable()
-export const rightPanelSchema = z.enum(['projects', 'cards'])
+export const rightPanelSchema = z.enum(['projects', 'cards', 'files'])
 export type RightPanel = z.infer<typeof rightPanelSchema>
 export const layoutSettingsSchema = z.object({
   sidebarWidth: paneWidthSchema,
@@ -236,6 +238,8 @@ export const layoutSettingsSchema = z.object({
   panelWidth: paneWidthSchema,
   /** The open card's editor on the Cards page; added later, so older rows follow the default. */
   cardWidth: paneWidthSchema.catch(null),
+  /** The right sidebar on its file viewer tab; added later, so older rows follow the default. */
+  filesWidth: paneWidthSchema.catch(null),
   /** Whether the right-hand sidebar is open; named for its first and once only content. */
   projectsOpen: z.boolean(),
   /** Which list the right-hand sidebar shows; added later, so older rows show projects. */
@@ -254,6 +258,7 @@ export const defaultLayoutSettings: LayoutSettings = {
   projectsWidth: null,
   panelWidth: null,
   cardWidth: null,
+  filesWidth: null,
   projectsOpen: false,
   rightPanel: 'projects'
 }
@@ -578,8 +583,10 @@ export interface OwltoAPI {
   openInApps(): Promise<Reply<OpenInApp[]>>
   /** Opens a worker's folder (its worktree, project, or workspace) in an installed app. */
   openWorkerIn(input: OpenWorkerIn): Promise<Reply<void>>
-  /** Opens a file from a worker's report in its default app. */
-  openWorkerArtifact(input: WorkerArtifactAction): Promise<Reply<void>>
+  /** Reads a file a message points at for the right sidebar's file viewer. */
+  previewFile(input: FileTarget): Promise<Reply<FilePreviewResult>>
+  /** Opens a previewed file in an installed app; Finder reveals it in its folder. */
+  openFileIn(input: OpenFileIn): Promise<Reply<void>>
   routerProviders(): Promise<Reply<RouterProviderInfo[]>>
   setRouterKey(input: SetRouterKey): Promise<Reply<void>>
   removeRouterKey(providerId: string): Promise<Reply<void>>

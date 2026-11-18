@@ -1,0 +1,1 @@
+- File viewer: clicking a local file in an agent message opens it in a new File viewer tab in the right sidebar, with gpu-lexer syntax colors, rendered Markdown, images, folders, and Open in for editors and Finder. (#186)

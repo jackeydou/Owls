@@ -19,6 +19,8 @@ import { type ReactNode, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Streamdown, type StreamdownProps } from 'streamdown'
 import type { AgentRequest, SessionItem } from '../../../shared/app'
+import { FileLink } from '../files/FileLink'
+import { markdownRemarkPlugins } from '../files/remark-file-links'
 import { markdownLinkComponents } from './MarkdownLink'
 import { mermaidRenderer } from './MermaidDiagram'
 import { type AgentSpeaker, OwlAvatar } from './OwlAvatar'
@@ -67,6 +69,7 @@ export function ConversationItem({
             isAnimating={item.status === 'running'}
             allowedTags={markdown?.allowedTags}
             components={components}
+            remarkPlugins={markdownRemarkPlugins}
             literalTagContent={markdown?.literalTagContent}
           >
             {markdown ? markdown.prepare(item.text) : item.text}
@@ -145,7 +148,17 @@ function ActivityItem({ item }: { item: SessionItem }) {
         </div>
       ) : (
         <div className="owlto-activity-body">
-          {item.text ? <div className="owlto-activity-content">{item.text}</div> : null}
+          {item.kind === 'files' && paths.length ? (
+            <ul className="owlto-activity-paths">
+              {paths.map((path) => (
+                <li key={path}>
+                  <FileLink path={path}>{path}</FileLink>
+                </li>
+              ))}
+            </ul>
+          ) : item.text ? (
+            <div className="owlto-activity-content">{item.text}</div>
+          ) : null}
           {item.detail ? <pre className="owlto-activity-output">{item.detail}</pre> : null}
         </div>
       )}

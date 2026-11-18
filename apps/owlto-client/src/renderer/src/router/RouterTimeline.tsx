@@ -11,10 +11,12 @@ import {
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router, SessionItem } from '../../../shared/app'
+import type { FileBase } from '../../../shared/file-preview'
 import { ConversationItem } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { useAppStore } from '../app/store'
 import { MessageCards, SaveCardAction } from '../cards/CardActions'
+import { FileBaseContext } from '../files/FileLink'
 import { useDreaming, useDreamingStore, useDreamLocked } from '../memory/dreaming'
 import { runReason } from '../memory/SettingsMemory'
 import { DispatchGroup } from './DispatchGroup'
@@ -283,153 +285,160 @@ export function RouterTimeline({
       done()
     }
   }, [routerId, lastUser, loaded])
+  const threadId = router?.id ?? null
+  const fileBase = useMemo<FileBase>(
+    () => (threadId ? { kind: 'thread', routerId: threadId } : { kind: 'none' }),
+    [threadId]
+  )
   return (
     <RouterIdContext.Provider value={router?.id ?? null}>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: a pointer shortcut; Tab reaches the editor. */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: a pointer shortcut; Tab reaches the editor. */}
-      <div
-        className="owlto-conversation-scroll"
-        ref={scroll}
-        onScroll={() => {
-          const el = scroll.current
-          if (el && spacer.current)
-            nearBottom.current = el.scrollTop >= naturalEnd(el, spacer.current) - FOLLOW_SLACK
-        }}
-        onClick={(event) => {
-          if (
-            event.target === scroll.current ||
-            event.target === content.current ||
-            event.target === spacer.current
-          )
-            focusEditor(event.currentTarget)
-        }}
-      >
-        <div className="owlto-conversation" ref={content}>
-          {router?.itemCount && !loaded ? (
-            <div className="owlto-working" role="status">
-              <LoaderIcon size={15} className="animate-spin" />
-              {t('thread.loading')}
-            </div>
-          ) : null}
-          {turns.map((turn) => (
-            // One avatar leads the turn; a Router turn folds as one block between user messages.
-            <ThreadTurn key={turn[0].id} foldable={speakerOf(turn[0]) === 'router'}>
-              {turn.map((entry, index) => {
-                const speaker = speakerOf(entry)
-                const forward =
-                  router && 'item' in entry && canForward(entry.item) ? (
-                    <>
-                      <ForwardAction item={entry.item} router={router} />
-                      <SaveCardAction
-                        source={{ kind: 'item', routerId: router.id, itemId: entry.item.id }}
-                        text={entry.item.text}
-                        projectId={router.projectId}
-                      />
-                    </>
-                  ) : null
-                return (
-                  <ThreadRow
-                    key={entry.id}
-                    entryId={entry.id}
-                    speaker={speaker}
-                    follows={index > 0}
-                  >
-                    {'workerIds' in entry ? (
-                      <DispatchGroup workerIds={entry.workerIds} />
-                    ) : entry.item.kind === 'forward' ? (
-                      <ForwardedMessage item={entry.item} />
-                    ) : entry.item.kind === 'user' && entry.item.automation ? (
-                      <AutomationRun item={entry.item} />
-                    ) : entry.item.kind === 'user' && entry.item.github ? (
-                      <GitHubActivity item={entry.item} />
-                    ) : entry.item.kind === 'user' && entry.item.workerId ? (
-                      <DirectedMessage item={entry.item} />
-                    ) : (
-                      <ConversationItem
-                        item={entry.item}
-                        agent={t('router.agent')}
-                        speaker="router"
-                        markdown={workerMarkdown}
-                        actions={forward}
-                      />
-                    )}
-                    {'item' in entry && entry.item.cards?.length ? (
-                      <MessageCards cards={entry.item.cards} />
-                    ) : null}
-                    {/* A reply has its own action row (Copy); everything else gets one here. */}
-                    {forward && 'item' in entry && entry.item.kind !== 'assistant' ? (
-                      <div className="owlto-message-actions">
-                        <div className="owlto-message-actions-group">{forward}</div>
-                      </div>
-                    ) : null}
-                  </ThreadRow>
-                )
-              })}
-            </ThreadTurn>
-          ))}
-          {router && running ? (
-            <ThreadRow speaker="router" follows={lastEntrySpeaker === 'router'}>
+      <FileBaseContext.Provider value={fileBase}>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: a pointer shortcut; Tab reaches the editor. */}
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: a pointer shortcut; Tab reaches the editor. */}
+        <div
+          className="owlto-conversation-scroll"
+          ref={scroll}
+          onScroll={() => {
+            const el = scroll.current
+            if (el && spacer.current)
+              nearBottom.current = el.scrollTop >= naturalEnd(el, spacer.current) - FOLLOW_SLACK
+          }}
+          onClick={(event) => {
+            if (
+              event.target === scroll.current ||
+              event.target === content.current ||
+              event.target === spacer.current
+            )
+              focusEditor(event.currentTarget)
+          }}
+        >
+          <div className="owlto-conversation" ref={content}>
+            {router?.itemCount && !loaded ? (
               <div className="owlto-working" role="status">
                 <LoaderIcon size={15} className="animate-spin" />
-                {t('router.working')}
-                <ActionIconButton
+                {t('thread.loading')}
+              </div>
+            ) : null}
+            {turns.map((turn) => (
+              // One avatar leads the turn; a Router turn folds as one block between user messages.
+              <ThreadTurn key={turn[0].id} foldable={speakerOf(turn[0]) === 'router'}>
+                {turn.map((entry, index) => {
+                  const speaker = speakerOf(entry)
+                  const forward =
+                    router && 'item' in entry && canForward(entry.item) ? (
+                      <>
+                        <ForwardAction item={entry.item} router={router} />
+                        <SaveCardAction
+                          source={{ kind: 'item', routerId: router.id, itemId: entry.item.id }}
+                          text={entry.item.text}
+                          projectId={router.projectId}
+                        />
+                      </>
+                    ) : null
+                  return (
+                    <ThreadRow
+                      key={entry.id}
+                      entryId={entry.id}
+                      speaker={speaker}
+                      follows={index > 0}
+                    >
+                      {'workerIds' in entry ? (
+                        <DispatchGroup workerIds={entry.workerIds} />
+                      ) : entry.item.kind === 'forward' ? (
+                        <ForwardedMessage item={entry.item} />
+                      ) : entry.item.kind === 'user' && entry.item.automation ? (
+                        <AutomationRun item={entry.item} />
+                      ) : entry.item.kind === 'user' && entry.item.github ? (
+                        <GitHubActivity item={entry.item} />
+                      ) : entry.item.kind === 'user' && entry.item.workerId ? (
+                        <DirectedMessage item={entry.item} />
+                      ) : (
+                        <ConversationItem
+                          item={entry.item}
+                          agent={t('router.agent')}
+                          speaker="router"
+                          markdown={workerMarkdown}
+                          actions={forward}
+                        />
+                      )}
+                      {'item' in entry && entry.item.cards?.length ? (
+                        <MessageCards cards={entry.item.cards} />
+                      ) : null}
+                      {/* A reply has its own action row (Copy); everything else gets one here. */}
+                      {forward && 'item' in entry && entry.item.kind !== 'assistant' ? (
+                        <div className="owlto-message-actions">
+                          <div className="owlto-message-actions-group">{forward}</div>
+                        </div>
+                      ) : null}
+                    </ThreadRow>
+                  )
+                })}
+              </ThreadTurn>
+            ))}
+            {router && running ? (
+              <ThreadRow speaker="router" follows={lastEntrySpeaker === 'router'}>
+                <div className="owlto-working" role="status">
+                  <LoaderIcon size={15} className="animate-spin" />
+                  {t('router.working')}
+                  <ActionIconButton
+                    size="sm"
+                    label={t('router.stop')}
+                    tooltip={t('router.stop')}
+                    icon={<StopIcon size={12} />}
+                    onAction={() => interrupt(router.id)}
+                  />
+                </div>
+              </ThreadRow>
+            ) : null}
+            {router && (dreaming || locked) && !running ? (
+              <ThreadRow speaker="dreaming">
+                <div className="owlto-working router-dreaming" role="status">
+                  {t(locked ? 'thread.dreamingLocked' : 'thread.dreaming')}
+                </div>
+              </ThreadRow>
+            ) : notice ? (
+              <ThreadRow speaker="dreaming">
+                <div className="owlto-working router-dreaming" role="status">
+                  {notice.kind === 'nothing'
+                    ? t('thread.dreamNothing')
+                    : notice.run
+                      ? t('thread.dreamFailedReason', { reason: runReason(notice.run, t) })
+                      : t('thread.dreamFailed')}
+                </div>
+              </ThreadRow>
+            ) : null}
+            {router?.unknownBatches.map((batch) => (
+              <div className="owlto-inline-error router-unknown-batch" role="alert" key={batch.id}>
+                <AlertCircleIcon size={17} />
+                <span>{t('router.unknownBatch', { count: batch.events })}</span>
+                <ActionButton
                   size="sm"
-                  label={t('router.stop')}
-                  tooltip={t('router.stop')}
-                  icon={<StopIcon size={12} />}
-                  onAction={() => interrupt(router.id)}
-                />
+                  variant="outline"
+                  onAction={() => resolveBatch(router.id, batch.id, 'retry')}
+                >
+                  {t('router.retryBatch')}
+                </ActionButton>
+                <ActionButton
+                  size="sm"
+                  variant="ghost"
+                  onAction={() => resolveBatch(router.id, batch.id, 'ignore')}
+                >
+                  {t('router.ignoreBatch')}
+                </ActionButton>
               </div>
-            </ThreadRow>
-          ) : null}
-          {router && (dreaming || locked) && !running ? (
-            <ThreadRow speaker="dreaming">
-              <div className="owlto-working router-dreaming" role="status">
-                {t(locked ? 'thread.dreamingLocked' : 'thread.dreaming')}
+            ))}
+            {router?.error && !isSetupFailure(router.error) ? (
+              <div className="owlto-inline-error" role="alert">
+                <AlertCircleIcon size={17} />
+                <span>{failureMessage(router.error)}</span>
               </div>
-            </ThreadRow>
-          ) : notice ? (
-            <ThreadRow speaker="dreaming">
-              <div className="owlto-working router-dreaming" role="status">
-                {notice.kind === 'nothing'
-                  ? t('thread.dreamNothing')
-                  : notice.run
-                    ? t('thread.dreamFailedReason', { reason: runReason(notice.run, t) })
-                    : t('thread.dreamFailed')}
-              </div>
-            </ThreadRow>
-          ) : null}
-          {router?.unknownBatches.map((batch) => (
-            <div className="owlto-inline-error router-unknown-batch" role="alert" key={batch.id}>
-              <AlertCircleIcon size={17} />
-              <span>{t('router.unknownBatch', { count: batch.events })}</span>
-              <ActionButton
-                size="sm"
-                variant="outline"
-                onAction={() => resolveBatch(router.id, batch.id, 'retry')}
-              >
-                {t('router.retryBatch')}
-              </ActionButton>
-              <ActionButton
-                size="sm"
-                variant="ghost"
-                onAction={() => resolveBatch(router.id, batch.id, 'ignore')}
-              >
-                {t('router.ignoreBatch')}
-              </ActionButton>
-            </div>
-          ))}
-          {router?.error && !isSetupFailure(router.error) ? (
-            <div className="owlto-inline-error" role="alert">
-              <AlertCircleIcon size={17} />
-              <span>{failureMessage(router.error)}</span>
-            </div>
-          ) : null}
-          {editor}
+            ) : null}
+            {editor}
+          </div>
+          <div className="router-tail-space" ref={spacer} aria-hidden="true" />
         </div>
-        <div className="router-tail-space" ref={spacer} aria-hidden="true" />
-      </div>
-      <SelectionActions scroller={scroll} router={router} itemOf={itemOf} />
+        <SelectionActions scroller={scroll} router={router} itemOf={itemOf} />
+      </FileBaseContext.Provider>
     </RouterIdContext.Provider>
   )
 }

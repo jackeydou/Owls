@@ -23,6 +23,7 @@ import {
   cardSaveSchema
 } from '../../shared/cards.js'
 import { feedbackInputSchema } from '../../shared/feedback.js'
+import { fileTargetSchema, openFileInSchema } from '../../shared/file-preview.js'
 import { gitHubTokenSchema } from '../../shared/github.js'
 import {
   memoryCategoryActionSchema,
@@ -47,8 +48,7 @@ import {
   sendRouterSchema,
   setRouterKeySchema,
   threadItemsSchema,
-  workerActionSchema,
-  workerArtifactActionSchema
+  workerActionSchema
 } from '../../shared/router.js'
 import { usageStatsRequestSchema } from '../../shared/usage-stats.js'
 import type { Analytics } from '../analytics/service.js'
@@ -197,10 +197,12 @@ export function registerIpc(
     const { appId, ...worker } = openWorkerInSchema.parse(input)
     return openIn.open(appId, host.workerFolder(worker))
   })
-  handle('open-worker-artifact', async (input) => {
-    const path = host.workerArtifactPath(workerArtifactActionSchema.parse(input))
-    if (await shell.openPath(path))
-      throw new OwltoError('request_unavailable', 'This file could not be opened.')
+  handle('file-preview', (input) => host.previewFile(fileTargetSchema.parse(input)))
+  handle('open-file-in', async (input) => {
+    const request = openFileInSchema.parse(input)
+    const path = await host.previewedPath(request.path)
+    if (request.appId === 'finder') return shell.showItemInFolder(path)
+    return openIn.openFile(request.appId, path)
   })
   handle('router-providers', () => host.routerProviders())
   handle('router-set-key', (input) => host.setRouterKey(setRouterKeySchema.parse(input)))

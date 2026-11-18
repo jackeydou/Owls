@@ -6,6 +6,11 @@ export {
 export { nextAutomationRun, scheduleFromInput } from '../../shared/automations.js'
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
 export * as feedback from '../../shared/feedback.js'
+export {
+  isLocalHref,
+  looksLikeFilePath,
+  parseFileRef
+} from '../../shared/file-preview.js'
 export { parseGitHubRepo, saveProjectSchema } from '../../shared/projects.js'
 export {
   countPullRequests,
@@ -106,6 +111,7 @@ export { claudeResultUsage, codexCallUsage } from '../usage/turn-usage.js'
 export { detectAgents } from './agent-detection.js'
 export { AttachmentStore, safeAttachmentName, turnText } from './attachments.js'
 export { WorkerAttention } from './attention.js'
+export { previewFileRef } from './file-preview.js'
 export { OwltoHost } from './host.js'
 export { bundleIconFile, OPEN_IN_CATALOG, OpenInApps } from './open-in.js'
 export { UserProfile } from './profile.js'

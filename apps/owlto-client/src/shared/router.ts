@@ -264,10 +264,6 @@ export const workerActionSchema = z.object({
   routerId: z.string().uuid(),
   workerId: z.string().min(1).max(64)
 })
-/** Opens one file a worker reported, named by its place in the report so no path crosses IPC. */
-export const workerArtifactActionSchema = workerActionSchema.extend({
-  index: z.number().int().min(0).max(19)
-})
 /** Steers or drops one of a worker's pending messages. */
 export const pendingMessageActionSchema = workerActionSchema.extend({
   messageId: z.string().min(1).max(64)
@@ -287,7 +283,6 @@ export type WorkerStatus = z.infer<typeof workerStatusSchema>
 export type WorktreeBase = z.infer<typeof worktreeBaseSchema>
 export type WorkerWorkspace = z.infer<typeof workerWorkspaceSchema>
 export type WorkerAction = z.infer<typeof workerActionSchema>
-export type WorkerArtifactAction = z.infer<typeof workerArtifactActionSchema>
 export type PendingWorkerMessage = z.infer<typeof pendingWorkerMessageSchema>
 export type PendingMessageAction = z.infer<typeof pendingMessageActionSchema>
 export type WorkerPullRequestLink = z.infer<typeof workerPullRequestLinkSchema>
