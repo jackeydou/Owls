@@ -239,16 +239,19 @@ void app
       })
     }
     const claude = new ClaudeService(store, emit, { query, createSdkMcpServer })
+    const cursor = new CursorService(store, emit)
     service = new OwltoHost(
       new CodexService(store, emit),
       claude,
-      new CursorService(store, emit),
+      cursor,
       routerThreadHome(root),
       projectsHome(root),
       workspaceHome(root),
       attachmentsHome(root)
     )
     claude.setWorkspaceFolder(() => service?.workspaceFolder() ?? workspaceHome(root))
+    claude.setNotesFolder(notesHome(root))
+    cursor.setNotesFolder(notesHome(root))
     const usage = new UsageLedger(store)
     service.attachUsage(usage)
     const recordUsage = (entry: UsageEntry) => usage.record(entry)

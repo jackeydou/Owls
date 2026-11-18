@@ -93,23 +93,29 @@ function inside(path: string, folder: string): boolean {
  * workspace, so other projects' skills stay out of its context. A project
  * checkout that neither holds nor sits inside `cwd` is the user's own copy or
  * another project, so file edits there are denied: a worktree worker reads its
- * project's checkout but edits its worktree.
+ * project's checkout but edits its worktree. `readOnly` folders, such as the
+ * user's notes, are readable by every session and never edited with file tools.
  */
 export function folderAccess(input: {
   cwd: string
   projectPath: string | null
   workspace: string
   projects: string[]
+  readOnly?: string[]
 }): { additionalDirectories: string[]; editDenied: string[] } {
-  const { cwd, projectPath, workspace } = input
+  const { cwd, projectPath, workspace, readOnly = [] } = input
   const projects = projectPath === null ? input.projects : [projectPath]
-  const additionalDirectories = [...new Set([workspace, ...projects])]
+  const additionalDirectories = [...new Set([workspace, ...projects, ...readOnly])]
     .filter((folder) => folder !== cwd)
     .sort()
-  const editDenied = [...new Set(projects)]
-    .filter((project) => !inside(cwd, project) && !inside(project, cwd))
+  const editDenied = [
+    ...new Set([
+      ...projects.filter((project) => !inside(cwd, project) && !inside(project, cwd)),
+      ...readOnly
+    ])
+  ]
     .sort()
-    .map((project) => `Edit(/${project.replace(/\/+$/, '')}/**)`)
+    .map((folder) => `Edit(/${folder.replace(/\/+$/, '')}/**)`)
   return { additionalDirectories, editDenied }
 }
 

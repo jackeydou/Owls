@@ -27,6 +27,7 @@ import { safeText } from '../app/values.js'
 import { chooseAgent } from './agent-choice.js'
 import type { InboxEvent, InboxEventBody } from './events.js'
 import {
+  notesInstructions,
   projectInstructions,
   WORKER_INSTRUCTIONS,
   WORKSPACE_INSTRUCTIONS,
@@ -212,6 +213,8 @@ export class WorkerPool implements TurnProfiles {
     private readonly reportEndpoint: (sessionId: string) => Promise<string>,
     /** The tools besides `report` a worker gets in its turns. */
     private readonly extraTools: (worker: RouterWorker) => WorkerTool[] = () => [],
+    /** The user's notes folder, named in worker instructions; null leaves it out. */
+    private readonly notesFolder: () => string | null = () => null,
     private readonly codexStartGapMs = CODEX_START_GAP_MS
   ) {
     for (const worker of store.workers()) {
@@ -622,11 +625,13 @@ export class WorkerPool implements TurnProfiles {
     const tree = worktreeOf(worker)
     const settings = this.projectSettings(worker)
     const project = projectInstructions(settings.instructions)
+    const notes = this.notesFolder()
     return {
       instructions: [
         WORKER_INSTRUCTIONS,
         tree ? worktreeInstructions(tree.branch, settings.git.remote) : null,
         worker.projectId === null ? WORKSPACE_INSTRUCTIONS : null,
+        notes ? notesInstructions(notes) : null,
         project
       ]
         .filter(Boolean)
