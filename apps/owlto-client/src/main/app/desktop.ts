@@ -444,6 +444,7 @@ void app
     registerIpc(
       service,
       () => window,
+      store.deviceId,
       updater,
       (saved, previous) => {
         if (saved.requestNotifications !== previous.requestNotifications)

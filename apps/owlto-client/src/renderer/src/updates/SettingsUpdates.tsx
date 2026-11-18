@@ -3,6 +3,7 @@ import { RefreshIcon, RotateCcwIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import { Switch } from '@renderer/components/ui/switch'
 import type { TFunction } from 'i18next'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type UpdateState, updateChannelSchema } from '../../../shared/updates'
 import { SettingRow } from '../app/SettingRow'
@@ -65,13 +66,55 @@ function UpdateAction({ state }: { state: UpdateState }) {
   )
 }
 
+/** Clicks on the device id that reveal the update channel, each within this gap of the last. */
+const REVEAL_CLICKS = 5
+const REVEAL_GAP_MS = 800
+
+/**
+ * This device's id as one small centered line at the bottom of the page. Five quick clicks on it
+ * reveal the hidden update channel setting.
+ */
+function DeviceIdFooter({ onReveal }: { onReveal: () => void }) {
+  const { t } = useTranslation()
+  const [deviceId, setDeviceId] = useState<string | null>(null)
+  const clicks = useRef({ count: 0, at: 0 })
+  useEffect(() => {
+    let active = true
+    void window.owlto.deviceId().then((reply) => {
+      if (active && reply.ok) setDeviceId(reply.value)
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+  if (!deviceId) return null
+  return (
+    <footer className="owlto-device-id">
+      <button
+        type="button"
+        onClick={() => {
+          const now = Date.now()
+          const next = now - clicks.current.at <= REVEAL_GAP_MS ? clicks.current.count + 1 : 1
+          clicks.current = { count: next >= REVEAL_CLICKS ? 0 : next, at: now }
+          if (next >= REVEAL_CLICKS) onReveal()
+        }}
+      >
+        {t('updates.deviceId', { id: deviceId })}
+      </button>
+    </footer>
+  )
+}
+
 export function SettingsUpdatesPane() {
   const { t } = useTranslation()
   const settings = useAppStore((s) => s.settings)
   const saveSettings = useAppStore((s) => s.saveSettings)
   const snapshot = useUpdateSnapshot()
+  const [revealed, setRevealed] = useState(false)
+  // Hidden until revealed from the device id, but kept in view once the user is on beta.
+  const channelVisible = revealed || snapshot?.channel === 'beta'
   return (
-    <section className="owlto-settings-section">
+    <section className="owlto-settings-section owlto-updates-section">
       <h2>{t('updates.title')}</h2>
       <p>{t('updates.body')}</p>
       {snapshot === undefined ? null : snapshot === null ? (
@@ -85,28 +128,30 @@ export function SettingsUpdatesPane() {
             <SettingRow label={t('updates.status')} description={statusText(snapshot.state, t)} />
           ) : (
             <>
-              <SettingRow
-                label={t('updates.channel')}
-                description={t('updates.channelHelp')}
-                htmlFor="owlto-update-channel"
-              >
-                <Select
-                  id="owlto-update-channel"
-                  value={snapshot.channel}
-                  onChange={(event) =>
-                    void saveSettings({
-                      ...settings,
-                      updateChannel: updateChannelSchema.parse(event.target.value)
-                    })
-                  }
+              {channelVisible ? (
+                <SettingRow
+                  label={t('updates.channel')}
+                  description={t('updates.channelHelp')}
+                  htmlFor="owlto-update-channel"
                 >
-                  {updateChannelSchema.options.map((channel) => (
-                    <option value={channel} key={channel}>
-                      {t(`updates.channel.${channel}`)}
-                    </option>
-                  ))}
-                </Select>
-              </SettingRow>
+                  <Select
+                    id="owlto-update-channel"
+                    value={snapshot.channel}
+                    onChange={(event) =>
+                      void saveSettings({
+                        ...settings,
+                        updateChannel: updateChannelSchema.parse(event.target.value)
+                      })
+                    }
+                  >
+                    {updateChannelSchema.options.map((channel) => (
+                      <option value={channel} key={channel}>
+                        {t(`updates.channel.${channel}`)}
+                      </option>
+                    ))}
+                  </Select>
+                </SettingRow>
+              ) : null}
               <SettingRow
                 label={t('updates.status')}
                 description={
@@ -139,6 +184,7 @@ export function SettingsUpdatesPane() {
           />
         </SettingRow>
       ) : null}
+      <DeviceIdFooter onReveal={() => setRevealed(true)} />
     </section>
   )
 }

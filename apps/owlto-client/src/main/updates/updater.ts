@@ -1,7 +1,7 @@
 import { app, autoUpdater, net } from 'electron'
 import {
+  DEFAULT_UPDATE_CHANNEL,
   isNewerRelease,
-  releaseChannel,
   type UpdateChannel,
   type UpdateFailure,
   type UpdateSnapshot,
@@ -15,7 +15,7 @@ const CHECK_INTERVAL_MS = 2 * 60 * 60 * 1000
 const FEED_TIMEOUT_MS = 30_000
 
 export type AppUpdaterDeps = {
-  /** The saved channel; null follows the installed build. */
+  /** The saved channel; null means the default, stable. */
   savedChannel: () => UpdateChannel | null
   changed: (snapshot: UpdateSnapshot) => void
   /** Asks about running tasks before quitting; false keeps the app open. */
@@ -57,7 +57,7 @@ export class AppUpdater {
     const saved = this.deps.savedChannel()
     return {
       currentVersion: app.getVersion(),
-      channel: saved ?? releaseChannel(app.getVersion()),
+      channel: saved ?? DEFAULT_UPDATE_CHANNEL,
       state: this.state
     }
   }

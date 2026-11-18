@@ -295,7 +295,7 @@ export const settingsSchema = z.object({
   layout: layoutSettingsSchema.default(defaultLayoutSettings),
   /** Experimental features; added later, so older rows have them all off. */
   experiments: experimentsSettingsSchema.default(defaultExperimentsSettings),
-  /** Null follows the installed build: a beta build gets beta updates, a stable one stable. */
+  /** Null means the default channel, stable, whichever build is installed. */
   updateChannel: updateChannelSchema.nullable().default(null),
   /** Shows the Pull requests page in the sidebar; added later, so older rows show it. */
   pullRequestsVisible: z.boolean().default(true),
@@ -607,6 +607,8 @@ export interface OwltoAPI {
   agentUsage(refresh: boolean): Promise<Reply<UsageOverview>>
   /** Token usage recorded on this device over a range, for one agent or all, summed for the usage page. */
   usageStats(request: UsageStatsRequest): Promise<Reply<UsageStats>>
+  /** This device's id (`dv_…`), shown in Settings → Updates for support. */
+  deviceId(): Promise<Reply<string>>
   /** A PostHog feature flag for A/B tests; null in builds without analytics or with usage data off. */
   featureFlag(key: FeatureFlagKey): Promise<Reply<FeatureFlagValue>>
   onEvent(listener: (event: AppEvent) => void): () => void

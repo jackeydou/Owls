@@ -76,3 +76,40 @@
     animation: none;
   }
 }
+
+/* The Updates page fills the scroll area, so the device id sits at its very bottom. */
+.owlto-settings-content:has(> .owlto-updates-section) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.owlto-updates-section {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.owlto-device-id {
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  margin-bottom: -40px;
+  padding-top: 48px;
+}
+.owlto-device-id button {
+  padding: 2px 6px;
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+  font-family: inherit;
+  font-size: var(--owl-text-xs);
+  font-variant-numeric: tabular-nums;
+  user-select: text;
+  transition:
+    background-color 120ms ease,
+    transform 80ms ease;
+}
+.owlto-device-id button:hover {
+  background: var(--color-sidebar-hover);
+}
+.owlto-device-id button:active {
+  transform: scale(0.97);
+}

@@ -8,6 +8,8 @@ import { z } from 'zod'
 
 export const updateChannelSchema = z.enum(['stable', 'beta'])
 export type UpdateChannel = z.infer<typeof updateChannelSchema>
+/** Every install updates from stable until the user picks beta in Settings → Updates. */
+export const DEFAULT_UPDATE_CHANNEL: UpdateChannel = 'stable'
 
 /** Where the release workflow publishes the update feeds: assets of one fixed release. */
 export const UPDATE_FEED_REPOSITORY = 'jackeydou/Owls'
@@ -88,7 +90,7 @@ export type UpdateState =
   | { status: 'failed'; failure: UpdateFailure; checkedAt: string }
 export type UpdateSnapshot = {
   currentVersion: string
-  /** The channel in effect: the saved choice, or the installed build's own channel. */
+  /** The channel in effect: the saved choice, or stable. */
   channel: UpdateChannel
   state: UpdateState
 }
