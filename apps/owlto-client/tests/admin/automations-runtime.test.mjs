@@ -335,12 +335,12 @@ test('the Router creates an automation whose run comes back to its thread', asyn
   automations.close()
 })
 
-test('Codex and Cursor workers get the browser tool when their setting allows it, never read-only', async () => {
+test('Codex and Cursor workers get the browser tool when their setting allows it, read-only included', async () => {
   const { router, automations, runs, fake, tools } = app()
   const calls = []
   router.attachBrowser({
-    run: async (key, code, timeoutMs) => {
-      calls.push({ key, code, timeoutMs })
+    run: async (key, code, timeoutMs, mode) => {
+      calls.push({ key, code, timeoutMs, mode })
       return { ok: true, text: 'Result: done' }
     }
   })
@@ -361,17 +361,22 @@ test('Codex and Cursor workers get the browser tool when their setting allows it
   assert.ok(tool, 'a workspace-write worker gets the browser tool')
   const result = await tool.call({ code: 'return 1' })
   assert.deepEqual(result, { ok: true, text: 'Result: done' })
-  assert.deepEqual(calls, [{ key: writer.id, code: 'return 1', timeoutMs: 60_000 }])
+  assert.deepEqual(calls, [
+    { key: writer.id, code: 'return 1', timeoutMs: 60_000, mode: 'restricted' }
+  ])
   const bad = await tool.call({ code: '' })
   assert.equal(bad.ok, false)
   assert.match(bad.text, /^Invalid browser input\./)
 
-  const reader = await dispatch({ goal: 'Read the docs', permission: 'read-only' })
+  fake.host.settings().agents.codex.permission = 'read-only'
+  const reader = await dispatch({ goal: 'Read the docs' })
   await waitFor(() => fake.sent.length === 2, 'the read-only worker turn')
-  assert.equal(
-    router.profile(reader.sessionId).tools.some((t) => t.name === 'browser'),
-    false
-  )
+  assert.equal(reader.permission, 'read-only')
+  const readerTool = router.profile(reader.sessionId).tools.find((t) => t.name === 'browser')
+  assert.ok(readerTool, 'a read-only worker gets the browser tool too')
+  await readerTool.call({ code: 'return 2' })
+  assert.equal(calls.at(-1).mode, 'restricted', 'a read-only worker runs scripts restricted')
+  fake.host.settings().agents.codex.permission = 'workspace-write'
 
   fake.host.settings().agents.codex.browser = false
   const off = await dispatch({ goal: 'Check another page' })

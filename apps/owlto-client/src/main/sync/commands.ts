@@ -48,11 +48,11 @@ export async function applyCommand(
         defaultProjectId: null,
         workerId: command.workerId,
         selection: { model: command.model, effort: command.effort },
+        permission: command.permission,
         input: {
           goal: command.goal,
           project: command.projectId,
           provider: command.provider,
-          permission: command.permission,
           base: command.base,
           ...(command.parent ? { parent: command.parent } : {})
         }

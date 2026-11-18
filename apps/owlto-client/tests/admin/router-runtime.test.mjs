@@ -149,7 +149,7 @@ test('deleting a thread removes it, its items, and its workers', async () => {
   service.close()
 })
 
-test('invalid tool arguments and permission limits come back as tool errors', async () => {
+test('invalid tool arguments, including a permission the Router may not choose, come back as tool errors', async () => {
   const results = []
   const { service, router, current, created } = harness([
     () =>
@@ -170,12 +170,10 @@ test('invalid tool arguments and permission limits come back as tool errors', as
   service.send({ routerId: router.id, commandId: crypto.randomUUID(), text: 'Do things' })
   await waitFor(() => current().status === 'idle' && results.length === 2, 'tool errors')
   assert.equal(created.length, 0)
-  // pi rejects this shape with its own validation message before Owlto sees it.
+  // pi rejects these shapes with its own validation message before Owlto sees them: workers
+  // take their permission from the agent's setting, so dispatch_task has no permission field.
   assert.equal(results[0].isError, true)
-  assert.deepEqual(
-    [results[1].isError, JSON.parse(results[1].text).error.code],
-    [true, 'permission_not_allowed']
-  )
+  assert.equal(results[1].isError, true)
   service.close()
 })
 
@@ -539,11 +537,12 @@ test('the Inbox persists events and records each batch', async () => {
 
 test('backlogged reports go out in one batch and newer reports supersede older ones', async () => {
   const { engine, factory } = scriptedEngine()
-  const { service, router, current, store } = harness([], { factory })
+  const { service, router, current, store, settings } = harness([], { factory })
+  settings.agents.codex.permission = 'read-only'
   engine.onRun = async (_input, tools) => {
     if (engine.runs.length !== 1) return
-    await tools[0].execute({ goal: 'A', permission: 'read-only' })
-    await tools[0].execute({ goal: 'B', permission: 'read-only' })
+    await tools[0].execute({ goal: 'A' })
+    await tools[0].execute({ goal: 'B' })
   }
   engine.hold = true
   send(service, router, 'Do A and B')
@@ -641,15 +640,14 @@ test('restart marks an unfinished batch dispatch_unknown and recovers stopped wo
 
 test('workers beyond the limit or a busy writer queue and start in order', async () => {
   const { engine, factory } = scriptedEngine()
-  const { service, router, current, sent } = harness([], { factory })
+  const { service, router, current, sent, settings } = harness([], { factory })
   const results = []
   engine.onRun = async (_input, tools) => {
     if (engine.runs.length !== 1) return
     for (const goal of ['Write A', 'Write B'])
       results.push(JSON.parse(await tools[0].execute({ goal })).status)
-    results.push(
-      JSON.parse(await tools[0].execute({ goal: 'Read C', permission: 'read-only' })).status
-    )
+    settings.agents.codex.permission = 'read-only'
+    results.push(JSON.parse(await tools[0].execute({ goal: 'Read C' })).status)
   }
   send(service, router, 'Three things')
   await waitFor(() => current().status === 'idle' && results.length === 3, 'dispatches')

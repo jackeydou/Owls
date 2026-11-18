@@ -91,10 +91,10 @@ test('stop_worker interrupts a running worker without a new batch and cancels a 
 test('list_workers and recall describe workers, events, and batches', async () => {
   const long = `${'x'.repeat(8100)}END`
   const { service, results, store, router } = await withTools(async (call, h) => {
+    h.settings.agents.codex.permission = 'read-only'
     const { workerId } = await call('dispatch_task', {
       goal: 'Summarize',
-      context: 'c'.repeat(5000),
-      permission: 'read-only'
+      context: 'c'.repeat(5000)
     })
     const worker = h.service.snapshot().workers[0]
     h.service.settled(worker.sessionId, report('s'.repeat(900)))
@@ -165,11 +165,11 @@ test('a message the user sends to a worker reports back to the Router like any t
 test('dispatch_task records the title, the parent, and one conversation item', async () => {
   const { service, current, results } = await withTools(async (call, h) => {
     const parent = await call('dispatch_task', { goal: 'Fix the login page', title: 'Fix login' })
+    h.settings.agents.codex.permission = 'read-only'
     const child = await call('dispatch_task', {
       goal: 'Test the login flow',
       title: 'x'.repeat(100),
-      parent: parent.workerId,
-      permission: 'read-only'
+      parent: parent.workerId
     })
     // A retried call reuses the worker, so it must not add a second item.
     await call('dispatch_task', { goal: 'Fix the login page' })
@@ -200,7 +200,8 @@ test('dispatch_task records the title, the parent, and one conversation item', a
 test('dispatch_task refuses a parent that is unknown or removed', async () => {
   const { service, results } = await withTools(async (call, h) => {
     const unknown = await call('dispatch_task', { goal: 'A', parent: 'w_missing' })
-    const parent = await call('dispatch_task', { goal: 'B', permission: 'read-only' })
+    h.settings.agents.codex.permission = 'read-only'
+    const parent = await call('dispatch_task', { goal: 'B' })
     const worker = h.service.snapshot().workers.find((w) => w.id === parent.workerId)
     h.service.observe({ type: 'removed', sessionId: worker.sessionId })
     const removed = await call('dispatch_task', { goal: 'C', parent: parent.workerId })
