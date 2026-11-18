@@ -69,6 +69,8 @@ const workspacePathSchema = z.string().min(1).max(4096)
 export function registerIpc(
   host: OwltoHost,
   getWindow: () => BrowserWindow | null,
+  /** This device's id from the local database. */
+  deviceId: string,
   updates: Pick<AppUpdater, 'snapshot' | 'check' | 'install' | 'channelChanged'>,
   settingsSaved: (settings: AppSettings, previous: AppSettings) => void,
   /** Null in builds without analytics. */
@@ -120,6 +122,7 @@ export function registerIpc(
   })
   handle('profile', (input) => host.saveProfile(input))
   handle('profile-github-avatar', () => host.applyGitHubAvatar())
+  handle('device-id', () => deviceId)
   handle('feature-flag', (input) => {
     const key = featureFlagKeySchema.parse(input)
     return analytics ? analytics.flag(key) : null

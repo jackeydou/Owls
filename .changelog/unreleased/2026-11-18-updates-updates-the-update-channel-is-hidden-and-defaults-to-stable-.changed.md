@@ -1,0 +1,1 @@
+- Updates: the update channel is hidden and defaults to stable; five clicks on the device ID at the bottom of Settings → Updates reveal it. (#190)
