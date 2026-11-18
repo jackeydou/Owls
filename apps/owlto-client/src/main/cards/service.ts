@@ -20,6 +20,14 @@ type CardCaptureInput = z.infer<typeof cardCaptureSchema>
 type BoardSaveInput = z.infer<typeof boardSaveSchema>
 /** The frozen text of a thread message or worker result, and where it came from. */
 export type CapturedContent = { text: string; source: CardSource }
+/** A note an agent saves: its text, the thread's project, and where it was saved from. */
+export type AgentNoteInput = {
+  title: string
+  body: string
+  tags: string[]
+  projectId: string | null
+  source: CardSource
+}
 
 const newId = (prefix: string) => `${prefix}_${randomBytes(6).toString('hex')}`
 const missingCard = () => new OwltoError('request_unavailable', 'This note no longer exists.')
@@ -100,6 +108,30 @@ export class CardService {
       projectId,
       status: 'active',
       source: content.source,
+      createdAt: now,
+      updatedAt: now
+    })
+    this.deps.changed()
+    return card
+  }
+  /**
+   * Adds a note an agent wrote through its save_note tool. A project removed
+   * since the thread started files the note under no project instead of failing.
+   */
+  addFromAgent(input: AgentNoteInput): Card {
+    const projectId =
+      input.projectId && this.deps.projects().some((project) => project.id === input.projectId)
+        ? input.projectId
+        : null
+    const now = this.now()
+    const card = this.deps.store.putCard({
+      id: newId('c'),
+      title: input.title,
+      body: input.body,
+      tags: [...new Set(input.tags)].sort((a, b) => a.localeCompare(b)),
+      projectId,
+      status: 'active',
+      source: input.source,
       createdAt: now,
       updatedAt: now
     })
