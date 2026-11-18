@@ -11,6 +11,18 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1700-beta.2
+
+### Highlights
+
+- Click a file path in an agent message to open it in a File viewer right inside Owlto.
+
+### Changes
+
+- File viewer: clicking a local file in an agent message opens it in a new File viewer tab in the right sidebar. Code gets syntax colors, Markdown is rendered, images and folders are shown, and Open in sends the file to your editor or Finder. (#186)
+
+### Fixes
+
 ## 2026.11.1700-beta.1
 
 ### Highlights
