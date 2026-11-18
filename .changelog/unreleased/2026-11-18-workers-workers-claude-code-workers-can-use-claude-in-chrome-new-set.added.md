@@ -1,0 +1,1 @@
+- Workers: Claude Code workers can use Claude in Chrome (new setting, on by default), and writing workers on every agent get a browser tool that runs Playwright scripts in a Chrome window. (#182)
