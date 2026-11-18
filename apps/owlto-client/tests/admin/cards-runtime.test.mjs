@@ -272,3 +272,34 @@ test('the index is rebuilt from the files alone', (t) => {
   )
   assert.ok(existsSync(join(notes, 'Kept.md')))
 })
+
+test('an agent note is written as a Markdown file and falls back to no project', (t) => {
+  const { service, notes, changes } = setup(t)
+  const source = {
+    kind: 'worker',
+    threadId: 't1',
+    threadTitle: 'Login',
+    itemId: null,
+    workerId: 'w_1'
+  }
+  const card = service.addFromAgent({
+    title: 'Findings',
+    body: '- Token expires after 1h',
+    tags: ['b', 'a', 'b'],
+    projectId: 'p1',
+    source
+  })
+  assert.deepEqual(card.tags, ['a', 'b'])
+  assert.equal(card.projectId, 'p1')
+  assert.deepEqual(card.source, source)
+  assert.deepEqual(files(notes), ['Findings.md'])
+  const orphan = service.addFromAgent({
+    title: 'Elsewhere',
+    body: 'x',
+    tags: [],
+    projectId: 'gone',
+    source
+  })
+  assert.equal(orphan.projectId, null, 'a removed project does not fail the save')
+  assert.equal(changes(), 2)
+})

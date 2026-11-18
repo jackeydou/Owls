@@ -9,7 +9,7 @@ import type {
   ThreadItem
 } from '../../shared/app.js'
 import { type Automation, scheduleFromInput } from '../../shared/automations.js'
-import type { AttachedCard } from '../../shared/cards.js'
+import type { AttachedCard, Card } from '../../shared/cards.js'
 import type { AgentPullRequest } from '../../shared/github.js'
 import type { ProjectGitRefs } from '../../shared/projects.js'
 import type {
@@ -39,7 +39,8 @@ import {
   workerAutomationTools
 } from '../automations/tools.js'
 import { browserTool, type WorkerBrowser } from '../browser/tool.js'
-import type { CapturedContent } from '../cards/service.js'
+import type { AgentNoteInput, CapturedContent } from '../cards/service.js'
+import { routerNoteTools, type SaveNoteInput, workerNoteTools } from '../cards/tools.js'
 import type { RouterMemory } from '../memory/service.js'
 import type { RouterCredentials } from './credentials.js'
 import type { RouterBatchOutcome, RouterEngine, RouterSink } from './engine.js'
@@ -66,6 +67,9 @@ import {
 import { checkoutOnly, type WorkerRemoteBranch, type WorkerWorkspaces } from './worktrees.js'
 
 export type { TurnOutcome, TurnProfile, TurnProfiles, WorkerHost } from './workers.js'
+
+/** Where agents save notes; the app passes its CardService. */
+export type AgentNotes = { addFromAgent(input: AgentNoteInput): Card }
 
 type ActiveBatch = {
   id: string
@@ -131,6 +135,8 @@ export class RouterService implements TurnProfiles {
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private closed = false
   private browser: WorkerBrowser | null = null
+  /** The user's Notes, for the save_note tool; the tool is left out until attached. */
+  private notes: AgentNotes | null = null
 
   constructor(
     private readonly store: RouterStore,
@@ -666,7 +672,41 @@ export class RouterService implements TurnProfiles {
     this.browser = browser
   }
 
-  /** Owlto's worker tools besides `report`: automations, and the browser where allowed. */
+  /** Gives agents the save_note tool. Threads started before this pick it up on their next turn. */
+  attachNotes(notes: AgentNotes): void {
+    this.notes = notes
+  }
+
+  /** Saves an agent's note under the thread's project, recording where it came from. */
+  private saveNote(
+    input: SaveNoteInput,
+    origin: { router: Router; projectId: string | null; workerId: string | null }
+  ) {
+    const notes = this.notes
+    if (!notes) throw new Error('Notes are not available.')
+    let note: Card
+    try {
+      note = notes.addFromAgent({
+        title: input.title,
+        body: input.body,
+        tags: input.tags ?? [],
+        projectId: origin.projectId,
+        source: {
+          kind: origin.workerId ? 'worker' : 'message',
+          threadId: origin.router.id,
+          threadTitle: origin.router.title,
+          itemId: null,
+          workerId: origin.workerId
+        }
+      })
+    } catch (error) {
+      // File system errors carry local paths, which stay out of the model's view.
+      throw new Error(error instanceof OwltoError ? error.message : 'The note could not be saved.')
+    }
+    return { saved: { noteId: note.id, title: note.title, tags: note.tags } }
+  }
+
+  /** The tools a worker gets besides `report`: notes, automations, and the browser where allowed. */
   private workerTools(worker: RouterWorker): WorkerTool[] {
     const enabled = workerBrowserEnabled(
       this.host.settings().agents,
@@ -676,7 +716,16 @@ export class RouterService implements TurnProfiles {
     // Only full access runs scripts as plain Node; anything less gets the restricted runtime.
     const mode = worker.permission === 'full-access' ? 'full' : 'restricted'
     const browser = this.browser && enabled ? [browserTool(this.browser, worker.id, mode)] : []
-    return [...this.workerAutomationTools(worker), ...browser]
+    const router = this.routers.get(worker.routerId)
+    const notes =
+      this.notes && router
+        ? workerNoteTools((input) =>
+            this.saveNote(input, { router, projectId: worker.projectId, workerId: worker.id })
+          )
+        : []
+    return [...notes, ...this.workerAutomationTools(worker), ...browser].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )
   }
 
   /** The automation tools a worker gets: its runs come back to it unless it asks for the Router. */
@@ -1029,7 +1078,8 @@ export class RouterService implements TurnProfiles {
   private engine(router: Router): RouterEngine | Failure {
     const settings = this.host.settings().router
     const memory = this.memory.enabled()
-    const key = JSON.stringify([settings, memory])
+    const notes = this.notes !== null
+    const key = JSON.stringify([settings, memory, notes])
     const cached = this.engines.get(router.id)
     if (cached?.key === key) return cached.engine
     const engine = this.createEngine({
@@ -1053,7 +1103,19 @@ export class RouterService implements TurnProfiles {
           recall: (id) => this.recall(router.id, id),
           ...(memory ? { searchMemory: (input) => this.memory.search(input) } : {})
         }),
-        ...this.routerAutomationTools(router)
+        ...this.routerAutomationTools(router),
+        ...(notes
+          ? routerNoteTools((input) => {
+              try {
+                return this.saveNote(input, { router, projectId: router.projectId, workerId: null })
+              } catch (error) {
+                throw new RouterToolError(
+                  'tool_failed',
+                  error instanceof Error ? error.message : 'The note could not be saved.'
+                )
+              }
+            })
+          : [])
       ].sort((a, b) => a.name.localeCompare(b.name)),
       history: this.store.messages(router.id),
       state: () => this.stateOf(router, true),

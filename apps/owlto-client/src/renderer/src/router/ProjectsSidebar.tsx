@@ -227,7 +227,7 @@ function WorkspaceRow() {
  * into focus, and when a Workspace worker settles, since that is when a new
  * repository can appear.
  */
-function useWorkspaceRefresh() {
+export function useWorkspaceRefresh() {
   const refresh = useWorkspaceStore((s) => s.refresh)
   const settled = useRouterStore((s) =>
     s.workers

@@ -5,6 +5,7 @@ import { cardsEn, cardsZh } from '../cards/i18n'
 import { feedbackEn, feedbackZh } from '../feedback/i18n'
 import { memoryEn, memoryZh } from '../memory/i18n'
 import { onboardingEn, onboardingZh } from '../onboarding/i18n'
+import { projectsPageEn, projectsPageZh } from '../projects/i18n'
 import { pullsEn, pullsZh } from '../pulls/i18n'
 import { routerEn, routerZh } from '../router/i18n'
 import { workerComposerEn, workerComposerZh } from '../router/i18n-worker-composer'
@@ -409,7 +410,8 @@ void i18next.use(initReactI18next).init({
         ...workspaceEn,
         ...archivesEn,
         ...workerComposerEn,
-        ...feedbackEn
+        ...feedbackEn,
+        ...projectsPageEn
       }
     },
     'zh-CN': {
@@ -430,7 +432,8 @@ void i18next.use(initReactI18next).init({
         ...workspaceZh,
         ...archivesZh,
         ...workerComposerZh,
-        ...feedbackZh
+        ...feedbackZh,
+        ...projectsPageZh
       }
     }
   },

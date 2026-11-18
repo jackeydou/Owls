@@ -55,10 +55,11 @@ function useRecentProjects() {
 }
 
 /**
- * The Projects sidebar's add button: a menu to open a folder, import a GitHub
- * repository, or start an empty project, with recent projects below.
+ * The add-project button: a menu to open a folder, import a GitHub repository, or
+ * start an empty project, with recent projects below. The Projects sidebar shows it
+ * as an icon; the Projects page as a labeled button, so a new user can find it.
  */
-export function AddProjectMenu() {
+export function AddProjectMenu({ labeled = false }: { labeled?: boolean }) {
   const { t } = useTranslation()
   const pickProject = useAppStore((s) => s.pickProject)
   const showChat = useAppStore((s) => s.showChat)
@@ -73,14 +74,23 @@ export function AddProjectMenu() {
   return (
     <>
       <Menu>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <MenuTrigger asChild>
-              <IconButton size="sm" label={t('addProject')} icon={<PlusIcon size={16} />} />
-            </MenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{t('addProject')}</TooltipContent>
-        </Tooltip>
+        {labeled ? (
+          <MenuTrigger asChild>
+            <Button size="sm">
+              <PlusIcon size={15} aria-hidden />
+              {t('addProject')}
+            </Button>
+          </MenuTrigger>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <MenuTrigger asChild>
+                <IconButton size="sm" label={t('addProject')} icon={<PlusIcon size={16} />} />
+              </MenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t('addProject')}</TooltipContent>
+          </Tooltip>
+        )}
         <MenuContent
           align="end"
           onCloseAutoFocus={(event) => {

@@ -359,6 +359,7 @@ void app
       changed: cardsChanged
     })
     service.attachCards(cards)
+    router.attachNotes(cards)
     cards.watch()
     const host = service
     const profile = new UserProfile({

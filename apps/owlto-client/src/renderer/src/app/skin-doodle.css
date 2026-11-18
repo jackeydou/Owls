@@ -460,9 +460,27 @@ html[data-skin="doodle"] :is(.map-node.done, .map-node.kept) {
 
 /* Card and list surfaces across the pages. */
 html[data-skin="doodle"]
-:is(.memory-card, .owlto-stats-card, .pulls-list, .automations-list, .owlto-usage-plan) {
+:is(
+  .memory-card,
+  .owlto-stats-card,
+  .pulls-list,
+  .automations-list,
+  .owlto-usage-plan,
+  .projects-card
+) {
   border: var(--doodle-border);
   box-shadow: var(--doodle-shadow);
+}
+html[data-skin="doodle"] .projects-card:hover {
+  border-color: var(--doodle-line);
+  box-shadow: 4px 4px 0 var(--doodle-line);
+}
+html[data-skin="doodle"] .projects-empty {
+  border: 2px dashed var(--doodle-line);
+}
+html[data-skin="doodle"] .projects-card-badge {
+  background: var(--doodle-amber);
+  color: var(--doodle-ink);
 }
 html[data-skin="doodle"] .card-tile[aria-current="true"] {
   background: color-mix(in srgb, var(--doodle-amber) 14%, var(--doodle-card));

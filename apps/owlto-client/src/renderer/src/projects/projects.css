@@ -1,0 +1,175 @@
+/* The Projects page: the Workspace and each project as cards, beside the details panel. */
+.projects-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.projects-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 32px 32px;
+}
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.projects-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-lg);
+  background: var(--color-card);
+  transition:
+    border-color 100ms,
+    box-shadow 100ms;
+}
+.projects-card:hover {
+  border-color: var(--color-border-strong);
+}
+.projects-card-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: inherit;
+  text-align: start;
+}
+.projects-card-main:active {
+  transform: scale(0.995);
+}
+.projects-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  /* Room for the edit button in the corner. */
+  padding-inline-end: 28px;
+}
+.projects-card-head > b {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--owl-radius-xs);
+  background: var(--color-card-muted);
+  font-size: var(--owl-text-xs);
+  font-weight: 600;
+}
+.projects-card-head > strong {
+  overflow: hidden;
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.projects-card-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: var(--owl-radius-xs);
+  background: var(--color-card-muted);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-weight: 500;
+}
+.projects-card-path {
+  display: flex;
+  align-self: flex-start;
+  max-width: 100%;
+  min-width: 0;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: var(--owl-text-2xs);
+  white-space: nowrap;
+}
+/* The parent folders give way first; the folder's own name only when it alone is too long. */
+.projects-card-path > span {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+.projects-card-path > .head {
+  flex: 0 100000 auto;
+}
+.projects-card-path > .tail {
+  flex: 0 1 auto;
+}
+.projects-card-body {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: calc(2 * var(--owl-leading-normal) * var(--owl-text-xs));
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.projects-card-body.muted {
+  color: var(--color-muted-foreground);
+}
+.projects-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  margin-top: 4px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+.projects-card-stats > span + span::before {
+  content: "·";
+  margin-inline-end: 6px;
+  color: var(--color-muted-foreground);
+}
+.projects-card-stats .run {
+  color: var(--owl-run);
+}
+.projects-card-stats .wait {
+  color: var(--owl-wait);
+}
+.projects-card-edit {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: var(--color-muted-foreground);
+  opacity: 0;
+  transition: opacity 100ms;
+}
+/* Shown only while the card is hovered or holds keyboard focus. */
+.projects-card:hover .projects-card-edit,
+.projects-card:focus-within .projects-card-edit {
+  opacity: 1;
+}
+.projects-card-edit:hover {
+  color: var(--color-foreground);
+}
+.projects-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--owl-radius-lg);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+}
+.projects-empty > svg {
+  color: var(--color-foreground);
+}
+.projects-empty > strong {
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+}
+.projects-empty > p {
+  margin-bottom: 4px;
+}

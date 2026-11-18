@@ -240,7 +240,16 @@ function app() {
     0
   )
   fake.turns.profiles = router
-  return { router, store, automations, runs, fake, tools: () => tools }
+  const notes = []
+  router.attachNotes({
+    addFromAgent: (input) => {
+      if (input.title === 'Broken') throw new Error('EACCES: /Users/me/Owlto/Notes/Broken.md')
+      const note = { id: `c_${notes.length}`, ...input, tags: [...input.tags].sort() }
+      notes.push(note)
+      return note
+    }
+  })
+  return { router, store, automations, runs, fake, notes, tools: () => tools }
 }
 
 async function waitFor(check, label) {
@@ -399,22 +408,23 @@ test('a worker schedules its own follow-up, and a user automation opens its own 
   const profile = router.profile(worker.sessionId)
   assert.deepEqual(
     profile.tools.map((t) => t.name),
-    ['create_automation', 'delete_automation', 'list_automations', 'update_automation']
+    ['create_automation', 'delete_automation', 'list_automations', 'save_note', 'update_automation']
   )
-  const created = profile.tools[0].call({
+  const tool = (name) => profile.tools.find((t) => t.name === name)
+  const created = tool('create_automation').call({
     name: 'Watch CI',
     instructions: 'Check CI on the PR.',
     schedule: { frequency: 'hourly', time: '00:10' }
   })
   assert.equal(created.ok, true, created.text)
   assert.equal(JSON.parse(created.text).automation.wakes, `worker ${worker.id}`)
-  const renamed = profile.tools[3].call({
+  const renamed = tool('update_automation').call({
     automationId: JSON.parse(created.text).automation.automationId,
     name: 'Watch CI on #12'
   })
   assert.equal(renamed.ok, true, renamed.text)
   assert.equal(JSON.parse(renamed.text).automation.wakes, `worker ${worker.id}`)
-  const bad = profile.tools[0].call({ name: 'x' })
+  const bad = tool('create_automation').call({ name: 'x' })
   assert.equal(bad.ok, false)
   assert.match(bad.text, /^Invalid create_automation input\./)
 
@@ -517,4 +527,43 @@ test('a batch renders an automation run for the Router', () => {
   ])
   assert.match(text, /\[3\] automation_run · au_1 · 09:00:00 · Briefing/)
   assert.match(text, /written by the user when it was created:\nSummarize yesterday\./)
+})
+
+test('the Router and workers save notes with save_note', async () => {
+  const { router, runs, fake, notes, tools } = app()
+  const thread = router.createThread({ projectId: null })
+  router.send({ routerId: thread.id, commandId: crypto.randomUUID(), text: 'hi' })
+  await waitFor(() => runs.length === 1, 'the first batch')
+  const save = tools().find((t) => t.name === 'save_note')
+  const saved = JSON.parse(
+    await save.execute({ title: 'Summary', body: 'Three points.', tags: ['b', 'a'] })
+  )
+  assert.deepEqual(saved, { saved: { noteId: 'c_0', title: 'Summary', tags: ['a', 'b'] } })
+  assert.deepEqual(notes[0].source, {
+    kind: 'message',
+    threadId: thread.id,
+    threadTitle: thread.title,
+    itemId: null,
+    workerId: null
+  })
+  await assert.rejects(save.execute({ title: '', body: 'x' }), { code: 'invalid_request' })
+  await assert.rejects(save.execute({ title: 'Broken', body: 'x' }), (error) => {
+    assert.equal(error.code, 'tool_failed')
+    assert.equal(error.message, 'The note could not be saved.', 'no local path reaches the model')
+    return true
+  })
+
+  const dispatched = JSON.parse(
+    await tools()
+      .find((t) => t.name === 'dispatch_task')
+      .execute({ goal: 'Research' })
+  )
+  await waitFor(() => fake.sent.length === 1, 'the worker turn')
+  const worker = router.worker(dispatched.workerId)
+  const workerSave = router.profile(worker.sessionId).tools.find((t) => t.name === 'save_note')
+  const result = workerSave.call({ title: 'Findings', body: 'Done.' })
+  assert.equal(result.ok, true, result.text)
+  assert.equal(notes[1].source.kind, 'worker')
+  assert.equal(notes[1].source.workerId, worker.id)
+  assert.deepEqual(notes[1].tags, [])
 })
