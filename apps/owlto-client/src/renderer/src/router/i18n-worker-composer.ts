@@ -1,7 +1,7 @@
 /** Copy for writing to a worker from its panel: the input, attachments, and delivery notes. */
 export const workerComposerEn = {
   'workerComposer.label': 'Message {{title}}',
-  'workerComposer.placeholder': 'Tell this worker… Markdown and pasted images work',
+  'workerComposer.placeholder': 'Do anything.',
   'workerComposer.send': 'Send to this worker',
   'workerComposer.attach': 'Attach files',
   'workerComposer.attachments': 'Attached files',
@@ -27,7 +27,7 @@ export const workerComposerEn = {
 
 export const workerComposerZh: Record<keyof typeof workerComposerEn, string> = {
   'workerComposer.label': '给 {{title}} 发消息',
-  'workerComposer.placeholder': '告诉这个 Worker…支持 Markdown 和粘贴图片',
+  'workerComposer.placeholder': 'Do anything.',
   'workerComposer.send': '发送给这个 Worker',
   'workerComposer.attach': '上传文件',
   'workerComposer.attachments': '附件',
