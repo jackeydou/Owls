@@ -275,6 +275,17 @@ test('Claude normalization maps native tools, permissions, accounts, and answers
     folderAccess({ cwd: '/code/a', projectPath: '/code/a', workspace: '/ws', projects }),
     { additionalDirectories: ['/ws'], editDenied: [] }
   )
+  // The notes folder is readable everywhere and never edited with file tools.
+  assert.deepEqual(
+    folderAccess({
+      cwd: '/code/a',
+      projectPath: '/code/a',
+      workspace: '/ws',
+      projects,
+      readOnly: ['/notes']
+    }),
+    { additionalDirectories: ['/notes', '/ws'], editDenied: ['Edit(//notes/**)'] }
+  )
   assert.deepEqual(parseClaudeAccount({ apiProvider: 'bedrock' }), { kind: 'external' })
   assert.deepEqual(parseClaudeAccount({ apiKeySource: 'ANTHROPIC_API_KEY' }), { kind: 'api-key' })
   assert.deepEqual(parseClaudeAccount({}), { kind: 'unknown' })

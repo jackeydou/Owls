@@ -162,6 +162,7 @@ export class CursorService {
   private connecting: Promise<CursorConnection> | null = null
   private profiles: TurnProfiles | null = null
   private recordUsage: WorkerUsageRecorder = () => {}
+  private notesFolder: string | null = null
   private closed = false
   private connection: CursorConnection = {
     status: 'disconnected',
@@ -199,6 +200,10 @@ export class CursorService {
   }
   setUsageRecorder(recorder: WorkerUsageRecorder): void {
     this.recordUsage = recorder
+  }
+  /** The user's notes folder, which sessions may read without asking. */
+  setNotesFolder(folder: string): void {
+    this.notesFolder = folder
   }
   owns(sessionId: string): boolean {
     return this.sessions.has(sessionId)
@@ -579,7 +584,8 @@ export class CursorService {
         const optionId = chooseOption(input.options, decision)
         return optionId ? { outcome: { outcome: 'selected', optionId } } : cancelled
       }
-      const policy = approvalPolicy(session.permission, state, session.cwd)
+      const readable = this.notesFolder ? [this.notesFolder] : []
+      const policy = approvalPolicy(session.permission, state, session.cwd, readable)
       if (policy !== 'ask') return Promise.resolve(select(policy))
       return this.ask(session, runtime, approvalRequest(state, runtime.turnId), {
         answer: (reply) => select(reply.decision === 'accept' ? 'allow' : 'reject'),

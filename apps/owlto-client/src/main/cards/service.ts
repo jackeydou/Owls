@@ -53,6 +53,10 @@ export class CardService {
   private now(): string {
     return (this.deps.now?.() ?? new Date()).toISOString()
   }
+  /** The folder holding one Markdown file per note. */
+  folder(): string {
+    return this.deps.store.folder
+  }
   /** Picks up notes added, edited, or deleted in the notes folder by other apps. */
   watch(): void {
     this.stopWatching ??= this.deps.store.watch(() => this.deps.changed())

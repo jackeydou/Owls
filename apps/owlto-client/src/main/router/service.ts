@@ -68,7 +68,11 @@ import { checkoutOnly, type WorkerRemoteBranch, type WorkerWorkspaces } from './
 export type { TurnOutcome, TurnProfile, TurnProfiles, WorkerHost } from './workers.js'
 
 /** Where agents save notes; the app passes its CardService. */
-export type AgentNotes = { addFromAgent(input: AgentNoteInput): Card }
+export type AgentNotes = {
+  addFromAgent(input: AgentNoteInput): Card
+  /** The folder holding the note files, which workers may read. */
+  folder(): string
+}
 
 type ActiveBatch = {
   id: string
@@ -196,6 +200,7 @@ export class RouterService implements TurnProfiles {
       workspaces,
       (sessionId) => this.reports.endpoint(sessionId),
       (worker) => this.workerTools(worker),
+      () => this.notes?.folder() ?? null,
       codexStartGapMs
     )
     this.reports = new WorkerReportServer((sessionId) => this.pool.profile(sessionId))

@@ -247,7 +247,8 @@ function app() {
       const note = { id: `c_${notes.length}`, ...input, tags: [...input.tags].sort() }
       notes.push(note)
       return note
-    }
+    },
+    folder: () => '/Users/me/Owlto/Notes'
   })
   return { router, store, automations, runs, fake, notes, tools: () => tools }
 }
@@ -565,7 +566,10 @@ test('the Router and workers save notes with save_note', async () => {
   )
   await waitFor(() => fake.sent.length === 1, 'the worker turn')
   const worker = router.worker(dispatched.workerId)
-  const workerSave = router.profile(worker.sessionId).tools.find((t) => t.name === 'save_note')
+  const profile = router.profile(worker.sessionId)
+  // Workers are told where the note files are, so they can search and read them.
+  assert.match(profile.instructions, /Notes are Markdown files in \/Users\/me\/Owlto\/Notes/)
+  const workerSave = profile.tools.find((t) => t.name === 'save_note')
   const result = workerSave.call({ title: 'Findings', body: 'Done.' })
   assert.equal(result.ok, true, result.text)
   assert.equal(notes[1].source.kind, 'worker')

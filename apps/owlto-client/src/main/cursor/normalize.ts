@@ -230,18 +230,26 @@ function inside(cwd: string, path: string): boolean {
  * Cursor only read-only and full access; workspace write remains for workers
  * the Router dispatches at that level, and accepts reads and edits inside the
  * session's folder and asks for commands. Read-only refuses edits outright.
+ * Reads inside `readable` folders, such as the user's notes, are accepted too.
  */
 export function approvalPolicy(
   permission: Permission,
   state: ToolState,
-  cwd: string
+  cwd: string,
+  readable: string[] = []
 ): 'allow' | 'reject' | 'ask' {
   if (permission === 'full-access') return 'allow'
-  const local = filePaths(state).every((path) => inside(cwd, path))
+  const paths = filePaths(state)
+  const local = paths.every((path) => inside(cwd, path))
   const editing = state.kind === 'edit' || state.kind === 'delete' || state.kind === 'move'
   if (editing) return permission === 'read-only' ? 'reject' : local ? 'allow' : 'ask'
-  if (state.kind === 'read' || state.kind === 'search' || state.kind === 'think')
-    return local ? 'allow' : 'ask'
+  if (state.kind === 'read' || state.kind === 'search' || state.kind === 'think') {
+    const allowed = paths.every(
+      (path) =>
+        inside(cwd, path) || (isAbsolute(path) && readable.some((folder) => inside(folder, path)))
+    )
+    return allowed ? 'allow' : 'ask'
+  }
   return 'ask'
 }
 

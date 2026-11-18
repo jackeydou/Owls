@@ -140,6 +140,7 @@ export class ClaudeService {
   private profiles: TurnProfiles | null = null
   private recordUsage: WorkerUsageRecorder = () => {}
   private workspaceFolder: (() => string) | null = null
+  private notesFolder: string | null = null
   private closed = false
   private connection: ClaudeConnection = {
     status: 'disconnected',
@@ -182,6 +183,10 @@ export class ClaudeService {
   /** The workspace folder, read at each turn so a changed folder applies to the next turn. */
   setWorkspaceFolder(folder: () => string): void {
     this.workspaceFolder = folder
+  }
+  /** The user's notes folder, which sessions may read but not edit with file tools. */
+  setNotesFolder(folder: string): void {
+    this.notesFolder = folder
   }
   owns(sessionId: string): boolean {
     return this.sessions.has(sessionId)
@@ -847,7 +852,8 @@ export class ClaudeService {
           cwd: session.cwd,
           projectPath: session.projectPath,
           workspace: this.workspaceFolder(),
-          projects: this.store.projects().map((project) => project.path)
+          projects: this.store.projects().map((project) => project.path),
+          readOnly: this.notesFolder ? [this.notesFolder] : []
         })
       : { additionalDirectories: [], editDenied: [] }
     const denied = [...disallowedTools, ...editDenied]

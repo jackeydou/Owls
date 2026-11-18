@@ -1,0 +1,1 @@
+- Notes: workers are told where the notes folder is and can read note files there without asking. (#193)

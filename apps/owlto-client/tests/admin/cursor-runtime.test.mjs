@@ -138,6 +138,20 @@ test('Cursor normalization reads accounts, models, tools, and approvals', () => 
   assert.equal(n.approvalPolicy('workspace-write', outside, cwd), 'ask')
   assert.equal(n.approvalPolicy('workspace-write', command, cwd), 'ask')
   assert.equal(n.approvalPolicy('full-access', outside, cwd), 'allow')
+  // Reads in the notes folder are accepted; edits there still ask.
+  const note = n.mergeToolCall(undefined, {
+    toolCallId: 'n',
+    kind: 'read',
+    locations: [{ path: '/notes/Plan.md' }]
+  })
+  assert.equal(n.approvalPolicy('read-only', note, cwd), 'ask')
+  assert.equal(n.approvalPolicy('read-only', note, cwd, ['/notes']), 'allow')
+  const noteEdit = n.mergeToolCall(undefined, {
+    toolCallId: 'ne',
+    kind: 'edit',
+    locations: [{ path: '/notes/Plan.md' }]
+  })
+  assert.equal(n.approvalPolicy('workspace-write', noteEdit, cwd, ['/notes']), 'ask')
   assert.equal(n.mergeToolCall(undefined, { title: 'no id' }), null)
 
   const options = [
