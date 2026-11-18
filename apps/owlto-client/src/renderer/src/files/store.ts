@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Failure } from '../../../shared/app'
 import type { FilePreviewResult, FileTarget } from '../../../shared/file-preview'
 import { useAppStore } from '../app/store'
+import { backend } from '../remote/backend'
 
 /** Past this many open files, opening another closes the oldest. */
 const TAB_LIMIT = 8
@@ -44,16 +45,18 @@ export const useFilesStore = create<FileViewer>((set, get) => {
     const request = (requests.get(id) ?? 0) + 1
     requests.set(id, request)
     patch(id, { loading: true })
-    const reply = await window.owlto.previewFile(target).catch(
-      (error: unknown) =>
-        ({
-          ok: false,
-          error: {
-            code: 'native_error',
-            message: error instanceof Error ? error.message : String(error)
-          }
-        }) as const
-    )
+    const reply = await backend()
+      .previewFile(target)
+      .catch(
+        (error: unknown) =>
+          ({
+            ok: false,
+            error: {
+              code: 'native_error',
+              message: error instanceof Error ? error.message : String(error)
+            }
+          }) as const
+      )
     if (requests.get(id) !== request) return false
     patch(
       id,

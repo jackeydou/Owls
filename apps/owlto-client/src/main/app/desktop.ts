@@ -4,6 +4,7 @@ import { createSdkMcpServer, query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
 import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
+import type { RemoteEvent, RemoteEventEnvelope, RemoteOverview } from '../../shared/remote.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
 import type { UsageEntry } from '../../shared/usage-stats.js'
 import { analyticsBuildConfig } from '../analytics/build-config.js'
@@ -40,6 +41,12 @@ import {
   workerWorktreesRoot,
   workspaceHome
 } from '../owlto-paths.js'
+import { connectFrames } from '../remote/frames.js'
+import { remoteHostApi } from '../remote/host-api.js'
+import { registerRemoteIpc } from '../remote/ipc.js'
+import { tcpListen } from '../remote/server.js'
+import { RemoteService } from '../remote/service.js'
+import { RemoteStore } from '../remote/store.js'
 import { RouterCredentials, type SecretCipher } from '../router/credentials.js'
 import { CodexRouterServer } from '../router/engines/codex.js'
 import {
@@ -58,7 +65,7 @@ import { UsageLedger } from '../usage/ledger.js'
 import { applyAppLogo } from './app-logo.js'
 import { WorkerAttention } from './attention.js'
 import { electronAttention } from './attention-electron.js'
-import { OwltoError } from './errors.js'
+import { OwltoError, toFailure } from './errors.js'
 import { OwltoHost } from './host.js'
 import { registerIpc } from './ipc.js'
 import { applyAppMenu, type MenuDeps } from './menu.js'
@@ -87,6 +94,7 @@ let updater: AppUpdater | null = null
 /** Notifies the user when a worker waits on them while Owlto is in the background. */
 let attention: WorkerAttention | null = null
 let browser: BrowserHost | null = null
+let remote: RemoteService | null = null
 /** Anonymous usage analytics; null in every build but a release build with a PostHog key. */
 let analytics: Analytics | null = null
 /** Quitting waits once for queued analytics events, then quits for real. */
@@ -113,7 +121,15 @@ function emit(event: AppEvent): void {
   triggers?.observe(event)
   attention?.observe(event)
   analytics?.observe(event)
+  remote?.observe(event)
   if (window && !window.isDestroyed()) window.webContents.send('owlto:event', event)
+}
+function remoteChanged(overview: RemoteOverview): void {
+  if (window && !window.isDestroyed()) window.webContents.send('owlto:remote-changed', overview)
+}
+function remoteEvent(deviceId: string, event: RemoteEvent): void {
+  const envelope: RemoteEventEnvelope = { deviceId, event }
+  if (window && !window.isDestroyed()) window.webContents.send('owlto:remote-event', envelope)
 }
 function memoryChanged(): void {
   if (window && !window.isDestroyed()) window.webContents.send('owlto:memory-changed')
@@ -444,7 +460,22 @@ void app
       },
       checkForUpdates: () => void updater?.check()
     }
-    registerIpc(
+    remote = new RemoteService({
+      store: new RemoteStore(store.db),
+      cipher: safeStorageCipher,
+      deviceId: store.deviceId,
+      appVersion: app.getVersion(),
+      api: remoteHostApi(host),
+      accessEnabled: () => store.settings().remoteAccess,
+      saveAccess: (enabled) =>
+        host.saveSettings({ ...host.snapshot().settings, remoteAccess: enabled }),
+      listen: tcpListen,
+      dial: (address, port) => connectFrames(address, port),
+      toFailure,
+      changed: remoteChanged,
+      remoteEvent
+    })
+    const handle = registerIpc(
       service,
       () => window,
       store.deviceId,
@@ -461,8 +492,10 @@ void app
       },
       analytics
     )
+    registerRemoteIpc(handle, remote)
     applyAppMenu(store.settings(), menu)
     createWindow()
+    remote.start()
     analytics?.start()
     updater.start()
     // Agent CLIs and the commands they run inherit PATH, so they start after the shell's is in.
@@ -511,6 +544,8 @@ app.on('will-quit', (event) => {
   attention = null
   browser?.close()
   browser = null
+  remote?.close()
+  remote = null
   service?.close()
   codexRouter.close()
   service = null

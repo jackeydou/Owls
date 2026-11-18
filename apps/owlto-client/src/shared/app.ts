@@ -45,6 +45,7 @@ import {
   projectSettingsSchema,
   type SaveProject
 } from './projects.js'
+import type { RemoteAPI } from './remote.js'
 import {
   type ArchiveThread,
   type CreateThread,
@@ -112,7 +113,20 @@ export const failureSchema = z.object({
     'project_clone_no_access',
     'project_git_missing',
     'avatar_unavailable',
-    'thread_busy'
+    'thread_busy',
+    /** Remote Router: the other device is not connected. */
+    'remote_offline',
+    'remote_timeout',
+    /** Nothing answered at the address the user typed. */
+    'remote_unreachable',
+    /** A wrong or expired pairing code, or the other device is not pairing. */
+    'remote_pairing_failed',
+    /** A paired device answered with a different key, or forgot this one. */
+    'remote_identity_changed',
+    /** The other device runs a version of Owlto that speaks another remote protocol. */
+    'remote_version',
+    /** This action only works on the device itself. */
+    'remote_unsupported'
   ]),
   message: z.string()
 })
@@ -336,7 +350,12 @@ export const settingsSchema = z.object({
   /** The user's name and avatar; added later, and saved only through `saveProfile`. */
   profile: profileSchema.catch(defaultProfile),
   /** Added later; older rows start `pending`, and a configured app retires it at once. */
-  onboarding: onboardingStateSchema.catch('pending').default('pending')
+  onboarding: onboardingStateSchema.catch('pending').default('pending'),
+  /**
+   * Lets paired devices drive this device's Router (Remote Router); added later, so
+   * older rows have it off. Saved only through the remote settings.
+   */
+  remoteAccess: z.boolean().catch(false).default(false)
 })
 /**
  * Rows from before `connectedAgents` remembered the opposite, the agents the user
@@ -365,7 +384,8 @@ export const settingsUpdateSchema = settingsSchema
     workspacePath: true,
     workspaceDismissed: true,
     connectedAgents: true,
-    profile: true
+    profile: true,
+    remoteAccess: true
   })
   .strict()
 export const modelSchema = z.object({
@@ -620,6 +640,7 @@ export interface OwltoAPI {
   cards: CardsAPI
   automations: AutomationsAPI
   updates: UpdatesAPI
+  remote: RemoteAPI
 }
 /** `window.owlto.automations`: tasks that wake the Router or a worker on a schedule. */
 export interface AutomationsAPI {

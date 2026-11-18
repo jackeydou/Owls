@@ -3,6 +3,7 @@ import { CardPlusIcon, CardsIcon, CheckIcon } from '@renderer/components/ui/icon
 import { useTranslation } from 'react-i18next'
 import type { CardCapture, CardRef } from '../../../shared/cards'
 import { useAppStore } from '../app/store'
+import { useViewingRemote } from '../remote/viewing'
 import { useCardsStore } from './store'
 
 const TITLE_LIMIT = 60
@@ -55,6 +56,9 @@ export function SaveCardAction({
   )
   const startCapture = useCardsStore((s) => s.startCapture)
   const open = useOpenCard()
+  // Notes live on this Mac and are made from this Mac's threads.
+  const remote = useViewingRemote()
+  if (remote) return null
   if (saved)
     return (
       <IconButton

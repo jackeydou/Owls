@@ -64,7 +64,8 @@ export class OwltoStore {
           connectedAgents: [],
           openInApp: null,
           profile: defaultProfile,
-          onboarding: 'pending'
+          onboarding: 'pending',
+          remoteAccess: false
         }
   }
   saveSettings(value: AppSettings): AppSettings {

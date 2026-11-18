@@ -16,6 +16,7 @@ import type { Router, SessionItem } from '../../../shared/app'
 import { CARD_BODY_LIMIT } from '../../../shared/cards'
 import { titleFrom } from '../cards/CardActions'
 import { useCardsStore } from '../cards/store'
+import { useViewingRemote } from '../remote/viewing'
 import { useRouterStore } from './store'
 
 /** Message text a selection can quote: a reply's Markdown or a user's own message. */
@@ -40,7 +41,9 @@ export function SelectionActions({
   itemOf: (entryId: string) => SessionItem | null
 }) {
   const selected = useSelection(scroller, itemOf)
-  if (!router || !selected) return null
+  // Forwarding and notes stay on this Mac; another device's threads are read here only.
+  const remote = useViewingRemote()
+  if (!router || !selected || remote) return null
   return <SelectionToolbar key={selected.item.id} selected={selected} router={router} />
 }
 

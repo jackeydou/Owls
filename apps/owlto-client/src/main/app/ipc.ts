@@ -65,6 +65,11 @@ import { nodeOpenInPlatform, OpenInApps } from './open-in.js'
  */
 const executableFolder = (path: string | null) => (path ? dirname(path) : app.getPath('home'))
 const workspacePathSchema = z.string().min(1).max(4096)
+/**
+ * Registers one `owlto:` channel. Only the main window's top frame may call it; the reply
+ * is a `Reply`, never a raw exception.
+ */
+export type IpcHandle = <T>(channel: string, action: (input: unknown) => T | Promise<T>) => void
 
 export function registerIpc(
   host: OwltoHost,
@@ -75,10 +80,10 @@ export function registerIpc(
   settingsSaved: (settings: AppSettings, previous: AppSettings) => void,
   /** Null in builds without analytics. */
   analytics: Pick<Analytics, 'flag' | 'ipcSucceeded'> | null
-): void {
+): IpcHandle {
   let lastProjectParent = app.getPath('home')
   const openIn = new OpenInApps(nodeOpenInPlatform(macAppIcon))
-  function handle<T>(channel: string, action: (input: unknown) => T | Promise<T>): void {
+  const handle: IpcHandle = <T>(channel: string, action: (input: unknown) => T | Promise<T>) => {
     ipcMain.handle(
       `owlto:${channel}`,
       async (event: IpcMainInvokeEvent, input: unknown): Promise<Reply<T>> => {
@@ -344,4 +349,5 @@ export function registerIpc(
     host.saveSettings({ ...host.snapshot().settings, cursorExecutablePath: result.filePaths[0] })
     return host.connectCursor()
   })
+  return handle
 }

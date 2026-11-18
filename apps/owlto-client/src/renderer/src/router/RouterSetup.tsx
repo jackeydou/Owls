@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { type AgentProvider, type Failure, providerSchema, type Router } from '../../../shared/app'
 import type { RouterEngineId } from '../../../shared/router'
 import { agentConnection, isAgentReady, useAppStore } from '../app/store'
+import { useViewingRemote } from '../remote/viewing'
 import { ThreadRow } from './ThreadRow'
 
 const SETUP_FAILURES = [
@@ -36,6 +37,9 @@ export function useRouterSetup(router?: Router): RouterSetupNeed | null {
   const claude = useAppStore((s) => s.claude)
   const cursor = useAppStore((s) => s.cursor)
   const connection = useAppStore((s) => s.connection)
+  // A paired device's Router runs on that device's settings, which stay there.
+  const remote = useViewingRemote()
+  if (remote) return null
   const ready = (provider: AgentProvider) =>
     isAgentReady(agentConnection({ claude, cursor, connection }, provider))
   const engine = settings.router.engine

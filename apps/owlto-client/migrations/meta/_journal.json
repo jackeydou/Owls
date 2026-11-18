@@ -43,6 +43,13 @@
       "when": 1794780837030,
       "tag": "0005_note_files",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794985995977,
+      "tag": "0006_remote_router",
+      "breakpoints": true
     }
   ]
 }

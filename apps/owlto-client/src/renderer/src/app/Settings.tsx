@@ -11,6 +11,7 @@ import {
   GitPullRequestIcon,
   type IconComponent,
   InfoIcon,
+  LaptopIcon,
   PaletteIcon,
   RefreshIcon,
   RouteIcon,
@@ -24,6 +25,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { settingsSchema, skinSchema } from '../../../shared/app'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
+import { DevicesSettingsPane } from '../remote/SettingsDevices'
 import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
 import { usePaneWidth } from '../router/pane-width'
@@ -63,6 +65,7 @@ const TAB_GROUPS: TabEntry[][] = [
   ],
   [
     { id: 'github', label: 'github.title', icon: GitPullRequestIcon },
+    { id: 'devices', label: 'remote.title', icon: LaptopIcon },
     { id: 'profile', label: 'profile.title', icon: UserIcon },
     { id: 'appearance', label: 'appearance', icon: PaletteIcon },
     { id: 'updates', label: 'updates.title', icon: RefreshIcon },
@@ -282,7 +285,8 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   appearance: AppearancePane,
   updates: SettingsUpdatesPane,
   project: ProjectSettingsPane,
-  workspace: WorkspaceSettingsPane
+  workspace: WorkspaceSettingsPane,
+  devices: DevicesSettingsPane
 }
 
 export function SettingsPage() {

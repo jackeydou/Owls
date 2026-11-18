@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { OpenWorkerTarget } from '../../../shared/app'
 import { useAppStore } from '../app/store'
+import { viewingDevice } from '../remote/viewing'
 import { useRouterStore } from './store'
 
-function open(target: OpenWorkerTarget) {
+async function open(target: OpenWorkerTarget) {
   const { workerId, routerId } = target
   if (!workerId || !routerId) return
+  // Notifications come from this Mac's workers.
+  if (viewingDevice()) await useAppStore.getState().viewDevice(null)
   const worker = useRouterStore.getState().workers.find((w) => w.id === workerId)
   if (!worker || worker.status === 'removed') return
   useAppStore.getState().showThread(routerId)
@@ -22,7 +25,7 @@ export function OpenWorkerFromNotification() {
   useEffect(() => window.owlto.onOpenWorker(setWaiting), [])
   useEffect(() => {
     if (!loaded || !waiting) return
-    open(waiting)
+    void open(waiting)
     setWaiting(null)
   }, [loaded, waiting])
   return null

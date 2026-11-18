@@ -31,6 +31,7 @@ import { WorkerComposer } from './WorkerComposer'
 import { WorkerConversation } from './WorkerConversation'
 import { WorkerGitHub } from './WorkerGitHub'
 import './worker-detail.css'
+import { useViewingRemote } from '../remote/viewing'
 
 const STATE_ICONS: Record<WorkerState, IconComponent> = {
   queued: CircleDashedIcon,
@@ -68,6 +69,8 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
     (s) => s.projects.find((p) => p.id === worker.projectId)?.path ?? session?.cwd ?? ''
   )
   const { stopWorker, removeWorker, showPanel, startForward } = useRouterStore()
+  // Folders, notes, forwarding, and removing stay with the device that runs the worker.
+  const remote = useViewingRemote()
   const { report } = worker
   const [view, setView] = useState<'conversation' | 'changes'>('conversation')
   const diff = session?.diff ?? ''
@@ -105,7 +108,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             </Tooltip>
           ) : null}
         </div>
-        <OpenInButton worker={worker} />
+        {remote ? null : <OpenInButton worker={worker} />}
         {canStop(worker) ? (
           <ActionIconButton
             size="sm"
@@ -114,7 +117,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             icon={<StopIcon size={14} />}
             onAction={() => stopWorker(worker.routerId, worker.id)}
           />
-        ) : (
+        ) : remote ? null : (
           <ActionIconButton
             size="sm"
             label={t('worker.remove')}
@@ -123,7 +126,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             onAction={() => removeWorker(worker.routerId, worker.id)}
           />
         )}
-        {report ? (
+        {report && !remote ? (
           <IconButton
             size="sm"
             label={t('forward.action')}
@@ -138,7 +141,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             }
           />
         ) : null}
-        {report ? (
+        {report && !remote ? (
           <SaveCardAction
             source={{ kind: 'worker', routerId: worker.routerId, workerId: worker.id }}
             text={report.summary}

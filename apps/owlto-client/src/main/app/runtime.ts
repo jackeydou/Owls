@@ -17,6 +17,12 @@ export {
   listPullRequests,
   sortPullRequests
 } from '../../shared/pull-request-list.js'
+export {
+  normalizePairingCode,
+  parseRemoteAddress,
+  remoteMethodSchemas,
+  remotePairSchema
+} from '../../shared/remote.js'
 export { ROUTER_INSTRUCTIONS } from '../../shared/router-instructions.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'
 export {
@@ -70,6 +76,14 @@ export { DreamingStage } from '../memory/stage.js'
 export { MemoryStore } from '../memory/store.js'
 export { MemorySweeper } from '../memory/sweep.js'
 export { DreamingTriggers } from '../memory/triggers.js'
+export { HostLinks, linkFailure } from '../remote/client.js'
+export { FrameCipher, generateKeyPair, newPairingCode } from '../remote/crypto.js'
+export { connectFrames, SocketFrames } from '../remote/frames.js'
+export { HandshakeError, initiate, respond } from '../remote/handshake.js'
+export { remoteHostApi } from '../remote/host-api.js'
+export { HostServer, tcpListen } from '../remote/server.js'
+export { RemoteService } from '../remote/service.js'
+export { RemoteStore } from '../remote/store.js'
 export { RouterCredentials } from '../router/credentials.js'
 export { ClaudeEngine } from '../router/engines/claude.js'
 export { CodexEngine, CodexRouterServer, codexRouterArgs } from '../router/engines/codex.js'
@@ -111,6 +125,7 @@ export { claudeResultUsage, codexCallUsage } from '../usage/turn-usage.js'
 export { detectAgents } from './agent-detection.js'
 export { AttachmentStore, safeAttachmentName, turnText } from './attachments.js'
 export { WorkerAttention } from './attention.js'
+export { OwltoError, toFailure } from './errors.js'
 export { previewFileRef } from './file-preview.js'
 export { OwltoHost } from './host.js'
 export { bundleIconFile, OPEN_IN_CATALOG, OpenInApps } from './open-in.js'
