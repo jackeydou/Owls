@@ -83,13 +83,13 @@ type State = {
   error: Failure | null
   /**
    * `chat` and `map` are the same space at two distances; `cards` is the user's
-   * knowledge library and boards; `pulls` lists agents' pull requests; `automations` lists
-   * scheduled tasks; `settings`
-   * replaces the whole window.
+   * knowledge library and boards; `projects` lists the Workspace and the projects; `pulls`
+   * lists agents' pull requests; `automations` lists scheduled tasks; `settings` replaces the
+   * whole window.
    */
-  view: 'chat' | 'map' | 'cards' | 'pulls' | 'automations' | 'settings'
+  view: 'chat' | 'map' | 'cards' | 'projects' | 'pulls' | 'automations' | 'settings'
   /** Where Settings returns to. */
-  lastView: 'chat' | 'map' | 'cards' | 'pulls' | 'automations'
+  lastView: 'chat' | 'map' | 'cards' | 'projects' | 'pulls' | 'automations'
   /** Survives leaving Settings, so reopening lands where the user was. */
   settingsTab: SettingsTab
   /** The agent tab open on the Agents page; survives leaving Settings like `settingsTab`. */
@@ -131,6 +131,8 @@ type State = {
   newThread(projectId?: string): void
   showMap(): void
   showCards(): void
+  /** Lists the Workspace and every project as cards. */
+  showProjects(): void
   showPullRequests(): void
   /** Lists the scheduled automations. */
   showAutomations(): void
@@ -464,6 +466,7 @@ export const useAppStore = create<State>((set, get) => {
       else show()
     },
     showCards: () => set({ view: 'cards', error: null }),
+    showProjects: () => set({ view: 'projects', error: null }),
     showPullRequests: () => set({ view: 'pulls', error: null }),
     showAutomations: () => set({ view: 'automations', error: null }),
     focusProject: (projectId) => set({ routerProjectId: routerProject(projectId) }),

@@ -12,6 +12,7 @@ import { CardsView } from '../cards/CardsView'
 import { useCardsStore, watchCards } from '../cards/store'
 import { FeedbackButton } from '../feedback/FeedbackButton'
 import { watchDreaming } from '../memory/dreaming'
+import { ProjectsView } from '../projects/ProjectsView'
 import { PullRequestsView } from '../pulls/PullRequestsView'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
@@ -65,6 +66,8 @@ function Stage({
         <MapView />
       ) : view === 'cards' ? (
         <CardsView />
+      ) : view === 'projects' ? (
+        <ProjectsView />
       ) : view === 'pulls' ? (
         <PullRequestsView />
       ) : view === 'automations' ? (

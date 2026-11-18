@@ -1,0 +1,1 @@
+- Projects: the left sidebar gets a Projects page listing the Workspace (the default working folder) and every project as cards, with a settings button (shown on hover) to each one's settings and an Add project button.
