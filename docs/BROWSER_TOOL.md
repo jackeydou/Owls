@@ -50,6 +50,24 @@ answering 15 s past that, the main process kills it, and the next call starts a
 new host and window.
 
 Because the host runs in Owlto, not in the agent's process, a Codex
-`workspace-write` sandbox (no network by default) does not apply to it. The
-script is plain JavaScript in a Node process, not a security boundary, which is
-why only writing workers get the tool.
+`workspace-write` sandbox (no network by default) does not apply to it.
+
+## Run modes
+
+- **Full access** workers run scripts as plain Node (`run-code.ts`): the
+  script can reach `process` and the file system, like the agent itself.
+- **Every other writing worker** runs restricted (`sandbox.ts`): a fresh `vm`
+  context with string code generation off and no Node globals. `page` and
+  `context` come through a membrane: host objects are prototype-less proxies
+  that hide `constructor`, `__proto__`, `prototype` and `_` internals; plain
+  data is copied into the context's realm; host promises and errors become the
+  context's own; functions the script passes in are called with wrapped
+  arguments. Calls that read or write local files are refused: `path`-like
+  options (`path`, `recordHar`, `recordVideo`, `tracesDir`, `downloadsPath`,
+  `executablePath`, `har`), `setInputFiles`, `routeFromHAR`, `tracing`,
+  `video`, `saveAs`, `createReadStream`, `newCDPSession`, and launching or
+  connecting browsers. Only `setTimeout` is provided as a timer.
+
+`vm` is not a hardened sandbox, and a script that never yields still hangs the
+host until the main process restarts it; the restricted mode keeps Node and the
+file system out of reach of everything the script is given.

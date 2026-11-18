@@ -76,7 +76,7 @@ export function formatOutcome(result: unknown, logs: string[], error?: string): 
 
 // Playwright colors its call logs for terminals.
 const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
-const stripAnsi = (text: string) => text.replace(ANSI, '')
+export const stripAnsi = (text: string) => text.replace(ANSI, '')
 
 function show(value: unknown): string {
   if (typeof value === 'string') return value

@@ -28,6 +28,7 @@ export { PullRequestWatcher, pullRequestChanges } from '../automations/pull-requ
 export { AutomationService } from '../automations/service.js'
 export { AutomationStore } from '../automations/store.js'
 export { BROWSER_RESULT_LIMIT, runBrowserCode } from '../browser/run-code.js'
+export { runRestrictedBrowserCode } from '../browser/sandbox.js'
 export { BROWSER_TOOL_NAME, browserTool } from '../browser/tool.js'
 export { CardService } from '../cards/service.js'
 export { CardStore } from '../cards/store.js'

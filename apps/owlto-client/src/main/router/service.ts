@@ -673,7 +673,9 @@ export class RouterService implements TurnProfiles {
       worker.provider,
       worker.permission
     )
-    const browser = this.browser && enabled ? [browserTool(this.browser, worker.id)] : []
+    // Only full access runs scripts as plain Node; anything less gets the restricted runtime.
+    const mode = worker.permission === 'full-access' ? 'full' : 'restricted'
+    const browser = this.browser && enabled ? [browserTool(this.browser, worker.id, mode)] : []
     return [...this.workerAutomationTools(worker), ...browser]
   }
 

@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import { type BrowserContext, chromium, type Page } from 'playwright-core'
 import type { BrowserHostReply, BrowserHostRequest } from './protocol.js'
 import { runBrowserCode } from './run-code.js'
+import { runRestrictedBrowserCode } from './sandbox.js'
 
 /** Installed browsers Playwright can drive without a download, most preferred first. */
 const CHANNELS = ['chrome', 'msedge'] as const
@@ -66,7 +67,8 @@ async function run(request: BrowserHostRequest): Promise<BrowserHostReply> {
     const opened = await launch(request.profileDir)
     contextUsed = Date.now()
     const page = await pageFor(request.key, opened)
-    const outcome = await runBrowserCode(
+    const runCode = request.mode === 'full' ? runBrowserCode : runRestrictedBrowserCode
+    const outcome = await runCode(
       request.code,
       { page, context: opened },
       request.timeoutMs,

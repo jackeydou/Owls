@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { type UtilityProcess, utilityProcess } from 'electron'
 import type { ReportToolResult } from '../router/report.js'
-import type { BrowserHostReply, BrowserHostRequest } from './protocol.js'
+import type { BrowserHostReply, BrowserHostRequest, BrowserRunMode } from './protocol.js'
 import type { WorkerBrowser } from './tool.js'
 
 /** Extra time the host gets past a script's own timeout before it counts as hung. */
@@ -28,7 +28,12 @@ export class BrowserHost implements WorkerBrowser {
     }
   ) {}
 
-  run(key: string, code: string, timeoutMs: number): Promise<ReportToolResult> {
+  run(
+    key: string,
+    code: string,
+    timeoutMs: number,
+    mode: BrowserRunMode
+  ): Promise<ReportToolResult> {
     if (this.closed) return Promise.resolve({ ok: false, text: 'Owlto is quitting.' })
     const child = this.start()
     const id = randomUUID()
@@ -42,6 +47,7 @@ export class BrowserHost implements WorkerBrowser {
         id,
         key,
         code,
+        mode,
         timeoutMs,
         profileDir: this.paths.profileDir(),
         shotsDir: this.paths.shotsDir()
