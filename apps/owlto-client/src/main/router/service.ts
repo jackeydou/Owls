@@ -1,4 +1,4 @@
-import { type AgentProvider, providerSchema } from '../../shared/agents.js'
+import { type AgentProvider, providerSchema, workerBrowserEnabled } from '../../shared/agents.js'
 import type {
   AppEvent,
   Failure,
@@ -38,6 +38,7 @@ import {
   type UpdateAutomationInput,
   workerAutomationTools
 } from '../automations/tools.js'
+import { browserTool, type WorkerBrowser } from '../browser/tool.js'
 import type { AgentNoteInput, CapturedContent } from '../cards/service.js'
 import { routerNoteTools, type SaveNoteInput, workerNoteTools } from '../cards/tools.js'
 import type { RouterMemory } from '../memory/service.js'
@@ -133,6 +134,7 @@ export class RouterService implements TurnProfiles {
   private readonly workers: WorkerTarget
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private closed = false
+  private browser: WorkerBrowser | null = null
   /** The user's Notes, for the save_note tool; the tool is left out until attached. */
   private notes: AgentNotes | null = null
 
@@ -661,6 +663,15 @@ export class RouterService implements TurnProfiles {
     )
   }
 
+  /**
+   * Gives workers Owlto's browser tool where their agent's setting allows it (Codex and
+   * Cursor, never read-only; see `workerBrowserEnabled`). Scripts run outside the agent's
+   * sandbox.
+   */
+  attachBrowser(browser: WorkerBrowser): void {
+    this.browser = browser
+  }
+
   /** Gives agents the save_note tool. Threads started before this pick it up on their next turn. */
   attachNotes(notes: AgentNotes): void {
     this.notes = notes
@@ -695,8 +706,16 @@ export class RouterService implements TurnProfiles {
     return { saved: { noteId: note.id, title: note.title, tags: note.tags } }
   }
 
-  /** The tools a worker gets besides `report`: notes and automations. */
+  /** The tools a worker gets besides `report`: notes, automations, and the browser where allowed. */
   private workerTools(worker: RouterWorker): WorkerTool[] {
+    const enabled = workerBrowserEnabled(
+      this.host.settings().agents,
+      worker.provider,
+      worker.permission
+    )
+    // Only full access runs scripts as plain Node; anything less gets the restricted runtime.
+    const mode = worker.permission === 'full-access' ? 'full' : 'restricted'
+    const browser = this.browser && enabled ? [browserTool(this.browser, worker.id, mode)] : []
     const router = this.routers.get(worker.routerId)
     const notes =
       this.notes && router
@@ -704,7 +723,7 @@ export class RouterService implements TurnProfiles {
             this.saveNote(input, { router, projectId: worker.projectId, workerId: worker.id })
           )
         : []
-    return [...notes, ...this.workerAutomationTools(worker)].sort((a, b) =>
+    return [...notes, ...this.workerAutomationTools(worker), ...browser].sort((a, b) =>
       a.name.localeCompare(b.name)
     )
   }

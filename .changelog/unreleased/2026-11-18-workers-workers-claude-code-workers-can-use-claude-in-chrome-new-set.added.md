@@ -1,0 +1,1 @@
+- Workers: Claude Code workers can use Claude in Chrome, and Codex and Cursor workers get a browser tool that runs Playwright scripts in a Chrome window. Both have a Settings switch, on by default; read-only workers never get the browser tool. (#182)

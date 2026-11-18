@@ -599,7 +599,7 @@ export class CodexService {
       return
     }
     if (frame.id !== undefined) {
-      if (frame.method === 'item/tool/call') this.callTool(session, frame)
+      if (frame.method === 'item/tool/call') void this.callTool(session, frame)
       else this.openRequest(session, frame)
       return
     }
@@ -750,8 +750,9 @@ export class CodexService {
     this.changed(session)
   }
   /** Answers a dynamic tool call: the worker report tool or another Owlto worker tool. */
-  private callTool(session: Session, frame: RpcFrame): void {
-    if (frame.id === undefined) return
+  private async callTool(session: Session, frame: RpcFrame): Promise<void> {
+    const wireId = frame.id
+    if (wireId === undefined) return
     const params = frame.params ?? {}
     const profile = this.profiles?.profile(session.id) ?? null
     const other = profile?.tools.find((tool) => codexToolName(tool.name) === params.tool)
@@ -759,9 +760,9 @@ export class CodexService {
       profile && params.tool === CODEX_REPORT_TOOL_NAME
         ? profile.report.call(params.arguments)
         : other
-          ? other.call(params.arguments)
+          ? await other.call(params.arguments)
           : { ok: false, text: 'This tool is not available.' }
-    this.client?.respond(frame.id, {
+    this.client?.respond(wireId, {
       success: result.ok,
       contentItems: [{ type: 'inputText', text: result.text }]
     })

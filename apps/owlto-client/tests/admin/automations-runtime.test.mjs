@@ -161,9 +161,9 @@ function fakeHost() {
   const turns = { profiles: null }
   const settings = {
     agents: {
-      codex: { model: 'gpt-test', effort: null, permission: 'workspace-write' },
-      'claude-code': { model: null, effort: null, permission: 'workspace-write' },
-      cursor: { model: null, effort: null, permission: 'workspace-write' }
+      codex: { model: 'gpt-test', effort: null, permission: 'workspace-write', browser: true },
+      'claude-code': { model: null, effort: null, permission: 'workspace-write', chrome: true },
+      cursor: { model: null, effort: null, permission: 'workspace-write', browser: true }
     },
     router: {
       engine: 'owlto',
@@ -330,6 +330,64 @@ test('the Router creates an automation whose run comes back to its thread', asyn
       .find((t) => t.name === 'delete_automation')
       .execute({ automationId: 'au_missing' }),
     /No automation/
+  )
+  router.close()
+  automations.close()
+})
+
+test('Codex and Cursor workers get the browser tool when their setting allows it, never read-only', async () => {
+  const { router, automations, runs, fake, tools } = app()
+  const calls = []
+  router.attachBrowser({
+    run: async (key, code, timeoutMs) => {
+      calls.push({ key, code, timeoutMs })
+      return { ok: true, text: 'Result: done' }
+    }
+  })
+  const thread = router.createThread({ projectId: null })
+  router.send({ routerId: thread.id, commandId: crypto.randomUUID(), text: 'hi' })
+  await waitFor(() => runs.length === 1, 'the first batch')
+  const dispatch = async (input) =>
+    router.worker(
+      JSON.parse(
+        await tools()
+          .find((t) => t.name === 'dispatch_task')
+          .execute(input)
+      ).workerId
+    )
+  const writer = await dispatch({ goal: 'Check the page' })
+  await waitFor(() => fake.sent.length === 1, 'the writing worker turn')
+  const tool = router.profile(writer.sessionId).tools.find((t) => t.name === 'browser')
+  assert.ok(tool, 'a workspace-write worker gets the browser tool')
+  const result = await tool.call({ code: 'return 1' })
+  assert.deepEqual(result, { ok: true, text: 'Result: done' })
+  assert.deepEqual(calls, [{ key: writer.id, code: 'return 1', timeoutMs: 60_000 }])
+  const bad = await tool.call({ code: '' })
+  assert.equal(bad.ok, false)
+  assert.match(bad.text, /^Invalid browser input\./)
+
+  const reader = await dispatch({ goal: 'Read the docs', permission: 'read-only' })
+  await waitFor(() => fake.sent.length === 2, 'the read-only worker turn')
+  assert.equal(
+    router.profile(reader.sessionId).tools.some((t) => t.name === 'browser'),
+    false
+  )
+
+  fake.host.settings().agents.codex.browser = false
+  const off = await dispatch({ goal: 'Check another page' })
+  await waitFor(() => fake.sent.length === 3, 'the worker turn with the browser off')
+  assert.equal(
+    router.profile(off.sessionId).tools.some((t) => t.name === 'browser'),
+    false,
+    'the Codex browser switch turns the tool off'
+  )
+  const claude = await dispatch({ goal: 'Check with Claude', provider: 'claude-code' })
+  await waitFor(() => fake.sent.length === 4, 'the Claude worker turn')
+  assert.equal(claude.provider, 'claude-code')
+  assert.equal(
+    router.profile(claude.sessionId).tools.some((t) => t.name === 'browser'),
+    false,
+    'Claude Code workers use Claude in Chrome instead'
   )
   router.close()
   automations.close()

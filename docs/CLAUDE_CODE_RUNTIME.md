@@ -67,6 +67,12 @@ inside the session's `cwd` gets an `Edit(//<path>/**)` deny rule: a worktree
 worker reads its project's own checkout but edits only its worktree.
 Other commands still ask, except under full access.
 
+Every turn also passes Claude in Chrome as a CLI flag through `extraArgs`:
+`--chrome` when Settings → Router & Workers → Claude Code → Claude in Chrome is
+on (the default, `settings.agents['claude-code'].chrome`), else `--no-chrome`,
+so a user default never turns it on behind the setting. Its tools are ordinary
+MCP tools and go through `canUseTool` like any other.
+
 `canUseTool` prompts become approval cards; `AskUserQuestion` becomes a question
 card whose answers return as `updatedInput.answers` keyed by question text.
 Subagent messages (`parent_tool_use_id`) are not shown in the parent task.

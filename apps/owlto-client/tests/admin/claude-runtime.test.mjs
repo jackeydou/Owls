@@ -11,7 +11,7 @@ const { ClaudeService, claudeNormalize } = require('../../out/main/app/runtime.j
 const fixture = fileURLToPath(new URL('../fixtures/claude/mock-claude.cjs', import.meta.url))
 chmodSync(fixture, 0o755)
 
-function memoryStore(project) {
+function memoryStore(project, { chrome = true } = {}) {
   const sessions = new Map()
   const commands = new Map()
   return {
@@ -19,7 +19,10 @@ function memoryStore(project) {
       executablePath: null,
       theme: 'system',
       language: 'en',
-      claudeExecutablePath: fixture
+      claudeExecutablePath: fixture,
+      agents: {
+        'claude-code': { model: null, effort: null, permission: 'workspace-write', chrome }
+      }
     }),
     sessions: () => [...sessions.values()].map((s) => structuredClone(s)),
     saveSession: (session) => sessions.set(session.id, structuredClone(session)),
@@ -326,6 +329,7 @@ test('Claude service runs local turns through the SDK contract', async () => {
     assert.equal(first.disallowedTools, undefined)
     assert.deepEqual(first.settingSources, ['user', 'project', 'local'])
     assert.deepEqual(first.systemPrompt, { type: 'preset', preset: 'claude_code' })
+    assert.deepEqual(first.extraArgs, { chrome: null }, 'Claude in Chrome is on by default')
     assert.equal(first.resume, undefined)
 
     await service.send({ sessionId: session.id, commandId, text: 'hello' })
@@ -401,6 +405,28 @@ test('Claude service reports a missing executable without falling back', async (
     assert.equal(connection.status, 'error')
     assert.equal(connection.error.code, 'claude_not_installed')
     assert.equal(sdk.calls.length, 0)
+  } finally {
+    service.close()
+    rmSync(project, { recursive: true, force: true })
+  }
+})
+
+test('Claude service turns Claude in Chrome off when the setting is off', async () => {
+  const project = realpathSync(mkdtempSync(join(tmpdir(), 'owlto-claude-test-')))
+  const sdk = fakeSdk()
+  const service = new ClaudeService(memoryStore(project, { chrome: false }), () => {}, sdk)
+  try {
+    await service.connect()
+    const session = service.createSession({
+      provider: 'claude-code',
+      cwd: project,
+      model: null,
+      effort: null,
+      permission: 'full-access'
+    })
+    await service.send({ sessionId: session.id, commandId: crypto.randomUUID(), text: 'hello' })
+    await until(() => service.sessionList().find((s) => s.id === session.id).status === 'idle')
+    assert.deepEqual(sdk.calls[1].extraArgs, { 'no-chrome': null })
   } finally {
     service.close()
     rmSync(project, { recursive: true, force: true })

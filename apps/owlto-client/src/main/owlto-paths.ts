@@ -73,6 +73,11 @@ export function attachmentsHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'attachments')
 }
 
+/** Owlto's browser for workers: its Chrome profile and the screenshots scripts return. */
+export function browserHome(dataRoot = getDataRoot()): string {
+  return join(dataRoot, 'browser')
+}
+
 /** The empty working directory Dreaming runs in; it has no project to read. */
 export function memoryDreamingHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'memory-dreaming')

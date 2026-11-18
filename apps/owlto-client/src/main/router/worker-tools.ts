@@ -13,7 +13,8 @@ export type WorkerTool = {
   schema: z.ZodObject
   /** The same schema as JSON Schema, for Codex and MCP clients. */
   inputSchema: Record<string, unknown>
-  call(input: unknown): ReportToolResult
+  /** Owlto's own tools answer at once; the browser tool waits for its run. */
+  call(input: unknown): ReportToolResult | Promise<ReportToolResult>
 }
 
 /** Codex dynamic tools share a namespace with the agent's own tools, so Owlto's are prefixed. */
@@ -30,31 +31,70 @@ export function workerTool<T extends z.ZodObject>(
   schema: T,
   run: (input: z.infer<T>) => unknown
 ): WorkerTool {
-  const { $schema: _draft, ...inputSchema } = z.toJSONSchema(schema, {
-    target: 'draft-7'
-  }) as Record<string, unknown>
+  const { inputSchema, validate } = toolInput(name, schema)
   return {
     name,
     description,
     schema,
     inputSchema,
     call(input) {
-      const parsed = schema.safeParse(input)
-      if (!parsed.success) {
-        const issues = parsed.error.issues
-          .slice(0, 5)
-          .map((issue) => `${issue.path.join('.') || 'input'}: ${issue.message}`)
-          .join('; ')
-        return { ok: false, text: `Invalid ${name} input. ${issues}` }
-      }
+      const parsed = validate(input)
+      if (!parsed.ok) return parsed
       try {
         return { ok: true, text: JSON.stringify(run(parsed.data)) }
       } catch (error) {
-        return {
-          ok: false,
-          text: error instanceof Error ? error.message : `The ${name} call failed.`
-        }
+        return failed(name, error)
       }
     }
   }
+}
+
+/**
+ * A worker tool whose handler is async and returns the exact text the agent
+ * sees. A rejection becomes a failed call carrying the error's message.
+ */
+export function asyncWorkerTool<T extends z.ZodObject>(
+  name: string,
+  description: string,
+  schema: T,
+  run: (input: z.infer<T>) => Promise<ReportToolResult>
+): WorkerTool {
+  const { inputSchema, validate } = toolInput(name, schema)
+  return {
+    name,
+    description,
+    schema,
+    inputSchema,
+    async call(input) {
+      const parsed = validate(input)
+      if (!parsed.ok) return parsed
+      try {
+        return await run(parsed.data)
+      } catch (error) {
+        return failed(name, error)
+      }
+    }
+  }
+}
+
+function failed(name: string, error: unknown): ReportToolResult {
+  return { ok: false, text: error instanceof Error ? error.message : `The ${name} call failed.` }
+}
+
+function toolInput<T extends z.ZodObject>(name: string, schema: T) {
+  const { $schema: _draft, ...inputSchema } = z.toJSONSchema(schema, {
+    target: 'draft-7'
+  }) as Record<string, unknown>
+  const validate = (
+    input: unknown
+  ): { ok: true; data: z.infer<T> } | { ok: false; text: string } => {
+    const parsed = schema.safeParse(input)
+    if (parsed.success) return { ok: true, data: parsed.data }
+    const issues = parsed.error.issues
+      .slice(0, 5)
+      .map((issue) => `${issue.path.join('.') || 'input'}: ${issue.message}`)
+      .join('; ')
+    return { ok: false, text: `Invalid ${name} input. ${issues}` }
+  }
+  return { inputSchema, validate }
 }
