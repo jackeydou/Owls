@@ -2998,3 +2998,187 @@ details[open] p {
     text-align: left;
   }
 }
+
+/* Changelog */
+.log-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 22px 0 8px;
+}
+
+.log > .callout {
+  margin-top: 18px;
+}
+
+.log-release {
+  margin-top: 32px;
+  padding: 22px 24px 20px;
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  scroll-margin-top: 96px;
+}
+
+.log-release:first-of-type {
+  margin-top: 36px;
+}
+
+.log-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 14px;
+}
+
+.log-head h2 {
+  margin: 0 4px 0 0;
+  font: italic 800 clamp(1.5rem, 2.8vw, 1.9rem) / 1.1 var(--display);
+  letter-spacing: -0.01em;
+}
+
+.log-head h2 a {
+  text-decoration: none;
+}
+
+.log-head h2 a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--amber);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+}
+
+.log-head time {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.log-badge {
+  padding: 1px 10px 2px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.log-badge-latest {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.log-highlights,
+.log-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 1.3em;
+  list-style: disc;
+  line-height: 1.6;
+}
+
+.log-highlights {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.log-highlights li::marker {
+  color: var(--amber);
+}
+
+.log-list {
+  font-size: 0.98rem;
+}
+
+.log-area {
+  display: inline-block;
+  padding: 0 8px;
+  margin-right: 2px;
+  background: var(--tint);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.6;
+  vertical-align: 1px;
+}
+
+.log-details,
+.log-details[open] {
+  margin-top: 16px;
+  padding-top: 12px;
+  background: none;
+  border: 0;
+  border-top: 2px dashed color-mix(in srgb, var(--line) 35%, transparent);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.log-details summary {
+  display: inline-flex;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+  font-weight: 700;
+}
+
+.log-details summary::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 2.5px solid currentColor;
+  border-bottom: 2.5px solid currentColor;
+  rotate: -45deg;
+  transition: rotate 0.25s var(--spring);
+}
+
+.log-details[open] summary::before {
+  rotate: 45deg;
+}
+
+.log-details summary:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.log-details summary span {
+  padding: 0 7px;
+  background: var(--tint);
+  border-radius: 999px;
+  font-size: 0.82rem;
+}
+
+.log-details h3 {
+  margin: 16px 0 8px;
+  font: italic 800 1.05rem / 1.3 var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:lang(zh-Hans) .log-details h3 {
+  font-style: normal;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 640px) {
+  .log-release {
+    padding: 18px 16px;
+  }
+
+  .log-head time {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .log-head h2 {
+    font-size: 1.35rem;
+  }
+}

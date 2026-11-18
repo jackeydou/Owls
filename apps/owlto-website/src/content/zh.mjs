@@ -17,6 +17,7 @@ export default {
     start: '快速开始',
     faq: '常见问题',
     docs: '文档',
+    changelog: '更新日志',
     download: '下载',
     github: 'GitHub',
     theme: '切换白天或夜晚',
@@ -478,6 +479,25 @@ export default {
       reference: '参考与帮助'
     }
   },
+  changelog: {
+    label: '更新日志',
+    title: 'Owlto 更新日志',
+    description:
+      'Owlto 每个版本的新功能、改动和修复。Owlto 是一款在 Mac 上把 Claude Code、Codex 和 Cursor 组成团队的免费开源应用。',
+    lead: 'Owlto 每个版本带来了什么，最新的在最上面。Owlto 会自动更新，重启后就能用上。',
+    menu: '全部版本',
+    versions: '版本',
+    latest: '最新',
+    beta: 'Beta',
+    details: '全部改动',
+    changes: '改动',
+    fixes: '修复',
+    download: '下载最新版本',
+    feed: '订阅（Atom）',
+    updated: '最新版本',
+    source: '在 GitHub 上查看 CHANGELOG.md',
+    languageNote: '更新内容目前以英文撰写。'
+  },
   footer: {
     tagline: '你的 Owlto（Auto）智能体团队：Mac 上的猫头鹰编程团队。',
     product: '产品',
@@ -485,6 +505,7 @@ export default {
     docs: '文档',
     docsHome: '文档首页',
     releases: '版本发布',
+    changelog: '更新日志',
     issues: '反馈问题',
     contributing: '参与贡献',
     license: 'AGPL-3.0 协议',

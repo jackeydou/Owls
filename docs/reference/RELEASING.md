@@ -93,6 +93,11 @@ MR composes unreleased fragments.
   readiness, and tag preparation.
 - Keep entries grouped under `### Highlights`, `### Changes`, and
   `### Fixes`.
+- The website's changelog page (`owlto.dev/changelog/`) is built from
+  `CHANGELOG.md`: each `## <version>` section becomes one release, with PR
+  numbers dropped. Write Highlights and entries in plain, user-facing words,
+  and redeploy the site after a release (`pnpm --filter owlto-website deploy:cf`)
+  so the page shows it.
 - Normal development MRs usually use `changed` or `fixed` fragments.
 - In release MRs, the agent automatically drafts `Highlights`; the release owner
   reviews, edits, adds, or removes items before approval.
