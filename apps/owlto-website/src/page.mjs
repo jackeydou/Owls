@@ -3,6 +3,7 @@ import { owlSvg } from './owl.mjs'
 import {
   CONTRIBUTING_URL,
   DOWNLOAD_URL,
+  RELEASES_URL,
   ISSUES_URL,
   LICENSE_URL,
   LOCALES,
@@ -47,7 +48,7 @@ function head({ t, locale, version }) {
     softwareVersion: version,
     downloadUrl: DOWNLOAD_URL,
     installUrl: DOWNLOAD_URL,
-    releaseNotes: DOWNLOAD_URL,
+    releaseNotes: RELEASES_URL,
     license: 'https://www.gnu.org/licenses/agpl-3.0.html',
     isAccessibleForFree: true,
     inLanguage: ['en', 'zh-Hans'],
@@ -595,7 +596,7 @@ export function footer({ t, locale, home = '', otherHref, docs, prefix }) {
   <nav aria-label="${esc(t.footer.project)}">
     <h2>${esc(t.footer.project)}</h2>
     <a href="${REPO_URL}" rel="noopener">GitHub</a>
-    <a href="${DOWNLOAD_URL}" rel="noopener">${esc(t.footer.releases)}</a>
+    <a href="${RELEASES_URL}" rel="noopener">${esc(t.footer.releases)}</a>
     <a href="${home}changelog/">${esc(t.footer.changelog)}</a>
     <a href="${ISSUES_URL}" rel="noopener">${esc(t.footer.issues)}</a>
     <a href="${CONTRIBUTING_URL}" rel="noopener">${esc(t.footer.contributing)}</a>

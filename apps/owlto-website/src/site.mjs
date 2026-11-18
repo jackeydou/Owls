@@ -3,7 +3,12 @@
 export const SITE_URL = 'https://owlto.dev'
 
 export const REPO_URL = 'https://github.com/jackeydou/Owls'
-export const DOWNLOAD_URL = `${REPO_URL}/releases`
+export const RELEASES_URL = `${REPO_URL}/releases`
+// Direct download of the newest stable installer. GitHub's `latest` release
+// skips prereleases, and the Release macOS workflow attaches a copy of the DMG
+// under this fixed name to every stable release, so the link never needs edits.
+export const STABLE_DMG_NAME = 'Owlto.dmg'
+export const DOWNLOAD_URL = `${RELEASES_URL}/latest/download/${STABLE_DMG_NAME}`
 export const ISSUES_URL = `${REPO_URL}/issues`
 export const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`
 export const CONTRIBUTING_URL = `${REPO_URL}/blob/main/CONTRIBUTING.md`

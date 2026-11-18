@@ -1,7 +1,7 @@
 ---
 title: Install Owlto on your Mac
 navTitle: Install Owlto
-description: System requirements, downloading the .dmg from GitHub Releases, update channels, and where Owlto keeps its files.
+description: System requirements, downloading the .dmg, update channels, and where Owlto keeps its files.
 group: start
 order: 1
 updated: 2026-11-16
@@ -20,10 +20,9 @@ Owlto itself is free and open source under the GNU AGPL-3.0 license. The coding 
 
 ## Download and install
 
-1. Open the [Releases page](https://github.com/jackeydou/Owls/releases) on GitHub.
-2. Download the latest `Owlto-<version>.dmg`.
-3. Open the `.dmg` and drag **Owlto** into your **Applications** folder.
-4. Open Owlto from Applications or Launchpad.
+1. [Download Owlto.dmg](https://github.com/jackeydou/Owls/releases/latest/download/Owlto.dmg), the latest stable release. Older versions and beta builds are on the [Releases page](https://github.com/jackeydou/Owls/releases).
+2. Open the `.dmg` and drag **Owlto** into your **Applications** folder.
+3. Open Owlto from Applications or Launchpad.
 
 The app is signed and notarized by Apple, so macOS opens it like any other downloaded app.
 

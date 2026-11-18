@@ -122,7 +122,7 @@ ${docLinks}
 - [Website (简体中文)](${SITE_URL}/zh/): the same page in Simplified Chinese
 - [Changelog](${SITE_URL}/${CHANGELOG_ROUTE}): what changed in each release, newest first
 - [Full text for LLMs](${SITE_URL}/llms-full.txt): every feature, the setup steps, the FAQ, and the docs in one file
-- [Download](${DOWNLOAD_URL}): latest .dmg on GitHub Releases
+- [Download](${DOWNLOAD_URL}): direct download of the latest stable .dmg
 - [Source code](${REPO_URL}): GitHub repository and README
 - [Issues](${ISSUES_URL}): bug reports and feature requests
 `
