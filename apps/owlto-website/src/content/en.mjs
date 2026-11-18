@@ -365,8 +365,8 @@ export default {
     steps: [
       {
         title: 'Install Owlto',
-        text: 'Download the latest .dmg from GitHub Releases, open it, and drag Owlto into your Applications folder.',
-        action: 'Go to Releases'
+        text: 'Download the latest .dmg, open it, and drag Owlto into your Applications folder.',
+        action: 'Download for macOS'
       },
       {
         title: 'Install at least one coding agent',
@@ -478,7 +478,7 @@ export default {
       },
       {
         q: 'How do I install Owlto?',
-        a: 'Download the latest .dmg from the GitHub Releases page, open it, and drag Owlto into your Applications folder. Owlto then checks for updates in the background, on the stable or beta channel.'
+        a: 'Download the latest .dmg from this site, open it, and drag Owlto into your Applications folder. Owlto then checks for updates in the background, on the stable or beta channel.'
       }
     ]
   },

@@ -244,6 +244,12 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           assets=(apps/owlto-client/dist/*.dmg apps/owlto-client/dist/*.zip apps/owlto-client/dist/*.delta apps/owlto-client/dist/SHA256SUMS.txt)
+          # owlto.dev links to releases/latest/download/Owlto.dmg, so every
+          # stable release carries a copy of its DMG under that fixed name.
+          stable_dmg="$RUNNER_TEMP/stable-dmg/Owlto.dmg"
+          mkdir -p "$(dirname "$stable_dmg")"
+          cp "apps/owlto-client/dist/Owlto-$RELEASE_VERSION.dmg" "$stable_dmg"
+          assets+=("$stable_dmg")
           gh release create "$RELEASE_VERSION" "${assets[@]}" \
             --target "$RELEASE_COMMIT" \
             --draft \

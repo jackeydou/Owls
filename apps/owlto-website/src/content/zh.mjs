@@ -344,8 +344,8 @@ export default {
     steps: [
       {
         title: '安装 Owlto',
-        text: '从 GitHub Releases 下载最新的 .dmg，打开后把 Owlto 拖进“应用程序”文件夹。',
-        action: '前往 Releases'
+        text: '下载最新的 .dmg，打开后把 Owlto 拖进“应用程序”文件夹。',
+        action: '下载 macOS 版'
       },
       {
         title: '至少安装一个编程智能体',
@@ -448,7 +448,7 @@ export default {
       },
       {
         q: '怎么安装 Owlto？',
-        a: '从 GitHub Releases 页面下载最新的 .dmg，打开后把 Owlto 拖进“应用程序”文件夹。之后 Owlto 会在后台检查更新，可选择稳定版或测试版通道。'
+        a: '从本站下载最新的 .dmg，打开后把 Owlto 拖进“应用程序”文件夹。之后 Owlto 会在后台检查更新，可选择稳定版或测试版通道。'
       }
     ]
   },
