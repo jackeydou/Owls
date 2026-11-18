@@ -252,13 +252,19 @@ PostHog; no other build does.
   events or 30 seconds), retries, and reports flag exposure; queued events are
   flushed on quit and before an update installs. The anonymous install id lives
   in `analytics.json` in the data root.
-- **Events.** `app_installed`, `app_opened`, `onboarding_finished`,
+- **Events.** `app_installed`, `app_opened`, `app_active`, `onboarding_finished`,
   `thread_created`, `message_sent`, `message_forwarded`, `worker_started`,
   `project_added`, `agent_connected`, `automation_saved`, `note_saved`, and
   `feedback_sent`. Properties are enums, counts, and the app version, OS, and
   architecture. Never send message text, code, file names, paths, or project
   names; add new events to the closed `AnalyticsEvent` union and the IPC table in
   `src/main/analytics/service.ts`.
+- **Daily active users.** `app_active` is sent the first time each local
+  calendar day the user is active: the launch, a focused Owlto window, or a
+  tracked action. It keeps counting while the app stays open for days, and
+  background work such as automation workers does not trigger it. Chart DAU as
+  unique users of `app_active` per day; a relaunch on the same day may send it
+  again.
 - **Opt-out.** Settings → Updates shows "Share anonymous usage data" only in
   builds with analytics. Turning it off opts the SDK out, so no new events or
   flag reads are sent.

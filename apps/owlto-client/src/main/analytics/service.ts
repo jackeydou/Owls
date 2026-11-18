@@ -10,6 +10,7 @@ import type { AnalyticsSink, EventProperties, FlagSnapshot } from './posthog.js'
 export type AnalyticsEvent =
   | 'app_installed'
   | 'app_opened'
+  | 'app_active'
   | 'onboarding_finished'
   | 'thread_created'
   | 'message_sent'
@@ -69,6 +70,8 @@ export class Analytics {
   private readonly startedAt: Date
   /** Workers already seen, so a worker counts as started once. */
   private readonly workers = new Set<string>()
+  /** The local calendar day `app_active` was last sent for, as `YYYY-MM-DD`. */
+  private activeDay: string | null = null
   private flagSnapshot: { flags: FlagSnapshot; at: number } | null = null
   private flagRead: Promise<FlagSnapshot | null> | null = null
   private closed = false
@@ -85,6 +88,20 @@ export class Analytics {
     this.capture('app_opened', {
       connected_agents: [...this.deps.settings().connectedAgents].sort().join(',')
     })
+    this.userActive()
+  }
+  /**
+   * Marks the user active: the launch, a focused window, or a tracked action. The first time
+   * on each local calendar day it sends `app_active`, so daily active users stay counted while
+   * the app stays open for days. Background work such as automation workers does not count.
+   */
+  userActive(): void {
+    if (!this.enabled()) return
+    this.begin()
+    const day = localDay(this.now())
+    if (day === this.activeDay) return
+    this.activeDay = day
+    this.capture('app_active')
   }
   private begin(): void {
     if (this.identity) return
@@ -125,11 +142,15 @@ export class Analytics {
   ipcSucceeded(channel: string, value: unknown): void {
     const agent = CONNECT_CHANNELS[channel]
     if (agent) {
-      if (isRecord(value) && value.status === 'ready') this.capture('agent_connected', { agent })
+      if (isRecord(value) && value.status === 'ready') {
+        this.userActive()
+        this.capture('agent_connected', { agent })
+      }
       return
     }
     const tracked = IPC_EVENTS[channel]
     if (!tracked || (tracked.needsValue && value == null)) return
+    this.userActive()
     this.capture(tracked.event, tracked.properties)
   }
   /** Counts workers dispatched after launch, by agent. */
@@ -194,6 +215,12 @@ export class Analytics {
     this.closed = true
     await this.deps.sink.shutdown(timeoutMs).catch(() => undefined)
   }
+}
+
+function localDay(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

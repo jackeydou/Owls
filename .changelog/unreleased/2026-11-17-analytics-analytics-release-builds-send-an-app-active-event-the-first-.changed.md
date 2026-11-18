@@ -1,0 +1,1 @@
+- Analytics: release builds send an app_active event the first time you use Owlto each day (launch, a focused window, or an action), so daily active users stay counted while the app stays open for days. Background automation workers do not count. (#181)
