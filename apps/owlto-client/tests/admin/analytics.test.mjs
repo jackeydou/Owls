@@ -39,16 +39,17 @@ function harness({ usageData = true, identity = null, flags } = {}) {
   const sink = fakeSink({ flags })
   const settings = { usageData, language: 'en', connectedAgents: ['codex', 'claude-code'] }
   const saved = []
+  const clock = { now: NOW }
   const analytics = new Analytics({
     sink,
     settings: () => settings,
     loadIdentity: () => identity,
     saveIdentity: (value) => saved.push(value),
     context: { appVersion: '2026.11.1700-beta.1', os: 'macOS', osVersion: '15.1', arch: 'arm64' },
-    now: () => NOW
+    now: () => clock.now
   })
   const events = () => sink.captured.map((message) => message.event)
-  return { analytics, sink, settings, saved, events }
+  return { analytics, sink, settings, saved, events, clock }
 }
 
 const appSettings = (overrides) => ({
@@ -64,7 +65,7 @@ test('the first launch records an install, then every launch records an open', (
   analytics.start()
   assert.equal(saved.length, 1)
   assert.match(saved[0].distinctId, /^[0-9a-f-]{36}$/)
-  assert.deepEqual(events(), ['app_installed', 'app_opened'])
+  assert.deepEqual(events(), ['app_installed', 'app_opened', 'app_active'])
   const opened = sink.captured[1]
   assert.equal(opened.distinctId, saved[0].distinctId)
   assert.equal(opened.timestamp.toISOString(), NOW.toISOString())
@@ -81,7 +82,10 @@ test('a saved identity is reused and no install is recorded', () => {
   assert.equal(saved.length, 0)
   assert.deepEqual(
     sink.captured.map((message) => [message.event, message.distinctId]),
-    [['app_opened', INSTALL_ID]]
+    [
+      ['app_opened', INSTALL_ID],
+      ['app_active', INSTALL_ID]
+    ]
   )
 })
 
@@ -103,7 +107,7 @@ test('turning usage data off pauses the SDK, and back on resumes it', () => {
   analytics.settingsChanged(appSettings({ usageData: false }), appSettings({ usageData: true }))
   analytics.ipcSucceeded('router-create', {})
   assert.equal(sink.paused, 1)
-  assert.equal(sink.captured.length, 2)
+  assert.equal(sink.captured.length, 3)
   settings.usageData = true
   analytics.settingsChanged(appSettings({ usageData: true }), appSettings({ usageData: false }))
   analytics.ipcSucceeded('router-create', {})
@@ -120,9 +124,9 @@ test('tracked IPC calls become events without their payloads', () => {
   analytics.ipcSucceeded('connect-claude', { status: 'error' })
   analytics.ipcSucceeded('connect-claude', { status: 'ready' })
   analytics.ipcSucceeded('memory-list', {})
-  assert.deepEqual(events().slice(2), ['message_sent', 'project_added', 'agent_connected'])
-  assert.equal(sink.captured[3].properties.method, 'pick')
-  assert.equal(sink.captured[4].properties.agent, 'claude-code')
+  assert.deepEqual(events().slice(3), ['message_sent', 'project_added', 'agent_connected'])
+  assert.equal(sink.captured[4].properties.method, 'pick')
+  assert.equal(sink.captured[5].properties.agent, 'claude-code')
   assert.doesNotMatch(JSON.stringify(sink.captured), /secret/)
 })
 
@@ -141,6 +145,42 @@ test('workers count once, and only when dispatched after launch', () => {
   assert.equal(started[0].properties.agent, 'cursor')
   assert.equal(started[0].properties.in_project, false)
   assert.doesNotMatch(JSON.stringify(started), /private goal/)
+})
+
+test('the user counts as active once per local day while the app stays open', () => {
+  const { analytics, events, clock } = harness()
+  analytics.start()
+  analytics.userActive()
+  analytics.ipcSucceeded('router-send', {})
+  assert.deepEqual(events().slice(2), ['app_active', 'message_sent'])
+  // A day later, with the app still open: the first focus counts the new day, once.
+  clock.now = new Date(NOW.getTime() + 24 * 60 * 60_000)
+  analytics.userActive()
+  analytics.userActive()
+  assert.deepEqual(events().slice(4), ['app_active'])
+  // Another day: a tracked action alone counts it, sent ahead of the action itself.
+  clock.now = new Date(NOW.getTime() + 2 * 24 * 60 * 60_000)
+  analytics.ipcSucceeded('router-send', {})
+  assert.deepEqual(events().slice(5), ['app_active', 'message_sent'])
+})
+
+test('background workers do not count the user as active', () => {
+  const { analytics, events, clock } = harness()
+  analytics.start()
+  clock.now = new Date(NOW.getTime() + 24 * 60 * 60_000)
+  analytics.observe({
+    type: 'worker',
+    worker: { id: 'w', provider: 'codex', projectId: null, createdAt: clock.now.toISOString() }
+  })
+  assert.deepEqual(events().slice(3), ['worker_started'])
+})
+
+test('activity sends nothing while usage data is off', () => {
+  const { analytics, sink, saved } = harness({ usageData: false })
+  analytics.start()
+  analytics.userActive()
+  assert.equal(sink.captured.length, 0)
+  assert.equal(saved.length, 0)
 })
 
 test('finishing onboarding is recorded with how it ended', () => {
@@ -184,7 +224,7 @@ test('closing shuts the SDK down once and stops capturing', async () => {
   await analytics.close(1500)
   analytics.ipcSucceeded('router-send', {})
   assert.deepEqual(sink.shutdowns, [1500])
-  assert.equal(sink.captured.length, 2)
+  assert.equal(sink.captured.length, 3)
 })
 
 test('the PostHog SDK sends events and flag exposure to the configured host', async () => {
@@ -232,6 +272,7 @@ test('the PostHog SDK sends events and flag exposure to the configured host', as
   const events = batches.flatMap((request) => request.body.batch)
   assert.deepEqual(events.map((event) => event.event).sort(), [
     '$feature_flag_called',
+    'app_active',
     'app_opened',
     'message_sent'
   ])

@@ -461,6 +461,7 @@ void app
     app.on('activate', () => {
       if (!window) createWindow()
     })
+    app.on('browser-window-focus', () => analytics?.userActive())
   })
   .catch((error) => {
     dialog.showErrorBox(
