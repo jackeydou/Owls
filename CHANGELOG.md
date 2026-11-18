@@ -11,6 +11,24 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1700-beta.1
+
+### Highlights
+
+- Workers can browse the web: Claude Code workers use Claude in Chrome, and Codex and Cursor workers get a Playwright browser tool.
+- The Router and workers can save notes for you.
+- A new Projects page in the left sidebar lists the Workspace and all your projects.
+
+### Changes
+
+- Workers: Claude Code workers can use Claude in Chrome, and Codex and Cursor workers get a browser tool that runs Playwright scripts in a Chrome window. Both have a Settings switch, on by default; read-only workers never get the browser tool. (#182)
+- Notes: the Router and workers can save text to Notes with a save_note tool. (#180)
+- Projects: the left sidebar gets a Projects page listing the Workspace (the default working folder) and every project as cards, with a settings button (shown on hover) to each one's settings and an Add project button. (#183)
+- Overview: project nodes no longer show an Open conversation button; double-click or press Enter to open a project's conversation. (#179)
+- Analytics: release builds send an app_active event the first time you use Owlto each day (launch, a focused window, or an action), so daily active users stay counted while the app stays open for days. Background automation workers do not count. (#181)
+
+### Fixes
+
 ## 2026.11.1600-beta.5
 
 ### Highlights
