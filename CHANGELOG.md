@@ -11,6 +11,21 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1700-beta.3
+
+### Highlights
+
+- Every worker now runs at the permission level you set in Settings, and read-only Codex and Cursor workers can use the browser tool.
+- Settings → Updates shows your device ID; installs now follow the stable update channel by default.
+
+### Changes
+
+- Workers: read-only Codex and Cursor workers get Owlto's browser tool, and every worker runs at the permission set in Settings instead of one the Router picks. (#188)
+- Updates: the update channel is hidden and defaults to stable; five clicks on the device ID at the bottom of Settings → Updates reveal it. (#190)
+- Workers: the worker panel message box placeholder now reads "Do anything." (#189)
+
+### Fixes
+
 ## 2026.11.1700-beta.2
 
 ### Highlights
