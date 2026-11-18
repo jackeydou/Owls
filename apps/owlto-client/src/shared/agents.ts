@@ -20,19 +20,15 @@ export const claudeAgentConfigSchema = agentConfigSchema.extend({
 export type ClaudeAgentConfig = z.infer<typeof claudeAgentConfigSchema>
 /**
  * Codex and Cursor choose whether their workers get Owlto's browser tool. Claude Code uses
- * Claude in Chrome instead. Read-only workers never get it, whatever this says.
+ * Claude in Chrome instead.
  */
 export const browserAgentConfigSchema = agentConfigSchema.extend({
   browser: z.boolean().default(true)
 })
 export type BrowserAgentConfig = z.infer<typeof browserAgentConfigSchema>
-/** Whether a worker on this agent, at this permission, gets Owlto's browser tool. */
-export function workerBrowserEnabled(
-  configs: AgentConfigs,
-  provider: AgentProvider,
-  permission: Permission
-): boolean {
-  if (permission === 'read-only' || provider === 'claude-code') return false
+/** Whether a worker on this agent gets Owlto's browser tool. */
+export function workerBrowserEnabled(configs: AgentConfigs, provider: AgentProvider): boolean {
+  if (provider === 'claude-code') return false
   return configs[provider].browser
 }
 /**

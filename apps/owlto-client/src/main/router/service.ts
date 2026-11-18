@@ -655,8 +655,8 @@ export class RouterService implements TurnProfiles {
 
   /**
    * Gives workers Owlto's browser tool where their agent's setting allows it (Codex and
-   * Cursor, never read-only; see `workerBrowserEnabled`). Scripts run outside the agent's
-   * sandbox.
+   * Cursor; see `workerBrowserEnabled`). Scripts run outside the agent's sandbox, restricted
+   * unless the worker has full access.
    */
   attachBrowser(browser: WorkerBrowser): void {
     this.browser = browser
@@ -698,12 +698,9 @@ export class RouterService implements TurnProfiles {
 
   /** The tools a worker gets besides `report`: notes, automations, and the browser where allowed. */
   private workerTools(worker: RouterWorker): WorkerTool[] {
-    const enabled = workerBrowserEnabled(
-      this.host.settings().agents,
-      worker.provider,
-      worker.permission
-    )
-    // Only full access runs scripts as plain Node; anything less gets the restricted runtime.
+    const enabled = workerBrowserEnabled(this.host.settings().agents, worker.provider)
+    // Only full access runs scripts as plain Node; anything less, read-only included, gets the
+    // restricted runtime, which cannot touch local files.
     const mode = worker.permission === 'full-access' ? 'full' : 'restricted'
     const browser = this.browser && enabled ? [browserTool(this.browser, worker.id, mode)] : []
     const router = this.routers.get(worker.routerId)

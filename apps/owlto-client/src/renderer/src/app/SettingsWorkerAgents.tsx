@@ -148,14 +148,11 @@ function AgentConfigRows({ provider }: { provider: AgentProvider }) {
             <SettingRow
               label={t('browserTool')}
               htmlFor={`${id}-browser`}
-              description={t(
-                config.permission === 'read-only' ? 'browserToolReadOnly' : 'browserToolHelp'
-              )}
+              description={t('browserToolHelp')}
             >
               <Switch
                 id={`${id}-browser`}
-                checked={workerBrowserEnabled(settings.agents, provider, config.permission)}
-                disabled={config.permission === 'read-only'}
+                checked={workerBrowserEnabled(settings.agents, provider)}
                 onCheckedChange={(browser) =>
                   void save({
                     ...settings,

@@ -7,10 +7,11 @@ the local HTTP MCP server.
 
 Each agent has a Browser switch in Settings → Router & Workers
 (`settings.agents.codex.browser`, `settings.agents.cursor.browser`), on by
-default. Read-only workers never get the tool, whatever the switch says, and
-the switch shows off and disabled while the agent's permission is read only,
-because a script runs outside the agent's sandbox. Claude Code workers do not
-get it; they use Claude in Chrome (`settings.agents['claude-code'].chrome`).
+default. The switch applies at every permission, read only included: a
+read-only worker runs scripts in the restricted mode below, which cannot read
+or write local files, so browsing does not widen what it can change on disk.
+Claude Code workers do not get it; they use Claude in Chrome
+(`settings.agents['claude-code'].chrome`).
 `workerBrowserEnabled` in `shared/agents.ts` is the one rule both the Router
 and Settings read.
 
@@ -56,7 +57,7 @@ Because the host runs in Owlto, not in the agent's process, a Codex
 
 - **Full access** workers run scripts as plain Node (`run-code.ts`): the
   script can reach `process` and the file system, like the agent itself.
-- **Every other writing worker** runs restricted (`sandbox.ts`): a fresh `vm`
+- **Every other worker**, read-only included, runs restricted (`sandbox.ts`): a fresh `vm`
   context with string code generation off and no Node globals. `page` and
   `context` come through a membrane: host objects are prototype-less proxies
   that hide `constructor`, `__proto__`, `prototype` and `_` internals; plain

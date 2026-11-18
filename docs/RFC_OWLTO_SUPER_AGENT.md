@@ -195,7 +195,7 @@ Owlto 引擎转成 JSON Schema 的 `AgentTool`，Claude Code 把完整的 zod �
 
 | 工具 | 输入 | 输出 |
 | --- | --- | --- |
-| `dispatch_task` | `goal`（1–4000 字符）；可选 `title`（≤ 200 字符）、`parent`（Worker ID）、`context`（≤ 8000 字符）、`provider`、`permission`、`workspace`、`base`（11.1 节） | `{ workerId, status: 'started' \| 'queued', workspace, branch }`；或错误码 `worker_limit_reached`、`permission_not_allowed`、`provider_unavailable`、`invalid_request` |
+| `dispatch_task` | `goal`（1–4000 字符）；可选 `title`（≤ 200 字符）、`parent`（Worker ID）、`context`（≤ 8000 字符）、`provider`、`workspace`、`base`（11.1 节）。Router 不能指定权限，Worker 使用所选智能体在设置中的权限 | `{ workerId, status: 'started' \| 'queued', workspace, branch }`；或错误码 `worker_limit_reached`、`provider_unavailable`、`invalid_request` |
 | `message_worker` | `workerId`、`text`（1–8000 字符） | `{ delivered: 'steered' \| 'started' \| 'queued' }`：运行中的 Worker 在当前 turn 内收到（`steered`），空闲的 Worker 开始新的一轮（`started`），受并发或写入串行限制时排队（`queued`）；或 `worker_not_found`、`worker_closed` |
 | `stop_worker` | `workerId` | `{ status: 'stopping' \| 'cancelled' \| 'already_idle' }`，`cancelled` 指取消排队中的 Worker；或 `worker_not_found`、`worker_closed`。Router 主动停止产生的 `worker_stopped` 事件不单独发起批次 |
 | `list_workers` | 可选 `status` | 按 `updatedAt` 倒序、同时间按 `workerId` 排序的 `{ workerId, goal, status, provider, parent, report }` 列表，`report.summary` 截断为 300 字符；不指定 `status` 时不含已移除的 Worker |
@@ -519,7 +519,7 @@ type TurnOutcome = {
 | `router.owlto` | `null` | `{ provider, model, thinking, baseUrl }`；`baseUrl` 只用于 `custom`，限 `http`/`https` |
 | `router.claudeModel` | `null`（CLI 默认模型） | Claude Code 引擎使用的模型（M2） |
 | `router.codexModel` | `null`（`model/list` 的默认模型） | Codex 引擎使用的模型（M3） |
-| `router.maxPermission` | `'workspace-write'` | `dispatch_task` 可申请的最高权限 |
+| `router.maxPermission` | `'workspace-write'` | Worker 的最高权限；智能体设置更高时降到这一级 |
 | `router.worktrees` | `true` | 可写的 Worker 在独立的 git worktree 中运行（11.1 节） |
 
 - 设置页新增「协调者」分组：引擎单选（Owlto 内置（推荐）、Claude Code、Codex），每个选项下方

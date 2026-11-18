@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { permissionSchema, providerSchema } from '../../shared/app.js'
+import { providerSchema } from '../../shared/app.js'
 import { workerStatusSchema, worktreeBaseSchema } from '../../shared/router.js'
 import { type SearchMemoryInput, searchMemoryInput } from '../memory/search-input.js'
 
@@ -73,9 +73,6 @@ export const dispatchTaskInput = z
       .describe(
         "Model ID for that agent, from the project's model list in the batch. Omit to use the first one, or the agent's default."
       ),
-    permission: permissionSchema
-      .optional()
-      .describe('Access the worker needs. Omit to use the default.'),
     workspace: z
       .enum(['worktree', 'checkout'])
       .optional()

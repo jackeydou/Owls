@@ -1,3 +1,4 @@
+import type { Permission } from '../../shared/agents.js'
 import type { Effort } from '../../shared/app.js'
 import type {
   DispatchTaskInput,
@@ -17,6 +18,11 @@ export type WorkerDispatch = {
   workerId?: string
   /** Model and effort chosen by the sender; omitted, they come from this device's settings. */
   selection?: { model: string | null; effort: Effort | null }
+  /**
+   * Access a command from another device asks for. The Router's own tool cannot choose it:
+   * its workers take the agent's permission from Settings.
+   */
+  permission?: Permission
   /** Goal hashes of workers dispatched in the current batch, so a retried call reuses them. */
   seen?: Map<string, string>
 }

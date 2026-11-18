@@ -257,7 +257,8 @@ export const routerEn = {
   'routerSettings.instructionsRestoreConfirm': 'Restore',
   'routerSettings.instructionsCancel': 'Cancel',
   'routerSettings.maxPermission': 'Highest worker permission',
-  'routerSettings.maxPermissionHelp': 'The most access the Router can give a worker.',
+  'routerSettings.maxPermissionHelp':
+    "Workers use their agent's permission. One set higher is lowered to this.",
   'routerSettings.worktrees': 'Run code-editing workers side by side',
   'routerSettings.worktreesHelp':
     'Side by side gives each worker its own branch. You choose what to merge.',
@@ -566,7 +567,7 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'routerSettings.instructionsRestoreConfirm': '恢复',
   'routerSettings.instructionsCancel': '取消',
   'routerSettings.maxPermission': 'Worker 最高权限',
-  'routerSettings.maxPermissionHelp': '协调者最多能给 Worker 的权限。',
+  'routerSettings.maxPermissionHelp': 'Worker 使用所选智能体的权限，超出这里的会降到这一级。',
   'routerSettings.worktrees': '改代码的 Worker 并行运行',
   'routerSettings.worktreesHelp': '并行时每个 Worker 使用独立分支，由你决定合并哪些。',
   'errors.worktree_failed': 'Owlto 无法准备这个 Worker 的 git worktree，请检查仓库和磁盘空间。',

@@ -260,7 +260,7 @@ export class WorkerPool implements TurnProfiles {
       permission: configured,
       ...selection
     } = chooseAgent(
-      { ...input, selection: request.selection },
+      { ...input, permission: request.permission, selection: request.selection },
       {
         project: project?.settings?.agents ?? null,
         agents: settings.agents,
@@ -270,9 +270,9 @@ export class WorkerPool implements TurnProfiles {
     )
     const max = settings.router.maxPermission
     const above = PERMISSION_RANK[configured] > PERMISSION_RANK[max]
-    // An access level the Router asked for must fit the cap. One that comes from the
-    // agent's own setting (Cursor defaults to full access) is lowered to the cap instead.
-    if (above && input.permission)
+    // An access level another device's command asked for must fit the cap. One that comes
+    // from the agent's own setting (Cursor defaults to full access) is lowered to the cap.
+    if (above && request.permission)
       throw new RouterToolError('permission_not_allowed', `The Router may grant at most ${max}.`)
     const permission = above ? max : configured
     const key = createHash('sha256')
