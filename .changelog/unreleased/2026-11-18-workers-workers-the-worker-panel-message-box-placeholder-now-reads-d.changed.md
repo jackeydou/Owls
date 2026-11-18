@@ -1,1 +1,1 @@
-- Workers: the worker panel message box placeholder now reads "Do anything."
+- Workers: the worker panel message box placeholder now reads "Do anything." (#189)
