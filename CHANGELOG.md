@@ -11,6 +11,20 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.1800
+
+### Highlights
+
+- Owlto's first stable release: a Router you talk to that sends work to your local Claude Code, Codex, or Cursor as workers, each in its own worktree.
+- Everything from the 2026.11 betas ships here: Memory, Notes, Automations, the Pull Requests page, the File viewer, web browsing for workers, and self-updates.
+- Workers can find and read your notes without asking.
+
+### Changes
+
+- Notes: workers are told where the notes folder is and can read note files there without asking. (#193)
+
+### Fixes
+
 ## 2026.11.1700-beta.3
 
 ### Highlights
