@@ -1,0 +1,1 @@
+- Workers: read-only Codex and Cursor workers get Owlto's browser tool, and every worker runs at the permission set in Settings instead of one the Router picks. (#188)
