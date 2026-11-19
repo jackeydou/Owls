@@ -15,7 +15,7 @@ import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
 import { AutomationStore } from '../automations/store.js'
 import { BrowserHost } from '../browser/runner.js'
-import { DEBUG_APP_NAME, isDebugPackage } from '../build-flavor.js'
+import { DEBUG_APP_NAME, isDebugPackage, REMOTE_ROUTER_ENABLED } from '../build-flavor.js'
 import { CardService } from '../cards/service.js'
 import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
@@ -501,7 +501,7 @@ void app
     registerRemoteIpc(handle, remote)
     applyAppMenu(store.settings(), menu)
     createWindow()
-    remote.start()
+    if (REMOTE_ROUTER_ENABLED) remote.start()
     analytics?.start()
     updater.start()
     // Agent CLIs and the commands they run inherit PATH, so they start after the shell's is in.

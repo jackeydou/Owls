@@ -25,6 +25,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { settingsSchema, skinSchema } from '../../../shared/app'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
+import { REMOTE_ROUTER_ENABLED } from '../remote/enabled'
 import { DevicesSettingsPane } from '../remote/SettingsDevices'
 import { projectHue } from '../router/activity'
 import { ProjectIcon } from '../router/ProjectIcon'
@@ -65,7 +66,9 @@ const TAB_GROUPS: TabEntry[][] = [
   ],
   [
     { id: 'github', label: 'github.title', icon: GitPullRequestIcon },
-    { id: 'devices', label: 'remote.title', icon: LaptopIcon },
+    ...(REMOTE_ROUTER_ENABLED
+      ? [{ id: 'devices', label: 'remote.title', icon: LaptopIcon } satisfies TabEntry]
+      : []),
     { id: 'profile', label: 'profile.title', icon: UserIcon },
     { id: 'appearance', label: 'appearance', icon: PaletteIcon },
     { id: 'updates', label: 'updates.title', icon: RefreshIcon },

@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import type { RemoteDevice } from '../../../shared/remote'
 import { useAppStore } from '../app/store'
 import { useFilesStore } from '../files/store'
+import { REMOTE_ROUTER_ENABLED } from './enabled'
 import { useRemoteStore, watchRemote } from './store'
 import { useViewingStore } from './viewing'
 import './remote.css'
@@ -32,7 +33,7 @@ export function DevicePicker() {
   const showSettings = useAppStore((s) => s.showSettings)
   useEffect(() => watchRemote(), [])
   const devices = overview?.devices ?? []
-  if (!devices.length) return null
+  if (!REMOTE_ROUTER_ENABLED || !devices.length) return null
   const current = devices.find((d) => d.deviceId === viewing) ?? null
   const label = current ? current.name : t('remote.thisMac')
   const pick = (deviceId: string | null) => {
