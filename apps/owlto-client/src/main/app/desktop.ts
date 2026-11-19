@@ -15,6 +15,7 @@ import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
 import { AutomationStore } from '../automations/store.js'
 import { BrowserHost } from '../browser/runner.js'
+import { DEBUG_APP_NAME, isDebugPackage } from '../build-flavor.js'
 import { CardService } from '../cards/service.js'
 import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
@@ -85,7 +86,12 @@ const SYSTEM_NAMES: Partial<Record<NodeJS.Platform, string>> = {
 }
 
 const profile = configureDevAppInstanceProfile()
-app.setName(profile ? `Owlto — ${profile.name}` : 'Owlto')
+if (!profile && isDebugPackage()) {
+  // The app name also names the userData folder and the "<name> Safe Storage" keychain item,
+  // so a debug package must not share them with the released Owlto.
+  app.setPath('userData', join(app.getPath('appData'), DEBUG_APP_NAME))
+}
+app.setName(profile ? `Owlto — ${profile.name}` : isDebugPackage() ? DEBUG_APP_NAME : 'Owlto')
 let window: BrowserWindow | null = null
 let service: OwltoHost | null = null
 let router: RouterService | null = null

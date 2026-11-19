@@ -37,6 +37,9 @@ function removePlistKeyIfPresent(plistPath, key) {
 module.exports = {
   appId: isDebug ? 'dev.owlto.app.debug' : 'dev.owlto.app',
   productName,
+  // Electron reads the app name from the packaged package.json, so a debug package says
+  // "Owlto Debug" there too (userData folder, keychain item, menus).
+  ...(isDebug ? { extraMetadata: { productName } } : {}),
   copyright: 'Copyright © 2026 Owlto Team',
   // macOS updates come from Electron's autoUpdater and the feed built by
   // scripts/release-update-feed.mjs, not from electron-builder's publish metadata.
