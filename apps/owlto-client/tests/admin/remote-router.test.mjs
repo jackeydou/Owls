@@ -14,6 +14,7 @@ const {
   FrameCipher,
   OwltoError,
   OwltoStore,
+  RelayListener,
   RemoteService,
   RemoteStore,
   connectFrames,
@@ -517,4 +518,32 @@ test('the host keeps its relay mailbox across restarts and stores its secret enc
   await host.service.setAccess(true)
   await until(() => host.service.overview().relay.state === 'online')
   assert.deepEqual(host.raw.relayIdentity(), first)
+})
+
+test('two Macs with one relay mailbox do not push each other off forever', async (t) => {
+  const { url } = await localRelay(t)
+  const mailbox = 'M'.repeat(32)
+  const secret = 'S'.repeat(32)
+  const listener = () => {
+    const created = new RelayListener({
+      url,
+      mailbox,
+      secret,
+      tickets: () => [],
+      accept: (frames) => frames.close(),
+      changed: () => {}
+    })
+    t.after(() => created.close())
+    created.start()
+    return created
+  }
+  const first = listener()
+  await until(() => first.status().state === 'online')
+  const second = listener()
+  await until(() => second.status().state === 'online')
+  await until(() => first.status().error === 'relay_replaced')
+  // The first one waits for a wake instead of taking the mailbox back a second later.
+  await new Promise((resolve) => setTimeout(resolve, 1_500))
+  assert.deepEqual(first.status(), { state: 'offline', error: 'relay_replaced' })
+  assert.equal(second.status().state, 'online')
 })

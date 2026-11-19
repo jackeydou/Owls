@@ -1,6 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
-import type { FrameChannel } from './frames.js'
-import { MAX_FRAME_BYTES } from './frames.js'
+import { type FrameChannel, type Keepalive, MAX_FRAME_BYTES } from './frames.js'
 
 /**
  * The relay transport: a WebSocket to the Owlto relay that carries the same sealed frames
@@ -38,6 +37,23 @@ const CHUNK_BYTES = 256 * 1024
 const MORE = 1
 const LAST = 0
 const OPEN_TIMEOUT_MS = 10_000
+/**
+ * Text `ping`s keep a relay socket open through NATs and show when it died. The relay
+ * answers them without waking its Durable Object, so they cost nothing there.
+ */
+const SOCKET_PING_MS = 30_000
+/** No word from the relay this long, pongs included, means the socket is dead. */
+const SOCKET_SILENCE_MS = 75_000
+/**
+ * End-to-end pings wake the relay's Durable Object, which bills by the time it stays awake,
+ * so a quiet pipe checks on its peer every few minutes. A peer that drops is noticed sooner:
+ * the relay closes the other end of its pipe.
+ */
+export const RELAY_KEEPALIVE: Keepalive = { pingMs: 240_000, idleMs: 600_000 }
+/** A connection that lasted this long resets the reconnect backoff. */
+export const STABLE_MS = 60_000
+/** Relay answers that the same attempt would get again. */
+const FINAL_ERRORS = new Set(['relay_denied', 'relay_version', 'relay_bad_request'])
 
 function socketUrl(base: string, kind: 'host' | 'client' | 'pipe', mailbox: string): string {
   return `${base.replace(/\/+$/, '')}/v1/${kind}/${mailbox}`
@@ -104,12 +120,25 @@ export class WebSocketFrames implements FrameChannel {
   private partBytes = 0
   private closed = false
   private failure: Error | null = null
+  private lastHeard = Date.now()
+  private readonly pinger: NodeJS.Timeout
+  readonly keepalive = RELAY_KEEPALIVE
   constructor(private readonly socket: WebSocket) {
-    socket.addEventListener('message', (event) => this.receive(event.data))
+    socket.addEventListener('message', (event) => {
+      this.lastHeard = Date.now()
+      this.receive(event.data)
+    })
     socket.addEventListener('error', () => {
       this.failure ??= new RelayError('socket')
     })
     socket.addEventListener('close', () => this.finish())
+    this.pinger = setInterval(() => {
+      if (Date.now() - this.lastHeard > SOCKET_SILENCE_MS) {
+        this.failure ??= new RelayError('silent')
+        this.close()
+      } else if (socket.readyState === WebSocket.OPEN) socket.send('ping')
+    }, SOCKET_PING_MS)
+    this.pinger.unref?.()
     if (socket.readyState === WebSocket.CLOSED) this.finish()
   }
   private receive(data: unknown): void {
@@ -133,6 +162,7 @@ export class WebSocketFrames implements FrameChannel {
   private finish(): void {
     if (this.closed) return
     this.closed = true
+    clearInterval(this.pinger)
     for (const listener of this.closeListeners) listener(this.failure)
     this.closeListeners = []
   }
@@ -191,11 +221,12 @@ export type RelayListenerOptions = {
   changed: () => void
 }
 
-/** Host reconnect delays, each with ±20% jitter so a relay restart is not met all at once. */
-const HOST_BACKOFF_MS = [1_000, 3_000, 10_000, 30_000, 60_000]
-const KEEPALIVE_MS = 30_000
-/** No word from the relay this long, pongs included, means the socket is dead. */
-const SILENCE_MS = 75_000
+/**
+ * Host reconnect delays, each with ±20% jitter so a relay restart is not met all at once.
+ * The backoff resets only after a connection stays up for `STABLE_MS`, so a relay that
+ * accepts and then drops the socket is not hit in a tight loop.
+ */
+const HOST_BACKOFF_MS = [1_000, 3_000, 10_000, 30_000, 60_000, 300_000]
 
 /**
  * The host side of the relay: keeps a control socket to its mailbox open, tells the relay
@@ -248,8 +279,9 @@ export class RelayListener {
     } catch (error) {
       const reason = error instanceof RelayError ? error.message : 'relay_unreachable'
       this.set('offline', reason)
-      // Another secret owns this mailbox: retrying cannot help.
-      if (reason !== 'relay_denied') this.retryLater()
+      // Another secret owns this mailbox, or the relay speaks another protocol: retrying
+      // cannot help, and each attempt is a billed request.
+      if (!FINAL_ERRORS.has(reason)) this.retryLater()
       return
     }
     if (this.stopped) {
@@ -257,8 +289,8 @@ export class RelayListener {
       return
     }
     this.socket = socket
-    this.failures = 0
-    let lastHeard = Date.now()
+    const openedAt = Date.now()
+    let lastHeard = openedAt
     socket.addEventListener('message', (event) => {
       lastHeard = Date.now()
       const message = parse(event.data)
@@ -271,14 +303,21 @@ export class RelayListener {
       this.socket = null
       this.stopKeepalive()
       if (this.stopped) return
-      const replaced = this.current.error === 'relay_replaced'
-      this.set('offline', replaced ? 'relay_replaced' : 'relay_closed')
+      if (Date.now() - openedAt >= STABLE_MS) this.failures = 0
+      // Another Mac with this mailbox's secret took over (a copied data folder). Taking it
+      // back would make the two push each other off forever, so wait for a wake or a
+      // toggle instead.
+      if (this.current.error === 'relay_replaced') {
+        this.set('offline', 'relay_replaced')
+        return
+      }
+      this.set('offline', 'relay_closed')
       this.retryLater()
     })
     this.keepalive = setInterval(() => {
-      if (Date.now() - lastHeard > SILENCE_MS) socket.close()
+      if (Date.now() - lastHeard > SOCKET_SILENCE_MS) socket.close()
       else socket.send('ping')
-    }, KEEPALIVE_MS)
+    }, SOCKET_PING_MS)
     this.keepalive.unref?.()
     this.set('online', null)
     this.pushTickets()

@@ -12,7 +12,7 @@ import {
 import { OwltoError } from '../app/errors.js'
 import type { FrameChannel } from './frames.js'
 import { HandshakeError, initiate, type Me, type Peer, type SecureChannel } from './handshake.js'
-import { RelayError, type RelayRoute } from './relay.js'
+import { RelayError, type RelayRoute, STABLE_MS } from './relay.js'
 import { RemoteCallError, RpcConnection } from './rpc.js'
 import { RELAY_ROUTE_METHOD } from './server.js'
 import type { PeerRecord, RemoteStore } from './store.js'
@@ -30,12 +30,24 @@ type Link = {
   retry: NodeJS.Timeout | null
   /** Consecutive failures, for the reconnect backoff. */
   failures: number
+  /** When the current connection opened, to tell a stable one from one that drops at once. */
+  openedAt: number
+  /**
+   * The relay turned this device's ticket away. Dialing it again would be turned away too,
+   * so the relay is skipped until a direct connection fetches a fresh ticket.
+   */
+  relayDenied: boolean
   /** Resolves when the connection attempt in flight settles. */
   connecting: Promise<RpcConnection> | null
 }
 
 /** Reconnect delays: quick at first, then once a minute while the device stays away. */
 const BACKOFF_MS = [2_000, 5_000, 15_000, 30_000, 60_000]
+/**
+ * Over the relay every attempt is a billed request, so a host that stays away is tried
+ * every five minutes; waking the Mac or the user retries at once.
+ */
+const RELAY_BACKOFF_MS = [...BACKOFF_MS, 120_000, 300_000]
 /** A direct connection gets this head start before the relay is tried too. */
 const RELAY_HEAD_START_MS = 300
 
@@ -279,6 +291,8 @@ export class HostLinks {
         rpc: null,
         retry: null,
         failures: 0,
+        openedAt: 0,
+        relayDenied: false,
         connecting: null
       }
       this.links.set(deviceId, link)
@@ -316,7 +330,7 @@ export class HostLinks {
       const { host, port } = peer
       if (host && port)
         attempts.push({ via: 'direct', delay: 0, dial: () => this.deps.dial(host, port) })
-      const relay = relayRouteOf(peer)
+      const relay = link.relayDenied ? null : relayRouteOf(peer)
       if (relay)
         attempts.push({
           via: 'relay',
@@ -341,6 +355,7 @@ export class HostLinks {
       return rpc
     } catch (error) {
       const failure = linkFailure(error, false)
+      if (error instanceof RelayError && error.reason === 'denied') link.relayDenied = true
       if (this.links.get(peer.deviceId) === link) {
         link.status = 'offline'
         this.retryLater(peer.deviceId, link)
@@ -382,9 +397,13 @@ export class HostLinks {
     link.rpc = rpc
     link.via = via
     link.status = 'online'
-    link.failures = 0
+    link.openedAt = Date.now()
+    if (via === 'direct') link.relayDenied = false
     rpc.onClose(() => {
       if (this.links.get(deviceId) !== link) return
+      // Only a connection that held resets the backoff; one that drops at once (a relay or
+      // host failing right after the handshake) keeps backing off instead of looping.
+      if (Date.now() - link.openedAt >= STABLE_MS) link.failures = 0
       link.rpc = null
       link.via = null
       link.status = 'offline'
@@ -396,7 +415,9 @@ export class HostLinks {
   }
   private retryLater(deviceId: string, link: Link): void {
     if (this.closed || link.retry) return
-    const delay = BACKOFF_MS[Math.min(link.failures, BACKOFF_MS.length - 1)]
+    const peer = this.deps.store.peer(deviceId, 'host')
+    const steps = peer && relayRouteOf(peer) && !link.relayDenied ? RELAY_BACKOFF_MS : BACKOFF_MS
+    const delay = steps[Math.min(link.failures, steps.length - 1)]
     link.failures++
     link.retry = setTimeout(() => {
       link.retry = null

@@ -37,9 +37,6 @@ export class RemoteCallError extends Error {
 }
 
 const REQUEST_TIMEOUT_MS = 60_000
-const PING_INTERVAL_MS = 20_000
-/** Silence this long means the peer went away (asleep, or off the network). */
-const IDLE_TIMEOUT_MS = 50_000
 
 export type RpcHandlers = {
   /** Answers a request; a thrown error becomes a failure reply. */
@@ -54,6 +51,7 @@ export class RpcConnection {
     { resolve(value: unknown): void; reject(error: Error): void; timer: NodeJS.Timeout }
   >()
   private lastHeard = Date.now()
+  private lastPing = Date.now()
   private readonly heartbeat: NodeJS.Timeout
   private closed = false
   private closeListeners: (() => void)[] = []
@@ -64,13 +62,23 @@ export class RpcConnection {
   ) {
     channel.onMessage((raw) => this.receive(raw))
     channel.onClose(() => this.finish())
-    this.heartbeat = setInterval(() => {
-      if (Date.now() - this.lastHeard > IDLE_TIMEOUT_MS) {
-        this.close()
-        return
-      }
-      this.channel.send({ t: 'ping' })
-    }, PING_INTERVAL_MS)
+    // Pings only after a quiet spell, so a busy link sends none, and the side that heard
+    // the other's ping stays quiet: one exchange per quiet interval, not one per side.
+    const { pingMs, idleMs } = channel.keepalive
+    this.heartbeat = setInterval(
+      () => {
+        const now = Date.now()
+        // Silence this long means the peer went away (asleep, or off the network).
+        if (now - this.lastHeard > idleMs) {
+          this.close()
+          return
+        }
+        if (now - this.lastHeard < pingMs || now - this.lastPing < pingMs) return
+        this.lastPing = now
+        this.channel.send({ t: 'ping' })
+      },
+      Math.max(1_000, Math.floor(pingMs / 4))
+    )
     this.heartbeat.unref?.()
   }
   private receive(raw: unknown): void {

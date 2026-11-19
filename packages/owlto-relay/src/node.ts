@@ -3,7 +3,14 @@ import { createServer, type IncomingMessage, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { type RawData, type WebSocket, WebSocketServer } from 'ws'
 import { MAX_MESSAGE_BYTES, routeOf } from './protocol.ts'
-import { type Attachment, type Mailbox, Room, type RoomIO } from './room.ts'
+import {
+  type Attachment,
+  type Budgets,
+  type Mailbox,
+  newBudgets,
+  Room,
+  type RoomIO
+} from './room.ts'
 
 /**
  * The relay on plain Node, for tests and for people who run their own relay. Mailboxes live
@@ -19,6 +26,7 @@ type RoomState = {
   sockets: Set<WebSocket>
   attachments: WeakMap<WebSocket, Attachment>
   mailbox: Mailbox | null
+  budgets: Budgets
 }
 
 export async function startNodeRelay(
@@ -34,7 +42,12 @@ export async function startNodeRelay(
   function roomFor(mailbox: string): { state: RoomState; room: Room<WebSocket> } {
     let state = rooms.get(mailbox)
     if (!state) {
-      state = { sockets: new Set(), attachments: new WeakMap(), mailbox: null }
+      state = {
+        sockets: new Set(),
+        attachments: new WeakMap(),
+        mailbox: null,
+        budgets: newBudgets()
+      }
       rooms.set(mailbox, state)
     }
     const current = state
@@ -51,7 +64,8 @@ export async function startNodeRelay(
         current.mailbox = mailbox
       },
       randomId: () => randomBytes(16).toString('base64url'),
-      now: () => Date.now()
+      now: () => Date.now(),
+      budgets: current.budgets
     }
     return { state: current, room: new Room(io) }
   }
@@ -62,10 +76,14 @@ export async function startNodeRelay(
       socket.end('HTTP/1.1 404 Not Found\r\n\r\n')
       return
     }
+    const { state, room } = roomFor(route.mailbox)
+    if (!room.admit()) {
+      socket.end('HTTP/1.1 429 Too Many Requests\r\n\r\n')
+      return
+    }
     wss.handleUpgrade(request, socket, head, (ws) => {
-      const { state, room } = roomFor(route.mailbox)
       state.sockets.add(ws)
-      state.attachments.set(ws, { kind: route.kind, state: 'hello' })
+      state.attachments.set(ws, { kind: route.kind, state: 'hello', at: Date.now() })
       // Messages are handled one at a time per socket, as a Durable Object does.
       let queue = Promise.resolve()
       ws.on('message', (raw: RawData, isBinary: boolean) => {

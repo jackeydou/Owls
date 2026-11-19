@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
 import { routeOf } from './protocol.ts'
-import { type Attachment, type Mailbox, Room, type RoomIO } from './room.ts'
+import { type Attachment, type Mailbox, newBudgets, Room, type RoomIO } from './room.ts'
 
 /**
  * The relay on Cloudflare: a Worker routes `/v1/<kind>/<mailbox>` to one Durable Object per
@@ -9,7 +9,13 @@ import { type Attachment, type Mailbox, Room, type RoomIO } from './room.ts'
  */
 export interface Env {
   RELAY_ROOM: DurableObjectNamespace<RelayRoom>
+  /** New sockets per client IP; see `wrangler.toml`. */
+  IP_LIMIT: RateLimit
+  /** New sockets per mailbox, checked before its Durable Object wakes. */
+  MAILBOX_LIMIT: RateLimit
 }
+
+const tooMany = () => new Response('Too many connections.\n', { status: 429 })
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -17,6 +23,11 @@ export default {
     if (!route) return new Response('Not found\n', { status: 404 })
     if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket')
       return new Response('Owlto relay: WebSocket only.\n', { status: 426 })
+    // Turned away here, a reconnect loop costs a Worker request and never reaches the
+    // Durable Object, which bills by duration.
+    const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
+    if (!(await env.IP_LIMIT.limit({ key: ip })).success) return tooMany()
+    if (!(await env.MAILBOX_LIMIT.limit({ key: route.mailbox })).success) return tooMany()
     const stub = env.RELAY_ROOM.get(env.RELAY_ROOM.idFromName(route.mailbox))
     return stub.fetch(request)
   }
@@ -25,6 +36,7 @@ export default {
 const MAILBOX_KEY = 'mailbox'
 
 export class RelayRoom extends DurableObject<Env> {
+  private readonly budgets = newBudgets()
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env)
     // Keepalive pings from either side are answered without waking the object.
@@ -34,9 +46,10 @@ export class RelayRoom extends DurableObject<Env> {
   async fetch(request: Request): Promise<Response> {
     const route = routeOf(new URL(request.url).pathname)
     if (!route) return new Response('Not found\n', { status: 404 })
+    if (!this.room().admit()) return new Response('Too many connections.\n', { status: 429 })
     const { 0: client, 1: server } = new WebSocketPair()
     this.ctx.acceptWebSocket(server)
-    const hello: Attachment = { kind: route.kind, state: 'hello' }
+    const hello: Attachment = { kind: route.kind, state: 'hello', at: Date.now() }
     server.serializeAttachment(hello)
     return new Response(null, { status: 101, webSocket: client })
   }
@@ -84,7 +97,8 @@ export class RelayRoom extends DurableObject<Env> {
           .replace(/\//g, '_')
           .replace(/=+$/, '')
       },
-      now: () => Date.now()
+      now: () => Date.now(),
+      budgets: this.budgets
     }
     return new Room(io)
   }

@@ -39,8 +39,38 @@ The app's default relay is `wss://relay.owlto.dev` (`DEFAULT_RELAY_URL` in
 `apps/owlto-client/src/shared/remote.ts`). Point that domain at the deployed Worker with a
 custom domain route in the Cloudflare dashboard or a `routes` entry in `wrangler.toml`.
 
+## Keeping the Cloudflare bill bounded
+
+Durable Objects bill per request and for the time an object stays awake; a hibernated object
+with idle WebSockets costs nothing
+([pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/)). The relay
+is built so nothing keeps an object awake or reconnecting on its own:
+
+- **No timers or alarms** in the Durable Object. It sleeps whenever its sockets are quiet.
+- **Keepalive pings are free**: the text `ping` is answered by
+  `setWebSocketAutoResponse` without waking the object. The app pings relay sockets every
+  30 s this way, and sends end-to-end pings over a pipe only after 4 quiet minutes
+  (`RELAY_KEEPALIVE` in the app's `remote/relay.ts`), since those do wake the object.
+- **Rate limits before the object wakes**: the Worker allows 120 new sockets a minute per IP
+  and 30 per mailbox (`[[ratelimits]]` in `wrangler.toml`).
+- **Per-mailbox caps inside the object** (`src/protocol.ts`): 32 open sockets, 60 new
+  sockets and 3,000 messages a minute; a socket that sends no hello within 10 s is closed
+  when the next one arrives. A mailbox over its message budget has the offending socket
+  closed with `limited`.
+- **Clients back off**: hosts reconnect after 1 s up to 5 min with jitter, clients up to
+  5 min over the relay, and the backoff resets only after a connection held for a minute.
+  A host pushed off by another Mac with the same secret, or turned away with `denied` or
+  `version`, stops retrying until the Mac wakes or the user toggles the relay.
+
+Set these in the Cloudflare dashboard as well, since code cannot cap an invoice:
+
+- A Durable Objects spending limit, and a separate Workers spending limit
+  ([spend management](https://developers.cloudflare.com/durable-objects/platform/spend-management/)).
+  At the limit new requests are rejected, but messages on already-open WebSockets still
+  flow, so the caps above still matter.
+- A billing email alert.
+
 ## Not yet
 
-R0 is a prototype. Still to come: GitHub sign-in to register a mailbox, per-IP rate limits,
-per-mailbox traffic caps, cleanup of mailboxes unused for 30 days, short rendezvous codes
-and QR pairing, and encrypted push notifications.
+R0 is a prototype. Still to come: GitHub sign-in to register a mailbox, cleanup of mailboxes
+unused for 30 days, short rendezvous codes and QR pairing, and encrypted push notifications.

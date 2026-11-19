@@ -12,7 +12,7 @@ import {
   sessionKeys,
   sha256
 } from './crypto.js'
-import type { FrameChannel } from './frames.js'
+import { DIRECT_KEEPALIVE, type FrameChannel, type Keepalive } from './frames.js'
 
 /**
  * The handshake that opens every connection, before any content. Both sides prove they
@@ -101,6 +101,9 @@ export class SecureChannel {
   }
   close(): void {
     this.frames.close()
+  }
+  get keepalive(): Keepalive {
+    return this.frames.keepalive ?? DIRECT_KEEPALIVE
   }
 }
 

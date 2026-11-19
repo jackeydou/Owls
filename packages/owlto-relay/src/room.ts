@@ -1,8 +1,12 @@
 import {
   CLOSE,
   type ErrorCode,
+  HELLO_TIMEOUT_MS,
+  MAX_CONNECTIONS_PER_MINUTE,
   MAX_MESSAGE_BYTES,
+  MAX_MESSAGES_PER_MINUTE,
   MAX_PIPES,
+  MAX_SOCKETS,
   parseHello,
   parseHostMessage,
   parseJson,
@@ -12,7 +16,7 @@ import {
 
 /** What the relay knows about one socket; kept on the socket so it survives hibernation. */
 export type Attachment =
-  | { kind: SocketKind; state: 'hello' }
+  | { kind: SocketKind; state: 'hello'; at: number }
   | { kind: 'host'; state: 'ready' }
   | { kind: 'client'; state: 'waiting' | 'open'; pipe: string }
   | { kind: 'pipe'; state: 'open'; pipe: string }
@@ -23,6 +27,39 @@ export type Mailbox = {
   tickets: string[]
   createdAt: number
   lastHostAt: number
+}
+
+/** At most `limit` events per fixed window of `periodMs`. */
+export class RateWindow {
+  private readonly limit: number
+  private readonly periodMs: number
+  private start = 0
+  private count = 0
+  constructor(limit: number, periodMs: number) {
+    this.limit = limit
+    this.periodMs = periodMs
+  }
+  take(now: number): boolean {
+    if (now - this.start >= this.periodMs) {
+      this.start = now
+      this.count = 0
+    }
+    if (this.count >= this.limit) return false
+    this.count++
+    return true
+  }
+}
+
+/**
+ * A mailbox's spending limits. They live in memory: a Durable Object keeps its memory while
+ * it is busy and only hibernates when quiet, so a burst cannot outlast its counters.
+ */
+export type Budgets = { connections: RateWindow; messages: RateWindow }
+export function newBudgets(): Budgets {
+  return {
+    connections: new RateWindow(MAX_CONNECTIONS_PER_MINUTE, 60_000),
+    messages: new RateWindow(MAX_MESSAGES_PER_MINUTE, 60_000)
+  }
 }
 
 /**
@@ -39,6 +76,7 @@ export interface RoomIO<S> {
   save(mailbox: Mailbox): Promise<void>
   randomId(): string
   now(): number
+  budgets: Budgets
 }
 
 /**
@@ -52,6 +90,22 @@ export class Room<S> {
     this.io = io
   }
 
+  /**
+   * Decides whether a new socket may join, before it is accepted. Sockets that never sent a
+   * hello are closed here, so the room needs no timer, which would keep it awake.
+   */
+  admit(): boolean {
+    const now = this.io.now()
+    let open = 0
+    for (const socket of this.io.sockets()) {
+      const attachment = this.io.attachment(socket)
+      if (attachment?.state === 'hello' && now - attachment.at > HELLO_TIMEOUT_MS)
+        this.io.close(socket, CLOSE.error, 'timeout')
+      else open++
+    }
+    return open < MAX_SOCKETS && this.io.budgets.connections.take(now)
+  }
+
   async message(socket: S, data: string | Uint8Array): Promise<void> {
     if (typeof data === 'string' && data === 'ping') {
       this.io.send(socket, 'pong')
@@ -62,6 +116,7 @@ export class Room<S> {
       this.io.close(socket, CLOSE.tooBig, 'too_big')
       return
     }
+    if (!this.io.budgets.messages.take(this.io.now())) return this.fail(socket, 'limited')
     const attachment = this.io.attachment(socket)
     if (!attachment) {
       this.io.close(socket, CLOSE.error, 'bad_request')
@@ -77,7 +132,9 @@ export class Room<S> {
       const message = parseHostMessage(parseJson(data))
       if (!message) return this.fail(socket, 'bad_request')
       const mailbox = await this.io.load()
-      if (mailbox) await this.io.save({ ...mailbox, tickets: message.hashes })
+      // Storage writes are billed, so an unchanged list is not written again.
+      if (mailbox && mailbox.tickets.join() !== message.hashes.join())
+        await this.io.save({ ...mailbox, tickets: message.hashes })
       // A removed ticket takes effect for new pipes; open ones belong to devices the host
       // still trusts until it closes them through the end-to-end channel.
       return

@@ -10,3 +10,16 @@ class_name = "RelayRoom"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RelayRoom"]
+
+# Per-location rate limits, checked in the Worker before a Durable Object wakes, so a
+# reconnect loop or a flood cannot run up Durable Object duration. Limits are approximate.
+# namespace_id only has to be unique within the account.
+[[ratelimits]]
+name = "IP_LIMIT"
+namespace_id = "7101"
+simple = { limit = 120, period = 60 }
+
+[[ratelimits]]
+name = "MAILBOX_LIMIT"
+namespace_id = "7102"
+simple = { limit = 30, period = 60 }

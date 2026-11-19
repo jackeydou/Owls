@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import test, { type TestContext } from 'node:test'
 import { type NodeRelay, startNodeRelay } from '../src/node.ts'
-import { RELAY_PROTOCOL, sha256Hex } from '../src/protocol.ts'
+import { MAX_MESSAGES_PER_MINUTE, MAX_SOCKETS, RELAY_PROTOCOL, sha256Hex } from '../src/protocol.ts'
 
 const token = () => randomBytes(24).toString('base64url')
 
@@ -198,4 +198,25 @@ test('only /v1/<kind>/<mailbox> upgrades', async (t) => {
   await assert.rejects(bad.opened())
   const short = new Peer(`${url}/v1/host/abc`)
   await assert.rejects(short.opened())
+})
+
+test('a mailbox takes a bounded number of sockets', async (t) => {
+  const { url } = await relay(t)
+  const mailbox = token()
+  const idle: Peer[] = []
+  for (let i = 0; i < MAX_SOCKETS; i++) idle.push(open(t, url, 'client', mailbox))
+  await Promise.all(idle.map((peer) => peer.opened()))
+  const extra = new Peer(`${url}/v1/client/${mailbox}`)
+  t.after(() => extra.socket.close())
+  await assert.rejects(extra.opened())
+  const elsewhere = open(t, url, 'client', token())
+  await elsewhere.opened()
+})
+
+test('a mailbox that floods the relay is cut off', async (t) => {
+  const { url } = await relay(t)
+  const { client, pipe } = await openPipe(t, url)
+  for (let i = 0; i <= MAX_MESSAGES_PER_MINUTE; i++) await client.sendBytes(new Uint8Array([1]))
+  assert.equal((await client.closedWith()).reason, 'limited')
+  assert.equal((await pipe.closedWith()).reason, 'closed')
 })

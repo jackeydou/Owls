@@ -36,6 +36,23 @@ export const MAX_PIPES = 8
 /** Tickets a host may register: its paired clients plus one pairing ticket. */
 export const MAX_TICKETS = 64
 
+/*
+ * Cost limits. On Cloudflare every new socket is a billed request and every message wakes
+ * the mailbox's Durable Object, which bills by the time it stays awake, so a broken or
+ * hostile peer must not be able to keep one busy forever. Legitimate use stays far below.
+ */
+/** Open sockets per mailbox, of every kind. */
+export const MAX_SOCKETS = 32
+/** A socket that has not sent its hello this long after connecting is closed. */
+export const HELLO_TIMEOUT_MS = 10_000
+/** New sockets a mailbox accepts per minute. */
+export const MAX_CONNECTIONS_PER_MINUTE = 60
+/**
+ * Messages a mailbox takes per minute, from all its sockets together. A 32 MiB snapshot is
+ * 128 messages of 256 KiB, so this leaves room for several at once.
+ */
+export const MAX_MESSAGES_PER_MINUTE = 3_000
+
 export type ErrorCode =
   /** The hello did not parse, or did not match the socket's kind. */
   | 'bad_request'
@@ -51,6 +68,8 @@ export type ErrorCode =
   | 'replaced'
   /** The peer speaks a relay protocol this relay does not. */
   | 'version'
+  /** The mailbox sent more messages than the relay takes per minute. */
+  | 'limited'
 
 export type Hello =
   | { t: 'host'; v: number; secret: string }
