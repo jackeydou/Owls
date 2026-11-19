@@ -204,15 +204,24 @@ export class RemoteService {
   /** The device key pair, made on first use; the private key is stored only encrypted. */
   private async loadIdentity(): Promise<KeyPair> {
     const saved = this.deps.store.identity()
-    if (saved) {
-      const { plain, stale } = await this.deps.cipher.decrypt(saved.secret)
-      const pair = importKeyPair(plain)
-      if (stale)
-        this.deps.store.saveIdentity({ ...saved, secret: await this.deps.cipher.encrypt(plain) })
-      return pair
-    }
     const reason = await this.deps.cipher.unavailable()
     if (reason) throw new OwltoError('secure_storage_unavailable', reason)
+    if (saved) {
+      const opened = await this.deps.cipher.decrypt(saved.secret).catch(() => null)
+      if (opened) {
+        const pair = importKeyPair(opened.plain)
+        if (opened.stale)
+          this.deps.store.saveIdentity({
+            ...saved,
+            secret: await this.deps.cipher.encrypt(opened.plain)
+          })
+        return pair
+      }
+      // The keychain works but no longer opens the key (its keychain item was replaced), so the
+      // device starts over with a new key. Pairings were bound to the old one: pair again.
+      for (const peer of this.deps.store.peers('host')) this.links.remove(peer.deviceId)
+      for (const peer of this.deps.store.peers('client')) this.revokeClient(peer.deviceId)
+    }
     const pair = generateKeyPair()
     const secret = await this.deps.cipher.encrypt(exportPrivateKey(pair.privateKey))
     this.deps.store.saveIdentity({ publicKey: pair.publicKey, secret })

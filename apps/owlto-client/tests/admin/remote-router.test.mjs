@@ -335,3 +335,19 @@ test('addresses and pairing codes parse the way people type them', () => {
   assert.equal(remotePairSchema.safeParse({ address: 'x', code: 'ILOU1234' }).success, false)
   assert.ok(OwltoError)
 })
+
+test('a key the keychain no longer opens is replaced, and its pairings are dropped', async (t) => {
+  const { host, laptop } = await paired(t)
+  const before = laptop.raw.identity().publicKey
+  // A new keychain item (e.g. the app's name changed): decrypting the stored key fails.
+  const net = network()
+  const again = device(t, 'laptop-again', net, {
+    store: laptop.raw,
+    cipher: { ...cipher, decrypt: async () => Promise.reject(new Error('bad key')) }
+  })
+  await host.service.setAccess(true)
+  host.service.startPairing()
+  await assert.rejects(again.service.pair('nowhere', 'ABCDEFGH'), { code: 'remote_unreachable' })
+  assert.notEqual(laptop.raw.identity().publicKey, before)
+  assert.deepEqual(laptop.raw.peers('host'), [])
+})
