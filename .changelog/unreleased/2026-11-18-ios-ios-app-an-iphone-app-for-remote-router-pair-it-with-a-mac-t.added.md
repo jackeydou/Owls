@@ -1,0 +1,1 @@
+- iOS app: an iPhone app for Remote Router; pair it with a Mac to read threads, message the Router, steer or stop workers, and approve requests or answer questions from the Needs You inbox. (#196)
