@@ -21,6 +21,8 @@ import {
 export const REMOTE_PROTOCOL = 1
 /** The TCP port a host listens on for direct connections. */
 export const REMOTE_PORT = 47320
+/** The Owlto relay, for devices that are not on the same network. */
+export const DEFAULT_RELAY_URL = 'wss://relay.owlto.dev'
 /** How long a pairing code stays valid. */
 export const PAIRING_CODE_TTL_MS = 5 * 60_000
 
@@ -60,17 +62,66 @@ export function formatRemoteAddress({ host, port }: RemoteAddress): string {
   return port === REMOTE_PORT ? shown : `${shown}:${port}`
 }
 
-export const remotePairSchema = z.object({
-  address: remoteAddressSchema,
-  code: pairingCodeSchema
-})
+/**
+ * A pairing invite: everything another device needs to pair through the relay, from any
+ * network. It carries the host's public key, so the relay cannot stand in for the host.
+ *
+ *   owlto://pair?v=1&relay=<wss url>&mailbox=<id>&ticket=<one-time ticket>&code=<code>&key=<public key>
+ */
+export const REMOTE_INVITE_PREFIX = 'owlto://pair?'
+export type RemoteInvite = {
+  relay: string
+  mailbox: string
+  ticket: string
+  code: string
+  key: string
+}
+const TOKEN = /^[A-Za-z0-9_-]{22,128}$/
+const PUBLIC_KEY = /^[A-Za-z0-9_-]{43}$/
+export function formatRemoteInvite(invite: RemoteInvite): string {
+  const params = new URLSearchParams({ v: '1', ...invite })
+  return `${REMOTE_INVITE_PREFIX}${params.toString()}`
+}
+export function parseRemoteInvite(text: string): RemoteInvite | null {
+  const value = text.trim()
+  if (!value.startsWith(REMOTE_INVITE_PREFIX) || value.length > 2048) return null
+  const params = new URLSearchParams(value.slice(REMOTE_INVITE_PREFIX.length))
+  const relay = params.get('relay') ?? ''
+  const mailbox = params.get('mailbox') ?? ''
+  const ticket = params.get('ticket') ?? ''
+  const key = params.get('key') ?? ''
+  const code = pairingCodeSchema.safeParse(params.get('code') ?? '')
+  if (params.get('v') !== '1' || !code.success) return null
+  if (!/^wss?:\/\/[^\s?#]+$/.test(relay) || relay.length > 512) return null
+  if (!TOKEN.test(mailbox) || !TOKEN.test(ticket) || !PUBLIC_KEY.test(key)) return null
+  return { relay, mailbox, ticket, code: code.data, key }
+}
+export const remoteInviteSchema = z
+  .string()
+  .max(2048)
+  .transform((value, ctx) => {
+    const invite = parseRemoteInvite(value)
+    if (!invite) ctx.addIssue({ code: 'custom', message: 'Not a pairing invite.' })
+    return invite ?? z.NEVER
+  })
+
+/** Pair by address and code on the same network, or by an invite from anywhere. */
+export const remotePairSchema = z.union([
+  z.object({ address: remoteAddressSchema, code: pairingCodeSchema }),
+  z.object({ invite: remoteInviteSchema })
+])
 export type RemotePair = z.input<typeof remotePairSchema>
 
 /** A device this Owlto can drive. */
 export type RemoteDevice = {
   deviceId: string
   name: string
-  address: string
+  /** Its address on the network; null for a device paired only through the relay. */
+  address: string | null
+  /** Whether this device can also reach it through the relay. */
+  relay: boolean
+  /** How the open connection goes; null while not connected. */
+  via: 'direct' | 'relay' | null
   pairedAt: string
   status: 'connecting' | 'online' | 'offline'
   /** When it was last connected; null before the first connection after pairing. */
@@ -84,7 +135,20 @@ export type RemoteClient = {
   lastSeenAt: string | null
   connected: boolean
 }
-export type RemotePairing = { code: string; expiresAt: string }
+export type RemotePairing = {
+  code: string
+  expiresAt: string
+  /** An invite to pair through the relay; null while internet connections are off. */
+  invite: string | null
+}
+/** This device's connection to the relay, while it allows internet connections. */
+export type RemoteRelayState = {
+  /** The persisted switch. */
+  enabled: boolean
+  state: 'off' | 'connecting' | 'online' | 'offline'
+  /** Why the relay is not reachable, such as `relay_unreachable`; null otherwise. */
+  error: string | null
+}
 export type RemoteOverview = {
   deviceId: string
   deviceName: string
@@ -96,6 +160,7 @@ export type RemoteOverview = {
   /** This Mac's network addresses another device can use. */
   addresses: string[]
   pairing: RemotePairing | null
+  relay: RemoteRelayState
   clients: RemoteClient[]
   devices: RemoteDevice[]
 }
@@ -171,12 +236,14 @@ export interface RemoteAPI {
   overview(): Promise<Reply<RemoteOverview>>
   /** Turns listening for paired devices on or off; remembered across restarts. */
   setAccess(enabled: boolean): Promise<Reply<RemoteOverview>>
+  /** Turns connections through the relay on or off; remembered across restarts. */
+  setRelay(enabled: boolean): Promise<Reply<RemoteOverview>>
   /** Shows a one-time code another device types to pair. */
   startPairing(): Promise<Reply<RemoteOverview>>
   cancelPairing(): Promise<Reply<RemoteOverview>>
   /** Forgets a device that could drive this one and disconnects it. */
   revokeClient(deviceId: string): Promise<Reply<RemoteOverview>>
-  /** Pairs with a device that shows a code. */
+  /** Pairs with a device that shows a code, or from its invite. */
   pair(input: RemotePair): Promise<Reply<RemoteDevice>>
   removeDevice(deviceId: string): Promise<Reply<RemoteOverview>>
   /** Runs one Router action on a paired device. */

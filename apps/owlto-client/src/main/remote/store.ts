@@ -13,8 +13,16 @@ export type PeerRecord = {
   port: number | null
   pairedAt: string
   lastSeenAt: string | null
+  /** For a host: where it waits on the relay and the ticket this device shows there. */
+  relayUrl: string | null
+  relayMailbox: string | null
+  relayTicket: string | null
+  /** For a client: the hash of the relay ticket it holds, as the relay stores it. */
+  relayTicketHash: string | null
 }
 export type IdentityRecord = { publicKey: string; secret: string }
+/** This device's mailbox on the relay; the secret is encrypted with safeStorage. */
+export type RelayIdentity = { mailbox: string; secret: string }
 
 const IDENTITY_ROW = 'local'
 
@@ -34,6 +42,24 @@ export class RemoteStore {
       .insert(remoteIdentityTable)
       .values({ id: IDENTITY_ROW, ...identity, createdAt: new Date().toISOString() })
       .onConflictDoUpdate({ target: remoteIdentityTable.id, set: identity })
+      .run()
+  }
+  relayIdentity(): RelayIdentity | null {
+    const row = this.db
+      .select()
+      .from(remoteIdentityTable)
+      .where(eq(remoteIdentityTable.id, IDENTITY_ROW))
+      .get()
+    return row?.relayMailbox && row.relaySecret
+      ? { mailbox: row.relayMailbox, secret: row.relaySecret }
+      : null
+  }
+  /** Stores the relay mailbox, or forgets it; the identity row must exist (the key pair comes first). */
+  saveRelayIdentity(relay: RelayIdentity | null): void {
+    this.db
+      .update(remoteIdentityTable)
+      .set({ relayMailbox: relay?.mailbox ?? null, relaySecret: relay?.secret ?? null })
+      .where(eq(remoteIdentityTable.id, IDENTITY_ROW))
       .run()
   }
   /** Peers in one role, by name then id, so lists stay in a stable order. */
@@ -66,6 +92,29 @@ export class RemoteStore {
       .update(remotePeersTable)
       .set({ lastSeenAt: at, name })
       .where(and(eq(remotePeersTable.deviceId, deviceId), eq(remotePeersTable.role, role)))
+      .run()
+  }
+  /** A host's relay route as this device last received it. */
+  saveRelayRoute(
+    deviceId: string,
+    route: { url: string; mailbox: string; ticket: string } | null
+  ): void {
+    this.db
+      .update(remotePeersTable)
+      .set({
+        relayUrl: route?.url ?? null,
+        relayMailbox: route?.mailbox ?? null,
+        relayTicket: route?.ticket ?? null
+      })
+      .where(and(eq(remotePeersTable.deviceId, deviceId), eq(remotePeersTable.role, 'host')))
+      .run()
+  }
+  /** A client's relay ticket hash; null takes its relay access away. */
+  saveTicketHash(deviceId: string, hash: string | null): void {
+    this.db
+      .update(remotePeersTable)
+      .set({ relayTicketHash: hash })
+      .where(and(eq(remotePeersTable.deviceId, deviceId), eq(remotePeersTable.role, 'client')))
       .run()
   }
   removePeer(deviceId: string, role: PeerRole): void {

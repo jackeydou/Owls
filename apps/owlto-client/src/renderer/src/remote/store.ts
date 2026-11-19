@@ -11,6 +11,7 @@ type RemoteState = {
   error: Failure | null
   load(): Promise<void>
   setAccess(enabled: boolean): Promise<void>
+  setRelay(enabled: boolean): Promise<void>
   startPairing(): Promise<void>
   cancelPairing(): Promise<void>
   revokeClient(deviceId: string): Promise<void>
@@ -39,6 +40,7 @@ export const useRemoteStore = create<RemoteState>((set, get) => {
     error: null,
     load: () => update(() => window.owlto.remote.overview()),
     setAccess: (enabled) => update(() => window.owlto.remote.setAccess(enabled)),
+    setRelay: (enabled) => update(() => window.owlto.remote.setRelay(enabled)),
     startPairing: () => update(() => window.owlto.remote.startPairing()),
     cancelPairing: () => update(() => window.owlto.remote.cancelPairing()),
     revokeClient: (deviceId) => update(() => window.owlto.remote.revokeClient(deviceId)),

@@ -141,6 +141,7 @@ const api: OwltoAPI = {
   remote: {
     overview: () => ipcRenderer.invoke('owlto:remote-overview'),
     setAccess: (enabled) => ipcRenderer.invoke('owlto:remote-set-access', enabled),
+    setRelay: (enabled) => ipcRenderer.invoke('owlto:remote-set-relay', enabled),
     startPairing: () => ipcRenderer.invoke('owlto:remote-start-pairing'),
     cancelPairing: () => ipcRenderer.invoke('owlto:remote-cancel-pairing'),
     revokeClient: (deviceId) => ipcRenderer.invoke('owlto:remote-revoke-client', deviceId),

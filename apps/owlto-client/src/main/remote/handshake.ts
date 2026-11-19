@@ -155,7 +155,8 @@ const HANDSHAKE_TIMEOUT_MS = 15_000
 
 export type InitiatorMode =
   | { kind: 'auth'; deviceId: string; publicKey: string }
-  | { kind: 'pair'; code: string }
+  /** `key`, when known (from an invite), pins the host's public key: nobody else can answer. */
+  | { kind: 'pair'; code: string; key?: string }
 
 /** Opens a connection as the side that dialed. Resolves with the channel and who answered. */
 export async function initiate(
@@ -184,6 +185,8 @@ export async function initiate(
       (hs2.deviceId !== mode.deviceId || hs2.publicKey !== mode.publicKey)
     )
       throw new HandshakeError('identity_changed')
+    if (mode.kind === 'pair' && mode.key && hs2.publicKey !== mode.key)
+      throw new HandshakeError('auth_failed')
     const transcript = sha256(hs1, hs2Frame)
     const secrets = [
       dh(ephemeral.privateKey, hs2.ephemeral),

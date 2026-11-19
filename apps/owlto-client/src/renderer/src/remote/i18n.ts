@@ -8,6 +8,18 @@ export const remoteEn = {
   'remote.access': 'Let paired devices use this Mac',
   'remote.accessHelp':
     "Paired devices can message this Mac's Router and run workers here, with this Mac's agents and plan usage. Owlto must stay open, and the Mac awake.",
+  'remote.relayAccess': 'Allow connections over the internet',
+  'remote.relayAccessHelp':
+    'Paired devices on other networks reach this Mac through the Owlto relay. Everything is end-to-end encrypted; the relay only passes it along.',
+  'remote.relay.online': 'Connected to the relay',
+  'remote.relay.connecting': 'Connecting to the relay…',
+  'remote.relay.offline': 'Cannot reach the relay',
+  'remote.inviteHelp': 'From another network, paste this invite on the other device instead:',
+  'remote.inviteLabel': 'Pairing invite',
+  'remote.inviteCopy': 'Copy invite',
+  'remote.inviteCopied': 'Copied',
+  'remote.viaRelay': 'via relay',
+  'remote.viaRelayOnly': 'Through the relay',
   'remote.addresses': 'Address',
   'remote.addressesHelp':
     'Type one of these on the other device. Same Wi-Fi works as is; from elsewhere, use the Tailscale address.',
@@ -26,9 +38,9 @@ export const remoteEn = {
   'remote.neverSeen': 'Not connected yet',
   'remote.add': 'Add a device',
   'remote.addHelp':
-    'On the other Mac, open Settings → Devices, turn on access, and click Show code. Then enter its address and the code here.',
+    'On the other Mac, open Settings → Devices, turn on access, and click Show code. Then enter its address and the code here, or paste its invite to pair from another network.',
   'remote.addAddress': 'Address of the other Mac',
-  'remote.addAddressPlaceholder': '192.168.1.20 or mac-mini.tail1234.ts.net',
+  'remote.addAddressPlaceholder': '192.168.1.20, mac-mini.tail1234.ts.net, or an invite',
   'remote.addCode': 'Pairing code',
   'remote.addCodePlaceholder': 'ABCD-EFGH',
   'remote.addSubmit': 'Pair',
@@ -65,6 +77,18 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'remote.access': '允许已配对的设备使用这台 Mac',
   'remote.accessHelp':
     '已配对的设备可以给这台 Mac 的 Router 发消息，并在这里运行 Worker，使用这台 Mac 的 agent 和额度。需要保持 Owlto 打开、Mac 不睡眠。',
+  'remote.relayAccess': '允许通过互联网连接',
+  'remote.relayAccessHelp':
+    '不在同一网络的已配对设备会通过 Owlto 中继连到这台 Mac。所有内容端到端加密，中继只负责转发。',
+  'remote.relay.online': '已连接到中继',
+  'remote.relay.connecting': '正在连接中继…',
+  'remote.relay.offline': '无法连接到中继',
+  'remote.inviteHelp': '如果在别的网络，请在另一台设备上粘贴这个邀请：',
+  'remote.inviteLabel': '配对邀请',
+  'remote.inviteCopy': '复制邀请',
+  'remote.inviteCopied': '已复制',
+  'remote.viaRelay': '经中继',
+  'remote.viaRelayOnly': '通过中继连接',
   'remote.addresses': '地址',
   'remote.addressesHelp':
     '在另一台设备上输入其中一个。同一个 Wi-Fi 下直接可用；在别处请用 Tailscale 地址。',
@@ -83,9 +107,9 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'remote.neverSeen': '还没有连接过',
   'remote.add': '添加设备',
   'remote.addHelp':
-    '在另一台 Mac 上打开 设置 → 设备，打开访问开关并点「显示配对码」，然后在这里输入它的地址和配对码。',
+    '在另一台 Mac 上打开 设置 → 设备，打开访问开关并点「显示配对码」，然后在这里输入它的地址和配对码；不在同一网络时，粘贴它的邀请即可配对。',
   'remote.addAddress': '另一台 Mac 的地址',
-  'remote.addAddressPlaceholder': '192.168.1.20 或 mac-mini.tail1234.ts.net',
+  'remote.addAddressPlaceholder': '192.168.1.20、mac-mini.tail1234.ts.net 或邀请',
   'remote.addCode': '配对码',
   'remote.addCodePlaceholder': 'ABCD-EFGH',
   'remote.addSubmit': '配对',

@@ -511,8 +511,12 @@ const service = new RemoteService({
   saveAccess: (enabled) => {
     access = enabled
   },
+  // The phone has no relay transport yet, so the dev host stays direct only.
+  relayEnabled: () => false,
+  saveRelay: () => {},
   listen: tcpListen,
   dial: connectFrames,
+  dialRelay: () => Promise.reject(new Error('The dev host does not use the relay.')),
   toFailure,
   changed: (overview) => report(overview),
   remoteEvent: () => {},

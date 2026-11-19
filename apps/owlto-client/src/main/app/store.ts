@@ -65,7 +65,8 @@ export class OwltoStore {
           openInApp: null,
           profile: defaultProfile,
           onboarding: 'pending',
-          remoteAccess: false
+          remoteAccess: false,
+          remoteRelay: false
         }
   }
   saveSettings(value: AppSettings): AppSettings {

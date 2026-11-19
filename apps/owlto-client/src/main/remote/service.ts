@@ -1,19 +1,22 @@
 import { hostname, networkInterfaces } from 'node:os'
 import type { AppEvent, Failure } from '../../shared/app.js'
 import {
+  DEFAULT_RELAY_URL,
   isRemoteEvent,
   REMOTE_PORT,
   type RemoteDevice,
   type RemoteEvent,
   type RemoteMethod,
   type RemoteOverview,
-  remoteMethodSchemas
+  remoteMethodSchemas,
+  remotePairSchema
 } from '../../shared/remote.js'
 import { OwltoError } from '../app/errors.js'
 import type { SecretCipher } from '../router/credentials.js'
-import { type Dial, HostLinks } from './client.js'
+import { type Dial, type DialRelay, HostLinks } from './client.js'
 import { exportPrivateKey, generateKeyPair, importKeyPair, type KeyPair } from './crypto.js'
 import type { Me } from './handshake.js'
+import { newRelayToken, RelayListener } from './relay.js'
 import { HostServer, type Listen, type RemoteHostApi } from './server.js'
 import type { RemoteStore } from './store.js'
 
@@ -26,8 +29,14 @@ export type RemoteServiceDeps = {
   /** The persisted remote access switch. */
   accessEnabled: () => boolean
   saveAccess: (enabled: boolean) => void
+  /** The persisted switch for connections through the relay. */
+  relayEnabled: () => boolean
+  saveRelay: (enabled: boolean) => void
   listen: Listen
   dial: Dial
+  dialRelay: DialRelay
+  /** The relay's base URL; the Owlto relay unless a test runs its own. */
+  relayUrl?: string
   toFailure: (error: unknown) => Failure
   /** The overview changed: devices, connections, pairing, or listening. */
   changed: (overview: RemoteOverview) => void
@@ -59,6 +68,9 @@ export function localAddresses(): string[] {
  */
 export class RemoteService {
   private identity: Promise<KeyPair> | null = null
+  private relay: RelayListener | null = null
+  private relayError: string | null = null
+  private readonly relayUrl: string
   private listenError: string | null = null
   private readonly server: HostServer
   private readonly links: HostLinks
@@ -67,6 +79,7 @@ export class RemoteService {
   constructor(private readonly deps: RemoteServiceDeps) {
     this.port = deps.port ?? REMOTE_PORT
     this.now = deps.now ?? (() => new Date())
+    this.relayUrl = deps.relayUrl ?? DEFAULT_RELAY_URL
     const me = () => this.me()
     const changed = () => this.changed()
     this.server = new HostServer({
@@ -76,12 +89,18 @@ export class RemoteService {
       listen: deps.listen,
       toFailure: deps.toFailure,
       changed,
-      now: this.now
+      now: this.now,
+      relay: () => {
+        const mailbox = this.relay ? this.deps.store.relayIdentity()?.mailbox : null
+        return mailbox ? { url: this.relayUrl, mailbox } : null
+      },
+      ticketsChanged: () => this.relay?.pushTickets()
     })
     this.links = new HostLinks({
       store: deps.store,
       me,
       dial: deps.dial,
+      dialRelay: deps.dialRelay,
       toFailure: deps.toFailure,
       changed,
       event: deps.remoteEvent,
@@ -91,7 +110,11 @@ export class RemoteService {
 
   /** Listens when remote access was on, and connects to paired hosts. Failures show in the overview. */
   start(): void {
-    if (this.deps.accessEnabled()) void this.listen().catch(() => {})
+    if (this.deps.accessEnabled())
+      void this.listen().then(
+        () => (this.deps.relayEnabled() ? this.startRelay() : undefined),
+        () => {}
+      )
     if (this.deps.store.peers('host').length)
       void this.me().then(
         () => this.links.start(),
@@ -99,8 +122,14 @@ export class RemoteService {
       )
   }
   close(): void {
+    this.stopRelay()
     this.server.stop()
     this.links.close()
+  }
+  /** Reconnects right away after the Mac wakes or its network changes. */
+  wake(): void {
+    this.relay?.reconnectNow()
+    this.links.wake()
   }
   overview(): RemoteOverview {
     return {
@@ -111,6 +140,11 @@ export class RemoteService {
       port: this.port,
       addresses: this.server.listening() ? (this.deps.addresses ?? localAddresses)() : [],
       pairing: this.server.pairingState(),
+      relay: {
+        enabled: this.deps.relayEnabled(),
+        state: this.relay ? this.relay.status().state : 'off',
+        error: this.relay ? this.relay.status().error : this.relayError
+      },
       clients: this.deps.store.peers('client').map((peer) => ({
         deviceId: peer.deviceId,
         name: peer.name,
@@ -123,11 +157,21 @@ export class RemoteService {
   }
   async setAccess(enabled: boolean): Promise<RemoteOverview> {
     this.deps.saveAccess(enabled)
-    if (enabled) await this.listen()
-    else {
+    if (enabled) {
+      await this.listen()
+      if (this.deps.relayEnabled()) await this.startRelay()
+    } else {
+      this.stopRelay()
       this.server.stop()
       this.listenError = null
     }
+    return this.changed()
+  }
+  /** Turns connections through the relay on or off; they also need remote access. */
+  async setRelay(enabled: boolean): Promise<RemoteOverview> {
+    this.deps.saveRelay(enabled)
+    if (enabled && this.server.listening()) await this.startRelay()
+    else if (!enabled) this.stopRelay()
     return this.changed()
   }
   startPairing(): RemoteOverview {
@@ -142,10 +186,12 @@ export class RemoteService {
   revokeClient(deviceId: string): RemoteOverview {
     this.deps.store.removePeer(deviceId, 'client')
     this.server.disconnect(deviceId)
+    this.relay?.pushTickets()
     return this.changed()
   }
-  async pair(address: string, code: string): Promise<RemoteDevice> {
-    const device = await this.links.pair(address, code)
+  /** Pairs by address and code, or from an invite (a `RemotePair`); the input is checked here. */
+  async pair(input: unknown): Promise<RemoteDevice> {
+    const device = await this.links.pair(remotePairSchema.parse(input))
     this.changed()
     return device
   }
@@ -191,6 +237,44 @@ export class RemoteService {
       throw error
     }
   }
+  /** Connects this host to its relay mailbox, making the mailbox on first use. */
+  private async startRelay(): Promise<void> {
+    if (this.relay) return
+    try {
+      await this.me()
+      let saved = this.deps.store.relayIdentity()
+      let secret: string | null = null
+      if (saved) {
+        const opened = await this.deps.cipher.decrypt(saved.secret).catch(() => null)
+        secret = opened?.plain ?? null
+      }
+      if (!saved || !secret) {
+        // No mailbox yet, or its secret no longer opens: start a new one. Clients get its
+        // route the next time they connect directly, or pair again.
+        secret = newRelayToken()
+        saved = { mailbox: newRelayToken(), secret: await this.deps.cipher.encrypt(secret) }
+        this.deps.store.saveRelayIdentity(saved)
+      }
+      this.relayError = null
+      this.relay = new RelayListener({
+        url: this.relayUrl,
+        mailbox: saved.mailbox,
+        secret,
+        tickets: () => this.server.tickets(),
+        accept: (frames) => this.server.accept(frames),
+        changed: () => this.changed()
+      })
+      this.relay.start()
+    } catch (error) {
+      this.relayError = error instanceof Error ? error.message : 'relay_unavailable'
+      this.changed()
+    }
+  }
+  private stopRelay(): void {
+    this.relay?.close()
+    this.relay = null
+    this.relayError = null
+  }
   private changed(): RemoteOverview {
     const overview = this.overview()
     this.deps.changed(overview)
@@ -229,6 +313,7 @@ export class RemoteService {
       // device starts over with a new key. Pairings were bound to the old one: pair again.
       for (const peer of this.deps.store.peers('host')) this.links.remove(peer.deviceId)
       for (const peer of this.deps.store.peers('client')) this.revokeClient(peer.deviceId)
+      this.deps.store.saveRelayIdentity(null)
     }
     const pair = generateKeyPair()
     const secret = await this.deps.cipher.encrypt(exportPrivateKey(pair.privateKey))

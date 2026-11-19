@@ -355,7 +355,12 @@ export const settingsSchema = z.object({
    * Lets paired devices drive this device's Router (Remote Router); added later, so
    * older rows have it off. Saved only through the remote settings.
    */
-  remoteAccess: z.boolean().catch(false).default(false)
+  remoteAccess: z.boolean().catch(false).default(false),
+  /**
+   * Lets paired devices reach this device through the Owlto relay when they are not on its
+   * network; needs `remoteAccess`. Added later, so older rows have it off.
+   */
+  remoteRelay: z.boolean().catch(false).default(false)
 })
 /**
  * Rows from before `connectedAgents` remembered the opposite, the agents the user
@@ -385,7 +390,8 @@ export const settingsUpdateSchema = settingsSchema
     workspaceDismissed: true,
     connectedAgents: true,
     profile: true,
-    remoteAccess: true
+    remoteAccess: true,
+    remoteRelay: true
   })
   .strict()
 export const modelSchema = z.object({

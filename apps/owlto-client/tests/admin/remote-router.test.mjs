@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { startNodeRelay } from '../../../../packages/owlto-relay/src/node.ts'
 import { openSqlite } from '../fixtures/sqlite.mjs'
 
 const require = createRequire(import.meta.url)
@@ -16,7 +17,9 @@ const {
   RemoteService,
   RemoteStore,
   connectFrames,
+  dialRelay,
   normalizePairingCode,
+  parseRemoteInvite,
   parseRemoteAddress,
   remotePairSchema,
   tcpListen,
@@ -133,6 +136,7 @@ function device(t, name, net, overrides = {}) {
   const client = openSqlite(join(dir, 'owlto.db'))
   const store = new OwltoStore(client, MIGRATIONS)
   let access = false
+  let relay = false
   const calls = []
   const events = []
   const overviews = []
@@ -146,8 +150,13 @@ function device(t, name, net, overrides = {}) {
     saveAccess: (enabled) => {
       access = enabled
     },
+    relayEnabled: () => relay,
+    saveRelay: (enabled) => {
+      relay = enabled
+    },
     listen: net ? net.listen(name) : tcpListen,
     dial: net ? net.dial : connectFrames,
+    dialRelay,
     toFailure,
     changed: (overview) => overviews.push(overview),
     remoteEvent: (deviceId, event) => events.push({ deviceId, event }),
@@ -177,8 +186,24 @@ async function paired(t, address = 'mini') {
   const laptop = device(t, 'laptop', net)
   await host.service.setAccess(true)
   const { pairing } = host.service.startPairing()
-  const remote = await laptop.service.pair(address, pairing.code.toLowerCase())
+  const remote = await laptop.service.pair({ address, code: pairing.code.toLowerCase() })
   return { net, host, laptop, remote }
+}
+
+/** A Node relay for the test, like the Owlto relay but local. */
+async function localRelay(t) {
+  const relay = await startNodeRelay()
+  t.after(() => relay.close())
+  return relay
+}
+
+/** A host that allows internet connections and is registered with the relay. */
+async function relayHost(t, net, relayUrl, overrides = {}) {
+  const host = device(t, 'mini', net, { relayUrl, ...overrides })
+  await host.service.setAccess(true)
+  await host.service.setRelay(true)
+  await until(() => host.service.overview().relay.state === 'online')
+  return host
 }
 
 test('pairing with the code links both devices and stores only an encrypted key', async (t) => {
@@ -253,13 +278,15 @@ test('a wrong code fails, and five wrong codes end the pairing', async (t) => {
   const { pairing } = host.service.startPairing()
   const wrong = pairing.code === 'AAAAAAAA' ? 'BBBBBBBB' : 'AAAAAAAA'
   for (let i = 0; i < 5; i++) {
-    await assert.rejects(laptop.service.pair('mini', wrong), (error) => {
+    await assert.rejects(laptop.service.pair({ address: 'mini', code: wrong }), (error) => {
       assert.equal(error.code, 'remote_pairing_failed')
       return true
     })
   }
   assert.equal(host.service.overview().pairing, null)
-  await assert.rejects(laptop.service.pair('mini', pairing.code), { code: 'remote_pairing_failed' })
+  await assert.rejects(laptop.service.pair({ address: 'mini', code: pairing.code }), {
+    code: 'remote_pairing_failed'
+  })
   assert.deepEqual(host.service.overview().clients, [])
   assert.deepEqual(laptop.service.overview().devices, [])
 })
@@ -269,7 +296,9 @@ test('pairing needs remote access, and an unknown address is unreachable', async
   const host = device(t, 'mini', net)
   const laptop = device(t, 'laptop', net)
   assert.throws(() => host.service.startPairing(), { code: 'remote_unsupported' })
-  await assert.rejects(laptop.service.pair('nowhere', 'ABCDEFGH'), { code: 'remote_unreachable' })
+  await assert.rejects(laptop.service.pair({ address: 'nowhere', code: 'ABCDEFGH' }), {
+    code: 'remote_unreachable'
+  })
 })
 
 test('revoking a device closes it out; it cannot reconnect with its old key', async (t) => {
@@ -300,7 +329,7 @@ test('direct connections work over real TCP', async (t) => {
   const laptop = device(t, 'laptop', null)
   await host.service.setAccess(true)
   const { pairing } = host.service.startPairing()
-  const remote = await laptop.service.pair(`127.0.0.1:${port}`, pairing.code)
+  const remote = await laptop.service.pair({ address: `127.0.0.1:${port}`, code: pairing.code })
   assert.deepEqual(parseRemoteAddress(remote.address), { host: '127.0.0.1', port })
   await laptop.service.call(remote.deviceId, 'interruptRouter', randomUUID())
   assert.deepEqual(
@@ -334,6 +363,20 @@ test('addresses and pairing codes parse the way people type them', () => {
   assert.equal(normalizePairingCode('abcd-efgh'), 'ABCDEFGH')
   assert.equal(remotePairSchema.safeParse({ address: 'x', code: 'abcd efgh' }).success, true)
   assert.equal(remotePairSchema.safeParse({ address: 'x', code: 'ILOU1234' }).success, false)
+  const invite =
+    'owlto://pair?v=1&relay=wss%3A%2F%2Frelay.owlto.dev&mailbox=AAAAAAAAAAAAAAAAAAAAAAAA&ticket=BBBBBBBBBBBBBBBBBBBBBBBB&code=abcd-efgh&key=' +
+    'C'.repeat(43)
+  assert.deepEqual(parseRemoteInvite(invite), {
+    relay: 'wss://relay.owlto.dev',
+    mailbox: 'A'.repeat(24),
+    ticket: 'B'.repeat(24),
+    code: 'ABCDEFGH',
+    key: 'C'.repeat(43)
+  })
+  assert.equal(remotePairSchema.safeParse({ invite }).success, true)
+  assert.equal(parseRemoteInvite(invite.replace('v=1', 'v=2')), null)
+  assert.equal(parseRemoteInvite(invite.replace('wss%3A', 'http%3A')), null)
+  assert.equal(remotePairSchema.safeParse({ invite: 'owlto://pair?v=1' }).success, false)
   assert.ok(OwltoError)
 })
 
@@ -348,7 +391,9 @@ test('a key the keychain no longer opens is replaced, and its pairings are dropp
   })
   await host.service.setAccess(true)
   host.service.startPairing()
-  await assert.rejects(again.service.pair('nowhere', 'ABCDEFGH'), { code: 'remote_unreachable' })
+  await assert.rejects(again.service.pair({ address: 'nowhere', code: 'ABCDEFGH' }), {
+    code: 'remote_unreachable'
+  })
   assert.notEqual(laptop.raw.identity().publicKey, before)
   assert.deepEqual(laptop.raw.peers('host'), [])
 })
@@ -361,4 +406,115 @@ test('remote access reports a keychain that will not open instead of listening',
   const overview = await host.service.setAccess(true).catch(() => host.service.overview())
   assert.equal(overview.listening, false)
   assert.match(overview.listenError ?? '', /keychain/)
+})
+
+test('a device on another network pairs from the invite and drives the host through the relay', async (t) => {
+  const { url } = await localRelay(t)
+  const host = await relayHost(t, network(), url)
+  // The laptop shares no network with the host: only the relay connects them.
+  const laptop = device(t, 'laptop', network())
+  const { pairing } = host.service.startPairing()
+  assert.ok(pairing.invite?.startsWith('owlto://pair?'))
+  const remote = await laptop.service.pair({ invite: pairing.invite })
+  assert.equal(remote.deviceId, host.store.deviceId)
+  assert.equal(remote.address, null)
+  assert.equal(remote.relay, true)
+  assert.equal(remote.via, 'relay')
+  assert.equal(host.service.overview().pairing, null, 'the invite works once')
+  // The invite's ticket was swapped for the laptop's own.
+  const saved = laptop.raw.peer(remote.deviceId, 'host')
+  assert.notEqual(saved.relayTicket, parseRemoteInvite(pairing.invite).ticket)
+  await laptop.service.call(remote.deviceId, 'sendRouter', {
+    routerId: randomUUID(),
+    commandId: randomUUID(),
+    text: 'From the café'
+  })
+  assert.deepEqual(
+    host.calls.map((c) => c.name),
+    ['sendRouter']
+  )
+  host.service.observe({ type: 'router', router: { id: 'r1' } })
+  await until(() => laptop.events.length === 1)
+})
+
+test('frames larger than a relay message arrive whole', async (t) => {
+  const { url } = await localRelay(t)
+  const big = 'x'.repeat(900 * 1024)
+  // A long thread's items: one frame of about 900 KB, far over one relay message.
+  const items = [{ id: 'i1', text: big }]
+  const host = await relayHost(t, network(), url, {
+    api: { ...hostApi([]), threadItems: () => items }
+  })
+  const laptop = device(t, 'laptop', network())
+  const { pairing } = host.service.startPairing()
+  const remote = await laptop.service.pair({ invite: pairing.invite })
+  const reply = await laptop.service.call(remote.deviceId, 'threadItems', {
+    routerId: randomUUID()
+  })
+  assert.equal(reply[0].text.length, big.length)
+})
+
+test('a device paired on the same network learns the relay route and falls back to it', async (t) => {
+  const { url } = await localRelay(t)
+  const net = network()
+  const host = await relayHost(t, net, url)
+  const laptop = device(t, 'laptop', net)
+  const { pairing } = host.service.startPairing()
+  const remote = await laptop.service.pair({ address: 'mini', code: pairing.code })
+  assert.equal(remote.via, 'direct')
+  await until(() => laptop.service.overview().devices[0].relay)
+  // The laptop leaves the network: the direct address stops answering, the relay does not.
+  const away = device(t, 'laptop-away', network(), {
+    store: laptop.raw,
+    deviceId: laptop.store.deviceId
+  })
+  await away.service.call(remote.deviceId, 'interruptRouter', randomUUID())
+  assert.equal(away.service.overview().devices[0].via, 'relay')
+  assert.deepEqual(
+    host.calls.map((c) => c.name),
+    ['interruptRouter']
+  )
+})
+
+test('a revoked device cannot come back through the relay', async (t) => {
+  const { url } = await localRelay(t)
+  const host = await relayHost(t, network(), url)
+  const laptop = device(t, 'laptop', network())
+  const { pairing } = host.service.startPairing()
+  const remote = await laptop.service.pair({ invite: pairing.invite })
+  host.service.revokeClient(laptop.store.deviceId)
+  await until(() => laptop.service.overview().devices[0].status !== 'online')
+  await assert.rejects(laptop.service.call(remote.deviceId, 'snapshot', undefined), {
+    code: 'remote_identity_changed'
+  })
+  assert.equal(host.calls.length, 0)
+})
+
+test('an invite pins the host key, and an offline host reads as offline', async (t) => {
+  const { url } = await localRelay(t)
+  const host = await relayHost(t, network(), url)
+  const laptop = device(t, 'laptop', network())
+  const { pairing } = host.service.startPairing()
+  const forged = pairing.invite.replace(/key=[^&]+/, `key=${'A'.repeat(43)}`)
+  await assert.rejects(laptop.service.pair({ invite: forged }), {
+    code: 'remote_pairing_failed'
+  })
+  const { pairing: fresh } = host.service.startPairing()
+  await host.service.setRelay(false)
+  await assert.rejects(laptop.service.pair({ invite: fresh.invite }), (error) => {
+    assert.ok(['remote_offline', 'remote_pairing_failed'].includes(error.code), error.code)
+    return true
+  })
+})
+
+test('the host keeps its relay mailbox across restarts and stores its secret encrypted', async (t) => {
+  const { url } = await localRelay(t)
+  const host = await relayHost(t, network(), url)
+  const first = host.raw.relayIdentity()
+  assert.match(first.secret, /^enc:/)
+  await host.service.setAccess(false)
+  assert.equal(host.service.overview().relay.state, 'off')
+  await host.service.setAccess(true)
+  await until(() => host.service.overview().relay.state === 'online')
+  assert.deepEqual(host.raw.relayIdentity(), first)
 })

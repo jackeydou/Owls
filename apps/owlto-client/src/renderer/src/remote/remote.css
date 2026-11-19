@@ -130,3 +130,34 @@
   flex-basis: 100%;
   margin: 0;
 }
+.remote-pairing {
+  flex-wrap: wrap;
+}
+.remote-invite {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.remote-invite > span {
+  flex-basis: 100%;
+}
+.remote-pairing .remote-invite code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--owl-text-xs);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.remote-relay-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}

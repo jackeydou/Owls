@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createSdkMcpServer, query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
-import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, dialog, powerMonitor, safeStorage, shell } from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { RemoteEvent, RemoteEventEnvelope, RemoteOverview } from '../../shared/remote.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
@@ -45,6 +45,7 @@ import {
 import { connectFrames } from '../remote/frames.js'
 import { remoteHostApi } from '../remote/host-api.js'
 import { registerRemoteIpc } from '../remote/ipc.js'
+import { dialRelay } from '../remote/relay.js'
 import { tcpListen } from '../remote/server.js'
 import { RemoteService } from '../remote/service.js'
 import { RemoteStore } from '../remote/store.js'
@@ -475,8 +476,12 @@ void app
       accessEnabled: () => store.settings().remoteAccess,
       saveAccess: (enabled) =>
         host.saveSettings({ ...host.snapshot().settings, remoteAccess: enabled }),
+      relayEnabled: () => store.settings().remoteRelay,
+      saveRelay: (enabled) =>
+        host.saveSettings({ ...host.snapshot().settings, remoteRelay: enabled }),
       listen: tcpListen,
       dial: (address, port) => connectFrames(address, port),
+      dialRelay,
       toFailure,
       changed: remoteChanged,
       remoteEvent
@@ -501,7 +506,11 @@ void app
     registerRemoteIpc(handle, remote)
     applyAppMenu(store.settings(), menu)
     createWindow()
-    if (REMOTE_ROUTER_ENABLED) remote.start()
+    if (REMOTE_ROUTER_ENABLED) {
+      remote.start()
+      // Sleep drops every connection; reconnect at once on wake instead of after the backoff.
+      powerMonitor.on('resume', () => remote?.wake())
+    }
     analytics?.start()
     updater.start()
     // Agent CLIs and the commands they run inherit PATH, so they start after the shell's is in.
