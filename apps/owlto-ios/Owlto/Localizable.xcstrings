@@ -1,0 +1,1410 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    " · ": {
+      "shouldTranslate": false
+    },
+    "%@ has a question": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 有一个问题"
+          }
+        }
+      }
+    },
+    "%@ is not connected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 没有连接"
+          }
+        }
+      }
+    },
+    "%@ is working": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 正在工作"
+          }
+        }
+      }
+    },
+    "%@ needs approval": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 需要授权"
+          }
+        }
+      }
+    },
+    "%@, %@": {
+      "shouldTranslate": false
+    },
+    "%@/%@": {
+      "shouldTranslate": false
+    },
+    "%lld": {
+      "shouldTranslate": false
+    },
+    "%lld events were not confirmed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 条事件没有确认送达"
+          }
+        }
+      }
+    },
+    "%lld events: resend or drop?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 条事件：重发还是丢掉？"
+          }
+        }
+      }
+    },
+    "%lld queued, sent when this turn ends": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排队中 %lld 条，这一轮结束后发送"
+          }
+        }
+      }
+    },
+    "%lld waiting on you": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个等你"
+          }
+        }
+      }
+    },
+    "%lld working": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个在工作"
+          }
+        }
+      }
+    },
+    "+%lld": {
+      "shouldTranslate": false
+    },
+    "192.168.1.20 or mac-mini.tail1234.ts.net": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "192.168.1.20 或 mac-mini.tail1234.ts.net"
+          }
+        }
+      }
+    },
+    "ABCD-EFGH": {
+      "shouldTranslate": false
+    },
+    "Add a Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加 Mac"
+          }
+        }
+      }
+    },
+    "Address of the Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac 的地址"
+          }
+        }
+      }
+    },
+    "Agent": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent"
+          }
+        }
+      }
+    },
+    "Allow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许"
+          }
+        }
+      }
+    },
+    "Answer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答"
+          }
+        }
+      }
+    },
+    "Archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "归档"
+          }
+        }
+      }
+    },
+    "Archive thread": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "归档对话"
+          }
+        }
+      }
+    },
+    "Artifacts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "产出"
+          }
+        }
+      }
+    },
+    "Blocked": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受阻"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "Change files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修改文件"
+          }
+        }
+      }
+    },
+    "Changes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件改动"
+          }
+        }
+      }
+    },
+    "Click Show code. The code works for 5 minutes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点「显示配对码」，配对码 5 分钟内有效。"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
+    "Connect your Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接你的 Mac"
+          }
+        }
+      }
+    },
+    "Connecting to %@…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在连接 %@…"
+          }
+        }
+      }
+    },
+    "Connecting · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接中 · %@"
+          }
+        }
+      }
+    },
+    "Conversation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对话"
+          }
+        }
+      }
+    },
+    "Could not open the file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打不开这个文件"
+          }
+        }
+      }
+    },
+    "Decline": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拒绝"
+          }
+        }
+      }
+    },
+    "Delivery unknown": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不确定是否送达"
+          }
+        }
+      }
+    },
+    "Device ID": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备 ID"
+          }
+        }
+      }
+    },
+    "Device: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备：%@"
+          }
+        }
+      }
+    },
+    "Devices": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备"
+          }
+        }
+      }
+    },
+    "Dismiss": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
+          }
+        }
+      }
+    },
+    "Drop": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "丢掉"
+          }
+        }
+      }
+    },
+    "Earlier": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更早"
+          }
+        }
+      }
+    },
+    "Edited": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已编辑"
+          }
+        }
+      }
+    },
+    "Enter an address such as 192.168.1.20 or mac-mini.tail1234.ts.net.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入地址，例如 192.168.1.20 或 mac-mini.tail1234.ts.net。"
+          }
+        }
+      }
+    },
+    "Enter one of the Mac's addresses and the code below.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在下面输入 Mac 的一个地址和配对码。"
+          }
+        }
+      }
+    },
+    "Failed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "失败"
+          }
+        }
+      }
+    },
+    "File not found": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到文件"
+          }
+        }
+      }
+    },
+    "Has a question": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一个问题"
+          }
+        }
+      }
+    },
+    "Idle": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空闲"
+          }
+        }
+      }
+    },
+    "In a project": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在项目里"
+          }
+        }
+      }
+    },
+    "It ends its current turn on the Mac. Its worktree and conversation stay.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它会在 Mac 上结束当前这一轮，worktree 和对话都会保留。"
+          }
+        }
+      }
+    },
+    "It was removed on the Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它已在 Mac 上被移除。"
+          }
+        }
+      }
+    },
+    "Making progress": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有进展"
+          }
+        }
+      }
+    },
+    "Message the Router…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "给 Router 发消息…"
+          }
+        }
+      }
+    },
+    "Message this worker…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发消息给这个 Worker…"
+          }
+        }
+      }
+    },
+    "Messages go to the Router on your Mac; workers run there with its agents, and the results show up here. This phone keeps no threads of its own.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "消息发到 Mac 上的 Router，Worker 在那台 Mac 上用它的 Agent 运行，结果显示在这里。手机不保存对话。"
+          }
+        }
+      }
+    },
+    "More": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称"
+          }
+        }
+      }
+    },
+    "Needs You": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等你处理"
+          }
+        }
+      }
+    },
+    "Needs you": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要你处理"
+          }
+        }
+      }
+    },
+    "Needs your decision": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要你决定"
+          }
+        }
+      }
+    },
+    "New thread": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新对话"
+          }
+        }
+      }
+    },
+    "No changes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有改动"
+          }
+        }
+      }
+    },
+    "No project": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不指定项目"
+          }
+        }
+      }
+    },
+    "No threads yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有对话"
+          }
+        }
+      }
+    },
+    "Nothing answered at that address. Check the address, that access is on in Owlto's Settings → Devices on the Mac, and that Owlto may use the local network.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个地址没有回应。请检查地址，确认 Mac 上 Owlto 的 设置 → 设备 里打开了访问，并允许 Owlto 使用本地网络。"
+          }
+        }
+      }
+    },
+    "Nothing needs you": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有等你处理的事"
+          }
+        }
+      }
+    },
+    "Offline · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "离线 · %@"
+          }
+        }
+      }
+    },
+    "Offline · last connected %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "离线 · 上次连接 %@"
+          }
+        }
+      }
+    },
+    "On the Mac, open Owlto → Settings → Devices and turn on “Let paired devices use this Mac”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Mac 上打开 Owlto → 设置 → 设备，打开「允许已配对的设备使用这台 Mac」。"
+          }
+        }
+      }
+    },
+    "On the same Wi-Fi the Mac's local address works as is; away from home, use its Tailscale address. The connection is encrypted end to end and goes through no server.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同一个 Wi-Fi 下直接用 Mac 的局域网地址；在外面请用它的 Tailscale 地址。连接端到端加密，不经过任何服务器。"
+          }
+        }
+      }
+    },
+    "Online · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在线 · %@"
+          }
+        }
+      }
+    },
+    "Only the start of this file is shown.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只显示了这个文件的开头。"
+          }
+        }
+      }
+    },
+    "Open it on the Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在 Mac 上打开。"
+          }
+        }
+      }
+    },
+    "Open the thread ›": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开对话 ›"
+          }
+        }
+      }
+    },
+    "Or type another answer…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "或输入其他回答…"
+          }
+        }
+      }
+    },
+    "Outside your projects": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不在你的项目里"
+          }
+        }
+      }
+    },
+    "Owlto only reads files in your projects, workspace, and worker folders.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Owlto 只读取你的项目、Workspace 和 Worker 文件夹里的文件。"
+          }
+        }
+      }
+    },
+    "Owlto restarted on the Mac before the Router confirmed it got these events. Resending may show the Router a message twice; dropping means it never learns about them.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac 上的 Owlto 在 Router 确认收到这些事件之前重启了。重发可能让 Router 看到重复的消息；丢掉则 Router 不会知道这些事。"
+          }
+        }
+      }
+    },
+    "Pair": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配对"
+          }
+        }
+      }
+    },
+    "Paired Macs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已配对的 Mac"
+          }
+        }
+      }
+    },
+    "Pairing code": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配对码"
+          }
+        }
+      }
+    },
+    "Permissions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "权限"
+          }
+        }
+      }
+    },
+    "Pick a Mac to see its threads. Each Mac keeps its own threads, settings, agent accounts, and GitHub connection.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择一台 Mac 查看它的对话。每台 Mac 保留自己的对话、设置、Agent 账号和 GitHub 连接。"
+          }
+        }
+      }
+    },
+    "Pull request #%lld": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PR #%lld"
+          }
+        }
+      }
+    },
+    "Queued": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排队中"
+          }
+        }
+      }
+    },
+    "Reconnect": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新连接"
+          }
+        }
+      }
+    },
+    "Remove": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        }
+      }
+    },
+    "Remove %@?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除 %@？"
+          }
+        }
+      }
+    },
+    "Remove from queue": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移出队列"
+          }
+        }
+      }
+    },
+    "Removed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已移除"
+          }
+        }
+      }
+    },
+    "Report · Blocked": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "汇报 · 受阻"
+          }
+        }
+      }
+    },
+    "Report · Done": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "汇报 · 完成"
+          }
+        }
+      }
+    },
+    "Report · Making progress": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "汇报 · 有进展"
+          }
+        }
+      }
+    },
+    "Report · Needs your decision": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "汇报 · 需要你决定"
+          }
+        }
+      }
+    },
+    "Resend": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重发"
+          }
+        }
+      }
+    },
+    "Retry": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
+          }
+        }
+      }
+    },
+    "Router is working…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Router 正在工作…"
+          }
+        }
+      }
+    },
+    "Run a command": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行命令"
+          }
+        }
+      }
+    },
+    "Running": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行中"
+          }
+        }
+      }
+    },
+    "Say what you need": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "说说你要做什么"
+          }
+        }
+      }
+    },
+    "Send to the Router": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发给 Router"
+          }
+        }
+      }
+    },
+    "Send to this worker": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送给这个 Worker"
+          }
+        }
+      }
+    },
+    "Show %lld earlier messages": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开前面 %lld 条消息"
+          }
+        }
+      }
+    },
+    "Show the Router on": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用哪台设备的 Router"
+          }
+        }
+      }
+    },
+    "Shown": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在显示"
+          }
+        }
+      }
+    },
+    "Skip": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳过"
+          }
+        }
+      }
+    },
+    "Start one and the Router will send workers to your projects.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建一个对话，Router 会把 Worker 派到你的项目里。"
+          }
+        }
+      }
+    },
+    "Steer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steer"
+          }
+        }
+      }
+    },
+    "Stop the Router": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打断 Router"
+          }
+        }
+      }
+    },
+    "Stop the turn": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束这一轮"
+          }
+        }
+      }
+    },
+    "Stop this worker?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止这个 Worker？"
+          }
+        }
+      }
+    },
+    "Stop worker": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止 Worker"
+          }
+        }
+      }
+    },
+    "Stopped": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已停止"
+          }
+        }
+      }
+    },
+    "That Mac did not answer in time. Try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 没有及时回应，请再试一次。"
+          }
+        }
+      }
+    },
+    "That Mac is not connected. Check that it is on, awake, and running Owlto.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 没有连接，请确认它已开机、没有睡眠，并且 Owlto 正在运行。"
+          }
+        }
+      }
+    },
+    "That Mac no longer recognizes this phone, or its identity changed. Remove it and pair again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 已不认识这部手机，或者它的身份变了。请移除后重新配对。"
+          }
+        }
+      }
+    },
+    "That Mac runs a different version of Owlto. Update both apps.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 运行的 Owlto 版本不同，请把两边都更新到最新版本。"
+          }
+        }
+      }
+    },
+    "The Mac sent something this app could not read.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac 发来了这个 App 读不懂的内容。"
+          }
+        }
+      }
+    },
+    "The Router splits the work and sends workers to your projects. Their results come back here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Router 会拆分工作，把 Worker 派到你的项目里，结果会回到这里。"
+          }
+        }
+      }
+    },
+    "The code did not work. Check it, or show a new code on the Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配对码不对。请检查，或在 Mac 上重新显示配对码。"
+          }
+        }
+      }
+    },
+    "The worker is busy; new messages queue…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Worker 正在工作，新消息会先排队…"
+          }
+        }
+      }
+    },
+    "This file cannot be previewed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个文件无法预览"
+          }
+        }
+      }
+    },
+    "This image cannot be shown": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这张图片无法显示"
+          }
+        }
+      }
+    },
+    "This only works on the Mac itself.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个操作只能在 Mac 上进行。"
+          }
+        }
+      }
+    },
+    "This phone": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这部手机"
+          }
+        }
+      }
+    },
+    "This phone forgets the Mac and must pair again to use it. Nothing on the Mac is deleted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手机会忘记这台 Mac，之后要重新配对才能使用。Mac 上的内容不会被删除。"
+          }
+        }
+      }
+    },
+    "This worker is gone": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个 Worker 已不在了"
+          }
+        }
+      }
+    },
+    "Threads": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对话"
+          }
+        }
+      }
+    },
+    "To cut this phone off, remove it on the Mac in Owlto → Settings → Devices.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要断开这部手机，请在 Mac 上的 Owlto → 设置 → 设备 里移除它。"
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天"
+          }
+        }
+      }
+    },
+    "Tool": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工具"
+          }
+        }
+      }
+    },
+    "View context ›": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看上下文 ›"
+          }
+        }
+      }
+    },
+    "Waiting for approval": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等你批准"
+          }
+        }
+      }
+    },
+    "When a worker asks for approval or has a question, it shows up here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Worker 请求批准或提问时，会显示在这里。"
+          }
+        }
+      }
+    },
+    "Yesterday": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "昨天"
+          }
+        }
+      }
+    },
+    "You": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你"
+          }
+        }
+      }
+    },
+    "You → %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你 → %@"
+          }
+        }
+      }
+    },
+    "Your answer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的回答"
+          }
+        }
+      }
+    },
+    "^[%lld step](inflect: true)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个步骤"
+          }
+        }
+      }
+    },
+    "^[%lld worker](inflect: true)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个 Worker"
+          }
+        }
+      }
+    },
+    "a worker": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个 Worker"
+          }
+        }
+      }
+    },
+    "·": {
+      "shouldTranslate": false
+    },
+    "−%lld": {
+      "shouldTranslate": false
+    }
+  },
+  "version": "1.0"
+}
