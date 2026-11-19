@@ -10,6 +10,9 @@ const buildMode = process.env.OWLTO_BUILD_MODE === 'debug' ? 'debug' : 'release'
 const isDebug = buildMode === 'debug'
 const skipNotarize = process.env.OWLTO_SKIP_NOTARIZE === 'true'
 const debugSuffix = isDebug ? '-debug' : ''
+// Debug packages are for internal testing: they install beside the released app under their own
+// bundle id, name, and URL scheme, and the app gives them their own data root (build-flavor.ts).
+const productName = isDebug ? 'Owlto Debug' : 'Owlto'
 
 const releaseNotesPath = path.resolve(__dirname, '../../..', 'release-notes', `${version}.md`)
 const releaseNotes = fs.existsSync(releaseNotesPath)
@@ -32,8 +35,11 @@ function removePlistKeyIfPresent(plistPath, key) {
 }
 
 module.exports = {
-  appId: 'dev.owlto.app',
-  productName: 'Owlto',
+  appId: isDebug ? 'dev.owlto.app.debug' : 'dev.owlto.app',
+  productName,
+  // Electron reads the app name from the packaged package.json, so a debug package says
+  // "Owlto Debug" there too (userData folder, keychain item, menus).
+  ...(isDebug ? { extraMetadata: { productName } } : {}),
   copyright: 'Copyright © 2026 Owlto Team',
   // macOS updates come from Electron's autoUpdater and the feed built by
   // scripts/release-update-feed.mjs, not from electron-builder's publish metadata.
@@ -41,7 +47,7 @@ module.exports = {
   protocols: [
     {
       name: 'Owlto Client Auth',
-      schemes: ['owlto-client']
+      schemes: [isDebug ? 'owlto-client-debug' : 'owlto-client']
     }
   ],
   directories: {
@@ -96,13 +102,23 @@ module.exports = {
       },
       {
         LSMultipleInstancesProhibited: true
+      },
+      {
+        // macOS 15 asks before an app reaches devices on the local network (Remote Router's
+        // direct connections). Without this key the request can fail with no prompt at all.
+        NSLocalNetworkUsageDescription:
+          'Owlto connects to your other Macs on this network so you can use their Router.'
       }
     ],
-    notarize: !skipNotarize
+    notarize: !skipNotarize,
+    // The update feed script looks for `Owlto-<version>-<arch>-mac.zip`, also in debug packages
+    // whose product name is "Owlto Debug".
+    artifactName: `Owlto-\${version}-\${arch}-mac.\${ext}`
   },
   dmg: {
     shrink: true,
-    artifactName: `Owlto-\${version}${debugSuffix}.\${ext}`
+    // A CI debug package's version already says `-debug.N`.
+    artifactName: `Owlto-\${version}${version.includes('-debug.') ? '' : debugSuffix}.\${ext}`
   },
   linux: {
     icon: 'resources/icon.png',

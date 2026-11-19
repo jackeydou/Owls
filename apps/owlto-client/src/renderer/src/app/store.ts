@@ -5,6 +5,7 @@ import type {
   AgentProvider,
   AppEvent,
   AppSettings,
+  AppSnapshot,
   ClaudeConnection,
   CodexConnection,
   CursorConnection,
@@ -34,6 +35,8 @@ import type {
 } from '../../../shared/projects'
 import { defaultRouterSettings } from '../../../shared/router'
 import { WORKSPACE_ID } from '../../../shared/workspace'
+import { backend } from '../remote/backend'
+import { useViewingStore, viewingDevice } from '../remote/viewing'
 import { byRecent } from '../router/activity'
 import { zoomBetweenViews } from '../router/motion'
 import { useRouterStore } from '../router/store'
@@ -74,6 +77,8 @@ export type SettingsTab =
   | 'project'
   /** The workspace folder and its top-level folders. */
   | 'workspace'
+  /** Remote Router: paired devices and remote access. */
+  | 'devices'
 export type RouterSettingsTab = 'router' | 'workers'
 export const projectSettingsPages = ['general', 'agents', 'git', 'instructions'] as const
 export type ProjectSettingsPage = (typeof projectSettingsPages)[number]
@@ -109,8 +114,11 @@ type State = {
   connection: CodexConnection
   claude: ClaudeConnection
   cursor: CursorConnection
-  initialize(): Promise<void>
+  /** Loads the shown device's state; `fresh` also opens its latest thread, as on a switch. */
+  initialize(options?: { fresh: boolean }): Promise<void>
   event(event: AppEvent): void
+  /** Shows a paired device's Router (Remote Router), or this Mac's with null. */
+  viewDevice(deviceId: string | null): Promise<void>
   showSettings(tab?: SettingsTab): void
   /** Opens Settings on one agent's tab of the Agents page. */
   showAgentSettings(provider: AgentProvider): void
@@ -216,6 +224,13 @@ export const useAppStore = create<State>((set, get) => {
       return undefined
     }
   }
+  /**
+   * Notes, automations, pull requests, projects, and Settings belong to this Mac, so
+   * opening them while another device's Router is shown switches back first.
+   */
+  function onThisMac() {
+    if (viewingDevice()) void get().viewDevice(null)
+  }
   /** Lists a new or existing project and opens a new thread in it. */
   function openProject(project: Project) {
     set((state) => ({
@@ -274,7 +289,8 @@ export const useAppStore = create<State>((set, get) => {
       connectedAgents: [],
       openInApp: null,
       profile: defaultProfile,
-      onboarding: 'pending'
+      onboarding: 'pending',
+      remoteAccess: false
     },
     connection: {
       status: 'disconnected',
@@ -300,26 +316,38 @@ export const useAppStore = create<State>((set, get) => {
       models: [],
       error: null
     },
-    initialize: async () => {
+    initialize: async (options) => {
       const version = connectionEvents
       const claudeVersion = claudeEvents
       const cursorVersion = cursorEvents
       const gitHubVersion = gitHubEvents
-      const snapshot = await action(() => window.owlto.snapshot())
+      const device = viewingDevice()
+      const fresh = options?.fresh ?? false
+      const snapshot = await action(() => backend().snapshot())
+      // The user switched devices while this one was loading; the newer load wins.
+      if (viewingDevice() !== device) return
       if (!snapshot) {
-        set({ loaded: true })
+        // An unreachable device shows nothing rather than the last device's threads.
+        if (fresh) {
+          set({ loaded: true, projects: [], sessions: [], threadId: null })
+        } else set({ loaded: true })
         return
       }
       useRouterStore.getState().hydrate(snapshot.routers, snapshot.workers)
       const latest = latestThread(snapshot.routers)
+      // Settings and the GitHub account always stay this Mac's own.
+      const own = 'settings' in snapshot ? (snapshot as AppSnapshot) : null
       set((state) => ({
         loaded: true,
         projects: snapshot.projects,
-        settings: snapshot.settings,
+        settings: own ? own.settings : state.settings,
         // Waits for the first load: a repeated one must not leave a new thread's draft.
-        threadId: state.loaded ? state.threadId : (latest?.id ?? null),
+        threadId: state.loaded && !fresh ? state.threadId : (latest?.id ?? null),
         routerProjectId:
-          state.routerProjectId ?? latest?.projectId ?? snapshot.projects[0]?.id ?? null,
+          (fresh ? null : state.routerProjectId) ??
+          latest?.projectId ??
+          snapshot.projects[0]?.id ??
+          null,
         sessions: snapshot.sessions.map((s) => {
           const live = state.sessions.find((existing) => existing.id === s.id)
           return live && live.updatedAt >= s.updatedAt ? live : s
@@ -327,8 +355,19 @@ export const useAppStore = create<State>((set, get) => {
         connection: version === connectionEvents ? snapshot.connection : state.connection,
         claude: claudeVersion === claudeEvents ? snapshot.claude : state.claude,
         cursor: cursorVersion === cursorEvents ? snapshot.cursor : state.cursor,
-        github: gitHubVersion === gitHubEvents ? snapshot.github : state.github
+        github: own && gitHubVersion === gitHubEvents ? own.github : state.github
       }))
+    },
+    viewDevice: async (deviceId) => {
+      if (viewingDevice() === deviceId) return
+      useViewingStore.setState({ deviceId })
+      useRouterStore.getState().clearDevice()
+      set((state) => ({
+        view: state.view === 'map' ? 'map' : 'chat',
+        threadId: null,
+        error: null
+      }))
+      await get().initialize({ fresh: true })
     },
     event: (event) => {
       if (event.type === 'connection') {
@@ -401,37 +440,45 @@ export const useAppStore = create<State>((set, get) => {
     gitHubSignOut: async () => {
       await action(() => window.owlto.gitHubSignOut())
     },
-    showSettings: (tab) =>
+    showSettings: (tab) => {
+      onThisMac()
       set((state) => ({
         view: 'settings',
         lastView: state.view === 'settings' ? state.lastView : state.view,
         settingsTab: tab ?? state.settingsTab,
         error: null
-      })),
-    showAgentSettings: (provider) =>
+      }))
+    },
+    showAgentSettings: (provider) => {
+      onThisMac()
       set((state) => ({
         view: 'settings',
         lastView: state.view === 'settings' ? state.lastView : state.view,
         settingsTab: 'agents',
         settingsAgent: provider,
         error: null
-      })),
-    showRouterSettings: (tab) =>
+      }))
+    },
+    showRouterSettings: (tab) => {
+      onThisMac()
       set((state) => ({
         view: 'settings',
         lastView: state.view === 'settings' ? state.lastView : state.view,
         settingsTab: 'router',
         settingsRouterTab: tab,
         error: null
-      })),
-    showProjectSettings: (projectId, page = 'general') =>
+      }))
+    },
+    showProjectSettings: (projectId, page = 'general') => {
+      onThisMac()
       set((state) => ({
         view: 'settings',
         lastView: state.view === 'settings' ? state.lastView : state.view,
         settingsTab: 'project',
         settingsProject: { projectId, page },
         error: null
-      })),
+      }))
+    },
     leaveSettings: () => set((state) => ({ view: state.lastView, error: null })),
     showChat: (projectId) => {
       const { view, routerProjectId, threadId } = get()
@@ -466,10 +513,22 @@ export const useAppStore = create<State>((set, get) => {
       if (view === 'chat') zoomBetweenViews('map', routerProjectId, show)
       else show()
     },
-    showCards: () => set({ view: 'cards', error: null }),
-    showProjects: () => set({ view: 'projects', error: null }),
-    showPullRequests: () => set({ view: 'pulls', error: null }),
-    showAutomations: () => set({ view: 'automations', error: null }),
+    showCards: () => {
+      onThisMac()
+      set({ view: 'cards', error: null })
+    },
+    showProjects: () => {
+      onThisMac()
+      set({ view: 'projects', error: null })
+    },
+    showPullRequests: () => {
+      onThisMac()
+      set({ view: 'pulls', error: null })
+    },
+    showAutomations: () => {
+      onThisMac()
+      set({ view: 'automations', error: null })
+    },
     focusProject: (projectId) => set({ routerProjectId: routerProject(projectId) }),
     clearError: () => set({ error: null }),
     pickProject: async () => {
@@ -607,7 +666,7 @@ export const useAppStore = create<State>((set, get) => {
       return Boolean(saved)
     },
     respond: async (input) => {
-      await action(() => window.owlto.respond(input))
+      await action(() => backend().respond(input))
     }
   }
 })

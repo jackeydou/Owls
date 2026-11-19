@@ -27,6 +27,11 @@ async function loadOwltoPathsForTest() {
 }\n`
     )
     .replace('../shared/startup-args.js', '../shared/startup-args.ts')
+    .replace(
+      "import { isDebugPackage } from './build-flavor.js'\n",
+      'const isDebugPackage = () => globalThis.__owltoPathsDebugPackage === true\n'
+    )
+    .replace("join(homedir(), '.owlto-debug')", 'globalThis.__owltoPathsDebugDataRoot')
     .replace("return join(homedir(), '.owlto')", 'return globalThis.__owltoPathsDefaultDataRoot')
     .replace(
       "return join(homedir(), 'Owlto', 'worktrees')",
@@ -137,5 +142,36 @@ test('workspaceHome is ~/Owlto/Workspace only for the default data root', async 
     loaded.cleanup()
     rmSync(root, { recursive: true, force: true })
     delete globalThis.__owltoPathsDefaultDataRoot
+  }
+})
+
+test('a debug package keeps its data, worktrees, workspace, and notes in its own root', async () => {
+  const root = mkdtempSync(join(process.cwd(), '.owlto-paths-test-'))
+  const previousArgv = process.argv
+  const loaded = await loadOwltoPathsForTest()
+  try {
+    const mainRoot = join(root, '.owlto')
+    const debugRoot = join(root, '.owlto-debug')
+    globalThis.__owltoPathsUserData = join(root, 'debug-profile')
+    globalThis.__owltoPathsDefaultDataRoot = mainRoot
+    globalThis.__owltoPathsDebugDataRoot = debugRoot
+    globalThis.__owltoPathsDefaultWorktreesRoot = join(root, 'Owlto', 'worktrees')
+    globalThis.__owltoPathsDebugPackage = true
+    process.argv = ['electron']
+    // The released app's bootstrap mirror is not the debug package's.
+    writeJson(join(mainRoot, 'owlto-bootstrap.json'), { dataRoot: join(root, 'main-moved') })
+    assert.equal(loaded.module.getDataRoot(), debugRoot)
+    assert.equal(loaded.module.workerWorktreesRoot(debugRoot), join(debugRoot, 'worktrees'))
+    assert.equal(loaded.module.workspaceHome(debugRoot), join(debugRoot, 'workspace'))
+    assert.equal(loaded.module.notesHome(debugRoot), join(debugRoot, 'notes'))
+  } finally {
+    process.argv = previousArgv
+    loaded.cleanup()
+    rmSync(root, { recursive: true, force: true })
+    delete globalThis.__owltoPathsUserData
+    delete globalThis.__owltoPathsDefaultDataRoot
+    delete globalThis.__owltoPathsDebugDataRoot
+    delete globalThis.__owltoPathsDefaultWorktreesRoot
+    delete globalThis.__owltoPathsDebugPackage
   }
 })

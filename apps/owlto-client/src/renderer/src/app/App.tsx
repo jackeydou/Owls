@@ -3,8 +3,10 @@ import { AlertCircleIcon, LoaderIcon, XIcon } from '@renderer/components/ui/icon
 import i18next from 'i18next'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { isRemoteEvent } from '../../../shared/remote'
 import { Onboarding } from '../onboarding/Onboarding'
 import { OnboardingHost } from '../onboarding/state'
+import { viewingDevice } from '../remote/viewing'
 import { OpenWorkerFromNotification } from '../router/OpenWorkerFromNotification'
 import { RouterShell } from '../router/RouterShell'
 import { UpdatePopup } from '../updates/UpdatePopup'
@@ -17,9 +19,18 @@ export default function App() {
   const { t } = useTranslation()
   const { loaded, settings, error, initialize, event, clearError } = useAppStore()
   useEffect(() => {
-    const unsubscribe = window.owlto.onEvent(event)
+    // While another device's Router is shown, its events replace this Mac's Router events.
+    const offLocal = window.owlto.onEvent((appEvent) => {
+      if (!viewingDevice() || !isRemoteEvent(appEvent)) event(appEvent)
+    })
+    const offRemote = window.owlto.remote.onEvent((envelope) => {
+      if (viewingDevice() === envelope.deviceId) event(envelope.event)
+    })
     void initialize()
-    return unsubscribe
+    return () => {
+      offLocal()
+      offRemote()
+    }
   }, [initialize, event])
   useEffect(() => {
     void i18next.changeLanguage(settings.language)

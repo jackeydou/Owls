@@ -17,6 +17,8 @@ import type { Router } from '../../../shared/app'
 import { DreamingOwl } from '../app/OwlAvatar'
 import { useAppStore } from '../app/store'
 import { useDreaming } from '../memory/dreaming'
+import { DevicePicker } from '../remote/DevicePicker'
+import { useViewingRemote } from '../remote/viewing'
 import { usageSummaryRows, useUsageStore, watchUsage } from '../usage/store'
 import { UsagePanel } from '../usage/UsagePanel'
 import { UsageSummary } from '../usage/UsageSummary'
@@ -114,6 +116,8 @@ export function Sidebar() {
   const onPulls = useAppStore((s) => s.view === 'pulls')
   const onAutomations = useAppStore((s) => s.view === 'automations')
   const pullsVisible = useAppStore((s) => s.settings.pullRequestsVisible)
+  // Another device's Router shows only its threads and Overview; the rest is this Mac's.
+  const remote = useViewingRemote()
   const drafting = useAppStore((s) => s.view === 'chat' && s.threadId === null)
   const {
     showMap,
@@ -134,6 +138,7 @@ export function Sidebar() {
   return (
     <nav className="router-sidebar" style={{ width }} aria-label={t('router.sidebar')}>
       <div className="router-sidebar-head" />
+      <DevicePicker />
       <button
         type="button"
         className="router-sidebar-item router-sidebar-action"
@@ -154,35 +159,39 @@ export function Sidebar() {
         <span>{t('map.title')}</span>
         <kbd>⌘ J</kbd>
       </button>
-      <button
-        type="button"
-        className="router-sidebar-item router-sidebar-action"
-        aria-current={onProjects || undefined}
-        onClick={showProjects}
-      >
-        <FolderIcon size={17} />
-        <span>{t('projectsPage.title')}</span>
-      </button>
-      <button
-        type="button"
-        className="router-sidebar-item router-sidebar-action"
-        aria-current={onCards || undefined}
-        onClick={showCards}
-      >
-        <CardsIcon size={17} />
-        <span>{t('cards.title')}</span>
-        <kbd>⌘ K</kbd>
-      </button>
-      <button
-        type="button"
-        className="router-sidebar-item router-sidebar-action"
-        aria-current={onAutomations || undefined}
-        onClick={showAutomations}
-      >
-        <AutomationIcon size={17} />
-        <span>{t('automations.title')}</span>
-      </button>
-      {pullsVisible ? (
+      {remote ? null : (
+        <>
+          <button
+            type="button"
+            className="router-sidebar-item router-sidebar-action"
+            aria-current={onProjects || undefined}
+            onClick={showProjects}
+          >
+            <FolderIcon size={17} />
+            <span>{t('projectsPage.title')}</span>
+          </button>
+          <button
+            type="button"
+            className="router-sidebar-item router-sidebar-action"
+            aria-current={onCards || undefined}
+            onClick={showCards}
+          >
+            <CardsIcon size={17} />
+            <span>{t('cards.title')}</span>
+            <kbd>⌘ K</kbd>
+          </button>
+          <button
+            type="button"
+            className="router-sidebar-item router-sidebar-action"
+            aria-current={onAutomations || undefined}
+            onClick={showAutomations}
+          >
+            <AutomationIcon size={17} />
+            <span>{t('automations.title')}</span>
+          </button>
+        </>
+      )}
+      {pullsVisible && !remote ? (
         <button
           type="button"
           className="router-sidebar-item router-sidebar-action"
@@ -210,7 +219,7 @@ export function Sidebar() {
           <p>{t('thread.none')}</p>
         )}
       </section>
-      <UsageEntry />
+      {remote ? null : <UsageEntry />}
       <button
         type="button"
         className="router-sidebar-item router-sidebar-action router-sidebar-settings"

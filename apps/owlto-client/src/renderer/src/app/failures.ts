@@ -14,5 +14,12 @@ export function uiFailure(error: unknown): Failure {
 export function failureMessage(failure: Failure | null): string {
   if (!failure) return ''
   if (failure.code === 'native_error' && failure.message) return failure.message
-  return String(i18next.t(`errors.${failure.code}`))
+  const text = String(i18next.t(`errors.${failure.code}`))
+  // A failed connection carries the system's reason, such as EHOSTUNREACH, for diagnosis.
+  if (
+    failure.code === 'remote_unreachable' &&
+    /^(E[A-Z]+|handshake_[a-z_]+)$/.test(failure.message ?? '')
+  )
+    return `${text} (${failure.message})`
+  return text
 }

@@ -10,6 +10,7 @@ import { ATTACHED_CARD_LIMIT, type Card, type CardRef } from '../../../shared/ca
 import type { RouterWorker } from '../../../shared/router'
 import { useAppStore } from '../app/store'
 import { useCardsStore } from '../cards/store'
+import { useViewingRemote } from '../remote/viewing'
 import { byRelevance, projectHue, workerTitle } from './activity'
 import type { DraftAttachments } from './DraftAttachments'
 import { ProjectIcon } from './ProjectIcon'
@@ -203,14 +204,16 @@ export function useRouterDraft({
   const [dismissed, setDismissed] = useState(false)
   const addressed = target ?? mention
   const query = dismissed || !trigger ? null : trigger.query
+  // Notes stay on this Mac, so another device's Router is not offered them.
+  const remote = useViewingRemote()
   const options = useMentions(router, query, cards).filter(
-    (option) => !(addressed && option.kind === 'worker')
+    (option) => !(addressed && option.kind === 'worker') && !(remote && option.kind === 'card')
   )
   // ProseMirror keeps the props it was made with; the key handler reads the latest render.
   const keyDown = useRef<(event: KeyboardEvent) => boolean>(() => false)
   const takeFiles = useRef<(files: File[]) => boolean>(() => false)
   takeFiles.current = (files) => {
-    if (!attachments || !files.length) return false
+    if (!attachments || !files.length || remote) return false
     attachments.add(files)
     return true
   }

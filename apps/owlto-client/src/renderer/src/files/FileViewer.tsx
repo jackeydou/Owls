@@ -32,6 +32,7 @@ import { FileBaseContext } from './FileLink'
 import { markdownRemarkPlugins } from './remark-file-links'
 import { type FileTab, useFilesStore } from './store'
 import './files.css'
+import { useViewingRemote } from '../remote/viewing'
 
 const plugins = { code, renderers: [mermaidRenderer] }
 const MARKDOWN = /\.(md|mdx|markdown)$/i
@@ -103,7 +104,9 @@ function FileMenu({
   useEffect(() => {
     if (apps === null) void loadOpenInApps()
   }, [apps, loadOpenInApps])
-  const choices = fileApps(apps ?? [])
+  // The file is on the other device, so this Mac's apps cannot open it.
+  const remote = useViewingRemote()
+  const choices = remote ? [] : fileApps(apps ?? [])
   const open = (app: OpenInApp) => {
     if (app.kind === 'editor' && app.id !== settings.openInApp)
       void saveSettings({ ...settings, openInApp: app.id })

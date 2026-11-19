@@ -12,6 +12,7 @@ import type {
   RouterWorker
 } from '../../../shared/router'
 import { UIError, uiFailure } from '../app/failures'
+import { backend } from '../remote/backend'
 
 function unwrap<T>(reply: Reply<T>): T {
   if (!reply.ok) throw new UIError(reply.error)
@@ -55,6 +56,8 @@ type State = {
   /** Projects whose active workers are folded away in the sidebar. */
   foldedProjects: ReadonlySet<string>
   hydrate(routers: Router[], workers: RouterWorker[]): void
+  /** Forgets the shown device's threads and workers before another device's load. */
+  clearDevice(): void
   router(router: Router): void
   /** Drops a deleted thread, its items, and its workers. */
   removeThread(routerId: string, workerIds: string[]): void
@@ -167,6 +170,17 @@ export const useRouterStore = create<State>((set, get) => {
         routers: routers.reduce(newerThread, state.routers),
         workers: workers.reduce(newer, state.workers)
       })),
+    clearDevice: () =>
+      set({
+        routers: [],
+        workers: [],
+        items: {},
+        itemsLoaded: {},
+        gitHub: {},
+        panel: null,
+        sending: false,
+        error: null
+      }),
     router: (router) => set((state) => ({ routers: newerThread(state.routers, router) })),
     removeThread: (routerId, workerIds) =>
       set((state) => {
@@ -207,7 +221,7 @@ export const useRouterStore = create<State>((set, get) => {
       })),
     loadItems: async (routerId) => {
       if (get().itemsLoaded[routerId]) return
-      const items = await action(() => window.owlto.threadItems({ routerId }))
+      const items = await action(() => backend().threadItems({ routerId }))
       if (!items) return
       set((state) => ({
         items: {
@@ -218,7 +232,7 @@ export const useRouterStore = create<State>((set, get) => {
       }))
     },
     createThread: async (projectId) => {
-      const router = await action(() => window.owlto.createThread({ projectId }))
+      const router = await action(() => backend().createThread({ projectId }))
       if (!router) return null
       get().router(router)
       return router
@@ -246,7 +260,7 @@ export const useRouterStore = create<State>((set, get) => {
       set({ sending: true, error: null })
       try {
         unwrap(
-          await window.owlto.sendRouter({
+          await backend().sendRouter({
             routerId,
             commandId: crypto.randomUUID(),
             text,
@@ -266,7 +280,7 @@ export const useRouterStore = create<State>((set, get) => {
     archive: async (routerId, archived) => {
       try {
         set({ error: null })
-        unwrap(await window.owlto.archiveThread({ routerId, archived }))
+        unwrap(await backend().archiveThread({ routerId, archived }))
         return true
       } catch (error) {
         set({ error: uiFailure(error) })
@@ -283,10 +297,10 @@ export const useRouterStore = create<State>((set, get) => {
       }
     },
     interrupt: async (routerId) => {
-      await action(() => window.owlto.interruptRouter(routerId))
+      await action(() => backend().interruptRouter(routerId))
     },
     resolveBatch: async (routerId, batchId, decision) => {
-      await action(() => window.owlto.resolveBatch({ routerId, batchId, decision }))
+      await action(() => backend().resolveBatch({ routerId, batchId, decision }))
     },
     loadOpenInApps: async () => {
       const reply = await window.owlto.openInApps()
@@ -308,13 +322,13 @@ export const useRouterStore = create<State>((set, get) => {
       return opened === true
     },
     stopWorker: async (routerId, workerId) => {
-      await action(() => window.owlto.stopWorker({ routerId, workerId }))
+      await action(() => backend().stopWorker({ routerId, workerId }))
     },
     steerPending: async (input) => {
-      await action(() => window.owlto.steerPendingMessage(input))
+      await action(() => backend().steerPendingMessage(input))
     },
     dropPending: async (input) => {
-      await action(() => window.owlto.dropPendingMessage(input))
+      await action(() => backend().dropPendingMessage(input))
     },
     removeWorker: async (routerId, workerId) => {
       await action(() => window.owlto.removeWorker({ routerId, workerId }))

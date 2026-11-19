@@ -7,23 +7,42 @@ import { z } from 'zod'
  */
 
 export const updateChannelSchema = z.enum(['stable', 'beta'])
+/** The channels a user picks between in Settings → Updates. */
 export type UpdateChannel = z.infer<typeof updateChannelSchema>
+/**
+ * Every published feed. `debug` serves only debug packages ("Owlto Debug", internal testing),
+ * which always follow it and never the user-facing channels.
+ */
+export type FeedChannel = UpdateChannel | 'debug'
 /** Every install updates from stable until the user picks beta in Settings → Updates. */
 export const DEFAULT_UPDATE_CHANNEL: UpdateChannel = 'stable'
 
 /** Where the release workflow publishes the update feeds: assets of one fixed release. */
 export const UPDATE_FEED_REPOSITORY = 'jackeydou/Owls'
 export const UPDATE_FEED_TAG = 'update-feed'
+/** Debug packages are not releases: their files are assets of this one fixed prerelease. */
+export const DEBUG_BUILDS_TAG = 'debug-builds'
 
-export function updateFeedFileName(channel: UpdateChannel, arch: string): string {
+export function updateFeedFileName(channel: FeedChannel, arch: string): string {
   return `owlto-${channel}-darwin-${arch}.json`
 }
 
-export function updateFeedUrl(channel: UpdateChannel, arch: string): string {
+export function updateFeedUrl(channel: FeedChannel, arch: string): string {
   return `https://github.com/${UPDATE_FEED_REPOSITORY}/releases/download/${UPDATE_FEED_TAG}/${updateFeedFileName(channel, arch)}`
 }
 
 const releaseVersionPattern = /^(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$/
+const debugVersionPattern = /^\d+\.\d+\.\d+-debug\.(\d+)$/
+
+/**
+ * A debug package's version, `YYYY.M.PATCH-debug.N`: the branch's release version with the
+ * workflow run number stamped on in CI (never committed). N alone orders debug packages, so the
+ * latest build wins whichever branch it came from.
+ */
+export function debugBuildNumber(version: string): number | null {
+  const match = debugVersionPattern.exec(version)
+  return match ? Number(match[1]) : null
+}
 
 /** `YYYY.M.PATCH` or `YYYY.M.PATCH-beta.N` (docs/reference/RELEASING.md); null otherwise. */
 export function parseReleaseVersion(version: string): number[] | null {
@@ -40,6 +59,11 @@ export function parseReleaseVersion(version: string): number[] | null {
  * `2026.11.900`, so Owlto decides the order itself.
  */
 export function isNewerRelease(candidate: string, current: string): boolean {
+  const nextDebug = debugBuildNumber(candidate)
+  const nowDebug = debugBuildNumber(current)
+  // Debug packages and releases are separate apps and never update into each other.
+  if (nextDebug !== null || nowDebug !== null)
+    return nextDebug !== null && nowDebug !== null && nextDebug > nowDebug
   const next = parseReleaseVersion(candidate)
   const now = parseReleaseVersion(current)
   if (!next || !now) return false
@@ -49,7 +73,8 @@ export function isNewerRelease(candidate: string, current: string): boolean {
   return false
 }
 
-export function releaseChannel(version: string): UpdateChannel {
+export function releaseChannel(version: string): FeedChannel {
+  if (debugBuildNumber(version) !== null) return 'debug'
   return version.includes('-beta.') ? 'beta' : 'stable'
 }
 
@@ -59,7 +84,9 @@ export function releaseChannel(version: string): UpdateChannel {
  */
 const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/)
 export const updateFeedEntrySchema = z.object({
-  version: z.string().refine((value) => parseReleaseVersion(value) !== null),
+  version: z
+    .string()
+    .refine((value) => parseReleaseVersion(value) !== null || debugBuildNumber(value) !== null),
   name: z.string(),
   notes: z.string(),
   pub_date: z.string(),
@@ -79,8 +106,11 @@ export type UpdateFeedEntry = z.infer<typeof updateFeedEntrySchema>
 
 export type UpdateFailure = 'network' | 'feed' | 'download'
 export type UpdateState =
-  /** `development` is an unpackaged dev app; `platform` is anything but macOS. */
-  | { status: 'unsupported'; reason: 'development' | 'platform' }
+  /**
+   * `development` is an unpackaged dev app; `platform` is anything but macOS; `debug` is a
+   * debug package built locally, which has no feed and is replaced by hand.
+   */
+  | { status: 'unsupported'; reason: 'development' | 'platform' | 'debug' }
   | { status: 'idle' }
   | { status: 'checking' }
   | { status: 'up-to-date'; checkedAt: string }
@@ -90,7 +120,7 @@ export type UpdateState =
   | { status: 'failed'; failure: UpdateFailure; checkedAt: string }
 export type UpdateSnapshot = {
   currentVersion: string
-  /** The channel in effect: the saved choice, or stable. */
-  channel: UpdateChannel
+  /** The channel in effect: the saved choice, or stable; always `debug` in a debug package. */
+  channel: FeedChannel
   state: UpdateState
 }

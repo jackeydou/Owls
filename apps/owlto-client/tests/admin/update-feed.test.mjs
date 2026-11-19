@@ -135,3 +135,37 @@ test('feedEntry writes a Squirrel.Mac update with an optional patch', () => {
     false
   )
 })
+
+test('debug packages order by build number and never cross with releases', () => {
+  assert.equal(releaseChannel('2026.11.1800-debug.57'), 'debug')
+  assert.equal(isNewerRelease('2026.11.1700-debug.58', '2026.11.1800-debug.57'), true)
+  assert.equal(isNewerRelease('2026.11.1800-debug.57', '2026.11.1800-debug.57'), false)
+  assert.equal(isNewerRelease('2026.11.1900', '2026.11.1800-debug.57'), false)
+  assert.equal(isNewerRelease('2026.11.1900-debug.60', '2026.11.1800'), false)
+  assert.equal(parseReleaseVersion('2026.11.1800-debug.57'), null)
+})
+
+test('a debug package moves only the debug feed, with its files on the debug-builds release', () => {
+  const updates = planFeedUpdates('2026.11.1800-debug.58', {
+    debug: entry('2026.11.1800-debug.57')
+  })
+  assert.deepEqual(
+    updates.map((u) => [u.channel, u.previous?.version]),
+    [['debug', '2026.11.1800-debug.57']]
+  )
+  assert.throws(() =>
+    planFeedUpdates('2026.11.1800-debug.56', { debug: entry('2026.11.1800-debug.57') })
+  )
+  const zip = { name: 'Owlto-2026.11.1800-debug.58-arm64-mac.zip', sha256: sha('b'), size: 200 }
+  const value = feedEntry({
+    version: '2026.11.1800-debug.58',
+    zip,
+    notes: '',
+    pubDate: '2026-11-19T00:00:00Z'
+  })
+  assert.equal(
+    value.url,
+    'https://github.com/jackeydou/Owls/releases/download/debug-builds/Owlto-2026.11.1800-debug.58-arm64-mac.zip'
+  )
+  assert.equal(updateFeedEntrySchema.safeParse(value).success, true)
+})

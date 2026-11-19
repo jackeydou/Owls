@@ -1,6 +1,7 @@
 import { app, autoUpdater, net } from 'electron'
 import {
   DEFAULT_UPDATE_CHANNEL,
+  debugBuildNumber,
   isNewerRelease,
   type UpdateChannel,
   type UpdateFailure,
@@ -9,6 +10,7 @@ import {
   updateFeedEntrySchema,
   updateFeedUrl
 } from '../../shared/updates.js'
+import { isDebugPackage } from '../build-flavor.js'
 
 const FIRST_CHECK_DELAY_MS = 30_000
 const CHECK_INTERVAL_MS = 2 * 60 * 60 * 1000
@@ -39,7 +41,9 @@ export class AppUpdater {
       ? { status: 'unsupported', reason: 'development' }
       : process.platform !== 'darwin'
         ? { status: 'unsupported', reason: 'platform' }
-        : { status: 'idle' }
+        : isDebugPackage() && debugBuildNumber(app.getVersion()) === null
+          ? { status: 'unsupported', reason: 'debug' }
+          : { status: 'idle' }
   }
 
   start(): void {
@@ -57,7 +61,7 @@ export class AppUpdater {
     const saved = this.deps.savedChannel()
     return {
       currentVersion: app.getVersion(),
-      channel: saved ?? DEFAULT_UPDATE_CHANNEL,
+      channel: isDebugPackage() ? 'debug' : (saved ?? DEFAULT_UPDATE_CHANNEL),
       state: this.state
     }
   }

@@ -1,0 +1,132 @@
+/* Remote Router: the sidebar device picker and Settings → Devices. */
+.remote-status {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--owl-queue);
+}
+.remote-status-online,
+.remote-status-local {
+  background: var(--owl-run);
+}
+.remote-status-connecting {
+  background: var(--owl-wait);
+}
+.remote-device-picker .remote-device-chevron {
+  margin-left: auto;
+  color: var(--color-muted-foreground);
+}
+.remote-device-picker > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.remote-device-state {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+
+.remote-intro {
+  margin: 4px 0 8px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.remote-group {
+  margin-top: 20px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.remote-error {
+  margin: 8px 0;
+  color: var(--owl-bad);
+  font-size: var(--owl-text-sm);
+}
+.remote-addresses {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: var(--owl-text-sm);
+}
+.remote-addresses code {
+  user-select: all;
+}
+.remote-pairing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--owl-text-sm);
+}
+.remote-pairing code {
+  font-size: var(--owl-text-lg);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  user-select: all;
+}
+.remote-pairing span {
+  color: var(--color-muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.remote-device-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-md);
+}
+.remote-device-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+.remote-device-row + .remote-device-row {
+  border-top: 1px solid var(--color-border);
+}
+.remote-device-row > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.remote-device-row strong {
+  font-size: var(--owl-text-sm);
+  font-weight: 500;
+}
+.remote-device-row small {
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.remote-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.remote-add .router-input {
+  flex: 1;
+  min-width: 180px;
+  height: 32px;
+}
+.remote-add .router-input.remote-add-code {
+  flex: 0 0 140px;
+  min-width: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.remote-add .remote-error {
+  flex-basis: 100%;
+  margin: 0;
+}

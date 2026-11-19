@@ -262,3 +262,28 @@ export const automationsTable = sqliteTable('automations', {
   updatedAt: text('updated_at').notNull(),
   value: text('value', { mode: 'json' }).$type<Automation>().notNull()
 })
+/** This device's Remote Router key pair: one row; the private key is encrypted with safeStorage. */
+export const remoteIdentityTable = sqliteTable('remote_identity', {
+  id: text('id').primaryKey(),
+  publicKey: text('public_key').notNull(),
+  secret: text('secret').notNull(),
+  createdAt: text('created_at').notNull()
+})
+/**
+ * Devices paired for Remote Router. A `client` may drive this device; a `host` is a device
+ * this one drives, reached at `host`:`port`. Two devices can pair both ways, one row each.
+ */
+export const remotePeersTable = sqliteTable(
+  'remote_peers',
+  {
+    deviceId: text('device_id').notNull(),
+    role: text('role', { enum: ['client', 'host'] }).notNull(),
+    name: text('name').notNull(),
+    publicKey: text('public_key').notNull(),
+    host: text('host'),
+    port: integer('port'),
+    pairedAt: text('paired_at').notNull(),
+    lastSeenAt: text('last_seen_at')
+  },
+  (table) => [primaryKey({ columns: [table.deviceId, table.role] })]
+)

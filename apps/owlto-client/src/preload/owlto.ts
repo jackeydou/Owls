@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AppEvent, OpenWorkerTarget, OwltoAPI } from '../shared/app.js'
 import type { MenuCommand } from '../shared/menu.js'
+import type { RemoteEventEnvelope, RemoteOverview } from '../shared/remote.js'
 import type { UpdateSnapshot } from '../shared/updates.js'
 
 const api: OwltoAPI = {
@@ -135,6 +136,27 @@ const api: OwltoAPI = {
       const handler = (_: Electron.IpcRendererEvent, snapshot: UpdateSnapshot) => listener(snapshot)
       ipcRenderer.on('owlto:updates-changed', handler)
       return () => ipcRenderer.removeListener('owlto:updates-changed', handler)
+    }
+  },
+  remote: {
+    overview: () => ipcRenderer.invoke('owlto:remote-overview'),
+    setAccess: (enabled) => ipcRenderer.invoke('owlto:remote-set-access', enabled),
+    startPairing: () => ipcRenderer.invoke('owlto:remote-start-pairing'),
+    cancelPairing: () => ipcRenderer.invoke('owlto:remote-cancel-pairing'),
+    revokeClient: (deviceId) => ipcRenderer.invoke('owlto:remote-revoke-client', deviceId),
+    pair: (input) => ipcRenderer.invoke('owlto:remote-pair', input),
+    removeDevice: (deviceId) => ipcRenderer.invoke('owlto:remote-remove-device', deviceId),
+    call: (input) => ipcRenderer.invoke('owlto:remote-call', input),
+    onEvent: (listener) => {
+      const handler = (_: Electron.IpcRendererEvent, envelope: RemoteEventEnvelope) =>
+        listener(envelope)
+      ipcRenderer.on('owlto:remote-event', handler)
+      return () => ipcRenderer.removeListener('owlto:remote-event', handler)
+    },
+    onChanged: (listener) => {
+      const handler = (_: Electron.IpcRendererEvent, overview: RemoteOverview) => listener(overview)
+      ipcRenderer.on('owlto:remote-changed', handler)
+      return () => ipcRenderer.removeListener('owlto:remote-changed', handler)
     }
   }
 }

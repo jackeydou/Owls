@@ -408,6 +408,14 @@ export const KeyIcon = createIcon(
     <line x1="9.25" y1="6.75" x2="10.75" y2="8.25" />
   </g>
 )
+export const LaptopIcon = createIcon(
+  'Laptop',
+  'outline',
+  <g>
+    <rect x="3" y="3.25" width="10" height="7.5" rx="1.25" />
+    <path d="M1.5 12.75 H14.5" />
+  </g>
+)
 export const LoaderIcon = createIcon(
   'Loader',
   'outline',

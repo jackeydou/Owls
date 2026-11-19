@@ -19,6 +19,7 @@ import { MessageCards, SaveCardAction } from '../cards/CardActions'
 import { FileBaseContext } from '../files/FileLink'
 import { useDreaming, useDreamingStore, useDreamLocked } from '../memory/dreaming'
 import { runReason } from '../memory/SettingsMemory'
+import { useViewingRemote } from '../remote/viewing'
 import { DispatchGroup } from './DispatchGroup'
 import { MessageAttachments } from './DraftAttachments'
 import { isSetupFailure } from './RouterSetup'
@@ -87,6 +88,7 @@ function ForwardedMessage({ item }: { item: SessionItem }) {
 function ForwardAction({ item, router }: { item: SessionItem; router: Router }) {
   const { t } = useTranslation()
   const startForward = useRouterStore((s) => s.startForward)
+  if (useViewingRemote()) return null
   return (
     <IconButton
       size="sm"

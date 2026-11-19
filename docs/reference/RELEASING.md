@@ -17,6 +17,9 @@ release tags use the same string as the actual version.
 - stable: a production Owlto desktop release
 - beta: a test release for validating upcoming desktop changes
 - dev: the moving head of `main`
+- debug: internal test packages of any branch, installed as Owlto Debug with
+  their own update feed (see [Debug packages](#debug-packages)); not releases
+  and not in the changelog
 
 ## Version Naming
 
@@ -170,6 +173,42 @@ Re-running an existing job uses its original event commit. To pick up new fixes,
 start a fresh manual run on the branch containing them. A failed unpublished
 version can be reused without moving a tag. Once a version has been published,
 use a new version for a new release.
+
+### Debug packages
+
+A debug package is a signed and notarized build of any branch for internal
+testing, before the change ships in a beta or stable release.
+
+```bash
+gh workflow run release-macos.yml --ref 'your-branch' -f build=debug
+```
+
+Or choose **build: debug** under **Run workflow**. A debug package:
+
+- installs as **Owlto Debug** (`dev.owlto.app.debug`, URL scheme
+  `owlto-client-debug`) beside the released app, with its own data root
+  `~/.owlto-debug` (worktrees, projects, workspace, and notes inside it), so it
+  never touches the tester's real data;
+- is versioned `YYYY.M.PATCH-debug.N`: the branch's version with the workflow
+  run number stamped on in CI, never committed. N alone orders debug packages,
+  so the latest debug build wins whichever branch it came from;
+- updates only from the **debug** feed (`owlto-debug-darwin-<arch>.json` on the
+  `update-feed` release); its DMG, ZIP, and patches are assets of the fixed
+  `debug-builds` prerelease, which keeps the newest 10 builds. The DMG is also
+  kept on the run as a workflow artifact for 30 days. Unchecking **publish**
+  keeps only the artifact;
+- compiles in no analytics key;
+- is no release: no version tag, no versioned GitHub Release, nothing in
+  `CHANGELOG.md` or `release-notes/`. Its changes stay as
+  `.changelog/unreleased` fragments and ship with the next beta or stable
+  release notes.
+
+The `debug-builds` assets and workflow artifacts on a public repository can be
+downloaded by anyone who finds them, so share debug packages with internal
+testers only and do not link them publicly.
+
+Local `build:mac:debug` and `build:mac:local` packages also install as Owlto
+Debug, but keep the branch version and do not update.
 
 ### Build and credentials
 

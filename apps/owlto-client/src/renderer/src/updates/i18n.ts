@@ -23,6 +23,8 @@ export const updatesEn = {
   'updates.failure.download': 'The update could not be downloaded or installed. Try again later.',
   'updates.unsupported.development': 'Updates are only checked in the installed app.',
   'updates.unsupported.platform': 'Automatic updates are only available on macOS.',
+  'updates.unsupported.debug':
+    'This debug build was made locally, so it does not update automatically.',
   'updates.loadFailed': 'Update status is unavailable.',
   'updates.popup.title': 'Update available',
   'updates.popup.body': 'Owlto {{version}} has been downloaded. Restart to finish updating.',
@@ -59,6 +61,7 @@ export const updatesZh: Record<keyof typeof updatesEn, string> = {
   'updates.failure.download': '更新下载或安装失败，请稍后重试。',
   'updates.unsupported.development': '只有安装后的应用才会检查更新。',
   'updates.unsupported.platform': '自动更新目前仅支持 macOS。',
+  'updates.unsupported.debug': '这个 Debug 包是本地打的，不会自动更新。',
   'updates.loadFailed': '无法获取更新状态。',
   'updates.popup.title': '有可用更新',
   'updates.popup.body': 'Owlto {{version}} 已下载完成，重启后完成更新。',

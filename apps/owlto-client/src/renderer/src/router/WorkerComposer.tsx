@@ -3,6 +3,7 @@ import { ArrowUpIcon, LoaderIcon, PaperclipIcon } from '@renderer/components/ui/
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RouterWorker } from '../../../shared/router'
+import { useViewingRemote } from '../remote/viewing'
 import { workerTitle } from './activity'
 import { DraftAttachmentChips, useDraftAttachments } from './DraftAttachments'
 import { DraftCards, DraftInput, MentionMenu, useRouterDraft } from './RouterDraft'
@@ -29,6 +30,8 @@ export function WorkerComposer({ worker }: { worker: RouterWorker }) {
     attachments
   })
   const picker = useRef<HTMLInputElement>(null)
+  // Files stay on this Mac; another device's workers cannot take them yet.
+  const remote = useViewingRemote()
   if (worker.status === 'removed')
     return (
       <p className="worker-composer-note worker-composer-removed">{t('workerComposer.removed')}</p>
@@ -48,7 +51,7 @@ export function WorkerComposer({ worker }: { worker: RouterWorker }) {
         }}
         onDrop={(event) => {
           // The input takes files dropped on it itself.
-          if (event.defaultPrevented || !event.dataTransfer.files.length) return
+          if (remote || event.defaultPrevented || !event.dataTransfer.files.length) return
           event.preventDefault()
           attachments.add([...event.dataTransfer.files])
         }}
@@ -67,14 +70,16 @@ export function WorkerComposer({ worker }: { worker: RouterWorker }) {
           </p>
         ) : null}
         <div className="owlto-composer-toolbar">
-          <IconButton
-            size="sm"
-            className="worker-composer-attach"
-            label={t('workerComposer.attach')}
-            tooltip={t('workerComposer.attach')}
-            icon={<PaperclipIcon size={16} />}
-            onClick={() => picker.current?.click()}
-          />
+          {remote ? null : (
+            <IconButton
+              size="sm"
+              className="worker-composer-attach"
+              label={t('workerComposer.attach')}
+              tooltip={t('workerComposer.attach')}
+              icon={<PaperclipIcon size={16} />}
+              onClick={() => picker.current?.click()}
+            />
+          )}
           <input
             ref={picker}
             type="file"
