@@ -83,7 +83,7 @@ struct ThreadView: View {
           .textSelection(.enabled)
           .padding(.horizontal, 12)
           .padding(.vertical, 9)
-          .background(Theme.userBubble, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+          .owlCard(Theme.userBubble, shadow: 0)
       }
     case .directed(let item):
       let worker = item.workerId.flatMap { store?.worker($0) }
@@ -91,7 +91,7 @@ struct ThreadView: View {
         Text(MarkdownText.attributed(item.text))
           .padding(.horizontal, 12)
           .padding(.vertical, 9)
-          .background(Theme.userBubble, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+          .owlCard(Theme.userBubble, shadow: 0)
       }
     case .router(let items):
       SpeakerRow(speaker: .router, name: "Router", follows: follows) {
@@ -128,11 +128,7 @@ struct ThreadView: View {
       Text("Router is working…").font(.subheadline).foregroundStyle(Theme.secondary)
       Spacer()
       AsyncButton(action: interrupt, onError: { error = describe($0) }) {
-        Image(systemName: "stop.fill")
-          .font(.system(size: 10))
-          .foregroundStyle(Theme.foreground)
-          .frame(width: 30, height: 30)
-          .overlay(Circle().stroke(Theme.border))
+        RoundIcon(systemName: "stop.fill")
       }
       .accessibilityLabel(Text("Stop the Router"))
     }
@@ -152,8 +148,7 @@ struct ThreadView: View {
       } label: {
         AttentionRow(item: first, compact: true, extra: items.count - 1)
           .padding(10)
-          .background(Theme.warningTint, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-          .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.warningBorder))
+          .owlCard(Theme.warningTint, stroke: Theme.warningBorder)
       }
       .buttonStyle(.plain)
       .padding(.horizontal, 12)
@@ -217,20 +212,25 @@ struct DispatchRow: View {
   let hostId: String
   let worker: Worker
   let pending: Int
+  @Environment(\.skin) private var skin
 
   var body: some View {
     NavigationLink(value: WorkerRoute(hostId: hostId, workerId: worker.id)) {
       HStack(spacing: 8) {
         Image(systemName: "arrow.turn.down.right").font(.caption).foregroundStyle(Theme.connector)
         OwlAvatar(speaker: OwlSpeaker(worker.provider), working: worker.isWorking, size: 24)
-        Text(worker.label).font(.subheadline.weight(.medium)).lineLimit(1).foregroundStyle(Theme.foreground)
+        Text(worker.label).font(.subheadline.weight(skin == .doodle ? .bold : .medium)).lineLimit(1).foregroundStyle(Theme.foreground)
         Spacer(minLength: 8)
-        let tone = worker.tone(pendingRequests: pending)
-        Text(worker.stateLabel(pendingRequests: pending)).font(.caption).foregroundStyle(tone.text)
+        StatusText(worker.stateLabel(pendingRequests: pending), tone: worker.tone(pendingRequests: pending))
       }
       .padding(.vertical, 8)
       .padding(.horizontal, 8)
-      .background(pending > 0 ? Theme.fill : .clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+      .background(pending > 0 ? (skin == .doodle ? Theme.elevated : Theme.fill) : .clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+      .overlay {
+        if pending > 0 && skin == .doodle {
+          RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Theme.border, lineWidth: 1.5)
+        }
+      }
     }
     .accessibilityLabel(Text("\(worker.label), \(worker.stateLabel(pendingRequests: pending))"))
   }

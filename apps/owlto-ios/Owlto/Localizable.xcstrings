@@ -169,6 +169,16 @@
         }
       }
     },
+    "Appearance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观"
+          }
+        }
+      }
+    },
     "Archive": {
       "localizations": {
         "zh-Hans": {
@@ -375,6 +385,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "完成"
+          }
+        }
+      }
+    },
+    "Doodle": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "涂鸦"
+          }
+        }
+      }
+    },
+    "Doodle matches the Owlto website: cream paper, bold outlines, and hard shadows.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "涂鸦风格与 Owlto 官网一致：米色纸面、粗描边和硬阴影。"
           }
         }
       }
@@ -1049,6 +1079,16 @@
         }
       }
     },
+    "Standard": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标准"
+          }
+        }
+      }
+    },
     "Start one and the Router will send workers to your projects.": {
       "localizations": {
         "zh-Hans": {
@@ -1115,6 +1155,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "已停止"
+          }
+        }
+      }
+    },
+    "Style": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "风格"
           }
         }
       }

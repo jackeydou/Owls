@@ -9,6 +9,7 @@ import SwiftUI
 ///   -OwltoDevOpen thread|worker|sheet                                   open the first thread,
 ///                                                                       its first worker, or the
 ///                                                                       first inbox item
+///   -skin standard|doodle                                               override the Style setting
 enum DevLaunch {
   static var pendingOpen: String? = UserDefaults.standard.string(forKey: "OwltoDevOpen")
 

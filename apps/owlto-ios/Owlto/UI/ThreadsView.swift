@@ -37,6 +37,7 @@ struct ThreadsView: View {
   @Environment(RemoteHub.self) private var hub
   @State private var path = NavigationPath()
   @State private var error: String?
+  @Environment(\.skin) private var skin
 
   var body: some View {
     NavigationStack(path: $path) {
@@ -74,18 +75,21 @@ struct ThreadsView: View {
         ConnectionBanner(host: host)
           .listRowSeparator(.hidden)
           .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+          .skinnedRow()
         summary(store)
           .listRowSeparator(.hidden)
           .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 4, trailing: 16))
+          .skinnedRow()
       }
       if threads.isEmpty && store.loaded {
         EmptyState(title: "No threads yet", message: "Start one and the Router will send workers to your projects.") {
           newThreadMenu.buttonStyle(OwltoButtonStyle(height: 44)).frame(maxWidth: 220)
         }
         .listRowSeparator(.hidden)
+        .skinnedRow()
       }
       ForEach(groups(threads), id: \.title) { group in
-        Section(group.title) {
+        Section {
           ForEach(group.threads) { router in
             NavigationLink(value: ThreadRoute(hostId: host.deviceId, routerId: router.id)) {
               ThreadRow(router: router, store: store)
@@ -98,11 +102,20 @@ struct ThreadsView: View {
               }
               .tint(Theme.secondary)
             }
+            .listRowSeparator(skin == .doodle ? .hidden : .automatic)
+            .skinnedRow()
+          }
+        } header: {
+          if skin == .doodle {
+            SectionLabel(verbatim: group.title)
+          } else {
+            Text(group.title)
           }
         }
       }
     }
     .listStyle(.plain)
+    .skinnedList()
     .refreshable { hub.reconnect(host.deviceId) }
   }
 
@@ -121,24 +134,29 @@ struct ThreadsView: View {
             }
             Text("\(working.count) working")
           }
-          .font(.footnote)
-          .foregroundStyle(Theme.secondary)
+          .font(skin == .doodle ? .footnote.weight(.bold) : .footnote)
+          .foregroundStyle(Theme.running)
           .padding(.leading, 3)
           .padding(.trailing, 10)
           .frame(height: 28)
-          .background(Theme.fill, in: Capsule())
+          .background(Theme.runningTint, in: Capsule())
+          .overlay { if skin == .doodle { Capsule().strokeBorder(Theme.border, lineWidth: 1.5) } }
         }
         if waiting > 0 {
           Label {
             Text("\(waiting) waiting on you")
           } icon: {
-            Circle().fill(Theme.warningDot).frame(width: 6, height: 6)
+            Circle()
+              .fill(Theme.warningDot)
+              .frame(width: skin == .doodle ? 8 : 6, height: skin == .doodle ? 8 : 6)
+              .overlay { if skin == .doodle { Circle().stroke(Theme.border, lineWidth: 1.5) } }
           }
-          .font(.footnote)
+          .font(skin == .doodle ? .footnote.weight(.bold) : .footnote)
           .foregroundStyle(Theme.warning)
           .padding(.horizontal, 10)
           .frame(height: 28)
           .background(Theme.warningTint, in: Capsule())
+          .overlay { if skin == .doodle { Capsule().strokeBorder(Theme.border, lineWidth: 1.5) } }
         }
       }
     }
@@ -198,6 +216,7 @@ struct ThreadsView: View {
 struct ThreadRow: View {
   let router: Router
   let store: HostStore
+  @Environment(\.skin) private var skin
 
   var body: some View {
     let workers = store.workers(in: router.id)
@@ -207,7 +226,7 @@ struct ThreadRow: View {
       VStack(alignment: .leading, spacing: 3) {
         HStack(alignment: .firstTextBaseline) {
           Text(router.title ?? String(localized: "New thread"))
-            .font(.body.weight(.semibold))
+            .font(.body.weight(skin == .doodle ? .heavy : .semibold))
             .lineLimit(1)
           Spacer(minLength: 8)
           Text(RelativeTime.short(router.updatedAt)).font(.caption).foregroundStyle(Theme.tertiary)
@@ -231,7 +250,7 @@ struct ThreadRow: View {
 
   private var badge: Color? {
     if store.needsAttention(router.id) { return Theme.warningDot }
-    if router.status == "failed" { return Theme.danger }
+    if router.status == "failed" { return Theme.dangerDot }
     return nil
   }
 }
@@ -239,6 +258,7 @@ struct ThreadRow: View {
 /// Which Mac's threads to show.
 struct DevicePicker: View {
   @Environment(RemoteHub.self) private var hub
+  @Environment(\.skin) private var skin
 
   var body: some View {
     Menu {
@@ -252,10 +272,13 @@ struct DevicePicker: View {
         HStack(spacing: 6) {
           Image(systemName: "desktopcomputer")
           Text(host.name).lineLimit(1)
-          Circle().fill(color(hub.status(of: host.deviceId))).frame(width: 7, height: 7)
+          Circle()
+            .fill(color(hub.status(of: host.deviceId)))
+            .frame(width: skin == .doodle ? 9 : 7, height: skin == .doodle ? 9 : 7)
+            .overlay { if skin == .doodle { Circle().stroke(Theme.border, lineWidth: 1.5) } }
           Image(systemName: "chevron.down").font(.caption2.weight(.bold))
         }
-        .font(.subheadline.weight(.semibold))
+        .font(.subheadline.weight(skin == .doodle ? .bold : .semibold))
         .foregroundStyle(Theme.foreground)
       }
     }

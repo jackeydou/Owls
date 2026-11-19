@@ -24,13 +24,20 @@ struct OwltoApp: App {
 struct RootView: View {
   @Environment(RemoteHub.self) private var hub
   @State private var tab: Tab = .threads
+  @AppStorage(Skin.storageKey) private var skin: Skin = .standard
 
   enum Tab: Hashable {
     case threads, inbox, devices
   }
 
   var body: some View {
+    // Before any child resolves a color: Theme's UIColors read `Skin.current`, and UIKit
+    // bars read their appearance when created. The id then rebuilds every view for a new
+    // skin; `tab` lives out here, so the selected tab stays.
+    let _ = Skin.activate(skin)
     content
+      .id(skin)
+      .environment(\.skin, skin)
     #if DEBUG
       .task { await DevLaunch.run(hub: hub, tab: $tab) }
     #endif

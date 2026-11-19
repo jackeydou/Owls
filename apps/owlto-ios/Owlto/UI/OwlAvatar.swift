@@ -22,6 +22,7 @@ struct OwlAvatar: View {
   var working = false
   var size: CGFloat = 28
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.skin) private var skin
 
   private var animated: Bool { (working && speaker != .user && speaker != .dreaming) || speaker == .dreaming }
 
@@ -34,6 +35,12 @@ struct OwlAvatar: View {
       }
     }
     .frame(width: size, height: size)
+    .overlay {
+      // Doodle rings every owl in ink, as the website's avatars are.
+      if skin == .doodle {
+        Circle().strokeBorder(Theme.border, lineWidth: size < 26 ? 1.5 : 2)
+      }
+    }
     .accessibilityHidden(true)
   }
 }

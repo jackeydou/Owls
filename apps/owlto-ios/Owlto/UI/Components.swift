@@ -42,25 +42,49 @@ struct AsyncButton<Label: View>: View {
 }
 
 /// Primary and secondary button looks from the desktop app: ink fill, or a quiet tinted fill.
+/// Doodle draws them as outlined cards with a hard shadow that the press pushes into, with
+/// amber for the main action.
 struct OwltoButtonStyle: ButtonStyle {
   enum Kind { case primary, secondary, danger }
   var kind: Kind = .primary
   var height: CGFloat = 48
   var font: Font = .body.weight(.semibold)
+  @Environment(\.skin) private var skin
+  @Environment(\.isEnabled) private var isEnabled
 
+  @ViewBuilder
   func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .font(font)
-      .frame(maxWidth: .infinity, minHeight: height)
-      .foregroundStyle(foreground)
-      .background(background, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-      .overlay {
-        if kind == .danger {
-          RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.danger.opacity(0.35), lineWidth: 1)
+    if skin == .doodle {
+      doodle(configuration)
+    } else {
+      configuration.label
+        .font(font)
+        .frame(maxWidth: .infinity, minHeight: height)
+        .foregroundStyle(foreground)
+        .background(background, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+          if kind == .danger {
+            RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.danger.opacity(0.35), lineWidth: 1)
+          }
         }
-      }
-      .scaleEffect(configuration.isPressed ? 0.97 : 1)
-      .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+        .scaleEffect(configuration.isPressed ? 0.97 : 1)
+        .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+  }
+
+  private func doodle(_ configuration: Configuration) -> some View {
+    let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+    let pressed = configuration.isPressed
+    return configuration.label
+      .font(font.weight(kind == .primary ? .heavy : .bold))
+      .frame(maxWidth: .infinity, minHeight: height)
+      .foregroundStyle(doodleForeground)
+      .background(doodleBackground, in: shape)
+      .overlay(shape.strokeBorder(Theme.border, lineWidth: 2))
+      .offset(x: pressed ? 2 : 0, y: pressed ? 2 : 0)
+      .background(shape.fill(Theme.border).offset(x: 3, y: 3))
+      .opacity(isEnabled ? 1 : 0.5)
+      .animation(.easeOut(duration: 0.08), value: pressed)
   }
 
   private var foreground: Color {
@@ -78,11 +102,28 @@ struct OwltoButtonStyle: ButtonStyle {
     case .danger: return .clear
     }
   }
+
+  private var doodleForeground: Color {
+    switch kind {
+    case .primary: return Theme.onPrimary
+    case .secondary: return Theme.foreground
+    case .danger: return Theme.danger
+    }
+  }
+
+  private var doodleBackground: Color {
+    switch kind {
+    case .primary: return Theme.primary
+    case .secondary: return Theme.elevated
+    case .danger: return Theme.dangerTint
+    }
+  }
 }
 
 /// A one-line message about something that failed, shown until dismissed.
 struct ErrorToast: ViewModifier {
   @Binding var message: String?
+  @Environment(\.skin) private var skin
 
   func body(content: Content) -> some View {
     content.overlay(alignment: .top) {
@@ -98,9 +139,8 @@ struct ErrorToast: ViewModifier {
           .accessibilityLabel(Text("Dismiss"))
         }
         .padding(12)
-        .background(Theme.elevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.border))
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+        .owlCard(Theme.elevated, stroke: Theme.border)
+        .shadow(color: .black.opacity(skin == .doodle ? 0 : 0.12), radius: 12, y: 4)
         .padding(.horizontal, 12)
         .transition(.move(edge: .top).combined(with: .opacity))
         .task(id: message) {
@@ -131,6 +171,7 @@ struct Composer: View {
   var send: () async throws -> Void
   var onError: (Error) -> Void
   @FocusState private var focused: Bool
+  @Environment(\.skin) private var skin
 
   var body: some View {
     HStack(alignment: .bottom, spacing: 8) {
@@ -141,11 +182,7 @@ struct Composer: View {
       AsyncButton(action: {
         try await send()
       }, onError: onError) {
-        Image(systemName: "arrow.up")
-          .font(.system(size: 15, weight: .bold))
-          .frame(width: 34, height: 34)
-          .foregroundStyle(canSend ? Theme.background : Theme.secondary)
-          .background(canSend ? Theme.accent : Theme.fill, in: Circle())
+        sendIcon
       }
       .disabled(!canSend)
       .accessibilityLabel(Text(sendLabel))
@@ -153,11 +190,29 @@ struct Composer: View {
     .padding(.leading, 14)
     .padding(.trailing, 6)
     .padding(.vertical, 4)
-    .background(Theme.elevated, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.border))
-    .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    .owlCard(Theme.elevated, radius: 16, stroke: Theme.border)
+    .shadow(color: .black.opacity(skin == .doodle ? 0 : 0.04), radius: 6, y: 2)
+    .tint(skin == .doodle ? Theme.doodleAmber : nil)
     .padding(.horizontal, 12)
     .padding(.bottom, 8)
+  }
+
+  @ViewBuilder
+  private var sendIcon: some View {
+    let icon = Image(systemName: "arrow.up")
+      .font(.system(size: 15, weight: .bold))
+      .frame(width: 34, height: 34)
+    if skin == .doodle {
+      icon
+        .foregroundStyle(canSend ? Theme.onPrimary : Theme.secondary)
+        .background(canSend ? Theme.primary : Theme.elevated, in: Circle())
+        .overlay(Circle().strokeBorder(Theme.border, lineWidth: 2))
+        .background(Circle().fill(Theme.border).offset(x: 2, y: 2))
+    } else {
+      icon
+        .foregroundStyle(canSend ? Theme.background : Theme.secondary)
+        .background(canSend ? Theme.accent : Theme.fill, in: Circle())
+    }
   }
 
   private var canSend: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -218,7 +273,7 @@ struct ConnectionBanner: View {
         }
       }
       .padding(12)
-      .background(Theme.fill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+      .owlCard(Theme.fill)
     }
   }
 }
@@ -244,14 +299,19 @@ struct Chip: View {
   let text: String
   var color: Color = Theme.secondary
   var monospaced = false
+  @Environment(\.skin) private var skin
 
   var body: some View {
+    let doodle = skin == .doodle
     Text(text)
-      .font(monospaced ? .caption.monospaced() : .caption)
+      .font((monospaced ? Font.caption.monospaced() : .caption).weight(doodle ? .bold : .regular))
       .foregroundStyle(color)
       .lineLimit(1)
       .padding(.horizontal, 8)
       .frame(height: 22)
-      .background(Theme.fill, in: Capsule())
+      .background(doodle ? Theme.elevated : Theme.fill, in: Capsule())
+      .overlay {
+        if doodle { Capsule().strokeBorder(Theme.border, lineWidth: 1.5) }
+      }
   }
 }

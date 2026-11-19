@@ -1,0 +1,1 @@
+- iOS app: a Doodle style matching the Owlto website and the desktop's Doodle skin, in light and dark modes. Switch it in Devices > Style. (#198)
