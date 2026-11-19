@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Publish the verified artifacts to GitHub Releases'
+        description: 'Publish the verified artifacts to GitHub Releases (off: test build, DMG kept on the run)'
         type: boolean
         default: true
   push:
@@ -184,6 +184,8 @@ jobs:
           done
 
       - name: Install Sparkle BinaryDelta
+        # A test build (publish off) skips the feed: its version may already be released.
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
         shell: bash
         env:
           SPARKLE_VERSION: '2.9.5'
@@ -199,6 +201,7 @@ jobs:
           echo "BINARY_DELTA=$RUNNER_TEMP/sparkle/bin/BinaryDelta" >> "$GITHUB_ENV"
 
       - name: Build the update feed and binary delta patches
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
         # `shell: bash` runs with pipefail, so a script failure is not hidden by tee.
         shell: bash
         working-directory: apps/owlto-client
@@ -216,6 +219,19 @@ jobs:
         run: |
           shopt -s nullglob
           shasum -a 256 dist/*.dmg dist/*.zip dist/*.delta > dist/SHA256SUMS.txt
+
+      # A test build keeps its signed DMG on the run instead of publishing it, so a branch
+      # can be tried without moving the update feed or creating a release.
+      - name: Keep the test build on the workflow run
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Owlto-${{ steps.release.outputs.version }}-test-${{ github.sha }}
+          path: |
+            apps/owlto-client/dist/*.dmg
+            apps/owlto-client/dist/SHA256SUMS.txt
+          retention-days: 14
+          if-no-files-found: error
 
       - name: Prepare release notes with build source
         shell: bash
