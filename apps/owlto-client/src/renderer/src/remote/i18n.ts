@@ -47,7 +47,7 @@ export const remoteEn = {
     'That device is not connected. Check that it is on, awake, and running Owlto.',
   'errors.remote_timeout': 'That device did not answer in time. Try again.',
   'errors.remote_unreachable':
-    'Nothing answered at that address. Check the address, and that access is on in its Settings → Devices.',
+    'Nothing answered at that address. Check the address, that access is on in its Settings → Devices, and that Owlto may use the local network on both Macs (System Settings → Privacy & Security → Local Network).',
   'errors.remote_pairing_failed':
     'The code did not work. Check it, or show a new code on the other Mac.',
   'errors.remote_identity_changed':
@@ -103,7 +103,7 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'errors.remote_offline': '这台设备没有连接，请确认它已开机、没有睡眠，并且 Owlto 正在运行。',
   'errors.remote_timeout': '这台设备没有及时回应，请再试一次。',
   'errors.remote_unreachable':
-    '这个地址没有回应。请检查地址，并确认对方在 设置 → 设备 里打开了访问。',
+    '这个地址没有回应。请检查地址，确认对方在 设置 → 设备 里打开了访问，并确认两台 Mac 都允许 Owlto 使用本地网络（系统设置 → 隐私与安全性 → 本地网络）。',
   'errors.remote_pairing_failed': '配对码不对。请检查，或在另一台 Mac 上重新显示配对码。',
   'errors.remote_identity_changed':
     '这台设备已不认识这台 Mac，或者它的身份变了。请移除后重新配对。',

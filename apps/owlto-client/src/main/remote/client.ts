@@ -51,7 +51,13 @@ export function linkFailure(error: unknown, pairing: boolean): OwltoError {
     if (error.reason === 'unknown_device' || error.reason === 'identity_changed')
       return new OwltoError('remote_identity_changed')
   }
-  return new OwltoError('remote_unreachable')
+  // Keep the system's reason (EHOSTUNREACH is macOS's Local Network permission; ECONNREFUSED is
+  // nothing listening there) so a failed connection can be told apart.
+  const code =
+    error instanceof Error && typeof (error as NodeJS.ErrnoException).code === 'string'
+      ? (error as NodeJS.ErrnoException).code
+      : null
+  return new OwltoError('remote_unreachable', code ?? undefined)
 }
 
 /**

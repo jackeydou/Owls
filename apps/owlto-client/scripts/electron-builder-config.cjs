@@ -102,6 +102,12 @@ module.exports = {
       },
       {
         LSMultipleInstancesProhibited: true
+      },
+      {
+        // macOS 15 asks before an app reaches devices on the local network (Remote Router's
+        // direct connections). Without this key the request can fail with no prompt at all.
+        NSLocalNetworkUsageDescription:
+          'Owlto connects to your other Macs on this network so you can use their Router.'
       }
     ],
     notarize: !skipNotarize,
