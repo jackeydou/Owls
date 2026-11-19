@@ -1,0 +1,186 @@
+import CryptoKit
+import Foundation
+
+/// The protocol version both sides must speak; `REMOTE_PROTOCOL` in `shared/remote.ts`.
+let remoteProtocol = 1
+/// The TCP port a Mac listens on; `REMOTE_PORT` in `shared/remote.ts`.
+let remotePort: UInt16 = 47320
+
+/// This phone as the Mac sees it.
+struct LocalIdentity {
+  let deviceId: String
+  let name: String
+  let appVersion: String
+  let privateKey: RemoteCrypto.PrivateKey
+  var publicKey: String { RemoteCrypto.publicKeyString(privateKey) }
+}
+
+/// The Mac that answered a handshake.
+struct RemotePeer: Equatable {
+  let deviceId: String
+  let name: String
+  let publicKey: String
+  let appVersion: String
+}
+
+enum HandshakeMode {
+  /// Reconnecting to a paired Mac, whose identity must match what was stored.
+  case auth(deviceId: String, publicKey: String)
+  /// Pairing with the code the Mac shows.
+  case pair(code: String)
+}
+
+/// JSON messages over frames sealed with the session keys.
+final class SecureChannel: @unchecked Sendable {
+  private let socket: FrameSocket
+  private let sender: FrameCipher
+  private let receiver: FrameCipher
+  private var iterator: AsyncThrowingStream<Data, Error>.AsyncIterator
+  private let sendLock = NSLock()
+
+  fileprivate init(socket: FrameSocket, sender: FrameCipher, receiver: FrameCipher, iterator: AsyncThrowingStream<Data, Error>.AsyncIterator) {
+    self.socket = socket
+    self.sender = sender
+    self.receiver = receiver
+    self.iterator = iterator
+  }
+
+  /// The next decrypted message, or nil once the connection closed. A frame that does not
+  /// open means tampering or a lost frame, so nothing after it can be trusted.
+  func next() async throws -> Data? {
+    guard let frame = try await iterator.next() else { return nil }
+    do {
+      return try receiver.open(frame)
+    } catch {
+      socket.close()
+      throw RemoteError.protocolViolation("frame did not open")
+    }
+  }
+
+  func send(_ message: [String: Any]) throws {
+    let plain = try JSONSerialization.data(withJSONObject: message)
+    sendLock.lock()
+    defer { sendLock.unlock() }
+    socket.send(try sender.seal(plain))
+  }
+
+  func close() {
+    socket.close()
+  }
+}
+
+/// Opens a connection as the side that dialed, as `initiate` in `handshake.ts` does:
+///
+///   phone → hs1 { mode, deviceId, publicKey, ephemeral }
+///   Mac   → hs2 { deviceId, publicKey, ephemeral }   (or reject { reason })
+///   keys  = HKDF(DH(e_i, e_r) ‖ DH(s_i, e_r) ‖ DH(e_i, s_r) ‖ pairing secret, sha256(hs1 ‖ hs2))
+///   phone → sealed hello { name },  Mac → sealed welcome { name }
+enum Handshake {
+  static let timeout: TimeInterval = 15
+
+  static func initiate(socket: FrameSocket, me: LocalIdentity, mode: HandshakeMode) async throws -> (SecureChannel, RemotePeer) {
+    do {
+      return try await withTimeout(seconds: timeout) {
+        try await run(socket: socket, me: me, mode: mode)
+      }
+    } catch {
+      socket.close()
+      if error is CancellationError { throw HandshakeError.timeout }
+      throw error
+    }
+  }
+
+  private static func run(socket: FrameSocket, me: LocalIdentity, mode: HandshakeMode) async throws -> (SecureChannel, RemotePeer) {
+    var frames = socket.frames.makeAsyncIterator()
+    let ephemeral = RemoteCrypto.PrivateKey()
+    let modeName: String
+    switch mode {
+    case .auth: modeName = "auth"
+    case .pair: modeName = "pair"
+    }
+    let hs1 = try JSONSerialization.data(withJSONObject: [
+      "t": "hs1",
+      "protocol": remoteProtocol,
+      "mode": modeName,
+      "deviceId": me.deviceId,
+      "publicKey": me.publicKey,
+      "ephemeral": RemoteCrypto.publicKeyString(ephemeral)
+    ] as [String: Any])
+    socket.send(hs1)
+
+    guard let hs2Frame = try await frames.next() else { throw HandshakeError.closed }
+    guard let hs2 = try? JSONSerialization.jsonObject(with: hs2Frame) as? [String: Any], let t = hs2["t"] as? String else {
+      throw HandshakeError.malformed
+    }
+    if t == "reject" {
+      throw HandshakeError(rejectReason: hs2["reason"] as? String ?? "") ?? HandshakeError.malformed
+    }
+    guard t == "hs2",
+          let peerProtocol = hs2["protocol"] as? Int,
+          let peerId = hs2["deviceId"] as? String, isDeviceId(peerId),
+          let peerKey = hs2["publicKey"] as? String, RemoteCrypto.isPublicKey(peerKey),
+          let peerEphemeral = hs2["ephemeral"] as? String, RemoteCrypto.isPublicKey(peerEphemeral)
+    else { throw HandshakeError.malformed }
+    guard peerProtocol == remoteProtocol else { throw HandshakeError.protocolMismatch }
+    if case .auth(let deviceId, let publicKey) = mode, peerId != deviceId || peerKey != publicKey {
+      throw HandshakeError.identityChanged
+    }
+
+    let transcript = RemoteCrypto.sha256(hs1, hs2Frame)
+    var secrets = [
+      try RemoteCrypto.dh(ephemeral, peerEphemeral),
+      try RemoteCrypto.dh(me.privateKey, peerEphemeral),
+      try RemoteCrypto.dh(ephemeral, peerKey)
+    ]
+    if case .pair(let code) = mode {
+      secrets.append(try await RemoteCrypto.pairingSecret(code: code, transcript: transcript))
+    }
+    let keys = RemoteCrypto.sessionKeys(secrets: secrets, transcript: transcript)
+    let sender = FrameCipher(key: keys.initiator)
+    let receiver = FrameCipher(key: keys.responder)
+
+    let hello = try JSONSerialization.data(withJSONObject: [
+      "t": "hello", "name": me.name, "appVersion": me.appVersion, "nonce": randomHex(8)
+    ])
+    socket.send(try sender.seal(hello))
+
+    guard let reply = try await frames.next() else { throw HandshakeError.closed }
+    guard let opened = try? receiver.open(reply),
+          let welcome = try? JSONSerialization.jsonObject(with: opened) as? [String: Any]
+    else {
+      // A plain-text reject arrives when the Mac could not open our hello.
+      if let rejected = try? JSONSerialization.jsonObject(with: reply) as? [String: Any],
+         rejected["t"] as? String == "reject",
+         let reason = HandshakeError(rejectReason: rejected["reason"] as? String ?? "") {
+        throw reason
+      }
+      throw HandshakeError.authFailed
+    }
+    guard welcome["t"] as? String == "welcome", let name = welcome["name"] as? String else { throw HandshakeError.malformed }
+    let channel = SecureChannel(socket: socket, sender: sender, receiver: receiver, iterator: frames)
+    let peer = RemotePeer(deviceId: peerId, name: name, publicKey: peerKey, appVersion: welcome["appVersion"] as? String ?? "")
+    return (channel, peer)
+  }
+
+  static func isDeviceId(_ value: String) -> Bool {
+    value.count == 11 && value.hasPrefix("dv_") && value.dropFirst(3).allSatisfy { $0.isHexDigit && !$0.isUppercase }
+  }
+
+  static func randomHex(_ bytes: Int) -> String {
+    (0..<bytes).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined()
+  }
+}
+
+/// Runs `operation`, cancelling it after `seconds`.
+func withTimeout<T: Sendable>(seconds: TimeInterval, _ operation: @escaping @Sendable () async throws -> T) async throws -> T {
+  try await withThrowingTaskGroup(of: T.self) { group in
+    group.addTask { try await operation() }
+    group.addTask {
+      try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+      throw CancellationError()
+    }
+    defer { group.cancelAll() }
+    guard let result = try await group.next() else { throw CancellationError() }
+    return result
+  }
+}
