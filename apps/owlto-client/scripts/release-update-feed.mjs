@@ -18,6 +18,8 @@ import { pipeline } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import {
+  DEBUG_BUILDS_TAG,
+  debugBuildNumber,
   isNewerRelease,
   parseReleaseVersion,
   releaseChannel,
@@ -27,15 +29,17 @@ import {
   updateFeedUrl
 } from '../src/shared/updates.ts'
 
+/** A release's files are assets of its own tag; every debug package's, of one fixed prerelease. */
 export function releaseAssetUrl(version, name) {
-  return `https://github.com/${UPDATE_FEED_REPOSITORY}/releases/download/${version}/${name}`
+  const tag = releaseChannel(version) === 'debug' ? DEBUG_BUILDS_TAG : version
+  return `https://github.com/${UPDATE_FEED_REPOSITORY}/releases/download/${tag}/${name}`
 }
 
 /**
  * The channels whose feed this release replaces, each with the entry it replaces. A beta only
  * moves the beta feed; a stable release moves stable, and beta when it is newer than the beta
- * there, so beta users move on to stable releases. A release older than its own channel's
- * current entry is refused rather than rolling users back.
+ * there, so beta users move on to stable releases. A debug package only moves the debug feed.
+ * A release older than its own channel's current entry is refused rather than rolling users back.
  */
 export function planFeedUpdates(version, current) {
   const own = releaseChannel(version)
@@ -45,7 +49,7 @@ export function planFeedUpdates(version, current) {
       `${version} is not newer than ${ownEntry.version}, the current ${own} feed release.`
     )
   }
-  const channels = own === 'beta' ? ['beta'] : ['stable', 'beta']
+  const channels = own === 'stable' ? ['stable', 'beta'] : [own]
   return channels
     .filter((channel) => !current[channel] || isNewerRelease(version, current[channel].version))
     .map((channel) => ({ channel, previous: current[channel] ?? null }))
@@ -177,7 +181,8 @@ async function main() {
   if (!version || !values.dist || !notesPath || !binaryDelta || !out) {
     throw new Error('Pass --version, --dist, --notes, --binary-delta, and --out.')
   }
-  if (!parseReleaseVersion(version)) throw new Error(`Unsupported release version: ${version}`)
+  if (!parseReleaseVersion(version) && debugBuildNumber(version) === null)
+    throw new Error(`Unsupported release version: ${version}`)
   const dist = resolve(values.dist)
   const notes = (await readFile(notesPath, 'utf8')).trim()
   const pubDate = feedDate(new Date())
@@ -190,10 +195,10 @@ async function main() {
     for (const zipName of zips) {
       const arch = zipPattern.exec(zipName)[1]
       const zip = { name: zipName, ...(await digest(join(dist, zipName))) }
-      const current = {
-        stable: await fetchFeed('stable', arch),
-        beta: await fetchFeed('beta', arch)
-      }
+      const current =
+        releaseChannel(version) === 'debug'
+          ? { debug: await fetchFeed('debug', arch) }
+          : { stable: await fetchFeed('stable', arch), beta: await fetchFeed('beta', arch) }
       const updates = planFeedUpdates(version, current)
       const newApp = await unpackApp(join(dist, zipName), join(work, `${version}-${arch}`))
       if (groupWritable(newApp)) {

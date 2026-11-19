@@ -112,7 +112,8 @@ export function SettingsUpdatesPane() {
   const snapshot = useUpdateSnapshot()
   const [revealed, setRevealed] = useState(false)
   // Hidden until revealed from the device id, but kept in view once the user is on beta.
-  const channelVisible = revealed || snapshot?.channel === 'beta'
+  // A debug package always follows the debug feed, so it has no channel to pick.
+  const channelVisible = snapshot?.channel !== 'debug' && (revealed || snapshot?.channel === 'beta')
   return (
     <section className="owlto-settings-section owlto-updates-section">
       <h2>{t('updates.title')}</h2>

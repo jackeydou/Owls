@@ -33,6 +33,11 @@ work stays in normal MRs.
   code, and `apps/owlto-client/package.json` must come from the same revision.
 - After review and explicit publishing approval, choose the branch to release.
   Use `publish=false` to validate a branch without publishing.
+- For internal testing of an unreleased branch, run a debug package instead of a
+  release: `gh workflow run release-macos.yml --ref <branch> -f build=debug`. It
+  installs as Owlto Debug with its own data and debug update feed, needs no version
+  bump, and writes nothing to the changelog or release notes (see "Debug packages"
+  in `docs/reference/RELEASING.md`).
 - A pre-existing tag is not required. Publishing creates a missing version tag at
   the built commit; existing tags are not moved. Use the commit recorded in release
   notes to identify the actual artifact source. To pick up fixes after a failed

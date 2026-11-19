@@ -3,8 +3,15 @@ name: Release macOS
 on:
   workflow_dispatch:
     inputs:
+      build:
+        description: 'release: a beta or stable release. debug: an internal "Owlto Debug" build of the selected branch, on the debug update channel'
+        type: choice
+        options:
+          - release
+          - debug
+        default: release
       publish:
-        description: 'Publish the verified artifacts to GitHub Releases (off: test build, DMG kept on the run)'
+        description: 'Publish the verified artifacts (a release, or the debug channel for a debug build)'
         type: boolean
         default: true
   push:
@@ -15,7 +22,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-macos-main
+  # Debug builds of different branches queue among themselves, never behind a release.
+  group: release-macos-${{ inputs.build == 'debug' && 'debug' || 'main' }}
   cancel-in-progress: false
 
 jobs:
@@ -23,6 +31,13 @@ jobs:
     name: Build, sign, notarize, and release
     runs-on: macos-15
     timeout-minutes: 90
+    env:
+      # A debug package is signed and notarized like a release, but installs as "Owlto Debug"
+      # with its own bundle id and data, and updates only from the debug feed. It is no release:
+      # no tag, no changelog, and its changes stay in .changelog/unreleased until the next beta
+      # or stable release.
+      BUILD_KIND: ${{ inputs.build == 'debug' && 'debug' || 'release' }}
+      APP_BUNDLE: ${{ inputs.build == 'debug' && 'Owlto Debug.app' || 'Owlto.app' }}
 
     steps:
       - name: Check out the selected ref
@@ -59,6 +74,18 @@ jobs:
             echo "Unsupported package version: $package_version"
             exit 1
           fi
+          if [[ "$BUILD_KIND" == debug ]]; then
+            # Debug packages order by run number alone (shared/updates.ts). The stamped version is
+            # only written into this checkout, never committed.
+            package_version="${package_version%%-*}-debug.$GITHUB_RUN_NUMBER"
+            node -e '
+              const fs = require("node:fs")
+              const path = "apps/owlto-client/package.json"
+              const pkg = JSON.parse(fs.readFileSync(path, "utf8"))
+              pkg.version = process.argv[1]
+              fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n")
+            ' "$package_version"
+          fi
           echo "version=$package_version" >> "$GITHUB_OUTPUT"
           echo "RELEASE_VERSION=$package_version" >> "$GITHUB_ENV"
           release_commit="$(git rev-parse HEAD)"
@@ -67,13 +94,14 @@ jobs:
             exit 1
           fi
           echo "RELEASE_COMMIT=$release_commit" >> "$GITHUB_ENV"
-          echo "Building Owlto $package_version from $GITHUB_REF at $release_commit"
-          echo "Building Owlto $package_version from $GITHUB_REF at $release_commit" >> "$GITHUB_STEP_SUMMARY"
+          echo "Building Owlto $package_version ($BUILD_KIND) from $GITHUB_REF at $release_commit"
+          echo "Building Owlto $package_version ($BUILD_KIND) from $GITHUB_REF at $release_commit" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Validate release files
+        if: ${{ inputs.build != 'debug' }}
         run: pnpm run release:check --version "$RELEASE_VERSION" --allow-unreleased
 
       - name: Prepare App Store Connect API key
@@ -114,6 +142,11 @@ jobs:
           # Preserve the hard limit so the packaging hook can size the soft limit to the bundle.
           ulimit -S -n 65536
           echo "Open-file limit: $(ulimit -n)"
+          if [[ "$BUILD_KIND" == debug ]]; then
+            # Debug packages compile in no analytics key (electron.vite.config.ts).
+            pnpm --dir apps/owlto-client run build:mac:debug
+            exit 0
+          fi
           if [[ -z "${OWLTO_POSTHOG_KEY:-}" ]]; then
             echo "::warning::OWLTO_POSTHOG_KEY is not set, so this build ships without usage analytics."
           fi
@@ -134,8 +167,8 @@ jobs:
         working-directory: apps/owlto-client
         run: |
           set -euo pipefail
-          app_path="$(find dist -maxdepth 3 -type d -name 'Owlto.app' -print -quit)"
-          : "${app_path:?Could not find packaged Owlto.app}"
+          app_path="$(find dist -maxdepth 3 -type d -name "$APP_BUNDLE" -print -quit)"
+          : "${app_path:?Could not find packaged $APP_BUNDLE}"
           # spctl and stapler ask Apple's servers (api.apple-cloudkit.com) about the ticket.
           # A dropped connection there fails the job after a ~20 minute build, so retry
           # these online checks with backoff instead of failing on the first network error.
@@ -176,7 +209,7 @@ jobs:
             trap cleanup EXIT
             hdiutil attach "$disk_image" -readonly -nobrowse -noautoopen -mountpoint "$mount_dir"
             mounted=true
-            pnpm run verify:packaged "$mount_dir/Owlto.app"
+            pnpm run verify:packaged "$mount_dir/$APP_BUNDLE"
             hdiutil detach "$mount_dir"
             mounted=false
             rmdir "$mount_dir"
@@ -184,8 +217,6 @@ jobs:
           done
 
       - name: Install Sparkle BinaryDelta
-        # A test build (publish off) skips the feed: its version may already be released.
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
         shell: bash
         env:
           SPARKLE_VERSION: '2.9.5'
@@ -201,15 +232,19 @@ jobs:
           echo "BINARY_DELTA=$RUNNER_TEMP/sparkle/bin/BinaryDelta" >> "$GITHUB_ENV"
 
       - name: Build the update feed and binary delta patches
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
         # `shell: bash` runs with pipefail, so a script failure is not hidden by tee.
         shell: bash
         working-directory: apps/owlto-client
         run: |
+          notes="../../release-notes/$RELEASE_VERSION.md"
+          if [[ "$BUILD_KIND" == debug ]]; then
+            notes="$RUNNER_TEMP/debug-notes.md"
+            printf 'Debug build of %s at %s.\n' "$GITHUB_REF_NAME" "${RELEASE_COMMIT:0:7}" > "$notes"
+          fi
           node --experimental-strip-types scripts/release-update-feed.mjs \
             --version "$RELEASE_VERSION" \
             --dist dist \
-            --notes "../../release-notes/$RELEASE_VERSION.md" \
+            --notes "$notes" \
             --binary-delta "$BINARY_DELTA" \
             --out dist/update-feed | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -220,20 +255,48 @@ jobs:
           shopt -s nullglob
           shasum -a 256 dist/*.dmg dist/*.zip dist/*.delta > dist/SHA256SUMS.txt
 
-      # A test build keeps its signed DMG on the run instead of publishing it, so a branch
-      # can be tried without moving the update feed or creating a release.
-      - name: Keep the test build on the workflow run
-        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
+      - name: Keep the debug package on the workflow run
+        if: ${{ inputs.build == 'debug' }}
         uses: actions/upload-artifact@v4
         with:
-          name: Owlto-${{ steps.release.outputs.version }}-test-${{ github.sha }}
+          name: Owlto-Debug-${{ steps.release.outputs.version }}-run${{ github.run_number }}
           path: |
             apps/owlto-client/dist/*.dmg
             apps/owlto-client/dist/SHA256SUMS.txt
-          retention-days: 14
+          retention-days: 30
           if-no-files-found: error
 
+      - name: Publish the debug package
+        if: ${{ inputs.build == 'debug' && inputs.publish }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Older debug packages are pruned so the release stays small; installs keep updating.
+          KEEP_DEBUG_BUILDS: 10
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          if ! gh release view debug-builds > /dev/null 2>&1; then
+            gh release create debug-builds \
+              --target "$RELEASE_COMMIT" \
+              --prerelease \
+              --title "Owlto Debug builds" \
+              --notes "Internal test builds of Owlto Debug, read by its update feed. Not for general use; do not link publicly."
+          fi
+          assets=(apps/owlto-client/dist/*.dmg apps/owlto-client/dist/*.zip apps/owlto-client/dist/*.delta)
+          gh release upload debug-builds "${assets[@]}" --clobber
+          gh release view debug-builds --json assets --jq '.assets[].name' |
+            sed -nE 's/^Owlto-[0-9]+\.[0-9]+\.[0-9]+-debug\.([0-9]+)[.-].*/\1/p' |
+            # BSD head on macOS has no negative counts, so awk drops the newest builds.
+            sort -un | awk -v keep="$KEEP_DEBUG_BUILDS" '{ n[NR] = $0 } END { for (i = 1; i <= NR - keep; i++) print n[i] }' |
+            while read -r old; do
+              gh release view debug-builds --json assets --jq '.assets[].name' |
+                grep -E "^Owlto-[0-9.]+-debug\.${old}[.-]|-to-[0-9.]+-debug\.${old}-" |
+                while read -r name; do gh release delete-asset debug-builds "$name" --yes; done
+            done
+
       - name: Prepare release notes with build source
+        if: ${{ inputs.build != 'debug' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -252,7 +315,7 @@ jobs:
             "$RELEASE_COMMIT" "$GITHUB_REPOSITORY" "$RELEASE_COMMIT" >> "$RUNNER_TEMP/release-notes.md"
 
       - name: Create stable GitHub Release draft
-        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.publish) && !contains(steps.release.outputs.version, '-beta.') }}
+        if: ${{ inputs.build != 'debug' && (github.event_name != 'workflow_dispatch' || inputs.publish) && !contains(steps.release.outputs.version, '-beta.') }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -274,7 +337,7 @@ jobs:
           gh release edit "$RELEASE_VERSION" --draft=false --latest
 
       - name: Create beta GitHub Release draft
-        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.publish) && contains(steps.release.outputs.version, '-beta.') }}
+        if: ${{ inputs.build != 'debug' && (github.event_name != 'workflow_dispatch' || inputs.publish) && contains(steps.release.outputs.version, '-beta.') }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

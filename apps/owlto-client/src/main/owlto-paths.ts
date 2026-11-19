@@ -3,11 +3,25 @@ import { homedir, tmpdir } from 'node:os'
 import { isAbsolute, join, normalize, relative, resolve } from 'node:path'
 import { app } from 'electron'
 import { parseDataRootArg } from '../shared/startup-args.js'
+import { isDebugPackage } from './build-flavor.js'
 
 const BOOTSTRAP_FILENAME = 'owlto-bootstrap.json'
 
-export function defaultDataRoot(): string {
+/** The released app's data root. Folders Finder shows sit next to it only for this root. */
+function mainDataRoot(): string {
   return join(homedir(), '.owlto')
+}
+
+/**
+ * A debug package installs as its own app ("Owlto Debug"), so it keeps all of its data,
+ * worktrees, projects, and notes inside its own root and never touches the released app's.
+ */
+export function defaultDataRoot(): string {
+  return isDebugPackage() ? join(homedir(), '.owlto-debug') : mainDataRoot()
+}
+
+function isMainDataRoot(dataRoot: string): boolean {
+  return resolve(dataRoot) === resolve(mainDataRoot())
 }
 
 /**
@@ -25,9 +39,7 @@ export function defaultWorktreesRoot(): string {
  * isolated profiles never share worktrees with the normal app.
  */
 export function workerWorktreesRoot(dataRoot = getDataRoot()): string {
-  return resolve(dataRoot) === resolve(defaultDataRoot())
-    ? defaultWorktreesRoot()
-    : join(dataRoot, 'worktrees')
+  return isMainDataRoot(dataRoot) ? defaultWorktreesRoot() : join(dataRoot, 'worktrees')
 }
 
 /**
@@ -36,7 +48,7 @@ export function workerWorktreesRoot(dataRoot = getDataRoot()): string {
  * data root otherwise.
  */
 export function projectsHome(dataRoot = getDataRoot()): string {
-  return resolve(dataRoot) === resolve(defaultDataRoot())
+  return isMainDataRoot(dataRoot)
     ? join(homedir(), 'Owlto', 'projects')
     : join(dataRoot, 'projects')
 }
@@ -47,7 +59,7 @@ export function projectsHome(dataRoot = getDataRoot()): string {
  * custom data root otherwise.
  */
 export function workspaceHome(dataRoot = getDataRoot()): string {
-  return resolve(dataRoot) === resolve(defaultDataRoot())
+  return isMainDataRoot(dataRoot)
     ? join(homedir(), 'Owlto', 'Workspace')
     : join(dataRoot, 'workspace')
 }
@@ -58,9 +70,7 @@ export function workspaceHome(dataRoot = getDataRoot()): string {
  * data root otherwise.
  */
 export function notesHome(dataRoot = getDataRoot()): string {
-  return resolve(dataRoot) === resolve(defaultDataRoot())
-    ? join(homedir(), 'Owlto', 'Notes')
-    : join(dataRoot, 'notes')
+  return isMainDataRoot(dataRoot) ? join(homedir(), 'Owlto', 'Notes') : join(dataRoot, 'notes')
 }
 
 /** The working directory of Router engines in threads with no default project. */
