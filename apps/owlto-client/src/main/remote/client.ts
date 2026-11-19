@@ -50,6 +50,8 @@ export function linkFailure(error: unknown, pairing: boolean): OwltoError {
       return new OwltoError(pairing ? 'remote_pairing_failed' : 'remote_identity_changed')
     if (error.reason === 'unknown_device' || error.reason === 'identity_changed')
       return new OwltoError('remote_identity_changed')
+    // Connected, but the other Mac never finished the handshake: name the step for diagnosis.
+    return new OwltoError('remote_unreachable', `handshake_${error.reason}`)
   }
   // Keep the system's reason (EHOSTUNREACH is macOS's Local Network permission; ECONNREFUSED is
   // nothing listening there) so a failed connection can be told apart.

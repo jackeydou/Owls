@@ -15,7 +15,7 @@ import { PAIRING_ALPHABET, PAIRING_CODE_LENGTH } from '../../shared/remote.js'
 
 /**
  * The cryptography of Remote Router, on Node's built-in `crypto` only: X25519 for key
- * agreement, HKDF-SHA256 for keys, and ChaCha20-Poly1305 for frames. A transport (TCP
+ * agreement, HKDF-SHA256 for keys, and AES-256-GCM for frames. A transport (TCP
  * now, a relay later) only ever carries what this module sealed.
  */
 
@@ -95,6 +95,11 @@ export function sessionKeys(
 
 const TAG_BYTES = 16
 /**
+ * AES-256-GCM, not ChaCha20-Poly1305: Electron's Node runs on BoringSSL, whose `createCipheriv`
+ * does not offer `chacha20-poly1305`, though plain Node (and so the tests) does.
+ */
+const FRAME_CIPHER = 'aes-256-gcm'
+/**
  * Seals and opens frames for one direction. The nonce is a counter, so a dropped,
  * replayed, or reordered frame fails to open, and the connection closes.
  */
@@ -108,7 +113,7 @@ export class FrameCipher {
     return nonce
   }
   seal(plain: Buffer): Buffer {
-    const cipher = createCipheriv('chacha20-poly1305', this.key, this.nonce(), {
+    const cipher = createCipheriv(FRAME_CIPHER, this.key, this.nonce(), {
       authTagLength: TAG_BYTES
     })
     const body = Buffer.concat([cipher.update(plain), cipher.final()])
@@ -117,7 +122,7 @@ export class FrameCipher {
   /** Throws when the frame was not sealed by the peer's matching cipher. */
   open(sealed: Buffer): Buffer {
     if (sealed.length < TAG_BYTES) throw new Error('Frame too short.')
-    const decipher = createDecipheriv('chacha20-poly1305', this.key, this.nonce(), {
+    const decipher = createDecipheriv(FRAME_CIPHER, this.key, this.nonce(), {
       authTagLength: TAG_BYTES
     })
     decipher.setAuthTag(sealed.subarray(sealed.length - TAG_BYTES))

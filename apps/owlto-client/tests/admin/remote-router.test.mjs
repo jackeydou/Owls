@@ -351,3 +351,13 @@ test('a key the keychain no longer opens is replaced, and its pairings are dropp
   assert.notEqual(laptop.raw.identity().publicKey, before)
   assert.deepEqual(laptop.raw.peers('host'), [])
 })
+
+test('remote access reports a keychain that will not open instead of listening', async (t) => {
+  const net = network()
+  const host = device(t, 'mini', net, {
+    cipher: { ...cipher, unavailable: async () => 'locked' }
+  })
+  const overview = await host.service.setAccess(true).catch(() => host.service.overview())
+  assert.equal(overview.listening, false)
+  assert.match(overview.listenError ?? '', /keychain/)
+})

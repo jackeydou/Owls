@@ -168,6 +168,14 @@ export class RemoteService {
   }
   private async listen(): Promise<void> {
     try {
+      // Every handshake needs this device's key from the keychain. Open it before listening, so
+      // a keychain problem shows here instead of as a silent timeout on the other Mac.
+      await this.me().catch((error: unknown) => {
+        throw new OwltoError(
+          'secure_storage_unavailable',
+          `Owlto could not open this Mac's device key in the keychain${error instanceof Error && error.message ? `: ${error.message}` : '.'}`
+        )
+      })
       await this.server.start(this.port)
       this.listenError = null
     } catch (error) {
