@@ -265,6 +265,8 @@ Release MR flow:
   `apps/owlto-client/migrations/` (`owlto.db`).
 - Release notes: `docs/reference/RELEASING.md` and `release-notes/`.
 - Native mac helper (raises file limits while signing): `packages/mac-process-limits`.
+- iOS app (Remote Router client, SwiftUI): `apps/owlto-ios` and its
+  `apps/owlto-ios/AGENTS.md`.
 - Agent app debugging: `apps/owlto-client/scripts/debug-app.mjs` and
   `.agents/skills/owlto-app-debug/SKILL.md`.
 

@@ -1,0 +1,19 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "CFBundleDisplayName": {
+      "shouldTranslate": false
+    },
+    "NSLocalNetworkUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Owlto 会直接连接你配对的 Mac，通过同一个网络或 Tailscale。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
