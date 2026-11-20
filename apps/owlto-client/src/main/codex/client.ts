@@ -96,7 +96,12 @@ export class CodexClient {
     })
     // Drain stderr without retaining credential-bearing diagnostics.
     child.stderr.on('data', () => {})
-    child.on('error', () => this.fail('Unable to launch the selected Codex executable.'))
+    child.stdin.on('error', () => {
+      if (this.child === child) this.stop('Codex closed its input pipe.')
+    })
+    child.on('error', () => {
+      if (this.child === child) this.fail('Unable to launch the selected Codex executable.')
+    })
     child.on('exit', (code, signal) => {
       lines.close()
       if (this.child === child) this.fail(`Codex disconnected (${signal ?? code ?? 'exit'}).`)
@@ -126,7 +131,7 @@ export class CodexClient {
               '. Its result may be unknown; reconnect before continuing.'
           )
         )
-        this.stop()
+        this.stop(`Codex did not acknowledge ${method} before the request timed out.`)
       }, 60_000)
       this.pending.set(id, { resolve, reject, timer })
       child.stdin.write(`${JSON.stringify({ id, method, params })}\n`, (error) => {
@@ -158,17 +163,24 @@ export class CodexClient {
       })}\n`
     )
   }
-  stop(): void {
+  stop(reason = 'Codex connection closed.', signal: 'SIGTERM' | 'SIGKILL' = 'SIGTERM'): void {
     const child = this.child
-    this.fail('Codex connection closed.')
+    this.fail(reason)
     if (!child?.pid) return
     child.stdin.end()
-    try {
-      if (process.platform !== 'win32') process.kill(-child.pid, 'SIGTERM')
-      else child.kill('SIGTERM')
-    } catch {
-      /* The owned process already exited. */
+    const pid = child.pid
+    const kill = (signal: NodeJS.Signals) => {
+      try {
+        if (process.platform !== 'win32') process.kill(-pid, signal)
+        else child.kill(signal)
+      } catch {
+        /* The owned process already exited. */
+      }
     }
+    kill(signal)
+    if (signal === 'SIGKILL') return
+    const deadline = setTimeout(() => kill('SIGKILL'), 2000)
+    child.once('exit', () => clearTimeout(deadline))
   }
   private fail(reason: string): void {
     if (this.closed) return

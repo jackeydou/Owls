@@ -295,7 +295,8 @@ export class OwltoHost {
    */
   connectAtStartup(): void {
     const connected = new Set(this.codex.snapshot().settings.connectedAgents)
-    if (connected.has('codex')) void this.codex.connect()
+    if (connected.has('codex') && this.codex.connectionState().status === 'disconnected')
+      void this.codex.connect()
     if (connected.has('claude-code')) void this.claude.connect()
     if (connected.has('cursor')) void this.cursor.connect()
     this.markPathReady()

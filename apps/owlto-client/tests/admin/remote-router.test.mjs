@@ -171,19 +171,20 @@ const until = async (check, ms = 2000) => {
   }
 }
 
-async function paired(t) {
+async function paired(t, address = 'mini') {
   const net = network()
   const host = device(t, 'mini', net)
   const laptop = device(t, 'laptop', net)
   await host.service.setAccess(true)
   const { pairing } = host.service.startPairing()
-  const remote = await laptop.service.pair('mini', pairing.code.toLowerCase())
+  const remote = await laptop.service.pair(address, pairing.code.toLowerCase())
   return { net, host, laptop, remote }
 }
 
 test('pairing with the code links both devices and stores only an encrypted key', async (t) => {
-  const { host, laptop, remote } = await paired(t)
+  const { host, laptop, remote } = await paired(t, 'mini:47320')
   assert.equal(remote.deviceId, host.store.deviceId)
+  assert.equal(remote.address, 'mini')
   assert.equal(remote.name, 'mini')
   assert.equal(remote.status, 'online')
   const overview = host.service.overview()
@@ -300,7 +301,7 @@ test('direct connections work over real TCP', async (t) => {
   await host.service.setAccess(true)
   const { pairing } = host.service.startPairing()
   const remote = await laptop.service.pair(`127.0.0.1:${port}`, pairing.code)
-  assert.equal(remote.address, `127.0.0.1:${port}`)
+  assert.deepEqual(parseRemoteAddress(remote.address), { host: '127.0.0.1', port })
   await laptop.service.call(remote.deviceId, 'interruptRouter', randomUUID())
   assert.deepEqual(
     host.calls.map((c) => c.name),
