@@ -1,5 +1,5 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { AlertCircleIcon, SidebarLeftIcon, XIcon } from '@renderer/components/ui/icons'
+import { AlertCircleIcon, ClockIcon, SidebarLeftIcon, XIcon } from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -84,7 +84,21 @@ function Stage({
 function ActionError() {
   const { t } = useTranslation()
   const error = useRouterStore((s) => s.error)
+  const queued = useRouterStore((s) => s.queued)
   const clearError = useRouterStore((s) => s.clearError)
+  if (!error && queued)
+    return (
+      <div className="owlto-error-toast is-info" role="status">
+        <ClockIcon size={18} />
+        <span>{t('remote.queued')}</span>
+        <IconButton
+          size="sm"
+          label={t('dismissError')}
+          icon={<XIcon size={16} />}
+          onClick={clearError}
+        />
+      </div>
+    )
   if (!error) return null
   return (
     <div className="owlto-error-toast" role="alert">

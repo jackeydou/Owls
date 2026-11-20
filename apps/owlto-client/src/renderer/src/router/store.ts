@@ -48,6 +48,8 @@ type State = {
   providers: RouterProviderInfo[]
   sending: boolean
   error: Failure | null
+  /** The last message waits on the relay for its Mac, which was offline; cleared on dismiss. */
+  queued: boolean
   panel: RouterPanel | null
   /** Projects whose finished workers are open on the map. */
   openDone: ReadonlySet<string>
@@ -160,6 +162,7 @@ export const useRouterStore = create<State>((set, get) => {
     gitHub: {},
     providers: [],
     sending: false,
+    queued: false,
     error: null,
     panel: null,
     openDone: new Set(),
@@ -257,9 +260,9 @@ export const useRouterStore = create<State>((set, get) => {
     },
     send: async (routerId, text, workerId, cardIds = [], attachments = []) => {
       if (get().sending) return false
-      set({ sending: true, error: null })
+      set({ sending: true, error: null, queued: false })
       try {
-        unwrap(
+        const result = unwrap(
           await backend().sendRouter({
             routerId,
             commandId: crypto.randomUUID(),
@@ -269,6 +272,7 @@ export const useRouterStore = create<State>((set, get) => {
             ...(workerId ? { workerId } : {})
           })
         )
+        if (result?.queued) set({ queued: true })
         return true
       } catch (error) {
         set({ error: uiFailure(error) })
@@ -361,6 +365,6 @@ export const useRouterStore = create<State>((set, get) => {
       await action(() => window.owlto.removeRouterKey(providerId))
       await get().loadProviders()
     },
-    clearError: () => set({ error: null })
+    clearError: () => set({ error: null, queued: false })
   }
 })

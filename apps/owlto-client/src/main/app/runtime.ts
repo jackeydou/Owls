@@ -18,8 +18,10 @@ export {
   sortPullRequests
 } from '../../shared/pull-request-list.js'
 export {
+  formatRemoteInvite,
   normalizePairingCode,
   parseRemoteAddress,
+  parseRemoteInvite,
   remoteMethodSchemas,
   remotePairSchema
 } from '../../shared/remote.js'
@@ -81,6 +83,16 @@ export { FrameCipher, generateKeyPair, newPairingCode } from '../remote/crypto.j
 export { connectFrames, SocketFrames } from '../remote/frames.js'
 export { HandshakeError, initiate, respond } from '../remote/handshake.js'
 export { remoteHostApi } from '../remote/host-api.js'
+export {
+  dialRelay,
+  dropRelayItem,
+  lookupRendezvous,
+  RelayListener,
+  relayTicketHash,
+  WebSocketFrames
+} from '../remote/relay.js'
+export { KeepAwake } from '../remote/keep-awake.js'
+export { openFromClient, openPush, sealForHost, sealPush } from '../remote/sealed.js'
 export { HostServer, tcpListen } from '../remote/server.js'
 export { RemoteService } from '../remote/service.js'
 export { RemoteStore } from '../remote/store.js'

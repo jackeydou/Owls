@@ -267,11 +267,15 @@ export const remoteIdentityTable = sqliteTable('remote_identity', {
   id: text('id').primaryKey(),
   publicKey: text('public_key').notNull(),
   secret: text('secret').notNull(),
-  createdAt: text('created_at').notNull()
+  createdAt: text('created_at').notNull(),
+  /** This device's mailbox on the relay, made when it first allows internet connections. */
+  relayMailbox: text('relay_mailbox'),
+  /** The relay's host secret for that mailbox, encrypted with safeStorage. */
+  relaySecret: text('relay_secret')
 })
 /**
  * Devices paired for Remote Router. A `client` may drive this device; a `host` is a device
- * this one drives, reached at `host`:`port`. Two devices can pair both ways, one row each.
+ * this one drives, reached at `host`:`port` or through the relay. Two devices can pair both ways, one row each.
  */
 export const remotePeersTable = sqliteTable(
   'remote_peers',
@@ -283,7 +287,23 @@ export const remotePeersTable = sqliteTable(
     host: text('host'),
     port: integer('port'),
     pairedAt: text('paired_at').notNull(),
-    lastSeenAt: text('last_seen_at')
+    lastSeenAt: text('last_seen_at'),
+    /** A host's relay base URL, mailbox, and the ticket this device shows there. */
+    relayUrl: text('relay_url'),
+    relayMailbox: text('relay_mailbox'),
+    relayTicket: text('relay_ticket'),
+    /** For a client: the SHA-256 of the relay ticket it was given; the relay stores the same. */
+    relayTicketHash: text('relay_ticket_hash'),
+    /**
+     * Messages left on the relay while the host was away carry a sequence number, so one the
+     * relay replays is not run twice. A host keeps the highest it ran from this client; a
+     * client keeps the last it used for this host.
+     */
+    queueSeq: integer('queue_seq').notNull().default(0),
+    /** For a client: its APNs token and the key that seals its notifications (encrypted). */
+    pushToken: text('push_token'),
+    pushKey: text('push_key'),
+    pushSandbox: integer('push_sandbox', { mode: 'boolean' }).notNull().default(false)
   },
   (table) => [primaryKey({ columns: [table.deviceId, table.role] })]
 )

@@ -1,0 +1,116 @@
+# Owlto relay on Cloudflare Workers. Two deployments from one config:
+#   production  `wrangler deploy`              → owlto-relay       at relay.owlto.dev
+#   debug       `wrangler deploy --env debug`  → owlto-relay-debug at relay-debug.owlto.dev
+# CI deploys either with the "Deploy relay" workflow. Bindings, rate limits and vars are
+# not inherited by a named environment, so `[env.debug]` repeats them.
+# The D1 account index has no database_id: `wrangler deploy` creates the database on first
+# deploy and records it. The Worker makes its table itself.
+# APNs secrets (both environments): APNS_KEY (the .p8 file's contents), APNS_KEY_ID,
+# APNS_TEAM_ID, set with `wrangler secret put <NAME> [--env debug]`.
+name = "owlto-relay"
+main = "src/worker.ts"
+compatibility_date = "2026-11-01"
+workers_dev = false
+routes = [{ pattern = "relay.owlto.dev", custom_domain = true }]
+
+[vars]
+APNS_TOPIC = "app.owlto.mobile"
+
+[[durable_objects.bindings]]
+name = "RELAY_ROOM"
+class_name = "RelayRoom"
+
+[[durable_objects.bindings]]
+name = "RELAY_RENDEZVOUS"
+class_name = "RelayRendezvous"
+
+[[durable_objects.bindings]]
+name = "RELAY_ACCOUNT"
+class_name = "RelayAccount"
+
+[[d1_databases]]
+binding = "ACCOUNTS_DB"
+database_name = "owlto-relay-accounts"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RelayRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["RelayRendezvous", "RelayAccount"]
+
+# Per-location rate limits, checked in the Worker before a Durable Object wakes, so a
+# reconnect loop or a flood cannot run up Durable Object duration. Limits are approximate.
+# namespace_id only has to be unique within the account.
+[[ratelimits]]
+name = "IP_LIMIT"
+namespace_id = "7101"
+simple = { limit = 120, period = 60 }
+
+[[ratelimits]]
+name = "MAILBOX_LIMIT"
+namespace_id = "7102"
+simple = { limit = 30, period = 60 }
+
+[[ratelimits]]
+name = "RENDEZVOUS_LIMIT"
+namespace_id = "7103"
+simple = { limit = 10, period = 60 }
+
+[[ratelimits]]
+name = "ACCOUNT_LIMIT"
+namespace_id = "7104"
+simple = { limit = 30, period = 60 }
+
+[env.debug]
+name = "owlto-relay-debug"
+workers_dev = false
+routes = [{ pattern = "relay-debug.owlto.dev", custom_domain = true }]
+
+[env.debug.vars]
+APNS_TOPIC = "app.owlto.mobile"
+
+[[env.debug.durable_objects.bindings]]
+name = "RELAY_ROOM"
+class_name = "RelayRoom"
+
+[[env.debug.durable_objects.bindings]]
+name = "RELAY_RENDEZVOUS"
+class_name = "RelayRendezvous"
+
+[[env.debug.durable_objects.bindings]]
+name = "RELAY_ACCOUNT"
+class_name = "RelayAccount"
+
+[[env.debug.d1_databases]]
+binding = "ACCOUNTS_DB"
+database_name = "owlto-relay-accounts-debug"
+
+[[env.debug.migrations]]
+tag = "v1"
+new_sqlite_classes = ["RelayRoom"]
+
+[[env.debug.migrations]]
+tag = "v2"
+new_sqlite_classes = ["RelayRendezvous", "RelayAccount"]
+
+[[env.debug.ratelimits]]
+name = "IP_LIMIT"
+namespace_id = "7201"
+simple = { limit = 120, period = 60 }
+
+[[env.debug.ratelimits]]
+name = "MAILBOX_LIMIT"
+namespace_id = "7202"
+simple = { limit = 30, period = 60 }
+
+[[env.debug.ratelimits]]
+name = "RENDEZVOUS_LIMIT"
+namespace_id = "7203"
+simple = { limit = 10, period = 60 }
+
+[[env.debug.ratelimits]]
+name = "ACCOUNT_LIMIT"
+namespace_id = "7204"
+simple = { limit = 30, period = 60 }

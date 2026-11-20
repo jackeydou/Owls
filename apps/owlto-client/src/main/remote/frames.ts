@@ -11,7 +11,17 @@ export interface FrameChannel {
   /** Called once, when either side closes or the connection fails. */
   onClose(listener: (error: Error | null) => void): void
   close(): void
+  /** How the end-to-end channel checks that the peer is still there; direct when absent. */
+  readonly keepalive?: Keepalive
 }
+
+/**
+ * When to ping a quiet peer, and how long a silence means it went away. A relay bills for
+ * the time a message keeps it awake, so its pipes ping rarely and lean on the relay closing
+ * a pipe when either end drops.
+ */
+export type Keepalive = { pingMs: number; idleMs: number }
+export const DIRECT_KEEPALIVE: Keepalive = { pingMs: 20_000, idleMs: 50_000 }
 
 /** The largest frame either side accepts; a snapshot of a long history is the biggest. */
 export const MAX_FRAME_BYTES = 32 * 1024 * 1024

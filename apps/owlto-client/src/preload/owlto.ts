@@ -141,11 +141,19 @@ const api: OwltoAPI = {
   remote: {
     overview: () => ipcRenderer.invoke('owlto:remote-overview'),
     setAccess: (enabled) => ipcRenderer.invoke('owlto:remote-set-access', enabled),
+    setRelay: (enabled) => ipcRenderer.invoke('owlto:remote-set-relay', enabled),
     startPairing: () => ipcRenderer.invoke('owlto:remote-start-pairing'),
     cancelPairing: () => ipcRenderer.invoke('owlto:remote-cancel-pairing'),
+    setKeepAwake: (enabled) => ipcRenderer.invoke('owlto:remote-set-keep-awake', enabled),
+    dismissJustPaired: () => ipcRenderer.invoke('owlto:remote-dismiss-just-paired'),
     revokeClient: (deviceId) => ipcRenderer.invoke('owlto:remote-revoke-client', deviceId),
     pair: (input) => ipcRenderer.invoke('owlto:remote-pair', input),
     removeDevice: (deviceId) => ipcRenderer.invoke('owlto:remote-remove-device', deviceId),
+    relaySignIn: (provider) => ipcRenderer.invoke('owlto:remote-relay-sign-in', provider),
+    relayCancelSignIn: () => ipcRenderer.invoke('owlto:remote-relay-cancel-sign-in'),
+    relaySignOut: () => ipcRenderer.invoke('owlto:remote-relay-sign-out'),
+    relayMacs: () => ipcRenderer.invoke('owlto:remote-relay-macs'),
+    relayRemoveMac: (mailbox) => ipcRenderer.invoke('owlto:remote-relay-remove-mac', mailbox),
     call: (input) => ipcRenderer.invoke('owlto:remote-call', input),
     onEvent: (listener) => {
       const handler = (_: Electron.IpcRendererEvent, envelope: RemoteEventEnvelope) =>

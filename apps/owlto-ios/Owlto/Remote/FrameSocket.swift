@@ -1,9 +1,18 @@
 import Foundation
 import Network
 
+/// Whole binary frames in both directions: over TCP (`FrameSocket`) or a relay pipe
+/// (`RelaySocket`). The handshake and everything after it only see this.
+protocol FrameTransport: AnyObject, Sendable {
+  /// Frames in order. It finishes when either side closes, with an error when it failed.
+  var frames: AsyncThrowingStream<Data, Error> { get }
+  func send(_ frame: Data)
+  func close()
+}
+
 /// Whole binary frames over TCP, each prefixed with its length as a 32-bit big-endian
 /// number, as `SocketFrames` in `apps/owlto-client/src/main/remote/frames.ts` writes them.
-final class FrameSocket: @unchecked Sendable {
+final class FrameSocket: FrameTransport, @unchecked Sendable {
   /// The largest frame either side accepts; a snapshot of a long history is the biggest.
   static let maxFrameBytes = 32 * 1024 * 1024
 

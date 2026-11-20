@@ -126,7 +126,9 @@ export const failureSchema = z.object({
     /** The other device runs a version of Owlto that speaks another remote protocol. */
     'remote_version',
     /** This action only works on the device itself. */
-    'remote_unsupported'
+    'remote_unsupported',
+    /** The relay needs this Mac to sign in, or its sign-in ended. */
+    'remote_relay_login'
   ]),
   message: z.string()
 })
@@ -355,7 +357,17 @@ export const settingsSchema = z.object({
    * Lets paired devices drive this device's Router (Remote Router); added later, so
    * older rows have it off. Saved only through the remote settings.
    */
-  remoteAccess: z.boolean().catch(false).default(false)
+  remoteAccess: z.boolean().catch(false).default(false),
+  /**
+   * Lets paired devices reach this device through the Owlto relay when they are not on its
+   * network; needs `remoteAccess`. Added later, so older rows have it off.
+   */
+  remoteRelay: z.boolean().catch(false).default(false),
+  /**
+   * Keeps this Mac from sleeping while remote access is on and it runs on power, so paired
+   * devices can still reach it. Added later, so older rows have it off.
+   */
+  remoteKeepAwake: z.boolean().catch(false).default(false)
 })
 /**
  * Rows from before `connectedAgents` remembered the opposite, the agents the user
@@ -385,7 +397,9 @@ export const settingsUpdateSchema = settingsSchema
     workspaceDismissed: true,
     connectedAgents: true,
     profile: true,
-    remoteAccess: true
+    remoteAccess: true,
+    remoteRelay: true,
+    remoteKeepAwake: true
   })
   .strict()
 export const modelSchema = z.object({

@@ -26,7 +26,9 @@ const require = createRequire(import.meta.url)
 const { values: args } = parseArgs({
   options: {
     port: { type: 'string', default: '47330' },
-    data: { type: 'string', default: join(tmpdir(), 'owlto-ios-dev-host') }
+    data: { type: 'string', default: join(tmpdir(), 'owlto-ios-dev-host') },
+    /** A relay to register with, e.g. ws://127.0.0.1:8790 from `pnpm --filter @owlto/relay serve`. */
+    relay: { type: 'string' }
   }
 })
 
@@ -37,7 +39,17 @@ try {
   console.error('Build the desktop app first: pnpm --filter owlto-client build\n', error.message)
   process.exit(1)
 }
-const { OwltoStore, RemoteService, RemoteStore, connectFrames, tcpListen, toFailure } = runtime
+const {
+  OwltoStore,
+  RemoteService,
+  RemoteStore,
+  connectFrames,
+  dialRelay,
+  dropRelayItem,
+  lookupRendezvous,
+  tcpListen,
+  toFailure
+} = runtime
 if (!RemoteService) {
   console.error('This build of the desktop app has no Remote Router. Build a branch that has it.')
   process.exit(1)
@@ -391,7 +403,14 @@ const api = {
     emit({ type: 'router', router })
     return router
   },
-  sendRouter: ({ routerId, text, workerId }) => {
+  stageAttachment: ({ name, mimeType, data }) => {
+    const attachment = { id: randomUUID(), name, mimeType, size: data.byteLength }
+    console.log(`staged ${name} (${mimeType}, ${data.byteLength} bytes)`)
+    return attachment
+  },
+  sendRouter: ({ routerId, text, workerId, attachments }) => {
+    if (attachments?.length)
+      console.log(`message carries ${attachments.map((a) => a.name).join(', ')}`)
     const router = routers.get(routerId)
     if (!router) throw new Error('No such thread.')
     if (!router.title) router.title = text.slice(0, 30)
@@ -511,8 +530,21 @@ const service = new RemoteService({
   saveAccess: (enabled) => {
     access = enabled
   },
+  // Without --relay the dev host stays direct only.
+  relayEnabled: () => Boolean(args.relay),
+  saveRelay: () => {},
+  relayUrl: args.relay,
+  keepAwakeEnabled: () => false,
+  saveKeepAwake: () => {},
   listen: tcpListen,
   dial: connectFrames,
+  dialRelay,
+  lookupRendezvous,
+  dropItem: dropRelayItem,
+  readAttachment: () => Promise.reject(new Error('The dev host drives no other device.')),
+  // A local relay runs without accounts, so the dev host never signs in.
+  credentials: { credential: () => null, saveCredential: () => {}, removeCredential: () => {} },
+  relaySignInRequired: false,
   toFailure,
   changed: (overview) => report(overview),
   remoteEvent: () => {},
@@ -525,7 +557,8 @@ function report(overview) {
   const clients =
     overview.clients.map((c) => `${c.name}${c.connected ? ' (connected)' : ''}`).join(', ') ||
     'none'
-  const line = `paired phones: ${clients}${overview.pairing ? ` · pairing code ${overview.pairing.code.replace(/(....)/, '$1-')}` : ''}`
+  const relay = overview.pairing?.relayCode ? ` · relay code ${overview.pairing.relayCode}` : ''
+  const line = `paired phones: ${clients}${overview.pairing ? ` · pairing code ${overview.pairing.code.replace(/(....)/, '$1-')}${relay}` : ''}`
   if (line !== lastLine) console.log(line)
   lastLine = line
 }
@@ -543,6 +576,8 @@ function pairingLoop() {
   console.log(
     `\nPair the phone with 127.0.0.1:${port} and code ${overview.pairing.code.replace(/(....)/, '$1-')}\n`
   )
+  if (overview.pairing.invite)
+    console.log(`Or scan / paste this invite:\n${overview.pairing.invite}\n`)
   setTimeout(pairingLoop, 4.5 * 60_000).unref()
 }
 pairingLoop()

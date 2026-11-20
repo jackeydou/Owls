@@ -1,0 +1,28 @@
+{
+  "name": "@owlto/relay",
+  "version": "0.1.0",
+  "description": "Owlto's Remote Router relay: joins a client's and a host's WebSocket into one pipe of sealed frames. Internal Owlto package.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./node": "./src/node.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.worker.json",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "serve": "node --experimental-strip-types src/serve.ts",
+    "dev:worker": "wrangler dev",
+    "deploy": "wrangler deploy --env=\"\"",
+    "deploy:debug": "wrangler deploy --env debug"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261119.1",
+    "@types/node": "^22.19.15",
+    "@types/ws": "^8.18.2",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.165.0"
+  }
+}

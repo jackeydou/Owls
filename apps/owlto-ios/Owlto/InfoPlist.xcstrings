@@ -4,6 +4,16 @@
     "CFBundleDisplayName": {
       "shouldTranslate": false
     },
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Owlto 使用相机扫描 Mac 上显示的配对二维码。"
+          }
+        }
+      }
+    },
     "NSLocalNetworkUsageDescription": {
       "localizations": {
         "zh-Hans": {

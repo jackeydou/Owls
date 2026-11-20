@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { DEBUG_RELAY_URL, DEFAULT_RELAY_URL } from '../shared/remote.js'
 
 declare const __OWLTO_BUILD_MODE__: 'debug' | 'release'
 
@@ -7,6 +8,9 @@ declare const __OWLTO_BUILD_MODE__: 'debug' | 'release'
  * connect to other devices. The renderer hides its UI the same way (remote/enabled.ts).
  */
 export const REMOTE_ROUTER_ENABLED = __OWLTO_BUILD_MODE__ === 'debug'
+
+/** Debug builds talk to the debug relay, so relay changes can be tried before production. */
+export const RELAY_URL = __OWLTO_BUILD_MODE__ === 'debug' ? DEBUG_RELAY_URL : DEFAULT_RELAY_URL
 
 /** Matches `productName` for debug packages in scripts/electron-builder-config.cjs. */
 export const DEBUG_APP_NAME = 'Owlto Debug'

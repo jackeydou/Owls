@@ -26,20 +26,41 @@ struct RemotePeer: Equatable {
 enum HandshakeMode {
   /// Reconnecting to a paired Mac, whose identity must match what was stored.
   case auth(deviceId: String, publicKey: String)
-  /// Pairing with the code the Mac shows.
-  case pair(code: String)
+  /// Pairing with the code the Mac shows. `key`, when known (from an invite), pins the Mac's
+  /// public key, so nobody else (the relay included) can answer.
+  case pair(code: String, key: String?)
 }
 
-/// JSON messages over frames sealed with the session keys.
+/// What a handshake opens: the channel, who answered, and the six-digit safety code both
+/// screens show after pairing (`safetyCode` in `crypto.ts`).
+struct OpenedChannel: Sendable {
+  let channel: SecureChannel
+  let peer: RemotePeer
+  let safetyCode: String
+}
+
+/// Optional abilities the two sides announce in `hello` / `welcome`.
+let capDeflate = "deflate"
+
+/// JSON messages over frames sealed with the session keys. When the Mac reads deflate, long
+/// messages are compressed before sealing: the plain text is then `0x01 ‖ raw deflate(JSON)`,
+/// as `SecureChannel` in `handshake.ts` writes it.
 final class SecureChannel: @unchecked Sendable {
-  private let socket: FrameSocket
+  /// Messages shorter than this go uncompressed (`COMPRESS_MIN_BYTES`).
+  static let compressMinBytes = 1024
+  /// A compressed message starts with this byte; JSON never does.
+  static let deflated: UInt8 = 0x01
+
+  private let socket: FrameTransport
+  private let compress: Bool
   private let sender: FrameCipher
   private let receiver: FrameCipher
   private var iterator: AsyncThrowingStream<Data, Error>.AsyncIterator
   private let sendLock = NSLock()
 
-  fileprivate init(socket: FrameSocket, sender: FrameCipher, receiver: FrameCipher, iterator: AsyncThrowingStream<Data, Error>.AsyncIterator) {
+  fileprivate init(socket: FrameTransport, sender: FrameCipher, receiver: FrameCipher, iterator: AsyncThrowingStream<Data, Error>.AsyncIterator, compress: Bool) {
     self.socket = socket
+    self.compress = compress
     self.sender = sender
     self.receiver = receiver
     self.iterator = iterator
@@ -50,15 +71,26 @@ final class SecureChannel: @unchecked Sendable {
   func next() async throws -> Data? {
     guard let frame = try await iterator.next() else { return nil }
     do {
-      return try receiver.open(frame)
+      let plain = try receiver.open(frame)
+      return try Self.unpack(plain)
     } catch {
       socket.close()
       throw RemoteError.protocolViolation("frame did not open")
     }
   }
 
+  static func unpack(_ plain: Data) throws -> Data {
+    guard plain.first == deflated else { return plain }
+    return try Deflate.inflate(plain.dropFirst())
+  }
+
+  static func pack(_ text: Data, compress: Bool) throws -> Data {
+    guard compress, text.count >= compressMinBytes else { return text }
+    return Data([deflated]) + (try Deflate.compress(text))
+  }
+
   func send(_ message: [String: Any]) throws {
-    let plain = try JSONSerialization.data(withJSONObject: message)
+    let plain = try Self.pack(try JSONSerialization.data(withJSONObject: message), compress: compress)
     sendLock.lock()
     defer { sendLock.unlock() }
     socket.send(try sender.seal(plain))
@@ -78,7 +110,7 @@ final class SecureChannel: @unchecked Sendable {
 enum Handshake {
   static let timeout: TimeInterval = 15
 
-  static func initiate(socket: FrameSocket, me: LocalIdentity, mode: HandshakeMode) async throws -> (SecureChannel, RemotePeer) {
+  static func initiate(socket: FrameTransport, me: LocalIdentity, mode: HandshakeMode) async throws -> OpenedChannel {
     do {
       return try await withTimeout(seconds: timeout) {
         try await run(socket: socket, me: me, mode: mode)
@@ -90,7 +122,7 @@ enum Handshake {
     }
   }
 
-  private static func run(socket: FrameSocket, me: LocalIdentity, mode: HandshakeMode) async throws -> (SecureChannel, RemotePeer) {
+  private static func run(socket: FrameTransport, me: LocalIdentity, mode: HandshakeMode) async throws -> OpenedChannel {
     var frames = socket.frames.makeAsyncIterator()
     let ephemeral = RemoteCrypto.PrivateKey()
     let modeName: String
@@ -125,6 +157,7 @@ enum Handshake {
     if case .auth(let deviceId, let publicKey) = mode, peerId != deviceId || peerKey != publicKey {
       throw HandshakeError.identityChanged
     }
+    if case .pair(_, let key?) = mode, peerKey != key { throw HandshakeError.identityChanged }
 
     let transcript = RemoteCrypto.sha256(hs1, hs2Frame)
     var secrets = [
@@ -132,7 +165,7 @@ enum Handshake {
       try RemoteCrypto.dh(me.privateKey, peerEphemeral),
       try RemoteCrypto.dh(ephemeral, peerKey)
     ]
-    if case .pair(let code) = mode {
+    if case .pair(let code, _) = mode {
       secrets.append(try await RemoteCrypto.pairingSecret(code: code, transcript: transcript))
     }
     let keys = RemoteCrypto.sessionKeys(secrets: secrets, transcript: transcript)
@@ -140,8 +173,8 @@ enum Handshake {
     let receiver = FrameCipher(key: keys.responder)
 
     let hello = try JSONSerialization.data(withJSONObject: [
-      "t": "hello", "name": me.name, "appVersion": me.appVersion, "nonce": randomHex(8)
-    ])
+      "t": "hello", "name": me.name, "appVersion": me.appVersion, "nonce": randomHex(8), "caps": [capDeflate]
+    ] as [String: Any])
     socket.send(try sender.seal(hello))
 
     guard let reply = try await frames.next() else { throw HandshakeError.closed }
@@ -157,9 +190,10 @@ enum Handshake {
       throw HandshakeError.authFailed
     }
     guard welcome["t"] as? String == "welcome", let name = welcome["name"] as? String else { throw HandshakeError.malformed }
-    let channel = SecureChannel(socket: socket, sender: sender, receiver: receiver, iterator: frames)
+    let caps = welcome["caps"] as? [String] ?? []
+    let channel = SecureChannel(socket: socket, sender: sender, receiver: receiver, iterator: frames, compress: caps.contains(capDeflate))
     let peer = RemotePeer(deviceId: peerId, name: name, publicKey: peerKey, appVersion: welcome["appVersion"] as? String ?? "")
-    return (channel, peer)
+    return OpenedChannel(channel: channel, peer: peer, safetyCode: RemoteCrypto.safetyCode(keys))
   }
 
   static func isDeviceId(_ value: String) -> Bool {

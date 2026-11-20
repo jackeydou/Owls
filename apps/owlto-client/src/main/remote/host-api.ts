@@ -13,7 +13,10 @@ export function remoteHostApi(host: OwltoHost): RemoteHostApi {
     },
     threadItems: (input) => host.threadItems(input),
     createThread: (input) => host.createThread(input),
-    sendRouter: (input) => host.sendRouter(input),
+    sendRouter: async (input) => {
+      await host.sendRouter(input)
+    },
+    stageAttachment: (input) => host.stageAttachment(input),
     interruptRouter: (routerId) => host.interruptRouter(routerId),
     archiveThread: (input) => host.archiveThread(input),
     resolveBatch: (input) => host.resolveBatch(input),

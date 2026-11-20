@@ -93,6 +93,16 @@ export function sessionKeys(
   return { initiator: okm.subarray(0, 32), responder: okm.subarray(32, 64) }
 }
 
+/**
+ * Six digits both devices show after pairing. They come from the session keys, so they
+ * match only when both ends derived the same keys: a relay in the middle of a typed-code
+ * pairing would show different digits on each side.
+ */
+export function safetyCode(keys: { initiator: Buffer; responder: Buffer }): string {
+  const digest = sha256(Buffer.from('owlto-safety-code', 'utf8'), keys.initiator, keys.responder)
+  return String(digest.readUInt32BE(0) % 1_000_000).padStart(6, '0')
+}
+
 const TAG_BYTES = 16
 /**
  * AES-256-GCM, not ChaCha20-Poly1305: Electron's Node runs on BoringSSL, whose `createCipheriv`

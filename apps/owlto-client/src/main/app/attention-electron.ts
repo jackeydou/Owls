@@ -7,7 +7,7 @@ import type { AttentionDeps, AttentionNotice, NoticeHandle } from './attention.j
  * and whether any Owlto window has focus.
  */
 export function electronAttention(
-  deps: Pick<AttentionDeps, 'settings' | 'worker'> & {
+  deps: Pick<AttentionDeps, 'settings' | 'worker' | 'remote'> & {
     /** The main window, created again when the user closed it. */
     window(): BrowserWindow | null
   }

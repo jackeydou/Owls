@@ -62,6 +62,12 @@ jobs:
         working-directory: apps/owlto-client
         run: node --experimental-strip-types --test tests/admin/*.test.mjs
 
+      - name: Typecheck relay
+        run: pnpm --filter @owlto/relay typecheck
+
+      - name: Run relay tests
+        run: pnpm --filter @owlto/relay test
+
   # Decide whether this change needs the macOS job. macOS arm64 runners are
   # slower to get and the job adds little for most PRs, so PRs only run it
   # when native code, packaging scripts, or dependencies change. Pushes to

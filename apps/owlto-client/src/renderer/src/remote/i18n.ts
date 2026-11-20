@@ -8,6 +8,61 @@ export const remoteEn = {
   'remote.access': 'Let paired devices use this Mac',
   'remote.accessHelp':
     "Paired devices can message this Mac's Router and run workers here, with this Mac's agents and plan usage. Owlto must stay open, and the Mac awake.",
+  'remote.relayAccess': 'Allow connections over the internet',
+  'remote.relayAccessHelp':
+    'Paired devices on other networks reach this Mac through the Owlto relay. Everything is end-to-end encrypted; the relay only passes it along.',
+  'remote.relay.online': 'Connected to the relay',
+  'remote.relay.connecting': 'Connecting to the relay…',
+  'remote.relay.offline': 'Cannot reach the relay',
+  'remote.inviteLabel': 'Pairing invite',
+  'remote.inviteCopy': 'Copy invite',
+  'remote.inviteCopied': 'Copied',
+  'remote.viaRelay': 'via relay',
+  'remote.viaRelayOnly': 'Through the relay',
+  'remote.keepAwake': 'Keep this Mac awake on power',
+  'remote.keepAwakeHelp':
+    'While remote access is on and the Mac is plugged in, it does not sleep, so paired devices can reach it. On battery it sleeps as usual.',
+  'remote.pairHelpRelay':
+    'Shows a QR code and a code for devices anywhere, and a shorter code for devices on this network.',
+  'remote.pairSameNetwork': 'On this network:',
+  'remote.qrLabel': 'QR code for pairing',
+  'remote.qrHelp': 'Scan with Owlto on iPhone',
+  'remote.relayCodeHelp': 'Or type this code on the other device:',
+  'remote.relayCodeWaiting': 'Getting a code from the relay…',
+  'remote.justPaired': '{{name}} paired with this Mac.',
+  'remote.pairedWith': 'Paired with {{name}}.',
+  'remote.safetyLabel': 'Safety code',
+  'remote.safetyHelpHost':
+    'The other device shows six digits too. If they are not the same, remove it: someone may be in between.',
+  'remote.safetyHelpClient':
+    'The other Mac shows six digits too. If they are not the same, remove it and pair again.',
+  'remote.safetyMatch': 'They match',
+  'remote.safetyMismatch': 'Remove it',
+  'remote.relayError.relay_login': 'The relay sign-in has ended. Sign in again below.',
+  'remote.account.signedOutHelp':
+    'Sign in so the relay knows this Mac is yours. Only Macs that other devices connect to need this. Owlto only reads your public profile, and the relay keeps its own sign-in, not your account’s token.',
+  'remote.account.signInToEnable':
+    'Sign in to turn on internet connections. Only Macs that other devices connect to need this. Owlto only reads your public profile, and the relay keeps its own sign-in, not your account’s token.',
+  'remote.account.signInWith.github': 'Sign in with GitHub',
+  'remote.account.provider.github': 'GitHub',
+  'remote.account.pendingHelp': 'Enter this code on the sign-in page to sign in to the relay.',
+  'remote.account.waiting': 'Waiting for the sign-in',
+  'remote.account.copyAndOpen': 'Copy code and open the sign-in page',
+  'remote.account.signedInAs': 'Relay account: @{{login}} ({{provider}})',
+  'remote.account.signOut': 'Sign out',
+  'remote.account.macs': 'Macs on this account',
+  'remote.account.unnamedMac': 'Mac',
+  'remote.account.failure.network':
+    'Could not reach the sign-in service. Check the connection and try again.',
+  'remote.account.failure.denied': 'The sign-in was canceled.',
+  'remote.account.failure.expired': 'The relay sign-in has ended. Sign in again.',
+  'remote.account.failure.relay': 'The relay could not finish the sign-in. Try again in a minute.',
+  'remote.relayError.relay_quota':
+    'This account already has 5 Macs on the relay. Remove one you no longer use below.',
+  'remote.relayError.relay_replaced':
+    'Another Mac with this Mac’s relay identity took over. Turn the switch off and on to take it back.',
+  'remote.relayError.relay_denied': 'The relay turned this Mac away. Turn the switch off and on.',
+  'remote.queued': 'That Mac is offline. Owlto will deliver the message when it is back.',
   'remote.addresses': 'Address',
   'remote.addressesHelp':
     'Type one of these on the other device. Same Wi-Fi works as is; from elsewhere, use the Tailscale address.',
@@ -26,9 +81,9 @@ export const remoteEn = {
   'remote.neverSeen': 'Not connected yet',
   'remote.add': 'Add a device',
   'remote.addHelp':
-    'On the other Mac, open Settings → Devices, turn on access, and click Show code. Then enter its address and the code here.',
+    'On the other Mac, open Settings → Devices, turn on access, and click Show code. On the same network, enter its address and the short code. From anywhere, type its long code (K7Q2-ABCD-EFGH) or paste its invite.',
   'remote.addAddress': 'Address of the other Mac',
-  'remote.addAddressPlaceholder': '192.168.1.20 or mac-mini.tail1234.ts.net',
+  'remote.addAddressPlaceholder': '192.168.1.20, K7Q2-ABCD-EFGH, or an invite',
   'remote.addCode': 'Pairing code',
   'remote.addCodePlaceholder': 'ABCD-EFGH',
   'remote.addSubmit': 'Pair',
@@ -53,7 +108,8 @@ export const remoteEn = {
   'errors.remote_identity_changed':
     'That device no longer recognizes this one, or its identity changed. Remove it and pair again.',
   'errors.remote_version': 'That device runs a different version of Owlto. Update both Macs.',
-  'errors.remote_unsupported': 'This only works on the device itself.'
+  'errors.remote_unsupported': 'This only works on the device itself.',
+  'errors.remote_relay_login': 'Sign in to the relay first, in Settings → Devices.'
 }
 
 export const remoteZh: Record<keyof typeof remoteEn, string> = {
@@ -65,6 +121,57 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'remote.access': '允许已配对的设备使用这台 Mac',
   'remote.accessHelp':
     '已配对的设备可以给这台 Mac 的 Router 发消息，并在这里运行 Worker，使用这台 Mac 的 agent 和额度。需要保持 Owlto 打开、Mac 不睡眠。',
+  'remote.relayAccess': '允许通过互联网连接',
+  'remote.relayAccessHelp':
+    '不在同一网络的已配对设备会通过 Owlto 中继连到这台 Mac。所有内容端到端加密，中继只负责转发。',
+  'remote.relay.online': '已连接到中继',
+  'remote.relay.connecting': '正在连接中继…',
+  'remote.relay.offline': '无法连接到中继',
+  'remote.inviteLabel': '配对邀请',
+  'remote.inviteCopy': '复制邀请',
+  'remote.inviteCopied': '已复制',
+  'remote.viaRelay': '经中继',
+  'remote.viaRelayOnly': '通过中继连接',
+  'remote.keepAwake': '接电时保持这台 Mac 唤醒',
+  'remote.keepAwakeHelp':
+    '打开远程访问并接通电源时，这台 Mac 不会睡眠，已配对的设备随时能连上。用电池时照常睡眠。',
+  'remote.pairHelpRelay':
+    '显示一个二维码和一个任何网络都能用的配对码，以及一个同一网络下用的短码。',
+  'remote.pairSameNetwork': '同一网络：',
+  'remote.qrLabel': '配对二维码',
+  'remote.qrHelp': '用 iPhone 上的 Owlto 扫码',
+  'remote.relayCodeHelp': '或者在另一台设备上输入这个码：',
+  'remote.relayCodeWaiting': '正在从中继获取配对码…',
+  'remote.justPaired': '{{name}} 已和这台 Mac 配对。',
+  'remote.pairedWith': '已和 {{name}} 配对。',
+  'remote.safetyLabel': '安全码',
+  'remote.safetyHelpHost': '另一台设备也会显示 6 位数字。如果不一样，请移除它：可能有人在中间。',
+  'remote.safetyHelpClient': '另一台 Mac 也会显示 6 位数字。如果不一样，请移除后重新配对。',
+  'remote.safetyMatch': '一致',
+  'remote.safetyMismatch': '移除',
+  'remote.relayError.relay_login': '中继登录已失效，请在下方重新登录。',
+  'remote.account.signedOutHelp':
+    '登录后中继才知道这台 Mac 是你的。只有被其他设备连接的 Mac 需要登录。Owlto 只读取你的公开资料，中继保存的是它自己的登录凭证，不是你账号的 token。',
+  'remote.account.signInToEnable':
+    '登录后即可打开互联网连接。只有被其他设备连接的 Mac 需要登录。Owlto 只读取你的公开资料，中继保存的是它自己的登录凭证，不是你账号的 token。',
+  'remote.account.signInWith.github': '用 GitHub 登录',
+  'remote.account.provider.github': 'GitHub',
+  'remote.account.pendingHelp': '在登录页面输入这个验证码，即可登录中继。',
+  'remote.account.waiting': '正在等待登录',
+  'remote.account.copyAndOpen': '复制验证码并打开登录页面',
+  'remote.account.signedInAs': '中继账号：@{{login}}（{{provider}}）',
+  'remote.account.signOut': '退出登录',
+  'remote.account.macs': '这个账号下的 Mac',
+  'remote.account.unnamedMac': 'Mac',
+  'remote.account.failure.network': '无法连接登录服务，请检查网络后再试。',
+  'remote.account.failure.denied': '已取消登录。',
+  'remote.account.failure.expired': '中继登录已失效，请重新登录。',
+  'remote.account.failure.relay': '中继没能完成登录，请过一分钟再试。',
+  'remote.relayError.relay_quota': '这个账号已经有 5 台 Mac 在用中继。请在下方移除不再使用的那台。',
+  'remote.relayError.relay_replaced':
+    '另一台使用同一中继身份的 Mac 接管了连接。关掉再打开开关即可拿回。',
+  'remote.relayError.relay_denied': '中继拒绝了这台 Mac。请关掉再打开开关。',
+  'remote.queued': '那台 Mac 不在线，Owlto 会在它回来后把消息送到。',
   'remote.addresses': '地址',
   'remote.addressesHelp':
     '在另一台设备上输入其中一个。同一个 Wi-Fi 下直接可用；在别处请用 Tailscale 地址。',
@@ -83,9 +190,9 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'remote.neverSeen': '还没有连接过',
   'remote.add': '添加设备',
   'remote.addHelp':
-    '在另一台 Mac 上打开 设置 → 设备，打开访问开关并点「显示配对码」，然后在这里输入它的地址和配对码。',
+    '在另一台 Mac 上打开 设置 → 设备，打开访问开关并点「显示配对码」。同一网络下，输入它的地址和短码；在任何网络下，输入它的长码（K7Q2-ABCD-EFGH）或粘贴邀请。',
   'remote.addAddress': '另一台 Mac 的地址',
-  'remote.addAddressPlaceholder': '192.168.1.20 或 mac-mini.tail1234.ts.net',
+  'remote.addAddressPlaceholder': '192.168.1.20、K7Q2-ABCD-EFGH 或邀请',
   'remote.addCode': '配对码',
   'remote.addCodePlaceholder': 'ABCD-EFGH',
   'remote.addSubmit': '配对',
@@ -108,5 +215,6 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'errors.remote_identity_changed':
     '这台设备已不认识这台 Mac，或者它的身份变了。请移除后重新配对。',
   'errors.remote_version': '这台设备运行的 Owlto 版本不同，请把两台 Mac 都更新到最新版本。',
-  'errors.remote_unsupported': '这个操作只能在那台设备上进行。'
+  'errors.remote_unsupported': '这个操作只能在那台设备上进行。',
+  'errors.remote_relay_login': '请先在 设置 → 设备 里登录中继。'
 }

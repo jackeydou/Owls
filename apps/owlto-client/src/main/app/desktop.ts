@@ -2,7 +2,15 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createSdkMcpServer, query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
-import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  powerMonitor,
+  powerSaveBlocker,
+  safeStorage,
+  shell
+} from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { RemoteEvent, RemoteEventEnvelope, RemoteOverview } from '../../shared/remote.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
@@ -15,7 +23,12 @@ import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
 import { AutomationStore } from '../automations/store.js'
 import { BrowserHost } from '../browser/runner.js'
-import { DEBUG_APP_NAME, isDebugPackage, REMOTE_ROUTER_ENABLED } from '../build-flavor.js'
+import {
+  DEBUG_APP_NAME,
+  isDebugPackage,
+  RELAY_URL,
+  REMOTE_ROUTER_ENABLED
+} from '../build-flavor.js'
 import { CardService } from '../cards/service.js'
 import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
@@ -45,6 +58,7 @@ import {
 import { connectFrames } from '../remote/frames.js'
 import { remoteHostApi } from '../remote/host-api.js'
 import { registerRemoteIpc } from '../remote/ipc.js'
+import { dialRelay, dropRelayItem, lookupRendezvous } from '../remote/relay.js'
 import { tcpListen } from '../remote/server.js'
 import { RemoteService } from '../remote/service.js'
 import { RemoteStore } from '../remote/store.js'
@@ -330,6 +344,14 @@ void app
     attention = new WorkerAttention(
       electronAttention({
         settings,
+        remote: (notice) =>
+          void remote?.notifyClients({
+            title: notice.title,
+            subtitle: notice.subtitle,
+            body: notice.body,
+            routerId: notice.target.routerId,
+            workerId: notice.target.workerId
+          }),
         worker: (sessionId) => {
           const worker = router?.workerForSession(sessionId)
           if (!worker || worker.status === 'removed') return null
@@ -471,12 +493,30 @@ void app
       cipher: safeStorageCipher,
       deviceId: store.deviceId,
       appVersion: app.getVersion(),
+      relayUrl: RELAY_URL,
       api: remoteHostApi(host),
       accessEnabled: () => store.settings().remoteAccess,
       saveAccess: (enabled) =>
         host.saveSettings({ ...host.snapshot().settings, remoteAccess: enabled }),
+      keepAwakeEnabled: () => store.settings().remoteKeepAwake,
+      saveKeepAwake: (enabled) =>
+        host.saveSettings({ ...host.snapshot().settings, remoteKeepAwake: enabled }),
+      power: {
+        onBattery: () => powerMonitor.isOnBatteryPower(),
+        // Sleep is blocked; the display may still turn off.
+        start: () => powerSaveBlocker.start('prevent-app-suspension'),
+        stop: (handle) => powerSaveBlocker.stop(handle)
+      },
+      relayEnabled: () => store.settings().remoteRelay,
+      saveRelay: (enabled) =>
+        host.saveSettings({ ...host.snapshot().settings, remoteRelay: enabled }),
       listen: tcpListen,
       dial: (address, port) => connectFrames(address, port),
+      dialRelay,
+      lookupRendezvous,
+      dropItem: dropRelayItem,
+      readAttachment: (attachment) => host.readAttachment(attachment),
+      credentials: routerStore,
       toFailure,
       changed: remoteChanged,
       remoteEvent
@@ -501,7 +541,13 @@ void app
     registerRemoteIpc(handle, remote)
     applyAppMenu(store.settings(), menu)
     createWindow()
-    if (REMOTE_ROUTER_ENABLED) remote.start()
+    if (REMOTE_ROUTER_ENABLED) {
+      remote.start()
+      // Sleep drops every connection; reconnect at once on wake instead of after the backoff.
+      powerMonitor.on('resume', () => remote?.wake())
+      powerMonitor.on('on-ac', () => remote?.powerChanged())
+      powerMonitor.on('on-battery', () => remote?.powerChanged())
+    }
     analytics?.start()
     updater.start()
     // Agent CLIs and the commands they run inherit PATH, so they start after the shell's is in.

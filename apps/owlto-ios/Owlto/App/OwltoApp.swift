@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct OwltoApp: App {
+  @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
   @State private var hub = RemoteHub()
   @Environment(\.scenePhase) private var scenePhase
 
@@ -10,6 +11,7 @@ struct OwltoApp: App {
       RootView()
         .environment(hub)
         .tint(Theme.accent)
+        .onAppear { PushRegistration.onToken = { [hub] token in hub.setPushToken(token) } }
     }
     .onChange(of: scenePhase, initial: true) { _, phase in
       switch phase {
@@ -38,6 +40,9 @@ struct RootView: View {
     content
       .id(skin)
       .environment(\.skin, skin)
+      .sheet(isPresented: Binding(get: { hub.justPaired != nil }, set: { if !$0 { hub.justPaired = nil } })) {
+        if let result = hub.justPaired { SafetyCodeView(result: result) }
+      }
     #if DEBUG
       .task { await DevLaunch.run(hub: hub, tab: $tab) }
     #endif

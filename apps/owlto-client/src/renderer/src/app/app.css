@@ -164,6 +164,9 @@
 .owlto-error-toast > span {
   overflow-wrap: anywhere;
 }
+.owlto-error-toast.is-info > svg {
+  color: var(--color-muted-foreground);
+}
 .owlto-loading {
   flex: 1;
   display: flex;
