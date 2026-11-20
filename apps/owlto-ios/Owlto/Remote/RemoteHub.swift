@@ -129,10 +129,17 @@ final class RemoteHub {
         let socket = try await FrameSocket.connect(host: parsed.host, port: parsed.port)
         opened = try await Handshake.initiate(socket: socket, me: me, mode: .pair(code: PairingCode.normalize(code), key: nil))
       case .invite(let invite):
-        let via = RelayRoute(url: invite.relay, mailbox: invite.mailbox, ticket: invite.ticket)
-        route = via
-        let socket = try await RelaySocket.dial(via)
-        opened = try await Handshake.initiate(socket: socket, me: me, mode: .pair(code: invite.code, key: invite.key))
+        switch invite.route {
+        case .relay(let via):
+          route = via
+          let socket = try await RelaySocket.dial(via)
+          opened = try await Handshake.initiate(socket: socket, me: me, mode: .pair(code: invite.code, key: invite.key))
+        case .host(let parsed):
+          // An invite to the Mac's own address: a direct connection that pins its key.
+          address = parsed
+          let socket = try await FrameSocket.connect(host: parsed.host, port: parsed.port)
+          opened = try await Handshake.initiate(socket: socket, me: me, mode: .pair(code: invite.code, key: invite.key))
+        }
       case .relayCode(let relayCode):
         // An unknown or expired rendezvous code reads as a code that did not work.
         guard let found = try await RelaySocket.lookupRendezvous(relay: defaultRelayURL, code: relayCode.rendezvous) else {

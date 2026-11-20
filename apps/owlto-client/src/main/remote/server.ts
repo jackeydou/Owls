@@ -104,7 +104,7 @@ const JUST_PAIRED_MS = 5 * 60_000
 export class HostServer {
   private listener: { close(): void } | null = null
   private pairing:
-    | (Omit<RemotePairing, 'invite' | 'relayCode'> & {
+    | (Omit<RemotePairing, 'invite' | 'relayCode' | 'key'> & {
         attempts: number
         timer: NodeJS.Timeout
         /** A one-time relay ticket for the device that pairs from the invite. */
@@ -156,7 +156,7 @@ export class HostServer {
       meet && ticket && meet.ticket === ticket
         ? formatRelayCode({ rendezvous: meet.code, code })
         : null
-    return { code, expiresAt, invite, relayCode }
+    return { code, expiresAt, invite, relayCode, key: this.publicKey ?? null }
   }
   /** The open pairing's one-time relay ticket; null when not pairing or not on the relay. */
   pairingTicket(): string | null {
