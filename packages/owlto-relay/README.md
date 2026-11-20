@@ -47,6 +47,25 @@ logic, with two adapters:
 | `src/worker.ts` | Cloudflare Workers, one Durable Object per mailbox, WebSocket hibernation |
 | `src/node.ts` | Plain Node (`ws`), for tests and self-hosting; mailboxes live in memory |
 
+## Account index (D1)
+
+Each account's record lives in its `RelayAccount` Durable Object, which only answers for
+that one account. So accounts can be counted and found, every change also writes one row
+to the D1 database `owlto-relay-accounts` (`owlto-relay-accounts-debug` for the debug
+relay): `account` (the hash), `login`, `macs`, `sessions`, `created_at`, `last_seen_at`
+(a day stale at most), `updated_at`. No session, hash of one, or mailbox id goes there.
+The relay never reads it back, and a failed write is retried by the next change.
+
+`wrangler deploy` creates the database on first deploy (there is no `database_id` in
+`wrangler.toml`), and the Worker creates the table on first write. To query it:
+
+```bash
+pnpm exec wrangler d1 execute owlto-relay-accounts --remote \
+  --command "SELECT count(*), sum(macs) FROM accounts"
+pnpm exec wrangler d1 execute owlto-relay-accounts --remote \
+  --command "SELECT * FROM accounts WHERE login = 'octocat'"
+```
+
 ## Commands
 
 ```bash
@@ -68,8 +87,8 @@ custom domains, so the `owlto.dev` zone must be on the same Cloudflare account.
 The **Deploy relay** workflow (`.github/workflows/deploy-relay.yml`, run by hand) runs the
 tests and deploys the environment you pick. It needs two repository secrets:
 
-- `CLOUDFLARE_API_TOKEN`: a token with *Workers Scripts: Edit* on the account and
-  *Workers Routes: Edit* on the `owlto.dev` zone.
+- `CLOUDFLARE_API_TOKEN`: a token with *Workers Scripts: Edit* and *D1: Edit* on the
+  account, and *Workers Routes: Edit* on the `owlto.dev` zone.
 - `CLOUDFLARE_ACCOUNT_ID`.
 
 Push notifications need an APNs auth key (a `.p8` from the Apple Developer account, Keys →

@@ -1,10 +1,12 @@
 import { DurableObject } from 'cloudflare:workers'
+import { type AccountIndexChange, ensureAccountIndex, writeAccountIndex } from './account-index.ts'
 import {
   AccountBook,
   type AccountRecord,
   type AccountServices,
   accountOfSession,
-  answerAccount
+  answerAccount,
+  summarizeAccount
 } from './accounts.ts'
 import { ApnsSender } from './apns.ts'
 import { parseJson, type QueuedItem, routeOf } from './protocol.ts'
@@ -36,6 +38,11 @@ export interface Env {
   RENDEZVOUS_LIMIT: RateLimit
   /** Account requests (sign-in, list, remove) per client IP. */
   ACCOUNT_LIMIT: RateLimit
+  /**
+   * The account index: one row per account, copied from `RelayAccount` on every change so
+   * accounts can be counted and looked up with SQL. Optional; nothing reads it back.
+   */
+  ACCOUNTS_DB?: D1Database
   /** "false" lets any host use the relay without signing in, for a private deployment. */
   REQUIRE_GITHUB?: string
   /** APNs, set with `wrangler secret put`; pushes fail quietly without them. */
@@ -293,13 +300,39 @@ export class RelayRendezvous extends DurableObject<Env> {
 }
 
 /** One relay account: its GitHub login, sessions, and mailboxes; see `accounts.ts`. */
+/** Set once the index table exists in this isolate, so each change costs one statement. */
+let accountIndexReady: Promise<unknown> | null = null
+
+/**
+ * Copies an account's summary to D1, or removes its row. Best effort and off the request's
+ * path: the Durable Object stays the source of truth, and the next change rewrites the row.
+ */
+function indexAccount(env: Env, ctx: DurableObjectState, change: AccountIndexChange): void {
+  const db = env.ACCOUNTS_DB
+  if (!db) return
+  accountIndexReady ??= ensureAccountIndex(db).catch((error) => {
+    accountIndexReady = null
+    throw error
+  })
+  ctx.waitUntil(
+    accountIndexReady.then(() => writeAccountIndex(db, change, Date.now())).catch(() => {})
+  )
+}
+
 export class RelayAccount extends DurableObject<Env> {
   private book(): AccountBook {
     const storage = this.ctx.storage
     return new AccountBook({
       load: async () => (await storage.get<AccountRecord>('account')) ?? null,
-      save: (record) => storage.put('account', record),
-      deleteAll: () => storage.deleteAll(),
+      save: async (record) => {
+        await storage.put('account', record)
+        indexAccount(this.env, this.ctx, summarizeAccount(record, Date.now()))
+      },
+      deleteAll: async () => {
+        const record = await storage.get<AccountRecord>('account')
+        await storage.deleteAll()
+        if (record) indexAccount(this.env, this.ctx, { gone: record.account })
+      },
       now: () => Date.now(),
       randomToken: () => {
         const bytes = crypto.getRandomValues(new Uint8Array(32))

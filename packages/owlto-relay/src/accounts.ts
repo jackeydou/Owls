@@ -32,9 +32,35 @@ export type SessionRecord = { hash: string; name: string; createdAt: number; las
 export type OwnedMailbox = { mailbox: string; session: string; claimedAt: number }
 export type AccountInfo = { login: string; mailboxes: (OwnedMailbox & { name: string | null })[] }
 export type AccountRecord = {
+  /** `sha256("github:" + id)`, the record's own key, kept so a copy can name it. */
+  account: string
   login: string
   sessions: SessionRecord[]
   mailboxes: OwnedMailbox[]
+}
+
+/**
+ * One row of the account index (D1 on Cloudflare): enough to count and find accounts,
+ * nothing that can sign in. Live sessions only, as the relay counts them.
+ */
+export type AccountSummary = {
+  account: string
+  login: string
+  macs: number
+  sessions: number
+  /** When a session of this account was last used, at most a day stale. */
+  lastSeenAt: number
+}
+
+export function summarizeAccount(record: AccountRecord, now: number): AccountSummary {
+  const live = record.sessions.filter((entry) => now - entry.lastUsedAt < SESSION_IDLE_MS)
+  return {
+    account: record.account,
+    login: record.login,
+    macs: record.mailboxes.length,
+    sessions: live.length,
+    lastSeenAt: Math.max(0, ...record.sessions.map((entry) => entry.lastUsedAt))
+  }
 }
 
 /** The account a session belongs to, from its own text; null for anything malformed. */
@@ -62,13 +88,13 @@ export class AccountBook {
   async createSession(account: string, login: string, name: string): Promise<string> {
     const session = `s1.${account}.${this.io.randomToken()}`
     const now = this.io.now()
-    const record = (await this.io.load()) ?? { login, sessions: [], mailboxes: [] }
+    const record = (await this.io.load()) ?? { account, login, sessions: [], mailboxes: [] }
     const sessions = this.live(record.sessions)
     // The oldest session goes when an account signs in more often than it signs out.
     while (sessions.length >= MAX_SESSIONS_PER_ACCOUNT) sessions.shift()
     sessions.push({ hash: await sha256Hex(session), name, createdAt: now, lastUsedAt: now })
     // Mailboxes stay with the account across sessions; a host only needs a live session.
-    await this.io.save({ login, sessions, mailboxes: record.mailboxes })
+    await this.io.save({ account, login, sessions, mailboxes: record.mailboxes })
     return session
   }
 
