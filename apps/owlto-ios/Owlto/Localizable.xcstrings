@@ -529,6 +529,16 @@
         }
       }
     },
+    "Its conversation and the workers it sent out show up here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对话内容和它派出的 Worker 会显示在这里。"
+          }
+        }
+      }
+    },
     "Making progress": {
       "localizations": {
         "zh-Hans": {
@@ -845,6 +855,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "选择一台 Mac 查看它的对话。每台 Mac 保留自己的对话、设置、Agent 账号和 GitHub 连接。"
+          }
+        }
+      }
+    },
+    "Pick a thread": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择一个对话"
           }
         }
       }

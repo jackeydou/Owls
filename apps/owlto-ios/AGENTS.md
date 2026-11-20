@@ -29,6 +29,21 @@ messages and shows state. Nothing about threads is stored on the phone.
   UI should use those helpers instead of hand-drawn strokes. `OwlAvatar.swift` draws the
   owls from the same SVG path data as `apps/owlto-client/resources/owl-avatars`.
 
+## Resizable layout (iPhone Duo, iPad)
+
+Layouts follow size classes and the space offered, never the device model, idiom, or
+orientation. Threads is a `NavigationSplitView`: two columns when the width is regular
+(iPad, an open iPhone Duo), one stack when compact, with the list column sized to an
+iPhone Duo's hinge (`reservedRegions(kind: .division)`) when there is room. With the
+iOS 27.1 SDK the system moves bars into a vertical column at the side in most Duo
+poses, so `Adaptive.swift` provides `VerticalBarReader` for toolbar views that need a
+narrow form, and `bottomBar` for composers, which stay horizontal content rather than
+toolbars. Keep toolbar items as plain symbol buttons instead of "More" menus; the
+system folds them into its own overflow menu. Check layout changes in an iPhone Duo
+simulator, which needs the `iOS-27-2-iPhone19-4` runtime (the plain iOS 27.2 runtime
+cannot create one), in the closed, open, and half-open poses. iPhone stays portrait
+only; the Duo's inner display and iPad rotate regardless.
+
 ## Protocol changes
 
 The wire format is shared with the desktop app. When `REMOTE_PROTOCOL`, a remote

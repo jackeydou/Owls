@@ -33,14 +33,20 @@ extension View {
 }
 
 /// The selected Mac's threads, newest first, with what is running and what waits on the user.
+/// Where there is room (iPad, an open iPhone Duo) the selected thread sits beside the list;
+/// on a compact width the split collapses into one stack.
 struct ThreadsView: View {
   @Environment(RemoteHub.self) private var hub
+  @Environment(\.horizontalSizeClass) private var sizeClass
+  @State private var selection: ThreadRoute?
   @State private var path = NavigationPath()
+  @State private var sidebarWidth: CGFloat = 0
+  @State private var columns = NavigationSplitViewVisibility.all
   @State private var error: String?
   @Environment(\.skin) private var skin
 
   var body: some View {
-    NavigationStack(path: $path) {
+    NavigationSplitView(columnVisibility: $columns) {
       Group {
         if let host = hub.selectedHost, let store = hub.stores[host.deviceId] {
           list(host: host, store: store)
@@ -48,30 +54,77 @@ struct ThreadsView: View {
       }
       .navigationTitle("Threads")
       .toolbar {
-        ToolbarItem(placement: .topBarLeading) { DevicePicker() }
+        ToolbarItem(placement: .topBarLeading) { DevicePicker(iconOnly: isSplit) }
         ToolbarItem(placement: .topBarTrailing) { newThreadMenu }
       }
-      .owltoDestinations()
+      // An ideal, not a fixed width: when the detail column's vertical bar leaves too little
+      // room, the system narrows the list to keep both columns side by side.
+      .navigationSplitViewColumnWidth(min: 300, ideal: min(max(sidebarWidth, 300), 520), max: 520)
+    } detail: {
+      NavigationStack(path: $path) {
+        Group {
+          if let selection {
+            ThreadView(hostId: selection.hostId, routerId: selection.routerId)
+              .id(selection)
+          } else {
+            EmptyState(title: "Pick a thread", message: "Its conversation and the workers it sent out show up here.")
+          }
+        }
+        .owltoDestinations()
+      }
+      .environment(\.leaveThread, LeaveThreadAction { selection = nil })
     }
+    .navigationSplitViewStyle(.balanced)
+    .onGeometryChange(for: CGFloat.self, of: Self.hingeOffset) { sidebarWidth = $0 }
+    .onChange(of: selection) { path = NavigationPath() }
+    .onChange(of: hub.selectedHostId) { selection = nil }
     .errorToast($error)
     #if DEBUG
     .onChange(of: hub.selectedStore?.threads.count ?? 0) { _, count in
       guard count > 0, let open = DevLaunch.pendingOpen, open == "thread" || open == "worker",
             let host = hub.selectedHost, let store = hub.stores[host.deviceId], let first = store.threads.first else { return }
       DevLaunch.pendingOpen = nil
-      path.append(ThreadRoute(hostId: host.deviceId, routerId: first.id))
+      selection = ThreadRoute(hostId: host.deviceId, routerId: first.id)
       if open == "worker", let worker = store.workers(in: first.id).last {
-        path.append(WorkerRoute(hostId: host.deviceId, workerId: worker.id))
+        Task { @MainActor in path.append(WorkerRoute(hostId: host.deviceId, workerId: worker.id)) }
       }
     }
     #endif
   }
 
+  /// Both columns show. The list column's bar then puts the title inline, between the device
+  /// picker and the new-thread button, so the picker drops its name to leave the title room.
+  private var isSplit: Bool { sizeClass == .regular }
+
+  /// Where the list column should end: on an iPhone Duo's hinge when it runs top to bottom
+  /// (active or not, so the columns do not jump as the device folds), else halfway across.
+  private static func hingeOffset(_ proxy: GeometryProxy) -> CGFloat {
+    if #available(iOS 27.1, *),
+       let hinge = proxy.reservedRegions(kind: .division, options: .includeInactive)
+         .first(where: { $0.frame.height > $0.frame.width }) {
+      return hinge.frame.midX
+    }
+    return proxy.size.width / 2
+  }
+
   @ViewBuilder
   private func list(host: PairedHost, store: HostStore) -> some View {
     let threads = store.threads
-    List {
+    List(selection: $selection) {
       Section {
+        VerticalBarReader { vertical in
+          // Wherever the device picker shrinks to an icon, its name moves here.
+          if vertical || isSplit {
+            HStack(spacing: 6) {
+              Circle().fill(DevicePicker.color(hub.status(of: host.deviceId))).frame(width: 7, height: 7)
+              Text(host.name).lineLimit(1)
+            }
+            .font(.footnote)
+            .foregroundStyle(Theme.secondary)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 4, trailing: 16))
+          }
+        }
         ConnectionBanner(host: host)
           .listRowSeparator(.hidden)
           .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
@@ -97,6 +150,7 @@ struct ThreadsView: View {
             .swipeActions {
               AsyncButton(action: {
                 try await hub.perform(host.deviceId, "archiveThread", ["routerId": router.id, "archived": true])
+                if selection?.routerId == router.id { selection = nil }
               }, onError: { error = describe($0) }) {
                 Label("Archive", systemImage: "archivebox")
               }
@@ -183,7 +237,7 @@ struct ThreadsView: View {
     Task {
       do {
         let router: Router = try await hub.request(host.deviceId, "createThread", ["projectId": projectId.map { $0 as Any } ?? NSNull()])
-        path.append(ThreadRoute(hostId: host.deviceId, routerId: router.id))
+        selection = ThreadRoute(hostId: host.deviceId, routerId: router.id)
       } catch {
         self.error = describe(error)
       }
@@ -259,6 +313,8 @@ struct ThreadRow: View {
 struct DevicePicker: View {
   @Environment(RemoteHub.self) private var hub
   @Environment(\.skin) private var skin
+  /// Show only the icon and status dot even in a horizontal bar.
+  var iconOnly = false
 
   var body: some View {
     Menu {
@@ -269,23 +325,38 @@ struct DevicePicker: View {
       }
     } label: {
       if let host = hub.selectedHost {
-        HStack(spacing: 6) {
-          Image(systemName: "desktopcomputer")
-          Text(host.name).lineLimit(1)
-          Circle()
-            .fill(color(hub.status(of: host.deviceId)))
-            .frame(width: skin == .doodle ? 9 : 7, height: skin == .doodle ? 9 : 7)
-            .overlay { if skin == .doodle { Circle().stroke(Theme.border, lineWidth: 1.5) } }
-          Image(systemName: "chevron.down").font(.caption2.weight(.bold))
+        VerticalBarReader { vertical in
+          // A vertical bar has a fixed narrow width: keep the icon and status dot, and let the
+          // thread list show the name.
+          if vertical || iconOnly {
+            Image(systemName: "desktopcomputer")
+              .overlay(alignment: .topTrailing) {
+                statusDot(host).offset(x: 3, y: -2)
+              }
+          } else {
+            HStack(spacing: 6) {
+              Image(systemName: "desktopcomputer")
+              Text(host.name).lineLimit(1)
+              statusDot(host)
+              Image(systemName: "chevron.down").font(.caption2.weight(.bold))
+            }
+            .font(.subheadline.weight(skin == .doodle ? .bold : .semibold))
+          }
         }
-        .font(.subheadline.weight(skin == .doodle ? .bold : .semibold))
         .foregroundStyle(Theme.foreground)
       }
     }
     .accessibilityLabel(Text("Device: \(hub.selectedHost?.name ?? "")"))
   }
 
-  private func color(_ status: RemoteHub.LinkStatus) -> Color {
+  private func statusDot(_ host: PairedHost) -> some View {
+    Circle()
+      .fill(Self.color(hub.status(of: host.deviceId)))
+      .frame(width: skin == .doodle ? 9 : 7, height: skin == .doodle ? 9 : 7)
+      .overlay { if skin == .doodle { Circle().stroke(Theme.border, lineWidth: 1.5) } }
+  }
+
+  static func color(_ status: RemoteHub.LinkStatus) -> Color {
     switch status {
     case .online: return Theme.successDot
     case .connecting: return Theme.warningDot

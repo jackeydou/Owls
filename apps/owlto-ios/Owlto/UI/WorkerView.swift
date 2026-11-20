@@ -52,35 +52,37 @@ struct WorkerView: View {
   private func content(_ worker: Worker, store: HostStore) -> some View {
     let session = store.session(for: worker)
     let requests = store.pendingRequests(for: worker)
-    VStack(spacing: 0) {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 18) {
-          header(worker, pending: requests.count)
-          ForEach(requests) { request in
-            Button {
-              if let session { attention = .request(hostId: hostId, worker: worker, sessionId: session.id, request: request, at: session.updatedAt) }
-            } label: {
-              AttentionRow(item: .request(hostId: hostId, worker: worker, sessionId: session?.id ?? "", request: request, at: session?.updatedAt ?? ""), compact: true)
-                .padding(10)
-                .owlCard(Theme.warningTint, stroke: Theme.warningBorder)
-            }
-            .buttonStyle(.plain)
+    ScrollView {
+      VStack(alignment: .leading, spacing: 18) {
+        header(worker, pending: requests.count)
+        ForEach(requests) { request in
+          Button {
+            if let session { attention = .request(hostId: hostId, worker: worker, sessionId: session.id, request: request, at: session.updatedAt) }
+          } label: {
+            AttentionRow(item: .request(hostId: hostId, worker: worker, sessionId: session?.id ?? "", request: request, at: session?.updatedAt ?? ""), compact: true)
+              .padding(10)
+              .owlCard(Theme.warningTint, stroke: Theme.warningBorder)
           }
-          if let report = worker.report { reportSection(report, worker: worker) }
-          links(worker, session: session)
-          if let session { conversation(session) }
+          .buttonStyle(.plain)
         }
-        .padding(16)
+        if let report = worker.report { reportSection(report, worker: worker) }
+        links(worker, session: session)
+        if let session { conversation(session) }
       }
-      pendingQueue(worker)
-      if worker.status != .removed {
-        Composer(
-          text: $draft,
-          placeholder: worker.isWorking ? "The worker is busy; new messages queue…" : "Message this worker…",
-          sendLabel: "Send to this worker",
-          send: { try await send(worker) },
-          onError: { error = describe($0) }
-        )
+      .padding(16)
+    }
+    .bottomBar {
+      VStack(spacing: 0) {
+        pendingQueue(worker)
+        if worker.status != .removed {
+          Composer(
+            text: $draft,
+            placeholder: worker.isWorking ? "The worker is busy; new messages queue…" : "Message this worker…",
+            sendLabel: "Send to this worker",
+            send: { try await send(worker) },
+            onError: { error = describe($0) }
+          )
+        }
       }
     }
   }
