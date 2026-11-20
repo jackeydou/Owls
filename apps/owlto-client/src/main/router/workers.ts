@@ -22,6 +22,7 @@ import {
   type WorkerStatus
 } from '../../shared/router.js'
 import type { SessionPlace } from '../app/agent-runtime.js'
+import type { AttachmentFile } from '../app/attachments.js'
 import { OwltoError } from '../app/errors.js'
 import { safeText } from '../app/values.js'
 import { chooseAgent } from './agent-choice.js'
@@ -154,6 +155,8 @@ export type WorkerHost = {
   interrupt(sessionId: string): Promise<void>
   /** Answers a pending request; throws `request_unavailable` once it is no longer pending. */
   respond(input: RespondRequest): void
+  /** Main's copies of staged attachments; refuses when one of them is gone. */
+  attachmentFiles(list: Attachment[]): Promise<AttachmentFile[]>
 }
 
 /** How workers reach the Router Inbox. */

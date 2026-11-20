@@ -1,6 +1,7 @@
 import type { Failure, SessionItem } from '../../shared/app.js'
 import type { RouterNative } from '../../shared/router.js'
 import type { TurnUsage } from '../../shared/usage-stats.js'
+import type { AttachmentFile } from '../app/attachments.js'
 
 /** Usage of part of a batch for one model, as the engine reported it. */
 export type RouterUsage = TurnUsage
@@ -16,6 +17,8 @@ export type RouterBatchInput = {
   batchId: string
   /** The rendered batch (see render.ts). */
   text: string
+  /** Files the batch's user messages carried; each engine delivers them its own way. */
+  attachments: AttachmentFile[]
   /** The engine session the Router last ran in; engines resume their own kind only. */
   native: RouterNative | null
 }

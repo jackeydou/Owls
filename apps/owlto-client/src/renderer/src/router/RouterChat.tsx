@@ -7,7 +7,10 @@ import { useAppStore } from '../app/store'
 import { useDreamingStore, useDreamLocked } from '../memory/dreaming'
 import { SetupCard, useSetupCardVisible } from '../onboarding/SetupCard'
 import { useStartupSettled } from '../onboarding/state'
+import { useViewingRemote } from '../remote/viewing'
 import { threadTitle, useThreadTitle } from './activity'
+import { useDraftAttachments } from './DraftAttachments'
+import { FileDropOverlay, useFileDrop } from './FileDrop'
 import { RequestTray } from './RequestTray'
 import { RouterSetupNotice, useRouterSetup } from './RouterSetup'
 import { RouterTimeline } from './RouterTimeline'
@@ -56,8 +59,17 @@ export function RouterChat() {
   useEffect(() => {
     if (threadId) void loadItems(threadId)
   }, [threadId, loadItems])
+  const attachments = useDraftAttachments()
+  const { clear } = attachments
+  // A draft's files belong to the thread they were dropped on.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: clears when the thread changes.
+  useEffect(() => clear(), [threadId])
+  // Files stay on this Mac, and a thread in Dreaming takes no input.
+  const remote = useViewingRemote()
+  const drop = useFileDrop(remote || locked ? null : attachments.add)
   return (
-    <main className="owlto-chat router-chat">
+    <main className="owlto-chat router-chat" {...drop.handlers}>
+      {drop.over ? <FileDropOverlay /> : null}
       <header className="owlto-topbar router-topbar">
         {router ? (
           <div className="router-thread-heading">
@@ -76,7 +88,7 @@ export function RouterChat() {
             <div className="router-editor-lock" inert={locked}>
               {setupCard ? <SetupCard /> : missing ? <RouterSetupNotice need={missing} /> : null}
               {router ? <RequestTray routerId={router.id} /> : null}
-              <ThreadEditor router={router} />
+              <ThreadEditor router={router} attachments={attachments} />
             </div>
           }
         />

@@ -48,9 +48,8 @@ export function cardsText(cards: AttachedCard[], limit?: { chars: number; seq: n
 function eventText(event: InboxEvent): string {
   switch (event.kind) {
     case 'user_message': {
-      const files = event.files?.length
-        ? `\nAttached files: ${escapeBatch(event.files.join(', '))}`
-        : ''
+      const names = event.files ?? event.attachments?.map((a) => a.name) ?? []
+      const files = names.length ? `\nAttached files: ${escapeBatch(names.join(', '))}` : ''
       const head = `[${event.seq}] user_message · user · ${clock(event.at)}${event.workerId ? ` · to ${event.workerId}` : ''}\n${escapeBatch(clip(event.text, USER_TEXT_LIMIT, event.seq))}${files}`
       if (!event.cards?.length) return head
       return `${head}\n${escapeBatch(cardsText(event.cards, { chars: CARD_TEXT_LIMIT, seq: event.seq }))}`

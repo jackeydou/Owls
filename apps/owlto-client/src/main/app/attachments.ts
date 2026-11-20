@@ -1,11 +1,15 @@
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdir, open, readFile, stat, writeFile } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import {
   type Attachment,
+  type AttachmentPreview,
+  EXCERPT_READ_BYTES,
   type InlineImageType,
   isInlineImage,
   isInlineImageType,
-  type StageAttachment
+  isTextAttachment,
+  type StageAttachment,
+  textExcerpt
 } from '../../shared/attachments.js'
 import { OwltoError } from './errors.js'
 
@@ -29,6 +33,21 @@ export function safeAttachmentName(name: string): string {
   if (clean.length <= NAME_LIMIT) return clean
   const ext = extname(clean).slice(0, 16)
   return `${clean.slice(0, NAME_LIMIT - ext.length)}${ext}`
+}
+
+/** The first `bytes` of a file, or null when it cannot be read. */
+async function readStart(path: string, bytes: number): Promise<Buffer | null> {
+  const file = await open(path, 'r').catch(() => null)
+  if (!file) return null
+  try {
+    const buffer = Buffer.alloc(bytes)
+    const { bytesRead } = await file.read(buffer, 0, bytes, 0)
+    return buffer.subarray(0, bytesRead)
+  } catch {
+    return null
+  } finally {
+    await file.close()
+  }
 }
 
 /**
@@ -73,10 +92,20 @@ export class AttachmentStore {
     )
   }
 
-  async preview(attachment: Attachment): Promise<string | null> {
-    if (!isInlineImage(attachment) || attachment.size > PREVIEW_MAX_BYTES) return null
-    const data = await readFile(this.path(attachment)).catch(() => null)
-    return data ? `data:${attachment.mimeType};base64,${data.toString('base64')}` : null
+  /** An image as a data URL, or the first lines of a text file, for the thumbnail. */
+  async preview(attachment: Attachment): Promise<AttachmentPreview> {
+    if (isInlineImage(attachment)) {
+      if (attachment.size > PREVIEW_MAX_BYTES) return null
+      const data = await readFile(this.path(attachment)).catch(() => null)
+      return data
+        ? { kind: 'image', src: `data:${attachment.mimeType};base64,${data.toString('base64')}` }
+        : null
+    }
+    if (!isTextAttachment(attachment)) return null
+    const start = await readStart(this.path(attachment), EXCERPT_READ_BYTES)
+    // A multi-byte character cut at the end must not make the file look binary.
+    const excerpt = start ? textExcerpt(start.toString('utf8').replace(/\ufffd+$/, '')) : null
+    return excerpt ? { kind: 'text', excerpt } : null
   }
 }
 

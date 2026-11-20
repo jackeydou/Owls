@@ -3,6 +3,7 @@ import type { Failure, SessionItem } from '../../../shared/app.js'
 import { toFailure } from '../../app/errors.js'
 import { record, recordSchema, safeText, string } from '../../app/values.js'
 import { CodexClient } from '../../codex/client.js'
+import { codexInput } from '../../codex/input.js'
 import type { RpcFrame } from '../../codex/protocol.js'
 import { codexCallUsage } from '../../usage/turn-usage.js'
 import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
@@ -311,7 +312,7 @@ export class CodexEngine implements RouterEngine {
       const started = record(
         await client.request('turn/start', {
           threadId,
-          input: [{ type: 'text', text, text_elements: [] }],
+          input: codexInput({ text, attachments: input.attachments }),
           ...(options.model ? { model: options.model } : {})
         })
       )

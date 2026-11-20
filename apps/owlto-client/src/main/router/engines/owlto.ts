@@ -7,6 +7,7 @@ import {
 import type { Api, AssistantMessage, Model } from '@earendil-works/pi-ai'
 import type { Failure, SessionItem } from '../../../shared/app.js'
 import type { OwltoThinking } from '../../../shared/router.js'
+import { turnText } from '../../app/attachments.js'
 import { safeText } from '../../app/values.js'
 import type { RouterBatchInput, RouterBatchOutcome, RouterEngine, RouterSink } from '../engine.js'
 import { type ContextWindow, ROUTER_CONTEXT_BUDGET, trimContext } from '../render.js'
@@ -102,7 +103,7 @@ export class OwltoEngine implements RouterEngine {
   }
 
   async run(
-    { batchId, text: input }: RouterBatchInput,
+    { batchId, text, attachments }: RouterBatchInput,
     sink: RouterSink
   ): Promise<RouterBatchOutcome> {
     if (this.running) throw new Error('A Router batch is already running.')
@@ -112,7 +113,8 @@ export class OwltoEngine implements RouterEngine {
     this.batchId = batchId
     const before = this.agent.state.messages.length
     try {
-      await this.agent.prompt(input)
+      // Files go as paths: images inline would be kept in the transcript and resent every batch.
+      await this.agent.prompt(turnText(text, attachments))
     } catch (error) {
       return {
         status: 'failed',

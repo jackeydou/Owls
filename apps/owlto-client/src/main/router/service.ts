@@ -28,6 +28,7 @@ import type {
   WorkerReport
 } from '../../shared/router.js'
 import { totalTokens, type UsageEntry } from '../../shared/usage-stats.js'
+import type { AttachmentFile } from '../app/attachments.js'
 import { OwltoError } from '../app/errors.js'
 import type { PullRequestEvent } from '../automations/pull-request-events.js'
 import type { AutomationDelivery, AutomationService } from '../automations/service.js'
@@ -274,7 +275,9 @@ export class RouterService implements TurnProfiles {
     // Writing in an archived thread brings it back to the sidebar.
     router.archivedAt = null
     if (input.workerId) return this.sendToWorker(router, input, input.workerId, cards)
-    router.title ??= titleOf(input.text)
+    // Callers inside main may leave out the schema's default.
+    const attachments = input.attachments ?? []
+    router.title ??= titleOf(input.text || attachments.map((a) => a.name).join(', '))
     this.put(router, {
       id: input.commandId,
       kind: 'user',
@@ -282,20 +285,24 @@ export class RouterService implements TurnProfiles {
       text: input.text,
       detail: '',
       turnId: null,
-      ...cardRefs(cards)
+      ...cardRefs(cards),
+      ...(attachments.length ? { attachments } : {})
     })
     const body: InboxEventBody = {
       kind: 'user_message',
       at: new Date().toISOString(),
       text: input.text,
-      ...(cards.length ? { cards } : {})
+      ...(cards.length ? { cards } : {}),
+      ...(attachments.length ? { attachments } : {})
     }
     // A running batch takes the user's message immediately; other events wait.
-    // Cards always wait, so they reach the Router marked as reference material.
+    // Cards always wait, so they reach the Router marked as reference material,
+    // and so do files, which a steered message cannot carry.
     const batch = this.active.get(router.id)
     const engine = this.engines.get(router.id)?.engine
+    const plain = !cards.length && !attachments.length
     // Checked again after the await: the batch may have ended meanwhile.
-    if (!cards.length && batch && engine && (await engine.steer(input.text)) === 'steered') {
+    if (plain && batch && engine && (await engine.steer(input.text)) === 'steered') {
       this.store.appendEvent(router.id, input.commandId, body, batch.id)
       return
     }
@@ -1036,6 +1043,7 @@ export class RouterService implements TurnProfiles {
         {
           batchId: batch.id,
           text: renderBatch(batch.id, events, context.state, context.projects, context.memory),
+          attachments: await this.batchAttachments(events),
           native: router.native
         },
         this.sink(router, batch)
@@ -1044,6 +1052,21 @@ export class RouterService implements TurnProfiles {
       const error: Failure = { code: 'native_error', message: 'The Router engine failed.' }
       return { status: 'failed', error, native: router.native ?? { engine: 'owlto' } }
     }
+  }
+
+  /**
+   * The files the batch's user messages carried for the Router, in event order.
+   * A file removed since it was sent is left out rather than failing the batch;
+   * the batch text still names it.
+   */
+  private async batchAttachments(events: InboxEvent[]): Promise<AttachmentFile[]> {
+    const attached = [...events]
+      .sort((a, b) => a.seq - b.seq)
+      .flatMap((e) => (e.kind === 'user_message' && !e.workerId ? (e.attachments ?? []) : []))
+    const files = await Promise.all(
+      attached.map((a) => this.host.attachmentFiles([a]).catch(() => []))
+    )
+    return files.flat()
   }
 
   /**

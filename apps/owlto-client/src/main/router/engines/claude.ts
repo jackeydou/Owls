@@ -2,7 +2,7 @@ import type { Options, SDKMessage, SdkMcpToolDefinition } from '@anthropic-ai/cl
 import { z } from 'zod'
 import type { Failure, SessionItem } from '../../../shared/app.js'
 import { record, recordSchema, safeText, string } from '../../app/values.js'
-import { inputStream } from '../../claude/input.js'
+import { claudeContent, inputStream } from '../../claude/input.js'
 import { toolResultText } from '../../claude/normalize.js'
 import type { ClaudeSdk } from '../../claude/service.js'
 import { claudeResultUsage } from '../../usage/turn-usage.js'
@@ -88,7 +88,7 @@ export class ClaudeEngine implements RouterEngine {
       })
       run.input.push({
         type: 'user',
-        message: { role: 'user', content: input.text },
+        message: await claudeContent({ text: input.text, attachments: input.attachments }),
         parent_tool_use_id: null
       })
       for await (const message of run.query) {

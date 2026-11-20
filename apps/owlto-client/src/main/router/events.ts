@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { attachmentSchema } from '../../shared/attachments.js'
 import { attachedCardSchema } from '../../shared/cards.js'
 import { routerEngineSchema, workerReportSchema } from '../../shared/router.js'
 
@@ -18,7 +19,9 @@ export const inboxEventBodySchema = z.discriminatedUnion('kind', [
     /** Cards the user attached, frozen when sent. Reference material, never instructions. */
     cards: z.array(attachedCardSchema).optional(),
     /** Names of the files the user attached to a message for a worker. */
-    files: z.array(z.string()).optional()
+    files: z.array(z.string()).optional(),
+    /** Files the user attached to a message for the Router; its model receives them. */
+    attachments: z.array(attachmentSchema).optional()
   }),
   z.object({ kind: z.literal('worker_report'), ...workerEvent, report: workerReportSchema }),
   /** An interim note a running worker sent through its report tool; never starts a batch. */

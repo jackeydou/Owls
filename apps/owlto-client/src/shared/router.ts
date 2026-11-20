@@ -217,12 +217,8 @@ export const sendRouterSchema = z
     workerId: z.string().min(1).max(64).optional(),
     /** Cards the message carries as reference material; main freezes their text when it sends. */
     cardIds: z.array(cardIdSchema).max(ATTACHED_CARD_LIMIT).default([]),
-    /** Files staged with `stageAttachment`. Only a worker message carries them. */
+    /** Files staged with `stageAttachment`, for the Router's model or the addressed worker. */
     attachments: z.array(attachmentSchema).max(ATTACHMENT_LIMIT).default([])
-  })
-  .refine((input) => !input.attachments.length || input.workerId, {
-    message: 'Only a message to a worker can carry files.',
-    path: ['attachments']
   })
   .refine((input) => input.text || input.attachments.length, {
     message: 'Write a message or attach a file.',

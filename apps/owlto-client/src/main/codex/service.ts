@@ -15,7 +15,6 @@ import type {
   SessionItem
 } from '../../shared/app.js'
 import { questionSchema } from '../../shared/app.js'
-import { isInlineImage } from '../../shared/attachments.js'
 import { defaultProjectSettings, type SaveProject } from '../../shared/projects.js'
 import type { AgentUsage } from '../../shared/usage.js'
 import {
@@ -26,7 +25,7 @@ import {
   sessionProject,
   type WorkerUsageRecorder
 } from '../app/agent-runtime.js'
-import { turnText, userItemFields } from '../app/attachments.js'
+import { userItemFields } from '../app/attachments.js'
 import { OwltoError, toFailure } from '../app/errors.js'
 import type { OwltoStore } from '../app/store.js'
 import { record, recordSchema, safeText, string } from '../app/values.js'
@@ -39,30 +38,11 @@ import type { TurnOutcome, TurnProfile, TurnProfiles } from '../router/service.j
 import { codexToolName } from '../router/worker-tools.js'
 import { codexCallUsage } from '../usage/turn-usage.js'
 import { CodexAccountConnection } from './connection.js'
+import { codexInput, codexText } from './input.js'
 import { approvalOptions, normalizeItem, type RpcFrame } from './protocol.js'
 
 type Echo = { sent: string; text: string; fields: ReturnType<typeof userItemFields> }
 
-/**
- * A turn's `UserInput` items. Codex reads images from disk itself (`localImage`),
- * so only other files go into the text as paths.
- */
-/** The text part of a turn: the user's text and the paths of non-image files. */
-function codexText(turn: RuntimeTurn): string {
-  return turnText(
-    turn.text,
-    (turn.attachments ?? []).filter((f) => !isInlineImage(f))
-  )
-}
-function codexInput(turn: RuntimeTurn): Record<string, unknown>[] {
-  const files = turn.attachments ?? []
-  const images = files.filter(isInlineImage)
-  const text = codexText(turn)
-  return [
-    ...(text ? [{ type: 'text', text, text_elements: [] }] : []),
-    ...images.map((image) => ({ type: 'localImage', path: image.path }))
-  ]
-}
 const active = (s: Session): boolean => ['starting', 'running', 'waiting'].includes(s.status)
 const CODEX_REPORT_TOOL = {
   type: 'function',
