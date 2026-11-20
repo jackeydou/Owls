@@ -7,14 +7,24 @@ messages and shows state. Nothing about threads is stored on the phone.
 ## Layout
 
 - `Owlto.xcodeproj` — hand-maintained project using file-system synchronized groups:
-  any file added under `Owlto/`, `OwltoTests/`, or `OwltoUITests/` joins its target
-  automatically, so the project file rarely changes. Keep it that way; do not add
-  per-file references.
+  any file added under `Owlto/`, `OwltoTests/`, `OwltoUITests/`, `OwltoNotify/`, or
+  `Shared/` joins its target automatically, so the project file rarely changes. Keep it
+  that way; do not add per-file references.
+- `OwltoNotify/` — the Notification Service Extension. A paired Mac sends pushes through
+  the relay sealed with a key only the phone holds; the extension opens them
+  (`PUSH_FALLBACK_*` in `Localizable.xcstrings` is what shows if it cannot).
+- `Shared/` — code in both the app and the extension (`PushShared.swift`: the push key
+  in the `group.app.owlto.mobile` keychain group, and opening a sealed push). Push,
+  the app group, and the extension need a development team set in Signing.
 - `Owlto/Remote/` — the protocol client. It must match
   `apps/owlto-client/src/main/remote/*` byte for byte:
   - `RemoteCrypto.swift`, `OwltoScrypt.c` ↔ `crypto.ts` (X25519, HKDF-SHA256,
     scrypt N=2^15, AES-256-GCM with a counter nonce)
   - `FrameSocket.swift` ↔ `frames.ts` (4-byte big-endian length prefix)
+  - `RelaySocket.swift` ↔ `relay.ts` (relay hellos, 1-byte chunk headers, rendezvous
+    lookup, queue drops; the relay's own protocol is in `packages/owlto-relay`)
+  - `Deflate.swift` ↔ the `deflate` cap in `handshake.ts` (raw deflate before sealing)
+  - `SealedQueue.swift`, `Shared/PushShared.swift` ↔ `sealed.ts`
   - `Handshake.swift` ↔ `handshake.ts` (`hs1`/`hs2`, sealed `hello`/`welcome`)
   - `RpcConnection.swift` ↔ `rpc.ts` (`req`/`res`/`event`/`ping`/`pong`)
   - `RemoteHub.swift` ↔ `client.ts` (one link per paired Mac, reconnect backoff)
@@ -83,7 +93,11 @@ pnpm --filter owlto-client build
 node apps/owlto-ios/scripts/dev-host.mjs --port 47330
 ```
 
-It prints a pairing code; pair the simulator with `127.0.0.1:47330`. Port 47320 is
+It prints a pairing code; pair the simulator with `127.0.0.1:47330`. To try the relay,
+run a local one (`pnpm --filter @owlto/relay serve -- --port 8790`) and pass
+`--relay ws://127.0.0.1:8790`: the dev host then also prints an invite (paste it in the
+code field) and a relay code. Typed relay codes are looked up on `defaultRelayURL`
+(`RelaySocket.swift`), so test those against the deployed debug relay. Port 47320 is
 left free for a real Owlto running on the same Mac. Debug builds accept launch
 arguments for driving the app without taps (see `Owlto/App/DevLaunch.swift`), and
 the UI flow test runs against a freshly started dev host:

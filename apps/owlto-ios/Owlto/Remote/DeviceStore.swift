@@ -4,17 +4,32 @@ import Security
 import UIKit
 
 /// A Mac this phone paired with. Its public key is what every later handshake must match.
+/// It is reached directly at `host:port`, through the relay, or both, whichever answers first.
 struct PairedHost: Codable, Equatable, Identifiable {
   let deviceId: String
   var name: String
   let publicKey: String
-  var host: String
-  var port: UInt16
+  /// Nil for a Mac paired through the relay, which has no address the phone could dial.
+  var host: String?
+  var port: UInt16?
+  /// The Mac's relay mailbox and this phone's own ticket, refreshed on every connection.
+  var relay: RelayRoute?
+  /// The last sequence number this phone left on the relay for the Mac.
+  var queueSeq: Int?
   let pairedAt: Date
   var lastSeenAt: Date?
   var id: String { deviceId }
 
-  var address: String { RemoteAddress(host: host, port: port).formatted }
+  var address: String? {
+    guard let host, let port else { return nil }
+    return RemoteAddress(host: host, port: port).formatted
+  }
+}
+
+/// How a link to a Mac was made, shown next to its status.
+enum LinkPath: String, Equatable {
+  case direct
+  case relay
 }
 
 /// `host`, `host:port`, or `[ipv6]:port`, parsed as `parseRemoteAddress` in `shared/remote.ts` does.
@@ -72,6 +87,55 @@ enum PairingCode {
   static func isValid(_ code: String) -> Bool {
     let value = normalize(code)
     return value.count == length && value.allSatisfy { alphabet.contains($0) }
+  }
+}
+
+/// A code that works from any network: `K7Q2-ABCD-EFGH`. The first four characters let the
+/// relay find the Mac; the last eight are the pairing code, which never leaves the two devices.
+/// `parseRelayCode` in `shared/remote.ts`.
+struct RelayCode: Equatable {
+  static let rendezvousLength = 4
+  let rendezvous: String
+  let code: String
+
+  init?(_ text: String) {
+    let value = PairingCode.normalize(text)
+    guard value.count == Self.rendezvousLength + PairingCode.length, value.allSatisfy({ PairingCode.alphabet.contains($0) }) else { return nil }
+    rendezvous = String(value.prefix(Self.rendezvousLength))
+    code = String(value.dropFirst(Self.rendezvousLength))
+  }
+}
+
+/// A pairing invite, as the Mac's QR code carries it (`parseRemoteInvite` in `shared/remote.ts`):
+///
+///   owlto://pair?v=1&relay=<wss url>&mailbox=<id>&ticket=<one-time ticket>&code=<code>&key=<public key>
+///
+/// It carries the Mac's public key, so the relay cannot stand in for the Mac.
+struct RemoteInvite: Equatable {
+  static let prefix = "owlto://pair?"
+  let relay: String
+  let mailbox: String
+  let ticket: String
+  let code: String
+  let key: String
+
+  init?(_ text: String) {
+    let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard value.hasPrefix(Self.prefix), value.count <= 2048,
+          let items = URLComponents(string: "https://invite/?" + value.dropFirst(Self.prefix.count))?.queryItems
+    else { return nil }
+    func param(_ name: String) -> String { items.first { $0.name == name }?.value ?? "" }
+    let code = param("code")
+    guard param("v") == "1", PairingCode.isValid(code),
+          RelayRoute.isRelayURL(param("relay")), !param("relay").contains("?"), !param("relay").contains("#"),
+          RelayRoute.isToken(param("mailbox")), RelayRoute.isToken(param("ticket")),
+          RemoteCrypto.isPublicKey(param("key"))
+    else { return nil }
+    relay = param("relay")
+    mailbox = param("mailbox")
+    ticket = param("ticket")
+    self.code = PairingCode.normalize(code)
+    key = param("key")
   }
 }
 

@@ -9,6 +9,7 @@ struct ThreadView: View {
   @Environment(\.leaveThread) private var leaveThread
   @State private var draft = ""
   @State private var error: String?
+  @State private var notice: String?
   @State private var loading = true
   @State private var attention: AttentionItem?
 
@@ -74,6 +75,7 @@ struct ThreadView: View {
       AttentionSheet(item: item)
     }
     .errorToast($error)
+    .noticeToast($notice)
   }
 
   @ViewBuilder
@@ -161,8 +163,9 @@ struct ThreadView: View {
   private func send() async throws {
     let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !text.isEmpty else { return }
-    try await hub.perform(hostId, "sendRouter", ["routerId": routerId, "commandId": UUID().uuidString.lowercased(), "text": text])
+    let queued = try await hub.sendRouter(hostId, ["routerId": routerId, "commandId": UUID().uuidString.lowercased(), "text": text])
     draft = ""
+    if queued { notice = String(localized: "The Mac is offline. The message waits on the relay and is sent when the Mac is back.") }
   }
 
   private func interrupt() async throws {

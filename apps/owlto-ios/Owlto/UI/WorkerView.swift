@@ -8,6 +8,8 @@ struct WorkerView: View {
   @Environment(RemoteHub.self) private var hub
   @State private var draft = ""
   @State private var error: String?
+  @State private var notice: String?
+  @State private var attachments: [PendingAttachment] = []
   @State private var showEarlier = false
   @State private var confirmStop = false
   @State private var attention: AttentionItem?
@@ -46,6 +48,7 @@ struct WorkerView: View {
     }
     .sheet(item: $attention) { AttentionSheet(item: $0) }
     .errorToast($error)
+    .noticeToast($notice)
   }
 
   @ViewBuilder
@@ -80,7 +83,8 @@ struct WorkerView: View {
             placeholder: worker.isWorking ? "The worker is busy; new messages queue…" : "Message this worker…",
             sendLabel: "Send to this worker",
             send: { try await send(worker) },
-            onError: { error = describe($0) }
+            onError: { error = describe($0) },
+            attachments: $attachments
           )
         }
       }
@@ -312,11 +316,20 @@ struct WorkerView: View {
 
   private func send(_ worker: Worker) async throws {
     let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !text.isEmpty else { return }
-    try await hub.perform(hostId, "sendRouter", [
+    guard !text.isEmpty || !attachments.isEmpty else { return }
+    // Files go to the Mac first; the message then names what the Mac stored.
+    var staged: [Any] = []
+    for attachment in attachments {
+      staged.append(try await hub.requestJSON(hostId, "stageAttachment", attachment.stageParams))
+    }
+    var params: [String: Any] = [
       "routerId": worker.routerId, "commandId": UUID().uuidString.lowercased(), "text": text, "workerId": worker.id
-    ])
+    ]
+    if !staged.isEmpty { params["attachments"] = staged }
+    let queued = try await hub.sendRouter(hostId, params)
     draft = ""
+    attachments = []
+    if queued { notice = String(localized: "The Mac is offline. The message waits on the relay and is sent when the Mac is back.") }
   }
 
   private func stop() {

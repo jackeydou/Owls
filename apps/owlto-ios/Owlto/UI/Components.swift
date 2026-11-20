@@ -120,16 +120,19 @@ struct OwltoButtonStyle: ButtonStyle {
   }
 }
 
-/// A one-line message about something that failed, shown until dismissed.
+/// A one-line message about something that failed (or, as a notice, something that is
+/// waiting), shown until dismissed.
 struct ErrorToast: ViewModifier {
   @Binding var message: String?
   @Environment(\.skin) private var skin
+  var systemImage = "exclamationmark.circle.fill"
+  var tint = Theme.danger
 
   func body(content: Content) -> some View {
     content.overlay(alignment: .top) {
       if let message {
         HStack(alignment: .top, spacing: 10) {
-          Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Theme.danger)
+          Image(systemName: systemImage).foregroundStyle(tint)
           Text(message).font(.subheadline).frame(maxWidth: .infinity, alignment: .leading)
           Button {
             self.message = nil
@@ -157,6 +160,11 @@ extension View {
   func errorToast(_ message: Binding<String?>) -> some View {
     modifier(ErrorToast(message: message))
   }
+
+  /// A message that did not fail but is waiting, such as one left for a Mac that is away.
+  func noticeToast(_ message: Binding<String?>) -> some View {
+    modifier(ErrorToast(message: message, systemImage: "clock.fill", tint: Theme.secondary))
+  }
 }
 
 func describe(_ error: Error) -> String {
@@ -170,11 +178,21 @@ struct Composer: View {
   var sendLabel: LocalizedStringKey
   var send: () async throws -> Void
   var onError: (Error) -> Void
+  /// Files to send along; nil where a message cannot carry any (the Router's own thread).
+  var attachments: Binding<[PendingAttachment]>?
   @FocusState private var focused: Bool
   @Environment(\.skin) private var skin
 
   var body: some View {
+    VStack(spacing: 0) {
+      if let attachments { AttachmentStrip(attachments: attachments) }
+      field
+    }
+  }
+
+  private var field: some View {
     HStack(alignment: .bottom, spacing: 8) {
+      if let attachments { AttachmentMenu(attachments: attachments, onError: onError) }
       TextField(placeholder, text: $text, axis: .vertical)
         .lineLimit(1...6)
         .focused($focused)
@@ -215,7 +233,10 @@ struct Composer: View {
     }
   }
 
-  private var canSend: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+  private var canSend: Bool {
+    !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !(attachments?.wrappedValue.isEmpty ?? true)
+  }
 }
 
 /// A centered owl with a line of explanation, for lists with nothing in them.

@@ -14,6 +14,16 @@
         }
       }
     },
+    "%@ is larger than 20 MB.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 超过 20 MB。"
+          }
+        }
+      }
+    },
     "%@ is not connected": {
       "localizations": {
         "zh-Hans": {
@@ -106,16 +116,6 @@
     "+%lld": {
       "shouldTranslate": false
     },
-    "192.168.1.20 or mac-mini.tail1234.ts.net": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "192.168.1.20 或 mac-mini.tail1234.ts.net"
-          }
-        }
-      }
-    },
     "ABCD-EFGH": {
       "shouldTranslate": false
     },
@@ -125,16 +125,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "添加 Mac"
-          }
-        }
-      }
-    },
-    "Address of the Mac": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mac 的地址"
           }
         }
       }
@@ -209,6 +199,16 @@
         }
       }
     },
+    "Attach files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加附件"
+          }
+        }
+      }
+    },
     "Blocked": {
       "localizations": {
         "zh-Hans": {
@@ -249,6 +249,16 @@
         }
       }
     },
+    "Check that the Mac shows the same safety code:": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请确认 Mac 上显示的安全码相同："
+          }
+        }
+      }
+    },
     "Click Show code. The code works for 5 minutes.": {
       "localizations": {
         "zh-Hans": {
@@ -265,6 +275,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "关闭"
+          }
+        }
+      }
+    },
+    "Code or address of the Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac 的配对码或地址"
           }
         }
       }
@@ -315,6 +335,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "打不开这个文件"
+          }
+        }
+      }
+    },
+    "Could not reach the Mac through the Owlto relay. Check that it is on, awake, and allows connections over the internet in Settings → Devices.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法通过 Owlto 中继连接到 Mac。请确认它已开机、未休眠，并在“设置 → 设备”中允许通过互联网连接。"
           }
         }
       }
@@ -439,22 +469,12 @@
         }
       }
     },
-    "Enter an address such as 192.168.1.20 or mac-mini.tail1234.ts.net.": {
+    "Enter an address such as 192.168.1.20, a code such as K7Q2-ABCD-EFGH, or scan the Mac's QR code.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请输入地址，例如 192.168.1.20 或 mac-mini.tail1234.ts.net。"
-          }
-        }
-      }
-    },
-    "Enter one of the Mac's addresses and the code below.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在下面输入 Mac 的一个地址和配对码。"
+            "value": "请输入地址（如 192.168.1.20）、配对码（如 K7Q2-ABCD-EFGH），或扫描 Mac 上的二维码。"
           }
         }
       }
@@ -479,6 +499,16 @@
         }
       }
     },
+    "Files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件"
+          }
+        }
+      }
+    },
     "Has a question": {
       "localizations": {
         "zh-Hans": {
@@ -495,6 +525,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "空闲"
+          }
+        }
+      }
+    },
+    "If the numbers differ, someone may be in the middle. Remove the Mac and pair again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果数字不一致，可能有人在中间拦截。请移除这台 Mac 并重新配对。"
           }
         }
       }
@@ -535,6 +575,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "对话内容和它派出的 Worker 会显示在这里。"
+          }
+        }
+      }
+    },
+    "K7Q2-ABCD-EFGH or 192.168.1.20": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "K7Q2-ABCD-EFGH 或 192.168.1.20"
           }
         }
       }
@@ -719,22 +769,22 @@
         }
       }
     },
-    "On the same Wi-Fi the Mac's local address works as is; away from home, use its Tailscale address. The connection is encrypted end to end and goes through no server.": {
+    "Online · direct · %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "同一个 Wi-Fi 下直接用 Mac 的局域网地址；在外面请用它的 Tailscale 地址。连接端到端加密，不经过任何服务器。"
+            "value": "在线 · 直连 · %@"
           }
         }
       }
     },
-    "Online · %@": {
+    "Online · through the relay": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在线 · %@"
+            "value": "在线 · 经由中继"
           }
         }
       }
@@ -745,6 +795,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "只显示了这个文件的开头。"
+          }
+        }
+      }
+    },
+    "Open Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开设置"
           }
         }
       }
@@ -789,6 +849,16 @@
         }
       }
     },
+    "Owlto may not use the camera. Allow it in Settings, or type the code instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Owlto 没有相机权限。请在“设置”中允许，或改为输入配对码。"
+          }
+        }
+      }
+    },
     "Owlto only reads files in your projects, workspace, and worker folders.": {
       "localizations": {
         "zh-Hans": {
@@ -805,6 +875,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mac 上的 Owlto 在 Router 确认收到这些事件之前重启了。重发可能让 Router 看到重复的消息；丢掉则 Router 不会知道这些事。"
+          }
+        }
+      }
+    },
+    "PUSH_FALLBACK_BODY": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something on your Mac needs a look. Open Owlto to see it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的 Mac 上有事情需要你看一下。打开 Owlto 查看。"
+          }
+        }
+      }
+    },
+    "PUSH_FALLBACK_TITLE": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Owlto"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Owlto"
           }
         }
       }
@@ -829,6 +933,16 @@
         }
       }
     },
+    "Paired with %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已与 %@ 配对"
+          }
+        }
+      }
+    },
     "Pairing code": {
       "localizations": {
         "zh-Hans": {
@@ -849,6 +963,16 @@
         }
       }
     },
+    "Photo library": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片图库"
+          }
+        }
+      }
+    },
     "Pick a Mac to see its threads. Each Mac keeps its own threads, settings, agent accounts, and GitHub connection.": {
       "localizations": {
         "zh-Hans": {
@@ -865,6 +989,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "选择一个对话"
+          }
+        }
+      }
+    },
+    "Point the camera at the QR code in Owlto → Settings → Devices on your Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将相机对准 Mac 上 Owlto → 设置 → 设备 中的二维码。"
           }
         }
       }
@@ -909,6 +1043,16 @@
         }
       }
     },
+    "Remove %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除 %@"
+          }
+        }
+      }
+    },
     "Remove %@?": {
       "localizations": {
         "zh-Hans": {
@@ -925,6 +1069,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "移出队列"
+          }
+        }
+      }
+    },
+    "Remove it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
           }
         }
       }
@@ -1035,6 +1189,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "说说你要做什么"
+          }
+        }
+      }
+    },
+    "Scan QR code": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描二维码"
+          }
+        }
+      }
+    },
+    "Scan the QR code, or type the long code. On the same network, the address and short code work too.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描二维码，或输入长配对码。在同一网络下，也可以用地址加短配对码。"
           }
         }
       }
@@ -1229,6 +1403,46 @@
         }
       }
     },
+    "That QR code is not an Owlto pairing code.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个二维码不是 Owlto 配对码。"
+          }
+        }
+      }
+    },
+    "That file could not be read.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取这个文件。"
+          }
+        }
+      }
+    },
+    "The Mac is offline and has too many messages waiting. Try again when it is back.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac 已离线，且待发送的消息过多。请等它上线后再试。"
+          }
+        }
+      }
+    },
+    "The Mac is offline. The message waits on the relay and is sent when the Mac is back.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac 已离线。消息会在中继上等待，Mac 上线后再发送。"
+          }
+        }
+      }
+    },
     "The Mac sent something this app could not read.": {
       "localizations": {
         "zh-Hans": {
@@ -1259,12 +1473,32 @@
         }
       }
     },
+    "The connection is encrypted end to end. On the same network it goes straight to the Mac; from elsewhere it passes through the Owlto relay, which only sees ciphertext.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接全程端到端加密。在同一网络下直接连到 Mac；在其他网络下经过 Owlto 中继，中继只能看到密文。"
+          }
+        }
+      }
+    },
     "The worker is busy; new messages queue…": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "Worker 正在工作，新消息会先排队…"
+          }
+        }
+      }
+    },
+    "They match": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一致"
           }
         }
       }
@@ -1465,6 +1699,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "一个 Worker"
+          }
+        }
+      }
+    },
+    "through the relay": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "经由中继"
           }
         }
       }

@@ -114,15 +114,20 @@ struct DevicesView: View {
   }
 
   private func statusLine(_ host: PairedHost, _ status: RemoteHub.LinkStatus) -> String {
+    let place = host.address ?? String(localized: "through the relay")
     switch status {
-    case .online: return String(localized: "Online · \(host.address)")
-    case .connecting: return String(localized: "Connecting · \(host.address)")
+    case .online:
+      switch hub.paths[host.deviceId] {
+      case .relay: return String(localized: "Online · through the relay")
+      default: return String(localized: "Online · direct · \(place)")
+      }
+    case .connecting: return String(localized: "Connecting · \(place)")
     case .offline:
       if let seen = host.lastSeenAt {
         let formatter = RelativeDateTimeFormatter()
         return String(localized: "Offline · last connected \(formatter.localizedString(for: seen, relativeTo: Date()))")
       }
-      return String(localized: "Offline · \(host.address)")
+      return String(localized: "Offline · \(place)")
     }
   }
 }

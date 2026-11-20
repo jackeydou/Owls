@@ -5,9 +5,19 @@ import Foundation
 /// a request from the Mac is answered with `remote_unsupported`.
 actor RpcConnection {
   static let requestTimeout: TimeInterval = 60
-  static let pingInterval: TimeInterval = 20
-  /// Silence this long means the Mac went away (asleep, or off the network).
-  static let idleTimeout: TimeInterval = 50
+
+  /// How often to ping, and how long a silence means the Mac went away (asleep, or off the
+  /// network). Over the relay, end-to-end pings wake its Durable Object, which bills by the
+  /// time it stays awake, so they are rare there (`RELAY_KEEPALIVE` in `relay.ts`); the relay
+  /// socket's own free text pings notice a dead connection sooner.
+  struct Keepalive: Sendable {
+    let pingInterval: TimeInterval
+    let idleTimeout: TimeInterval
+    static let direct = Keepalive(pingInterval: 20, idleTimeout: 50)
+    static let relay = Keepalive(pingInterval: 240, idleTimeout: 600)
+  }
+
+  private let keepalive: Keepalive
 
   private let channel: SecureChannel
   private var nextId = 1
@@ -19,8 +29,9 @@ actor RpcConnection {
   private let onEvent: @Sendable (Data) -> Void
   private let onClose: @Sendable () -> Void
 
-  init(channel: SecureChannel, onEvent: @escaping @Sendable (Data) -> Void, onClose: @escaping @Sendable () -> Void) {
+  init(channel: SecureChannel, keepalive: Keepalive = .direct, onEvent: @escaping @Sendable (Data) -> Void, onClose: @escaping @Sendable () -> Void) {
     self.channel = channel
+    self.keepalive = keepalive
     self.onEvent = onEvent
     self.onClose = onClose
   }
@@ -35,9 +46,9 @@ actor RpcConnection {
       }
       await self?.finish()
     }
-    heartbeat = Task { [weak self] in
+    heartbeat = Task { [weak self, keepalive] in
       while !Task.isCancelled {
-        try? await Task.sleep(nanoseconds: UInt64(RpcConnection.pingInterval * 1_000_000_000))
+        try? await Task.sleep(nanoseconds: UInt64(keepalive.pingInterval * 1_000_000_000))
         guard let self, !Task.isCancelled else { return }
         await self.beat()
       }
@@ -46,7 +57,7 @@ actor RpcConnection {
 
   private func beat() {
     guard !closed else { return }
-    if Date().timeIntervalSince(lastHeard) > Self.idleTimeout {
+    if Date().timeIntervalSince(lastHeard) > keepalive.idleTimeout {
       close()
       return
     }

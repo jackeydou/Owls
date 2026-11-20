@@ -55,6 +55,20 @@ enum RemoteCrypto {
     return out
   }
 
+  /// Six digits both screens show after pairing, from the session keys: equal digits mean
+  /// nobody sat between the two devices. `safetyCode` in `crypto.ts`:
+  /// SHA-256("owlto-safety-code" ‖ initiator ‖ responder), first 4 bytes big-endian, mod 10^6.
+  static func safetyCode(_ keys: (initiator: SymmetricKey, responder: SymmetricKey)) -> String {
+    let digest = sha256(
+      Data("owlto-safety-code".utf8),
+      keys.initiator.withUnsafeBytes { Data($0) },
+      keys.responder.withUnsafeBytes { Data($0) }
+    )
+    let value = digest.prefix(4).reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+    let text = String(value % 1_000_000)
+    return String(repeating: "0", count: 6 - text.count) + text
+  }
+
   private static let keyInfo = Data("owlto-remote-v1 keys".utf8)
 
   /// One key per direction: the initiator (this phone) sends with `initiator`.
@@ -95,20 +109,5 @@ final class FrameCipher {
     let nonce = try nextNonce()
     let box = try AES.GCM.SealedBox(nonce: nonce, ciphertext: sealed.dropLast(16), tag: sealed.suffix(16))
     return try AES.GCM.open(box, using: key)
-  }
-}
-
-enum Base64URL {
-  static func encode(_ data: Data) -> String {
-    data.base64EncodedString()
-      .replacingOccurrences(of: "+", with: "-")
-      .replacingOccurrences(of: "/", with: "_")
-      .replacingOccurrences(of: "=", with: "")
-  }
-
-  static func decode(_ text: String) -> Data? {
-    var base64 = text.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
-    while base64.count % 4 != 0 { base64 += "=" }
-    return Data(base64Encoded: base64)
   }
 }
