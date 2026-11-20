@@ -1,0 +1,1 @@
+- iOS app: on iPad and an open iPhone Duo, threads show beside the list, and on iPhone Duo the bars follow the system's vertical layout. (#201)
