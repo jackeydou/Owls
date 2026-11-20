@@ -331,6 +331,8 @@ export class RelayListener {
   private stopped = false
   private current: RelayStatus = { state: 'connecting', error: null }
   private meet: RelayRendezvous | null = null
+  /** The session the last connect showed, so a refusal can be told apart from a newer sign-in. */
+  private shown: string | null = null
   constructor(private readonly options: RelayListenerOptions) {}
 
   start(): void {
@@ -339,6 +341,10 @@ export class RelayListener {
   }
   status(): RelayStatus {
     return this.current
+  }
+  /** The relay session the last connect attempt showed; null when it had none. */
+  shownSession(): string | null {
+    return this.shown
   }
   /**
    * Sends the current tickets; call after pairing, revoking, or issuing a ticket. While
@@ -396,6 +402,7 @@ export class RelayListener {
       // A relay with accounts turns a missing session away with `login`; one without
       // accounts (a private deployment) does not ask.
       const session = await this.options.session()
+      this.shown = session
       socket = await relaySocket(
         socketUrl(this.options.url, 'host', this.options.mailbox),
         { t: 'host', v: RELAY_PROTOCOL, secret: this.options.secret, session },

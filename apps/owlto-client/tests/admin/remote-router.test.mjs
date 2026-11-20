@@ -699,9 +699,11 @@ test('removing a Mac from the relay account cuts it off and ends its sign-in', a
       relayHttp: relayGitHub(`gho_${name}_0123456789abcdef`, [])
     })
     await mac.service.setAccess(true)
-    await mac.service.setRelay(true)
-    await mac.service.relaySignIn()
+    // The sign-in may finish before the relay's first, session-less attempt is turned
+    // away; that refusal must not undo it.
+    await Promise.all([mac.service.setRelay(true), mac.service.relaySignIn()])
     await until(() => mac.service.overview().relay.state === 'online')
+    assert.equal(mac.service.overview().relay.account.status, 'signed-in')
     return mac
   }
   const mini = await signedIn('mini')

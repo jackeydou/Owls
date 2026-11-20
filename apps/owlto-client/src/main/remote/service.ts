@@ -434,9 +434,17 @@ export class RemoteService {
       this.changed()
     }
   }
-  /** The relay turned the session down: the Mac has to sign in again. */
+  /**
+   * The relay turned a session down. When it was the stored one, the Mac has to sign in
+   * again; when a sign-in finished after that attempt began, connect again with it.
+   */
   private relayChanged(): void {
-    if (this.relay?.status().error === 'relay_login') this.account.invalidate()
+    const relay = this.relay
+    if (relay?.status().error === 'relay_login') {
+      const current = this.account.loadedSession()
+      if (current && relay.shownSession() === current) this.account.invalidate()
+      else if (current) this.restartRelay()
+    }
     this.changed()
   }
   /**
@@ -445,15 +453,21 @@ export class RemoteService {
    * the relay disconnects the host itself.
    */
   private accountChanged(): void {
-    const error = this.relay?.status().error
+    const relay = this.relay
+    const current = this.account.loadedSession()
     if (
-      this.account.state().status === 'signed-in' &&
-      (error === 'relay_login' || error === 'relay_denied')
-    ) {
-      this.stopRelay()
-      void this.startRelay()
-    }
+      relay &&
+      current &&
+      relay.shownSession() !== current &&
+      relay.status().state === 'offline' &&
+      (relay.status().error === 'relay_login' || relay.status().error === 'relay_denied')
+    )
+      this.restartRelay()
     this.changed()
+  }
+  private restartRelay(): void {
+    this.stopRelay()
+    void this.startRelay()
   }
   private stopRelay(): void {
     this.relay?.close()

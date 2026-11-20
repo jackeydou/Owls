@@ -109,6 +109,11 @@ export class RelayAccount {
     return this.current?.session ?? null
   }
 
+  /** The loaded session, without waiting for `load()`; null when there is none yet. */
+  loadedSession(): string | null {
+    return this.current?.session ?? null
+  }
+
   load(): Promise<void> {
     this.loading ??= this.restore()
     return this.loading
