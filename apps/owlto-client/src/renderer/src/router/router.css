@@ -1804,3 +1804,20 @@ html[data-theme="dark"] .router-automation-run a {
   border-radius: var(--owl-radius-xs);
   color: var(--color-muted-foreground);
 }
+/* The Router at work: its owl types in the avatar column, the dots bounce, Stop follows. */
+.router-working {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 24px;
+}
+.router-working-stop {
+  height: 24px;
+  gap: 5px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+  -webkit-app-region: no-drag;
+}

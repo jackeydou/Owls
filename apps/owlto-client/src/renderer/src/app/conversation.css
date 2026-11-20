@@ -242,6 +242,72 @@
   font-size: var(--owl-text-xs);
   padding: 16px 0;
 }
+/* An agent at work: three dots in a pill, stepping from one of its colors to the other. */
+.owlto-working-dots {
+  --working-dot-from: #e8785a;
+  --working-dot-to: #f4b860;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-card-muted);
+}
+.owlto-working-dots[data-speaker="router"] {
+  --working-dot-from: #3d4450;
+  --working-dot-to: #aab1bd;
+}
+.owlto-working-dots[data-speaker="codex"] {
+  --working-dot-from: #1f2228;
+  --working-dot-to: #a3abb8;
+}
+.owlto-working-dots[data-speaker="cursor"] {
+  --working-dot-from: #7c8cff;
+  --working-dot-to: #c08cff;
+}
+[data-theme="dark"] .owlto-working-dots[data-speaker="router"] {
+  --working-dot-from: #e6e8ec;
+  --working-dot-to: #7d8594;
+}
+[data-theme="dark"] .owlto-working-dots[data-speaker="codex"] {
+  --working-dot-from: #ffffff;
+  --working-dot-to: #6b7280;
+}
+.owlto-working-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--working-dot-from);
+  animation: owlto-working-dot 1.2s ease-in-out infinite;
+}
+.owlto-working-dots i:nth-child(2) {
+  background: color-mix(in oklab, var(--working-dot-from), var(--working-dot-to));
+  animation-delay: 0.15s;
+}
+.owlto-working-dots i:nth-child(3) {
+  background: var(--working-dot-to);
+  animation-delay: 0.3s;
+}
+@keyframes owlto-working-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .owlto-working-dots i {
+    animation: none;
+    opacity: 0.7;
+  }
+}
 .owlto-composer {
   border: 1px solid var(--color-border);
   background: var(--color-card);
