@@ -1,1 +1,1 @@
-- Codex tasks keep running when usage checks time out. Owlto automatically reconnects after an unexpected local Codex exit.
+- Codex tasks keep running when usage checks time out. Owlto automatically reconnects after an unexpected local Codex exit. (#200)
