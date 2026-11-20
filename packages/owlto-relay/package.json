@@ -12,7 +12,8 @@
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "serve": "node --experimental-strip-types src/serve.ts",
     "dev:worker": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy --env=\"\"",
+    "deploy:debug": "wrangler deploy --env debug"
   },
   "dependencies": {
     "ws": "^8.18.0"

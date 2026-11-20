@@ -2,7 +2,15 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createSdkMcpServer, query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
-import { app, BrowserWindow, dialog, powerMonitor, powerSaveBlocker, safeStorage, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  powerMonitor,
+  powerSaveBlocker,
+  safeStorage,
+  shell
+} from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { RemoteEvent, RemoteEventEnvelope, RemoteOverview } from '../../shared/remote.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
@@ -15,7 +23,12 @@ import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
 import { AutomationStore } from '../automations/store.js'
 import { BrowserHost } from '../browser/runner.js'
-import { DEBUG_APP_NAME, isDebugPackage, REMOTE_ROUTER_ENABLED } from '../build-flavor.js'
+import {
+  DEBUG_APP_NAME,
+  isDebugPackage,
+  RELAY_URL,
+  REMOTE_ROUTER_ENABLED
+} from '../build-flavor.js'
 import { CardService } from '../cards/service.js'
 import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
@@ -480,6 +493,7 @@ void app
       cipher: safeStorageCipher,
       deviceId: store.deviceId,
       appVersion: app.getVersion(),
+      relayUrl: RELAY_URL,
       api: remoteHostApi(host),
       accessEnabled: () => store.settings().remoteAccess,
       saveAccess: (enabled) =>

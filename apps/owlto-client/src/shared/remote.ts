@@ -24,6 +24,8 @@ export const REMOTE_PROTOCOL = 1
 export const REMOTE_PORT = 47320
 /** The Owlto relay, for devices that are not on the same network. */
 export const DEFAULT_RELAY_URL = 'wss://relay.owlto.dev'
+/** The debug relay (`wrangler deploy --env debug`), which debug builds and `pnpm dev` use. */
+export const DEBUG_RELAY_URL = 'wss://relay-debug.owlto.dev'
 /** How long a pairing code stays valid. */
 export const PAIRING_CODE_TTL_MS = 5 * 60_000
 
