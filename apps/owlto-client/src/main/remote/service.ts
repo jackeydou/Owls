@@ -77,13 +77,38 @@ export type RemoteServiceDeps = {
 export function localDeviceName(): string {
   return hostname().replace(/\.local$/i, '') || 'Mac'
 }
-/** IPv4 addresses on non-loopback interfaces, sorted; Tailscale's 100.x addresses included. */
+/** IPv4 addresses another device can reach this Mac at, sorted. */
 export function localAddresses(): string[] {
-  const found = new Set<string>()
-  for (const list of Object.values(networkInterfaces()))
-    for (const entry of list ?? [])
-      if (entry.family === 'IPv4' && !entry.internal) found.add(entry.address)
-  return [...found].sort()
+  return usableAddresses(networkInterfaces())
+}
+
+/** Wi-Fi and Ethernet ports: `en*` on macOS, `eth*` / `wl*` / `enp*` on Linux. */
+const PHYSICAL_INTERFACE = /^(en|eth|wl)/
+/** Tailscale hands out addresses from the carrier-grade NAT block, 100.64.0.0/10. */
+function isTailscale(address: string): boolean {
+  const [first, second] = address.split('.').map(Number)
+  return first === 100 && second >= 64 && second < 128
+}
+
+/**
+ * The non-loopback IPv4 addresses on Wi-Fi, Ethernet, and Tailscale. Bridges and virtual
+ * interfaces (Docker, VM hosts, VPNs other than Tailscale) are left out, since another device
+ * cannot reach them, unless nothing else is up.
+ */
+export function usableAddresses(
+  interfaces: Partial<
+    Record<string, { address: string; family: string | number; internal: boolean }[]>
+  >
+): string[] {
+  const all = new Set<string>()
+  const usable = new Set<string>()
+  for (const [name, list] of Object.entries(interfaces))
+    for (const entry of list ?? []) {
+      if ((entry.family !== 'IPv4' && entry.family !== 4) || entry.internal) continue
+      all.add(entry.address)
+      if (PHYSICAL_INTERFACE.test(name) || isTailscale(entry.address)) usable.add(entry.address)
+    }
+  return [...(usable.size ? usable : all)].sort()
 }
 
 /**

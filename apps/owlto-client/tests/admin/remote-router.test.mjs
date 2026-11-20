@@ -32,7 +32,8 @@ const {
   parseRemoteAddress,
   remotePairSchema,
   tcpListen,
-  toFailure
+  toFailure,
+  usableAddresses
 } = require('../../out/main/app/runtime.js')
 
 const MIGRATIONS = resolve(dirname(fileURLToPath(import.meta.url)), '../../migrations')
@@ -418,6 +419,22 @@ test('addresses and pairing codes parse the way people type them', () => {
   assert.equal(parseRemoteInvite(invite.replace('wss%3A', 'http%3A')), null)
   assert.equal(remotePairSchema.safeParse({ invite: 'owlto://pair?v=1' }).success, false)
   assert.ok(OwltoError)
+})
+
+test('only Wi-Fi, Ethernet, and Tailscale addresses are offered', () => {
+  const v4 = (address, internal = false) => ({ address, family: 'IPv4', internal })
+  assert.deepEqual(
+    usableAddresses({
+      lo0: [v4('127.0.0.1', true)],
+      en0: [v4('192.168.0.251'), { address: 'fe80::1', family: 'IPv6', internal: false }],
+      bridge100: [v4('192.168.148.1')],
+      vmenet0: [v4('192.168.155.1')],
+      utun4: [v4('100.101.102.103')],
+      utun5: [v4('10.255.71.186')]
+    }),
+    ['100.101.102.103', '192.168.0.251']
+  )
+  assert.deepEqual(usableAddresses({ bridge0: [v4('10.0.0.2')] }), ['10.0.0.2'])
 })
 
 test('a key the keychain no longer opens is replaced, and its pairings are dropped', async (t) => {

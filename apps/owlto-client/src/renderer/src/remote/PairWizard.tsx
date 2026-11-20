@@ -389,6 +389,23 @@ function PairStep({
           </ActionButton>
         </div>
       ) : null}
+      {invite && showsQr ? (
+        <div className="remote-cant-scan remote-other-mac">
+          <span>{t('remote.wizard.otherMac')}</span>
+          <ActionButton
+            size="sm"
+            variant="ghost"
+            doneLabel={t('remote.inviteCopied')}
+            onAction={async () => {
+              await navigator.clipboard.writeText(invite)
+              return 'done'
+            }}
+          >
+            <CopyIcon />
+            {t('remote.wizard.copyInvite')}
+          </ActionButton>
+        </div>
+      ) : null}
       <footer className="remote-step-foot">
         <Button size="sm" variant="ghost" onClick={onBack}>
           <ArrowLeftIcon />

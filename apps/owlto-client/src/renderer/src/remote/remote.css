@@ -48,16 +48,6 @@
   color: var(--owl-bad);
   font-size: var(--owl-text-sm);
 }
-.remote-addresses {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  font-size: var(--owl-text-sm);
-}
-.remote-addresses code {
-  user-select: all;
-}
 .remote-device-list {
   display: flex;
   flex-direction: column;
@@ -102,13 +92,6 @@
   flex: 1;
   min-width: 180px;
   height: 32px;
-}
-.remote-add .router-input.remote-add-code {
-  flex: 0 0 140px;
-  min-width: 0;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 .remote-add .remote-error {
   flex-basis: 100%;
@@ -397,6 +380,11 @@
 .remote-cant-scan > button {
   flex-shrink: 0;
   margin-left: auto;
+}
+.remote-other-mac {
+  margin-top: -8px;
+  background: transparent;
+  padding-top: 0;
 }
 .remote-cant-scan code {
   flex-shrink: 0;
