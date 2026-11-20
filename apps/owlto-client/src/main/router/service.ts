@@ -475,6 +475,18 @@ export class RouterService implements TurnProfiles {
     await this.forUser(() => this.workers.stop(router.id, input.workerId, 'user'))
   }
 
+  /** Marks a failed or blocked worker as handled so it leaves the user's list of open work. */
+  resolveWorker(input: WorkerAction): void {
+    const worker = this.pool.get(input.workerId)
+    if (
+      !worker ||
+      worker.status === 'removed' ||
+      worker.routerId !== this.ownRouter(input.routerId).id
+    )
+      throw new OwltoError('request_unavailable', 'This worker no longer exists.')
+    this.pool.resolve(worker.routerId, worker.id)
+  }
+
   /** Removes a worker that is not running; the `removed` event tells the Router. */
   removeWorker(input: WorkerAction): void {
     const worker = this.pool.get(input.workerId)

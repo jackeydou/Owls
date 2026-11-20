@@ -385,6 +385,9 @@ export class OwltoHost {
   dropPending(input: PendingMessageAction): void {
     this.requireRouter().dropPending(input)
   }
+  resolveWorker(input: WorkerAction): void {
+    this.requireRouter().resolveWorker(input)
+  }
   removeWorker(input: WorkerAction): void {
     this.requireRouter().removeWorker(input)
   }

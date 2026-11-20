@@ -173,6 +173,12 @@ export const workerSchema = z.object({
   workspace: workerWorkspaceSchema,
   pullRequest: workerPullRequestLinkSchema.nullable(),
   report: workerReportSchema.nullable(),
+  /**
+   * True when the user marked a failed or blocked worker as handled, so it stops
+   * waiting on them in the projects list and the map. Cleared once the worker
+   * runs again, so a new report that needs the user brings it back.
+   */
+  resolved: z.boolean().optional(),
   /** True when the last report did not match the schema and was rebuilt from raw text. */
   degraded: z.boolean(),
   createdAt: z.string(),

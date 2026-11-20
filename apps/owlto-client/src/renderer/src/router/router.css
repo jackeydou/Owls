@@ -309,6 +309,32 @@ html[data-platform="darwin"] {
   background: var(--color-sidebar-active);
   color: var(--color-foreground);
 }
+/* Resolve sits over a failed or blocked worker's row, out of sight until the row is pointed at or focused. */
+.router-sidebar-worker-row {
+  position: relative;
+}
+.router-worker-resolve {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--owl-radius-xs);
+  color: var(--color-muted-foreground);
+  opacity: 0;
+}
+.router-worker-resolve:hover {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+.router-sidebar-worker-row:hover > .router-worker-resolve,
+.router-worker-resolve:focus-visible,
+.router-worker-resolve:disabled {
+  opacity: 1;
+}
+.router-sidebar-worker-row.resolvable:hover > .router-sidebar-worker {
+  padding-right: 30px;
+}
 .router-sidebar-worker > span:last-child {
   overflow: hidden;
   flex: 1;

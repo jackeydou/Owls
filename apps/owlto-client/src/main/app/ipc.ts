@@ -179,6 +179,7 @@ export function registerIpc(
     if (result.response === 1) await host.discardWorktree(request)
   })
   handle('router-stop-worker', (input) => host.stopWorker(workerActionSchema.parse(input)))
+  handle('router-resolve-worker', (input) => host.resolveWorker(workerActionSchema.parse(input)))
   handle('router-steer-pending', (input) =>
     host.steerPending(pendingMessageActionSchema.parse(input))
   )

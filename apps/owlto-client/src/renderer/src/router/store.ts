@@ -89,6 +89,8 @@ type State = {
   deleteThread(routerId: string): Promise<boolean>
   resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
   stopWorker(routerId: string, workerId: string): Promise<void>
+  /** Marks a failed or blocked worker as handled; the row folding away shows that it worked. */
+  resolveWorker(routerId: string, workerId: string): Promise<void>
   /** Sends a pending message now; the row leaving the queue shows that it went. */
   steerPending(input: PendingMessageAction): Promise<void>
   dropPending(input: PendingMessageAction): Promise<void>
@@ -327,6 +329,9 @@ export const useRouterStore = create<State>((set, get) => {
     },
     stopWorker: async (routerId, workerId) => {
       await action(() => backend().stopWorker({ routerId, workerId }))
+    },
+    resolveWorker: async (routerId, workerId) => {
+      await action(() => backend().resolveWorker({ routerId, workerId }))
     },
     steerPending: async (input) => {
       await action(() => backend().steerPendingMessage(input))
