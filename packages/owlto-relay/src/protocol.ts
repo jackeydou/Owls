@@ -134,9 +134,7 @@ export type HostMessage =
 /** An item a client left, as the host receives it. `from` is the hash of the ticket used. */
 export type QueuedItem = { id: string; from: string; at: number; item: string }
 
-export type Route =
-  | { kind: SocketKind; mailbox: string }
-  | { kind: 'rendezvous'; code: string }
+export type Route = { kind: SocketKind; mailbox: string } | { kind: 'rendezvous'; code: string }
 
 /** Parses `/v1/<kind>/<mailbox>` or `/v1/rendezvous/<code>`; null for anything else. */
 export function routeOf(path: string): Route | null {
