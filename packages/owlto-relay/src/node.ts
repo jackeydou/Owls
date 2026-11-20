@@ -3,11 +3,13 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from 'node:net'
 import { type RawData, type WebSocket, WebSocketServer } from 'ws'
 import {
-  MAX_MAILBOXES_PER_ACCOUNT,
-  MAX_MESSAGE_BYTES,
-  type QueuedItem,
-  routeOf
-} from './protocol.ts'
+  AccountBook,
+  type AccountRecord,
+  type AccountServices,
+  accountOfSession,
+  answerAccount
+} from './accounts.ts'
+import { MAX_MESSAGE_BYTES, parseJson, type QueuedItem, routeOf } from './protocol.ts'
 import {
   type Attachment,
   type Budgets,
@@ -40,10 +42,10 @@ export type NodeRelayOptions = {
   port?: number
   host?: string
   /**
-   * Checks a GitHub token and returns its account's hash. When set, registering a mailbox
-   * takes a sign-in; a self-hosted relay usually leaves it out.
+   * Asks GitHub who a token belongs to. When set, hosts need a relay account session
+   * (`accounts.ts`); a self-hosted relay usually leaves it out.
    */
-  verifyGitHub?: (token: string) => Promise<string | null>
+  verifyGitHub?: (token: string) => Promise<{ id: number; login: string } | null>
   /** Sends a notification; without it pushes fail, as on a relay with no APNs key. */
   push?: (request: PushRequest) => Promise<PushResult>
   now?: () => number
@@ -62,25 +64,37 @@ type RoomState = {
 const MAX_TIMER_MS = 2 ** 31 - 1
 /** Rendezvous lookups per IP per minute, so four characters cannot be walked. */
 const RENDEZVOUS_LOOKUPS_PER_MINUTE = 10
+/** Account requests per IP per minute. */
+const ACCOUNT_REQUESTS_PER_MINUTE = 30
 
 export async function startNodeRelay(options: NodeRelayOptions = {}): Promise<NodeRelay> {
   const now = options.now ?? (() => Date.now())
   const rooms = new Map<string, RoomState>()
-  const accounts = new Map<string, Set<string>>()
+  const accounts = new Map<string, AccountRecord>()
   const rendezvous = new Map<string, RendezvousEntry>()
   const lookups = new Map<string, RateWindow>()
+  const accountLookups = new Map<string, RateWindow>()
+  const book = (account: string) =>
+    new AccountBook({
+      load: async () => structuredClone(accounts.get(account) ?? null),
+      save: async (record) => {
+        accounts.set(account, structuredClone(record))
+      },
+      deleteAll: async () => {
+        accounts.delete(account)
+      },
+      now,
+      randomToken: () => randomBytes(32).toString('base64url')
+    })
   const services: RelayServices = {
-    verifyGitHub: options.verifyGitHub ?? null,
-    claimMailbox: async (account, mailbox) => {
-      const owned = accounts.get(account) ?? new Set<string>()
-      if (!owned.has(mailbox) && owned.size >= MAX_MAILBOXES_PER_ACCOUNT) return false
-      owned.add(mailbox)
-      accounts.set(account, owned)
-      return true
+    accounts: Boolean(options.verifyGitHub),
+    checkSession: async (session) => {
+      const account = accountOfSession(session)
+      const hash = account ? await book(account).check(session) : null
+      return account && hash ? { account, session: hash } : null
     },
-    releaseMailbox: async (account, mailbox) => {
-      accounts.get(account)?.delete(mailbox)
-    },
+    claimMailbox: (account, session, mailbox) => book(account).claim(session, mailbox),
+    releaseMailbox: (account, mailbox) => book(account).release(mailbox),
     claimRendezvous: async (code, entry) => {
       const held = rendezvous.get(code)
       if (held && held.expiresAt > now()) return false
@@ -93,20 +107,67 @@ export async function startNodeRelay(options: NodeRelayOptions = {}): Promise<No
   const server: Server = createServer((request, response) => answerHttp(request, response))
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES })
 
+  const accountServices: AccountServices = {
+    verifyGitHub: options.verifyGitHub ?? (async () => null),
+    account: book,
+    room: (mailbox) => ({
+      status: () => roomFor(mailbox).room.status(),
+      evict: async () => roomFor(mailbox).room.evict(),
+      destroy: () => roomFor(mailbox).room.destroy()
+    })
+  }
+
+  function limited(table: Map<string, RateWindow>, ip: string, perMinute: number): boolean {
+    let window = table.get(ip)
+    if (!window) {
+      window = new RateWindow(perMinute, 60_000)
+      table.set(ip, window)
+    }
+    return !window.take(now())
+  }
+
+  function answerAccountHttp(request: IncomingMessage, response: ServerResponse, path: string) {
+    const ip = request.socket.remoteAddress ?? 'unknown'
+    const send = (status: number, body: unknown) => {
+      response.writeHead(status, { 'content-type': 'application/json' })
+      response.end(JSON.stringify(body))
+    }
+    if (limited(accountLookups, ip, ACCOUNT_REQUESTS_PER_MINUTE))
+      return send(429, { error: 'limited' })
+    const chunks: Buffer[] = []
+    let size = 0
+    request.on('data', (chunk: Buffer) => {
+      size += chunk.length
+      if (size > 16 * 1024) request.destroy()
+      else chunks.push(chunk)
+    })
+    request.on('end', () => {
+      const body = chunks.length ? parseJson(Buffer.concat(chunks).toString('utf8')) : null
+      answerAccount(
+        request.method ?? 'GET',
+        path,
+        request.headers.authorization ?? null,
+        body,
+        accountServices
+      )
+        .then((answer) => send(answer.status, answer.body))
+        .catch(() => send(500, { error: 'failed' }))
+    })
+  }
+
   function answerHttp(request: IncomingMessage, response: ServerResponse): void {
     const route = routeOf(new URL(request.url ?? '/', 'http://relay').pathname)
+    if (route?.kind === 'account') {
+      answerAccountHttp(request, response, route.path)
+      return
+    }
     if (route?.kind !== 'rendezvous' || request.method !== 'GET') {
       response.writeHead(426, { 'content-type': 'text/plain' })
       response.end('Owlto relay: WebSocket only.\n')
       return
     }
     const ip = request.socket.remoteAddress ?? 'unknown'
-    let window = lookups.get(ip)
-    if (!window) {
-      window = new RateWindow(RENDEZVOUS_LOOKUPS_PER_MINUTE, 60_000)
-      lookups.set(ip, window)
-    }
-    if (!window.take(now())) {
+    if (limited(lookups, ip, RENDEZVOUS_LOOKUPS_PER_MINUTE)) {
       response.writeHead(429, { 'content-type': 'application/json' })
       response.end('{"error":"limited"}')
       return
@@ -180,7 +241,7 @@ export async function startNodeRelay(options: NodeRelayOptions = {}): Promise<No
 
   server.on('upgrade', (request: IncomingMessage, socket, head) => {
     const route = routeOf(new URL(request.url ?? '/', 'http://relay').pathname)
-    if (!route || route.kind === 'rendezvous') {
+    if (!route || route.kind === 'rendezvous' || route.kind === 'account') {
       socket.end('HTTP/1.1 404 Not Found\r\n\r\n')
       return
     }

@@ -9,21 +9,19 @@ import {
   type RemoteMethod,
   type RemoteOverview,
   type RemotePaired,
+  type RemoteRelayMac,
   remoteMethodSchemas,
   remotePairSchema
 } from '../../shared/remote.js'
 import { OwltoError } from '../app/errors.js'
+import type { GitHubCredentialStore } from '../github/auth.js'
 import type { SecretCipher } from '../router/credentials.js'
 import { type Dial, type DialRelay, HostLinks, type LookupRendezvous } from './client.js'
 import { exportPrivateKey, generateKeyPair, importKeyPair, type KeyPair } from './crypto.js'
 import type { Me } from './handshake.js'
 import { KeepAwake, type KeepAwakePower } from './keep-awake.js'
-import {
-  newRelayToken,
-  type RelayQueuedItem,
-  RelayListener,
-  type RelayRoute
-} from './relay.js'
+import { newRelayToken, RelayListener, type RelayQueuedItem, type RelayRoute } from './relay.js'
+import { RelayAccount } from './relay-account.js'
 import { openFromClient, type PushMessage, sealPush } from './sealed.js'
 import { HostServer, type Listen, type RegisterPush, type RemoteHostApi } from './server.js'
 import type { RemoteStore } from './store.js'
@@ -52,8 +50,10 @@ export type RemoteServiceDeps = {
   dropItem: (route: RelayRoute, item: string) => Promise<void>
   /** Reads a staged attachment, to copy it to a host along with a message. */
   readAttachment: (attachment: Attachment) => Promise<Uint8Array>
-  /** A GitHub token for registering a relay mailbox; null when not signed in. */
-  githubToken: () => Promise<string | null>
+  /** Where the relay session is kept, encrypted with `cipher`: the credentials table. */
+  credentials: GitHubCredentialStore
+  /** Requests to GitHub and the relay's account routes; tests stand in for both. */
+  relayHttp?: typeof fetch
   /** The relay's base URL; the Owlto relay unless a test runs its own. */
   relayUrl?: string
   toFailure: (error: unknown) => Failure
@@ -92,6 +92,7 @@ export class RemoteService {
   private identity: Promise<KeyPair> | null = null
   private queueWork: Promise<void> = Promise.resolve()
   private relay: RelayListener | null = null
+  private readonly account: RelayAccount
   private relayError: string | null = null
   private readonly relayUrl: string
   private listenError: string | null = null
@@ -109,6 +110,14 @@ export class RemoteService {
       : null
     const me = () => this.me()
     const changed = () => this.changed()
+    this.account = new RelayAccount({
+      store: deps.credentials,
+      cipher: deps.cipher,
+      relayUrl: this.relayUrl,
+      deviceName: () => this.name(),
+      http: deps.relayHttp,
+      changed: () => this.accountChanged()
+    })
     this.server = new HostServer({
       store: deps.store,
       me,
@@ -142,6 +151,7 @@ export class RemoteService {
 
   /** Listens when remote access was on, and connects to paired hosts. Failures show in the overview. */
   start(): void {
+    void this.account.load()
     if (this.deps.accessEnabled())
       void this.listen().then(
         () => (this.deps.relayEnabled() ? this.startRelay() : undefined),
@@ -154,6 +164,7 @@ export class RemoteService {
       )
   }
   close(): void {
+    this.account.close()
     this.keepAwake?.close()
     this.stopRelay()
     this.server.stop()
@@ -191,7 +202,8 @@ export class RemoteService {
       relay: {
         enabled: this.deps.relayEnabled(),
         state: this.relay ? this.relay.status().state : 'off',
-        error: this.relay ? this.relay.status().error : this.relayError
+        error: this.relay ? this.relay.status().error : this.relayError,
+        account: this.account.state()
       },
       clients: this.deps.store.peers('client').map((peer) => ({
         deviceId: peer.deviceId,
@@ -253,6 +265,25 @@ export class RemoteService {
     this.links.remove(deviceId)
     return this.changed()
   }
+  /** Starts the relay's GitHub sign-in; its code shows in the overview. */
+  async relaySignIn(): Promise<RemoteOverview> {
+    await this.account.signIn()
+    return this.overview()
+  }
+  relayCancelSignIn(): RemoteOverview {
+    this.account.cancelSignIn()
+    return this.overview()
+  }
+  async relaySignOut(): Promise<RemoteOverview> {
+    await this.account.signOut()
+    return this.overview()
+  }
+  relayMacs(): Promise<RemoteRelayMac[]> {
+    return this.account.macs()
+  }
+  relayRemoveMac(mailbox: string): Promise<RemoteRelayMac[]> {
+    return this.account.removeMac(mailbox)
+  }
   /** Runs one host method on a paired device. The request is checked here and again on the host. */
   async call(deviceId: string, method: RemoteMethod, params: unknown): Promise<unknown> {
     if (method === 'sendRouter') {
@@ -287,7 +318,11 @@ export class RemoteService {
       if (!peer.pushToken || !peer.pushKey || this.server.connected(peer.deviceId)) continue
       const opened = await this.deps.cipher.decrypt(peer.pushKey).catch(() => null)
       if (!opened) continue
-      relay.push(peer.pushToken, peer.pushSandbox, sealPush(message, Buffer.from(opened.plain, 'base64url')))
+      relay.push(
+        peer.pushToken,
+        peer.pushSandbox,
+        sealPush(message, Buffer.from(opened.plain, 'base64url'))
+      )
     }
   }
   private async registerPush(deviceId: string, push: RegisterPush): Promise<void> {
@@ -387,17 +422,38 @@ export class RemoteService {
         secret,
         tickets: () => this.server.tickets(),
         pairingTicket: () => this.server.pairingTicket(),
-        githubToken: this.deps.githubToken,
+        session: () => this.account.session(),
         accept: (frames) => this.server.accept(frames),
         queued: (items) => this.queued(items),
         pushGone: (token) => this.deps.store.dropPushToken(token),
-        changed: () => this.changed()
+        changed: () => this.relayChanged()
       })
       this.relay.start()
     } catch (error) {
       this.relayError = error instanceof Error ? error.message : 'relay_unavailable'
       this.changed()
     }
+  }
+  /** The relay turned the session down: the Mac has to sign in again. */
+  private relayChanged(): void {
+    if (this.relay?.status().error === 'relay_login') this.account.invalidate()
+    this.changed()
+  }
+  /**
+   * A relay that stopped for want of a sign-in, or because this Mac was removed from the
+   * account, connects again once there is a new sign-in. Signing out needs nothing here:
+   * the relay disconnects the host itself.
+   */
+  private accountChanged(): void {
+    const error = this.relay?.status().error
+    if (
+      this.account.state().status === 'signed-in' &&
+      (error === 'relay_login' || error === 'relay_denied')
+    ) {
+      this.stopRelay()
+      void this.startRelay()
+    }
+    this.changed()
   }
   private stopRelay(): void {
     this.relay?.close()

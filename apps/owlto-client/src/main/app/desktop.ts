@@ -516,7 +516,7 @@ void app
       lookupRendezvous,
       dropItem: dropRelayItem,
       readAttachment: (attachment) => host.readAttachment(attachment),
-      githubToken: () => github.token(),
+      credentials: routerStore,
       toFailure,
       changed: remoteChanged,
       remoteEvent

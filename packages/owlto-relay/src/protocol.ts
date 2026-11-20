@@ -6,8 +6,8 @@
  * Four kinds of WebSocket, each at `/v1/<kind>/<mailbox>`:
  *
  *   host    a host Mac's control socket, kept open while it allows internet connections
- *           → { t: 'host', v, secret, github? }     ← { t: 'ready' } | { t: 'error', code }
- *             (`github`, a GitHub token, is needed only to register a new mailbox)
+ *           → { t: 'host', v, secret, session? }    ← { t: 'ready' } | { t: 'error', code }
+ *             (`session`, a relay account session from `/v1/account/login`; see accounts.ts)
  *           → { t: 'tickets', hashes }               (replaces the tickets that may connect)
  *           → { t: 'rendezvous', ticket }            ← { t: 'rendezvous', code, expiresAt }
  *             (a short code that finds this mailbox and the pairing ticket for 5 minutes)
@@ -25,8 +25,9 @@
  * After `open`, binary messages on a client socket and its pipe socket are passed to the
  * other side unchanged. The text message `ping` is answered with `pong` on every socket.
  *
- * One HTTP route: `GET /v1/rendezvous/<code>` answers `{ mailbox, ticket }` while the code
- * is live, so a device that was typed `K7Q2-ABCD-EFGH` finds the host; 404 otherwise.
+ * HTTP routes: `GET /v1/rendezvous/<code>` answers `{ mailbox, ticket }` while the code is
+ * live, so a device that was typed `K7Q2-ABCD-EFGH` finds the host; 404 otherwise. The
+ * account routes under `/v1/account` are described in `accounts.ts`.
  */
 export const RELAY_PROTOCOL = 1
 
@@ -39,7 +40,7 @@ export const MAILBOX_PATTERN = /^[A-Za-z0-9_-]{22,64}$/
 export const HASH_PATTERN = /^[0-9a-f]{64}$/
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{22,128}$/
 const PIPE_PATTERN = /^[A-Za-z0-9_-]{16,64}$/
-const GITHUB_TOKEN_PATTERN = /^[A-Za-z0-9_.-]{20,255}$/
+const SESSION_PATTERN = /^s1\.[0-9a-f]{64}\.[A-Za-z0-9_-]{43}$/
 /** An APNs device token, as hex. */
 const PUSH_TOKEN_PATTERN = /^[0-9a-f]{32,200}$/
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/
@@ -112,15 +113,15 @@ export type ErrorCode =
   | 'version'
   /** The mailbox sent more messages than the relay takes per minute. */
   | 'limited'
-  /** A new mailbox needs a GitHub sign-in, and none was given or it did not check out. */
+  /** The host has no live relay session: it has to sign in (again). */
   | 'login'
-  /** The GitHub account already owns as many mailboxes as it may. */
+  /** The account already owns as many mailboxes as it may. */
   | 'quota'
   /** The mailbox's queue is full. */
   | 'full'
 
 export type Hello =
-  | { t: 'host'; v: number; secret: string; github: string | null }
+  | { t: 'host'; v: number; secret: string; session: string | null }
   | { t: 'client'; v: number; ticket: string }
   | { t: 'pipe'; v: number; secret: string; pipe: string }
   | { t: 'drop'; v: number; ticket: string; item: string }
@@ -134,10 +135,18 @@ export type HostMessage =
 /** An item a client left, as the host receives it. `from` is the hash of the ticket used. */
 export type QueuedItem = { id: string; from: string; at: number; item: string }
 
-export type Route = { kind: SocketKind; mailbox: string } | { kind: 'rendezvous'; code: string }
+export type Route =
+  | { kind: SocketKind; mailbox: string }
+  | { kind: 'rendezvous'; code: string }
+  | { kind: 'account'; path: string }
 
-/** Parses `/v1/<kind>/<mailbox>` or `/v1/rendezvous/<code>`; null for anything else. */
+/**
+ * Parses `/v1/<kind>/<mailbox>`, `/v1/rendezvous/<code>`, or `/v1/account…`; null for
+ * anything else.
+ */
 export function routeOf(path: string): Route | null {
+  if (path === '/v1/account' || path.startsWith('/v1/account/'))
+    return path.length <= 128 ? { kind: 'account', path: path.slice('/v1/account'.length) } : null
   const match = /^\/v1\/([a-z]+)\/([^/?#]+)$/.exec(path)
   if (!match) return null
   if (match[1] === 'rendezvous')
@@ -168,10 +177,10 @@ export function parseHello(kind: SocketKind, value: unknown): Hello | 'version' 
   if (value.v !== RELAY_PROTOCOL) return typeof value.v === 'number' ? 'version' : null
   if (kind === 'host') {
     if (!token(value.secret)) return null
-    const github = value.github ?? null
-    if (github !== null && !(typeof github === 'string' && GITHUB_TOKEN_PATTERN.test(github)))
+    const session = value.session ?? null
+    if (session !== null && !(typeof session === 'string' && SESSION_PATTERN.test(session)))
       return null
-    return { t: 'host', v: RELAY_PROTOCOL, secret: value.secret, github }
+    return { t: 'host', v: RELAY_PROTOCOL, secret: value.secret, session }
   }
   if (kind === 'client')
     return token(value.ticket) ? { t: 'client', v: RELAY_PROTOCOL, ticket: value.ticket } : null

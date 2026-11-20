@@ -54,6 +54,7 @@ export const RELAY_KEEPALIVE: Keepalive = { pingMs: 240_000, idleMs: 600_000 }
 export const STABLE_MS = 60_000
 /** Relay answers that the same attempt would get again. */
 const FINAL_ERRORS = new Set([
+  'relay_replaced',
   'relay_denied',
   'relay_version',
   'relay_bad_request',
@@ -297,8 +298,8 @@ export type RelayListenerOptions = {
   tickets: () => string[]
   /** The pairing invite's one-time ticket while pairing is open; null otherwise. */
   pairingTicket: () => string | null
-  /** A GitHub token, asked for only when the relay needs a sign-in to register the mailbox. */
-  githubToken: () => Promise<string | null>
+  /** This Mac's relay session (`RelayAccount`); null when it is not signed in. */
+  session: () => Promise<string | null>
   accept: (frames: FrameChannel) => void
   /** Sealed items clients left while this host was away; ack the ones handled. */
   queued: (items: RelayQueuedItem[]) => void
@@ -385,35 +386,29 @@ export class RelayListener {
   private async connect(): Promise<void> {
     if (this.stopped) return
     this.set('connecting', this.current.error)
-    let socket: WebSocket | null = null
-    let github: string | null = null
+    let socket: WebSocket
     let lastHeard = Date.now()
     const onMessage = (event: MessageEvent) => {
       lastHeard = Date.now()
       this.receive(parse(event.data))
     }
-    while (!socket) {
-      try {
-        socket = await relaySocket(
-          socketUrl(this.options.url, 'host', this.options.mailbox),
-          { t: 'host', v: RELAY_PROTOCOL, secret: this.options.secret, github },
-          'ready',
-          onMessage
-        )
-      } catch (error) {
-        const reason = error instanceof RelayError ? error.message : 'relay_unreachable'
-        // A new mailbox needs a GitHub sign-in. The token goes to the relay only then, and
-        // only once: a relay that turns the token down is told no more.
-        if (reason === 'relay_login' && github === null && !this.stopped) {
-          github = await this.options.githubToken().catch(() => null)
-          if (github) continue
-        }
-        this.set('offline', reason)
-        // Another secret owns this mailbox, the relay speaks another protocol, or the
-        // sign-in is missing: retrying cannot help, and each attempt is a billed request.
-        if (!FINAL_ERRORS.has(reason)) this.retryLater()
-        return
-      }
+    try {
+      // A relay with accounts turns a missing session away with `login`; one without
+      // accounts (a private deployment) does not ask.
+      const session = await this.options.session()
+      socket = await relaySocket(
+        socketUrl(this.options.url, 'host', this.options.mailbox),
+        { t: 'host', v: RELAY_PROTOCOL, secret: this.options.secret, session },
+        'ready',
+        onMessage
+      )
+    } catch (error) {
+      const reason = error instanceof RelayError ? error.message : 'relay_unreachable'
+      this.set('offline', reason)
+      // Another secret owns this mailbox, the relay speaks another protocol, or the
+      // sign-in is missing: retrying cannot help, and each attempt is a billed request.
+      if (!FINAL_ERRORS.has(reason)) this.retryLater()
+      return
     }
     if (this.stopped) {
       socket.close()
@@ -430,8 +425,9 @@ export class RelayListener {
       // Another Mac with this mailbox's secret took over (a copied data folder). Taking it
       // back would make the two push each other off forever, so wait for a wake or a
       // toggle instead.
-      if (this.current.error === 'relay_replaced') {
-        this.set('offline', 'relay_replaced')
+      // Signed out, or removed on another Mac: the same session would be turned away again.
+      if (this.current.error && FINAL_ERRORS.has(this.current.error)) {
+        this.set('offline', this.current.error)
         return
       }
       this.set('offline', 'relay_closed')
@@ -461,8 +457,10 @@ export class RelayListener {
         this.meet = { ticket, code: message.code, expiresAt: message.expiresAt }
         this.options.changed()
       }
-    } else if (message?.t === 'error' && message.code === 'replaced')
-      this.current = { state: 'offline', error: 'relay_replaced' }
+    } else if (message?.t === 'error' && typeof message.code === 'string') {
+      const reason = `relay_${message.code}`
+      if (FINAL_ERRORS.has(reason)) this.current = { state: 'offline', error: reason }
+    }
   }
   private openPipe(pipe: string): void {
     relaySocket(
@@ -496,6 +494,9 @@ export class RelayListener {
   /** Reconnects at once, as after the Mac wakes or the network changes. */
   reconnectNow(): void {
     if (this.stopped || this.current.state === 'online') return
+    // A wake may end a takeover by another Mac, but not a missing or ended sign-in.
+    const error = this.current.error
+    if (error && error !== 'relay_replaced' && FINAL_ERRORS.has(error)) return
     if (this.retry) clearTimeout(this.retry)
     this.retry = null
     this.failures = 0

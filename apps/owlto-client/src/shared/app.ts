@@ -126,7 +126,9 @@ export const failureSchema = z.object({
     /** The other device runs a version of Owlto that speaks another remote protocol. */
     'remote_version',
     /** This action only works on the device itself. */
-    'remote_unsupported'
+    'remote_unsupported',
+    /** The relay needs this Mac to sign in, or its sign-in ended. */
+    'remote_relay_login'
   ]),
   message: z.string()
 })

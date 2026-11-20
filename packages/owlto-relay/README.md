@@ -16,10 +16,15 @@ the relay sees ciphertext, connection times, and sizes, never content.
 - A client connects at `/v1/client/<mailbox>` with its ticket. The relay asks the host for a
   pipe, the host opens `/v1/pipe/<mailbox>`, and from then on binary messages pass between
   the two sockets unchanged. Clients without a valid ticket never reach the host.
-- **Sign-in.** Registering a new mailbox takes a GitHub token in the host hello. The relay
-  asks GitHub who it belongs to, keeps only `sha256("github:" + id)`, and lets one account
-  own at most 5 mailboxes (`RelayAccount`). A host that already owns its mailbox, and every
-  client, connects without one. A private deployment can set `REQUIRE_GITHUB = "false"`.
+- **Accounts.** A Mac signs in once: it gets a GitHub token through Owlto's own no-scope
+  OAuth App ("Owlto Relay", device flow), and posts it to `POST /v1/account/login`. The relay
+  asks GitHub who it is, throws the token away, and returns a relay session
+  `s1.<account>.<random>` (account = `sha256("github:" + id)`; only a hash of the session is
+  stored in `RelayAccount`). Every host hello carries the session, so signing out
+  (`DELETE /v1/account/session`) or removing a Mac (`DELETE /v1/account/mailbox/<id>`) cuts it
+  off at once, and `GET /v1/account` lists the account's Macs. One account owns at most 5
+  mailboxes and 20 sessions; a session idle for 180 days stops working. Clients never sign
+  in; they use tickets. A private deployment can set `REQUIRE_GITHUB = "false"`.
 - **Rendezvous codes.** While a pairing invite is open the host asks for a 4-character code;
   `GET /v1/rendezvous/<code>` returns the mailbox and one-time ticket for 5 minutes. The
   app shows `K7Q2-ABCD-EFGH`: the first group finds the mailbox, the last two are the
@@ -96,7 +101,7 @@ is built so nothing keeps an object awake or reconnecting on its own:
   30 s this way, and sends end-to-end pings over a pipe only after 4 quiet minutes
   (`RELAY_KEEPALIVE` in the app's `remote/relay.ts`), since those do wake the object.
 - **Rate limits before the object wakes**: the Worker allows 120 new sockets a minute per IP
-  and 30 per mailbox, and 10 rendezvous lookups a minute per IP (`[[ratelimits]]` in
+  and 30 per mailbox, 10 rendezvous lookups a minute per IP, and 30 account requests a minute per IP (`[[ratelimits]]` in
   `wrangler.toml`).
 - **Per-mailbox caps inside the object** (`src/protocol.ts`): 32 open sockets, 60 new
   sockets and 3,000 messages a minute; a socket that sends no hello within 10 s is closed

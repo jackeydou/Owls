@@ -189,7 +189,30 @@ export type RemoteRelayState = {
   state: 'off' | 'connecting' | 'online' | 'offline'
   /** Why the relay is not reachable, such as `relay_unreachable`; null otherwise. */
   error: string | null
+  account: RemoteRelayAccount
 }
+/** Why a relay sign-in did not finish, or why a stored one stopped working. */
+export type RemoteRelaySignInFailure = 'network' | 'denied' | 'expired' | 'relay'
+/**
+ * This Mac's relay account. A host needs one to use the relay: it signs in with GitHub once
+ * and the relay issues its own session, which signing out or removing the Mac ends.
+ */
+export type RemoteRelayAccount =
+  | { status: 'signed-out'; failure: RemoteRelaySignInFailure | null }
+  | { status: 'pending'; userCode: string; verificationUri: string; expiresAt: string }
+  | { status: 'signed-in'; login: string }
+/** A Mac on this relay account, as the relay lists it. */
+export type RemoteRelayMac = {
+  mailbox: string
+  /** The name the Mac gave when it signed in; null once that sign-in is gone. */
+  name: string | null
+  claimedAt: number
+  /** This Mac's own mailbox. */
+  thisMac: boolean
+  online: boolean
+  lastHostAt: number | null
+}
+export const relayMailboxSchema = z.string().regex(/^[A-Za-z0-9_-]{22,64}$/)
 export type RemoteOverview = {
   deviceId: string
   deviceName: string
@@ -315,6 +338,15 @@ export interface RemoteAPI {
   /** Pairs with a device that shows a code, or from its invite. */
   pair(input: RemotePair): Promise<Reply<RemotePaired>>
   removeDevice(deviceId: string): Promise<Reply<RemoteOverview>>
+  /** Starts the GitHub sign-in for the relay; the code shows in the overview. */
+  relaySignIn(): Promise<Reply<RemoteOverview>>
+  relayCancelSignIn(): Promise<Reply<RemoteOverview>>
+  /** Signs this Mac out of the relay, which disconnects it there. */
+  relaySignOut(): Promise<Reply<RemoteOverview>>
+  /** The Macs on this relay account. */
+  relayMacs(): Promise<Reply<RemoteRelayMac[]>>
+  /** Removes a Mac from the account: its mailbox is deleted and its session ends. */
+  relayRemoveMac(mailbox: string): Promise<Reply<RemoteRelayMac[]>>
   /** Runs one Router action on a paired device. */
   call<M extends RemoteMethod>(input: RemoteCall<M>): Promise<Reply<RemoteResults[M]>>
   onEvent(listener: (envelope: RemoteEventEnvelope) => void): () => void

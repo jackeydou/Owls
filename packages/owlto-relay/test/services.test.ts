@@ -28,12 +28,12 @@ function open(t: TestContext, base: string, kind: string, mailbox: string): Peer
 async function host(
   t: TestContext,
   base: string,
-  options: { mailbox?: string; secret?: string; github?: string; tickets?: string[] } = {}
+  options: { mailbox?: string; secret?: string; session?: string; tickets?: string[] } = {}
 ) {
   const mailbox = options.mailbox ?? token()
   const secret = options.secret ?? token()
   const socket = open(t, base, 'host', mailbox)
-  await socket.send({ t: 'host', v: RELAY_PROTOCOL, secret, github: options.github })
+  await socket.send({ t: 'host', v: RELAY_PROTOCOL, secret, session: options.session })
   const reply = await socket.next()
   if (options.tickets && typeof reply === 'object' && reply.t === 'ready')
     await socket.send({
@@ -42,26 +42,120 @@ async function host(
     })
   return { mailbox, secret, socket, reply }
 }
-const github = async (value: string) => (value.startsWith('gho_good') ? `account-${value}` : null)
+const github = async (value: string) =>
+  value.startsWith('gho_good') ? { id: value.length, login: 'yanlin' } : null
+const GOOD = 'gho_good_0123456789abcdef'
 
-test('a new mailbox takes a GitHub sign-in, and an account owns at most five', async (t) => {
+async function account(
+  base: string,
+  method: string,
+  path: string,
+  session?: string,
+  body?: unknown
+) {
+  const response = await fetch(`${base.replace(/^ws/, 'http')}/v1/account${path}`, {
+    method,
+    headers: {
+      'content-type': 'application/json',
+      ...(session ? { authorization: `Bearer ${session}` } : {})
+    },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  })
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> }
+}
+async function signIn(base: string, token = GOOD): Promise<string> {
+  const reply = await account(base, 'POST', '/login', undefined, {
+    github: token,
+    name: 'Mac mini'
+  })
+  assert.equal(reply.status, 200)
+  assert.equal(reply.body.login, 'yanlin')
+  return reply.body.session as string
+}
+
+test('a host needs a relay session, and an account holds at most five mailboxes', async (t) => {
   const { url } = await relay(t, { verifyGitHub: github })
   assert.deepEqual((await host(t, url)).reply, { t: 'error', code: 'login' })
-  assert.deepEqual((await host(t, url, { github: 'gho_bad_0123456789abcdef' })).reply, {
-    t: 'error',
-    code: 'login'
+  const bad = await account(url, 'POST', '/login', undefined, {
+    github: 'gho_bad_0123456789abcdef'
   })
-  const account = 'gho_good_0123456789abcdef'
+  assert.equal(bad.status, 401)
+  const session = await signIn(url)
+  assert.match(session, /^s1\.[0-9a-f]{64}\.[A-Za-z0-9_-]{43}$/)
+  const forged = `${session.slice(0, -4)}AAAA`
+  assert.deepEqual((await host(t, url, { session: forged })).reply, { t: 'error', code: 'login' })
   const owned = []
   for (let i = 0; i < MAX_MAILBOXES_PER_ACCOUNT; i++) {
-    const made = await host(t, url, { github: account })
+    const made = await host(t, url, { session })
     assert.deepEqual(made.reply, { t: 'ready' })
     owned.push(made)
   }
-  assert.deepEqual((await host(t, url, { github: account })).reply, { t: 'error', code: 'quota' })
-  // A registered mailbox reconnects with its secret alone.
-  const again = await host(t, url, { mailbox: owned[0].mailbox, secret: owned[0].secret })
+  assert.deepEqual((await host(t, url, { session })).reply, { t: 'error', code: 'quota' })
+  // Reconnecting takes the session as well as the secret.
+  const bare = await host(t, url, { mailbox: owned[0].mailbox, secret: owned[0].secret })
+  assert.deepEqual(bare.reply, { t: 'error', code: 'login' })
+  const again = await host(t, url, { mailbox: owned[0].mailbox, secret: owned[0].secret, session })
   assert.deepEqual(again.reply, { t: 'ready' })
+  // Another account cannot take over a mailbox, even with its secret.
+  const other = await signIn(url, 'gho_good_other_0123456789abcdef')
+  const stolen = await host(t, url, {
+    mailbox: owned[1].mailbox,
+    secret: owned[1].secret,
+    session: other
+  })
+  assert.deepEqual(stolen.reply, { t: 'error', code: 'denied' })
+})
+
+test('the account lists its Macs, and signing out or removing one cuts it off', async (t) => {
+  const relayed = await relay(t, { verifyGitHub: github })
+  const { url } = relayed
+  const session = await signIn(url)
+  const mine = await host(t, url, { session })
+  const laptop = await signIn(url)
+  const theirs = await host(t, url, { session: laptop })
+  const listed = await account(url, 'GET', '', session)
+  assert.equal(listed.status, 200)
+  assert.equal(listed.body.login, 'yanlin')
+  const mailboxes = listed.body.mailboxes as {
+    mailbox: string
+    thisMac: boolean
+    online: boolean
+  }[]
+  assert.deepEqual(
+    mailboxes.map((entry) => [entry.mailbox, entry.thisMac, entry.online]).sort(),
+    [
+      [mine.mailbox, true, true],
+      [theirs.mailbox, false, true]
+    ].sort()
+  )
+  assert.equal((await account(url, 'GET', '')).status, 401)
+
+  // Removing the laptop's Mac closes it and forgets its mailbox.
+  assert.equal((await account(url, 'DELETE', `/mailbox/${theirs.mailbox}`, session)).status, 200)
+  assert.deepEqual(await theirs.socket.next(), { t: 'error', code: 'denied' })
+  assert.ok(!relayed.has(theirs.mailbox))
+  // Its session ends with it, so it cannot make the mailbox again.
+  const reborn = await host(t, url, {
+    mailbox: theirs.mailbox,
+    secret: theirs.secret,
+    session: laptop
+  })
+  assert.deepEqual(reborn.reply, { t: 'error', code: 'login' })
+
+  // Signing out disconnects this Mac, and its session stops working.
+  assert.equal((await account(url, 'DELETE', '/session', session)).status, 200)
+  assert.deepEqual(await mine.socket.next(), { t: 'error', code: 'login' })
+  const back = await host(t, url, { mailbox: mine.mailbox, secret: mine.secret, session })
+  assert.deepEqual(back.reply, { t: 'error', code: 'login' })
+  assert.equal((await account(url, 'GET', '', session)).status, 401)
+  // Signing in again gets the same mailbox back.
+  const fresh = await signIn(url)
+  const returned = await host(t, url, {
+    mailbox: mine.mailbox,
+    secret: mine.secret,
+    session: fresh
+  })
+  assert.deepEqual(returned.reply, { t: 'ready' })
 })
 
 test('a rendezvous code finds the mailbox and its pairing ticket for a while', async (t) => {
@@ -127,8 +221,8 @@ test('items left while the host is away reach it when it returns, until it acks 
 test('a mailbox whose host stays away for 30 days is deleted', async (t) => {
   let now = Date.now()
   const relayed = await relay(t, { verifyGitHub: github, now: () => now })
-  const account = 'gho_good_0123456789abcdef'
-  const made = await host(t, relayed.url, { github: account })
+  const session = await signIn(relayed.url)
+  const made = await host(t, relayed.url, { session })
   made.socket.socket.close()
   await made.socket.closedWith()
   // The relay handles the close a moment after the client sees it.
@@ -140,7 +234,7 @@ test('a mailbox whose host stays away for 30 days is deleted', async (t) => {
   assert.ok(!relayed.has(made.mailbox))
   // Its place in the account's count is free again.
   for (let i = 0; i < MAX_MAILBOXES_PER_ACCOUNT; i++)
-    assert.deepEqual((await host(t, relayed.url, { github: account })).reply, { t: 'ready' })
+    assert.deepEqual((await host(t, relayed.url, { session })).reply, { t: 'ready' })
 })
 
 test('a host sends sealed pushes, and learns when a token is dead', async (t) => {

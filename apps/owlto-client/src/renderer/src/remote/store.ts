@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import type { Failure, Reply } from '../../../shared/app'
-import type { RemoteOverview, RemotePair, RemotePaired } from '../../../shared/remote'
+import type {
+  RemoteOverview,
+  RemotePair,
+  RemotePaired,
+  RemoteRelayMac
+} from '../../../shared/remote'
 import { UIError, uiFailure } from '../app/failures'
 import { useAppStore } from '../app/store'
 import { viewingDevice } from './viewing'
@@ -20,6 +25,14 @@ type RemoteState = {
   /** Resolves to the paired device with its safety code, or the failure for the form to show. */
   pair(input: RemotePair): Promise<{ paired: RemotePaired } | { failure: Failure }>
   removeDevice(deviceId: string): Promise<void>
+  relaySignIn(): Promise<void>
+  relayCancelSignIn(): Promise<void>
+  relaySignOut(): Promise<void>
+  /** The Macs on this relay account; null until loaded. */
+  relayMacs: RemoteRelayMac[] | null
+  relayMacsError: Failure | null
+  loadRelayMacs(): Promise<void>
+  relayRemoveMac(mailbox: string): Promise<void>
   clearError(): void
 }
 
@@ -60,6 +73,31 @@ export const useRemoteStore = create<RemoteState>((set, get) => {
     removeDevice: async (deviceId) => {
       if (viewingDevice() === deviceId) await useAppStore.getState().viewDevice(null)
       await update(() => window.owlto.remote.removeDevice(deviceId))
+    },
+    relaySignIn: () => update(() => window.owlto.remote.relaySignIn()),
+    relayCancelSignIn: () => update(() => window.owlto.remote.relayCancelSignIn()),
+    relaySignOut: async () => {
+      await update(() => window.owlto.remote.relaySignOut())
+      set({ relayMacs: null, relayMacsError: null })
+    },
+    relayMacs: null,
+    relayMacsError: null,
+    loadRelayMacs: async () => {
+      try {
+        set({ relayMacs: unwrap(await window.owlto.remote.relayMacs()), relayMacsError: null })
+      } catch (error) {
+        set({ relayMacsError: uiFailure(error) })
+      }
+    },
+    relayRemoveMac: async (mailbox) => {
+      try {
+        set({
+          relayMacs: unwrap(await window.owlto.remote.relayRemoveMac(mailbox)),
+          relayMacsError: null
+        })
+      } catch (error) {
+        set({ relayMacsError: uiFailure(error) })
+      }
     },
     clearError: () => set({ error: null })
   }

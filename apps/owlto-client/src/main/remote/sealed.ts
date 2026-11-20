@@ -79,7 +79,12 @@ export function sealForHost(
     hostKey
   )
   const box = seal(key, Buffer.from(JSON.stringify(message), 'utf8'), Buffer.from(me.deviceId))
-  const envelope = { v: 1, from: me.deviceId, eph: ephemeral.publicKey, box: box.toString('base64url') }
+  const envelope = {
+    v: 1,
+    from: me.deviceId,
+    eph: ephemeral.publicKey,
+    box: box.toString('base64url')
+  }
   return Buffer.from(JSON.stringify(envelope), 'utf8').toString('base64url')
 }
 

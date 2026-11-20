@@ -1,6 +1,13 @@
 import { DurableObject } from 'cloudflare:workers'
+import {
+  AccountBook,
+  type AccountRecord,
+  type AccountServices,
+  accountOfSession,
+  answerAccount
+} from './accounts.ts'
 import { ApnsSender } from './apns.ts'
-import { MAX_MAILBOXES_PER_ACCOUNT, type QueuedItem, routeOf, sha256Hex } from './protocol.ts'
+import { parseJson, type QueuedItem, routeOf } from './protocol.ts'
 import {
   type Attachment,
   type Mailbox,
@@ -15,7 +22,7 @@ import {
  * The relay on Cloudflare: a Worker routes `/v1/<kind>/<mailbox>` to one Durable Object per
  * mailbox, which accepts the WebSocket with the hibernation API. Each socket keeps its
  * `Attachment`, so the object may sleep between messages and rebuild the room when it wakes.
- * Rendezvous codes and per-account mailbox counts are small Durable Objects of their own.
+ * Rendezvous codes and relay accounts (`accounts.ts`) are small Durable Objects of their own.
  */
 export interface Env {
   RELAY_ROOM: DurableObjectNamespace<RelayRoom>
@@ -27,7 +34,9 @@ export interface Env {
   MAILBOX_LIMIT: RateLimit
   /** Rendezvous lookups per client IP, so four characters cannot be walked. */
   RENDEZVOUS_LIMIT: RateLimit
-  /** "false" lets anyone register a mailbox, for a private deployment. */
+  /** Account requests (sign-in, list, remove) per client IP. */
+  ACCOUNT_LIMIT: RateLimit
+  /** "false" lets any host use the relay without signing in, for a private deployment. */
   REQUIRE_GITHUB?: string
   /** APNs, set with `wrangler secret put`; pushes fail quietly without them. */
   APNS_KEY?: string
@@ -45,6 +54,19 @@ export default {
     const route = routeOf(new URL(request.url).pathname)
     if (!route) return new Response('Not found\n', { status: 404 })
     const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
+    if (route.kind === 'account') {
+      if (!(await env.ACCOUNT_LIMIT.limit({ key: ip })).success)
+        return json({ error: 'limited' }, 429)
+      const body = request.method === 'POST' ? parseJson(await request.text()) : null
+      const answer = await answerAccount(
+        request.method,
+        route.path,
+        request.headers.get('Authorization'),
+        body,
+        accountServices(env)
+      )
+      return json(answer.body, answer.status)
+    }
     if (route.kind === 'rendezvous') {
       if (request.method !== 'GET') return new Response('Method not allowed\n', { status: 405 })
       if (!(await env.RENDEZVOUS_LIMIT.limit({ key: ip })).success)
@@ -67,8 +89,16 @@ export default {
 const MAILBOX_KEY = 'mailbox'
 const ITEM_PREFIX = 'item:'
 
-/** Checks a GitHub token by asking GitHub who it belongs to; only a hash of the id is kept. */
-async function verifyGitHub(token: string): Promise<string | null> {
+function accountServices(env: Env): AccountServices {
+  return {
+    verifyGitHub,
+    account: (account) => env.RELAY_ACCOUNT.get(env.RELAY_ACCOUNT.idFromName(account)),
+    room: (mailbox) => env.RELAY_ROOM.get(env.RELAY_ROOM.idFromName(mailbox))
+  }
+}
+
+/** Asks GitHub who a token belongs to. The token is used once and never stored. */
+async function verifyGitHub(token: string): Promise<{ id: number; login: string } | null> {
   try {
     const response = await fetch('https://api.github.com/user', {
       headers: {
@@ -78,8 +108,10 @@ async function verifyGitHub(token: string): Promise<string | null> {
       }
     })
     if (!response.ok) return null
-    const user = (await response.json()) as { id?: unknown }
-    return typeof user.id === 'number' ? await sha256Hex(`github:${user.id}`) : null
+    const user = (await response.json()) as { id?: unknown; login?: unknown }
+    return typeof user.id === 'number' && typeof user.login === 'string'
+      ? { id: user.id, login: user.login }
+      : null
   } catch {
     return null
   }
@@ -97,7 +129,8 @@ export class RelayRoom extends DurableObject<Env> {
 
   async fetch(request: Request): Promise<Response> {
     const route = routeOf(new URL(request.url).pathname)
-    if (!route || route.kind === 'rendezvous') return new Response('Not found\n', { status: 404 })
+    if (!route || route.kind === 'rendezvous' || route.kind === 'account')
+      return new Response('Not found\n', { status: 404 })
     await this.rememberMailbox(route.mailbox)
     if (!this.room().admit()) return tooMany()
     const { 0: client, 1: server } = new WebSocketPair()
@@ -130,6 +163,22 @@ export class RelayRoom extends DurableObject<Env> {
     if (this.mailboxId) await this.room().expire()
   }
 
+  /** For the account routes: whether the host is online. */
+  async status(): Promise<{ online: boolean; lastHostAt: number } | null> {
+    await this.restoreMailbox()
+    return this.mailboxId ? this.room().status() : null
+  }
+  /** Its session ended: disconnect the host. */
+  async evict(): Promise<void> {
+    await this.restoreMailbox()
+    if (this.mailboxId) this.room().evict()
+  }
+  /** Removed on its account: close everything and delete the mailbox. */
+  async destroy(): Promise<void> {
+    await this.restoreMailbox()
+    if (this.mailboxId) await this.room().destroy()
+  }
+
   /** Waking from hibernation or for an alarm loses memory; the id comes back from storage. */
   private async restoreMailbox(): Promise<void> {
     this.mailboxId ??= (await this.ctx.storage.get<string>('id')) ?? null
@@ -146,9 +195,17 @@ export class RelayRoom extends DurableObject<Env> {
   private services(): RelayServices {
     const env = this.env
     return {
-      verifyGitHub: env.REQUIRE_GITHUB === 'false' ? null : verifyGitHub,
-      claimMailbox: (account, mailbox) =>
-        env.RELAY_ACCOUNT.get(env.RELAY_ACCOUNT.idFromName(account)).claim(mailbox),
+      accounts: env.REQUIRE_GITHUB !== 'false',
+      checkSession: async (session) => {
+        const account = accountOfSession(session)
+        if (!account) return null
+        const hash = await env.RELAY_ACCOUNT.get(env.RELAY_ACCOUNT.idFromName(account)).check(
+          session
+        )
+        return hash ? { account, session: hash } : null
+      },
+      claimMailbox: (account, session, mailbox) =>
+        env.RELAY_ACCOUNT.get(env.RELAY_ACCOUNT.idFromName(account)).claim(session, mailbox),
       releaseMailbox: (account, mailbox) =>
         env.RELAY_ACCOUNT.get(env.RELAY_ACCOUNT.idFromName(account)).release(mailbox),
       claimRendezvous: (code, entry) =>
@@ -235,19 +292,43 @@ export class RelayRendezvous extends DurableObject<Env> {
   }
 }
 
-/** The mailboxes one GitHub account owns, keyed by a hash of the account id. */
+/** One relay account: its GitHub login, sessions, and mailboxes; see `accounts.ts`. */
 export class RelayAccount extends DurableObject<Env> {
-  async claim(mailbox: string): Promise<boolean> {
-    const owned = (await this.ctx.storage.get<string[]>('mailboxes')) ?? []
-    if (owned.includes(mailbox)) return true
-    if (owned.length >= MAX_MAILBOXES_PER_ACCOUNT) return false
-    await this.ctx.storage.put('mailboxes', [...owned, mailbox].sort())
-    return true
+  private book(): AccountBook {
+    const storage = this.ctx.storage
+    return new AccountBook({
+      load: async () => (await storage.get<AccountRecord>('account')) ?? null,
+      save: (record) => storage.put('account', record),
+      deleteAll: () => storage.deleteAll(),
+      now: () => Date.now(),
+      randomToken: () => {
+        const bytes = crypto.getRandomValues(new Uint8Array(32))
+        return btoa(String.fromCharCode(...bytes))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '')
+      }
+    })
   }
-  async release(mailbox: string): Promise<void> {
-    const owned = (await this.ctx.storage.get<string[]>('mailboxes')) ?? []
-    const left = owned.filter((id) => id !== mailbox)
-    if (left.length) await this.ctx.storage.put('mailboxes', left)
-    else await this.ctx.storage.deleteAll()
+  createSession(account: string, login: string, name: string): Promise<string> {
+    return this.book().createSession(account, login, name)
+  }
+  check(session: string): Promise<string | null> {
+    return this.book().check(session)
+  }
+  claim(session: string, mailbox: string): Promise<boolean> {
+    return this.book().claim(session, mailbox)
+  }
+  release(mailbox: string): Promise<void> {
+    return this.book().release(mailbox)
+  }
+  revoke(session: string): Promise<string[]> {
+    return this.book().revoke(session)
+  }
+  revokeHash(hash: string): Promise<string[]> {
+    return this.book().revokeHash(hash)
+  }
+  info(): ReturnType<AccountBook['info']> {
+    return this.book().info()
   }
 }

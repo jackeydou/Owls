@@ -130,7 +130,12 @@ function hostApi(calls) {
     sendRouter: record('sendRouter', undefined),
     stageAttachment: (input) => {
       calls.push({ name: 'stageAttachment', input })
-      return { id: randomUUID(), name: input.name, mimeType: input.mimeType, size: input.data.length }
+      return {
+        id: randomUUID(),
+        name: input.name,
+        mimeType: input.mimeType,
+        size: input.data.length
+      }
     },
     interruptRouter: record('interruptRouter', undefined),
     archiveThread: record('archiveThread', undefined),
@@ -140,6 +145,17 @@ function hostApi(calls) {
     dropPendingMessage: record('dropPendingMessage', undefined),
     respond: record('respond', undefined),
     previewFile: record('previewFile', { kind: 'missing' })
+  }
+}
+
+/** The credentials table, in memory. */
+function memoryCredentials() {
+  const rows = new Map()
+  return {
+    rows,
+    credential: (id) => rows.get(id) ?? null,
+    saveCredential: (id, type, secret) => rows.set(id, { type, secret }),
+    removeCredential: (id) => rows.delete(id)
   }
 }
 
@@ -177,7 +193,7 @@ function device(t, name, net, overrides = {}) {
     lookupRendezvous,
     dropItem: dropRelayItem,
     readAttachment: async () => new Uint8Array([1, 2, 3]),
-    githubToken: async () => null,
+    credentials: memoryCredentials(),
     toFailure,
     changed: (overview) => overviews.push(overview),
     remoteEvent: (deviceId, event) => events.push({ deviceId, event }),
@@ -552,7 +568,7 @@ test('two Macs with one relay mailbox do not push each other off forever', async
       secret,
       tickets: () => [],
       pairingTicket: () => null,
-      githubToken: async () => null,
+      session: async () => null,
       accept: (frames) => frames.close(),
       queued: () => {},
       pushGone: () => {},
@@ -581,7 +597,11 @@ test('a device on another network pairs with a typed relay code, and both show t
   await until(() => host.service.overview().pairing?.relayCode)
   const { relayCode, code } = host.service.overview().pairing
   assert.match(relayCode, /^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/)
-  assert.equal(relayCode.replace(/-/g, '').slice(4), code, 'the pairing code never reaches the relay')
+  assert.equal(
+    relayCode.replace(/-/g, '').slice(4),
+    code,
+    'the pairing code never reaches the relay'
+  )
   await assert.rejects(laptop.service.pair({ relayCode: `0000${code}` }), {
     code: 'remote_pairing_failed'
   })
@@ -595,27 +615,115 @@ test('a device on another network pairs with a typed relay code, and both show t
   assert.equal(host.service.overview().justPaired, null)
 })
 
-test('a relay that asks for a GitHub sign-in gets the token once, and only when it asks', async (t) => {
+/**
+ * GitHub's device flow, answered at once, in front of the real relay: the relay's own
+ * account routes go through to it.
+ */
+function relayGitHub(githubToken, seen) {
+  return async (url, init) => {
+    const text = String(url)
+    if (text === 'https://github.com/login/device/code') {
+      seen.push(new URLSearchParams(init.body).get('client_id'))
+      return Response.json({
+        device_code: 'device',
+        user_code: 'WDJB-MJHT',
+        verification_uri: 'https://github.com/login/device',
+        expires_in: 900,
+        interval: 0
+      })
+    }
+    if (text === 'https://github.com/login/oauth/access_token')
+      return Response.json({ access_token: githubToken })
+    return fetch(url, init)
+  }
+}
+
+test('a host signs in to the relay once, keeps only the relay session, and signing out cuts it off', async (t) => {
   const seen = []
   const { url } = await localRelay(t, {
     verifyGitHub: async (token) => {
       seen.push(token)
-      return token === 'gho_signed_in_0123456789' ? 'account' : null
+      return token === 'gho_relay_0123456789abcdef' ? { id: 7, login: 'yanlin' } : null
     }
   })
-  const signedOut = device(t, 'mini', network(), { relayUrl: url })
-  await signedOut.service.setAccess(true)
-  await signedOut.service.setRelay(true)
-  await until(() => signedOut.service.overview().relay.error === 'relay_login')
-  const host = await relayHost(t, network(), url, {
-    githubToken: async () => 'gho_signed_in_0123456789'
+  const credentials = memoryCredentials()
+  const host = device(t, 'mini', network(), {
+    relayUrl: url,
+    credentials,
+    relayHttp: relayGitHub('gho_relay_0123456789abcdef', seen)
   })
-  assert.deepEqual(seen, ['gho_signed_in_0123456789'])
-  // The mailbox is registered now: reconnecting needs its secret only.
+  await host.service.setAccess(true)
+  await host.service.setRelay(true)
+  await until(() => host.service.overview().relay.error === 'relay_login')
+  assert.equal(host.service.overview().relay.account.status, 'signed-out')
+
+  const pending = await host.service.relaySignIn()
+  assert.equal(pending.relay.account.status, 'pending')
+  assert.equal(pending.relay.account.userCode, 'WDJB-MJHT')
+  await until(() => host.service.overview().relay.state === 'online')
+  assert.deepEqual(host.service.overview().relay.account, { status: 'signed-in', login: 'yanlin' })
+  // The relay OAuth App asked GitHub, and the relay saw the token once; only the relay's own
+  // session is kept, encrypted.
+  assert.deepEqual(seen, ['Ov23liMVwICtVSHS13Jr', 'gho_relay_0123456789abcdef'])
+  const row = credentials.rows.get('relay')
+  assert.equal(row.type, 'relay_session')
+  assert.match(row.secret, /^enc:/)
+  assert.ok(!row.secret.includes('gho_'))
+
+  const macs = await host.service.relayMacs()
+  assert.equal(macs.length, 1)
+  assert.equal(macs[0].name, 'mini')
+  assert.equal(macs[0].thisMac, true)
+  assert.equal(macs[0].online, true)
+
+  // Reconnecting shows the stored session again; GitHub is not asked.
   await host.service.setRelay(false)
   await host.service.setRelay(true)
   await until(() => host.service.overview().relay.state === 'online')
-  assert.equal(seen.length, 1)
+  assert.equal(seen.length, 2)
+
+  await host.service.relaySignOut()
+  await until(() => host.service.overview().relay.error === 'relay_login')
+  assert.equal(host.service.overview().relay.account.status, 'signed-out')
+  assert.equal(credentials.rows.get('relay'), undefined)
+  await assert.rejects(host.service.relayMacs(), { code: 'remote_relay_login' })
+})
+
+test('removing a Mac from the relay account cuts it off and ends its sign-in', async (t) => {
+  const { url } = await localRelay(t, {
+    verifyGitHub: async () => ({ id: 7, login: 'yanlin' })
+  })
+  const signedIn = async (name) => {
+    const mac = device(t, name, network(), {
+      relayUrl: url,
+      relayHttp: relayGitHub(`gho_${name}_0123456789abcdef`, [])
+    })
+    await mac.service.setAccess(true)
+    await mac.service.setRelay(true)
+    await mac.service.relaySignIn()
+    await until(() => mac.service.overview().relay.state === 'online')
+    return mac
+  }
+  const mini = await signedIn('mini')
+  const laptop = await signedIn('laptop')
+  const macs = await mini.service.relayMacs()
+  assert.deepEqual(
+    macs.map((mac) => [mac.name, mac.thisMac]),
+    [
+      ['mini', true],
+      ['laptop', false]
+    ]
+  )
+  const left = await mini.service.relayRemoveMac(macs[1].mailbox)
+  assert.deepEqual(
+    left.map((mac) => mac.name),
+    ['mini']
+  )
+  await until(() => laptop.service.overview().relay.error === 'relay_denied')
+  // Waking the laptop does not bring it back: its session ended with it.
+  laptop.service.wake()
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  assert.equal(laptop.service.overview().relay.state, 'offline')
 })
 
 test('a message sent while the host is away waits on the relay and runs once when it returns', async (t) => {

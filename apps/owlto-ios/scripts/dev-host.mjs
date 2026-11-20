@@ -542,7 +542,8 @@ const service = new RemoteService({
   lookupRendezvous,
   dropItem: dropRelayItem,
   readAttachment: () => Promise.reject(new Error('The dev host drives no other device.')),
-  githubToken: async () => null,
+  // A local relay runs without accounts, so the dev host never signs in.
+  credentials: { credential: () => null, saveCredential: () => {}, removeCredential: () => {} },
   toFailure,
   changed: (overview) => report(overview),
   remoteEvent: () => {},

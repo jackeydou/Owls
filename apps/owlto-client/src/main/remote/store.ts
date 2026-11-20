@@ -138,10 +138,7 @@ export class RemoteStore {
       .run()
   }
   /** A client's APNs token and sealed key; null stops its notifications. */
-  savePush(
-    deviceId: string,
-    push: { token: string; key: string; sandbox: boolean } | null
-  ): void {
+  savePush(deviceId: string, push: { token: string; key: string; sandbox: boolean } | null): void {
     this.db
       .update(remotePeersTable)
       .set({

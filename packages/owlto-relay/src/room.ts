@@ -38,7 +38,7 @@ export type Mailbox = {
   tickets: string[]
   createdAt: number
   lastHostAt: number
-  /** The hashed GitHub account that registered it; null on a relay that asks for none. */
+  /** The relay account that registered it; null on a relay that asks for none. */
   owner: string | null
 }
 
@@ -82,18 +82,20 @@ export type PushRequest = { token: string; sandbox: boolean; payload: string }
 export type PushResult = 'sent' | 'gone' | 'failed'
 
 /**
- * What a room needs beyond its own mailbox: the GitHub check, the per-account mailbox count,
- * the shared rendezvous codes, and APNs. On Cloudflare these are other Durable Objects and
- * outbound fetches; the Node relay keeps them in memory.
+ * What a room needs beyond its own mailbox: relay accounts, the shared rendezvous codes, and
+ * APNs. On Cloudflare these are other Durable Objects and outbound fetches; the Node relay
+ * keeps them in memory.
  */
 export interface RelayServices {
+  /** Whether a host needs a signed-in relay session; false on a private relay. */
+  accounts: boolean
+  /** The account and stored session hash of a live session, or null. */
+  checkSession(session: string): Promise<{ account: string; session: string } | null>
   /**
-   * Checks a GitHub token and returns a stable hash of its account, or null when the token
-   * does not check out. Absent on a relay that lets anyone register a mailbox.
+   * Records that the Mac signed in with `session` holds `mailbox` on `account`; false when
+   * the account already holds as many mailboxes as it may.
    */
-  verifyGitHub: ((token: string) => Promise<string | null>) | null
-  /** Records that `account` owns `mailbox`; false when it already owns as many as it may. */
-  claimMailbox(account: string, mailbox: string): Promise<boolean>
+  claimMailbox(account: string, session: string, mailbox: string): Promise<boolean>
   releaseMailbox(account: string, mailbox: string): Promise<void>
   /** Takes a rendezvous code if no live entry holds it. */
   claimRendezvous(code: string, entry: RendezvousEntry): Promise<boolean>
@@ -223,6 +225,24 @@ export class Room<S> {
     await this.io.deleteAll()
   }
 
+  /** Whether the host is connected, and when it last connected; null for no mailbox. */
+  async status(): Promise<{ online: boolean; lastHostAt: number } | null> {
+    const mailbox = await this.io.load()
+    return mailbox ? { online: this.host(null) !== null, lastHostAt: mailbox.lastHostAt } : null
+  }
+
+  /** The host's session ended: disconnect it. It reconnects only after signing in again. */
+  evict(): void {
+    for (const socket of this.io.sockets())
+      if (this.io.attachment(socket)?.kind === 'host') this.fail(socket, 'login')
+  }
+
+  /** The owner removed this Mac on its account: close everything and forget the mailbox. */
+  async destroy(): Promise<void> {
+    for (const socket of this.io.sockets()) this.fail(socket, 'denied')
+    await this.io.deleteAll()
+  }
+
   private async hello(socket: S, kind: SocketKind, text: string): Promise<void> {
     const hello = parseHello(kind, parseJson(text))
     if (hello === 'version') return this.fail(socket, 'version')
@@ -233,22 +253,21 @@ export class Room<S> {
       const now = this.io.now()
       if (mailbox && mailbox.secretHash !== secretHash) return this.fail(socket, 'denied')
       let owner: string | null = mailbox?.owner ?? null
-      if (!mailbox) {
-        // The first host to register a mailbox owns it. Mailbox ids are random, so a
-        // collision means a guess, which the secret then stops. Registering takes a GitHub
-        // sign-in, so one account cannot fill the relay with mailboxes.
-        const verify = this.io.services.verifyGitHub
-        if (verify) {
-          if (!hello.github) return this.fail(socket, 'login')
-          owner = await verify(hello.github)
-          if (!owner) return this.fail(socket, 'login')
-          if (!(await this.io.services.claimMailbox(owner, this.io.mailbox)))
-            return this.fail(socket, 'quota')
-        }
+      // The first host to register a mailbox owns it. Mailbox ids are random, so a collision
+      // means a guess, which the secret then stops. Every host connect takes a live relay
+      // session, so one account cannot fill the relay with mailboxes, and signing out or
+      // removing the Mac on the account cuts it off.
+      if (this.io.services.accounts) {
+        const who = hello.session ? await this.io.services.checkSession(hello.session) : null
+        if (!who) return this.fail(socket, 'login')
+        if (owner && owner !== who.account) return this.fail(socket, 'denied')
+        if (!(await this.io.services.claimMailbox(who.account, who.session, this.io.mailbox)))
+          return this.fail(socket, 'quota')
+        owner = who.account
       }
       await this.io.save(
         mailbox
-          ? { ...mailbox, lastHostAt: now }
+          ? { ...mailbox, lastHostAt: now, owner }
           : { secretHash, tickets: [], createdAt: now, lastHostAt: now, owner }
       )
       for (const other of this.io.sockets())

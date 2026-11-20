@@ -149,6 +149,11 @@ const api: OwltoAPI = {
     revokeClient: (deviceId) => ipcRenderer.invoke('owlto:remote-revoke-client', deviceId),
     pair: (input) => ipcRenderer.invoke('owlto:remote-pair', input),
     removeDevice: (deviceId) => ipcRenderer.invoke('owlto:remote-remove-device', deviceId),
+    relaySignIn: () => ipcRenderer.invoke('owlto:remote-relay-sign-in'),
+    relayCancelSignIn: () => ipcRenderer.invoke('owlto:remote-relay-cancel-sign-in'),
+    relaySignOut: () => ipcRenderer.invoke('owlto:remote-relay-sign-out'),
+    relayMacs: () => ipcRenderer.invoke('owlto:remote-relay-macs'),
+    relayRemoveMac: (mailbox) => ipcRenderer.invoke('owlto:remote-relay-remove-mac', mailbox),
     call: (input) => ipcRenderer.invoke('owlto:remote-call', input),
     onEvent: (listener) => {
       const handler = (_: Electron.IpcRendererEvent, envelope: RemoteEventEnvelope) =>

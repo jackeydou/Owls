@@ -1,5 +1,6 @@
 import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
+import { LoaderIcon } from '@renderer/components/ui/icons'
 import { Switch } from '@renderer/components/ui/switch'
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +14,8 @@ import {
   type RemoteDevice,
   type RemotePair,
   type RemotePaired,
+  type RemoteRelayAccount,
+  type RemoteRelayMac,
   type RemoteRelayState,
   remotePairSchema
 } from '../../../shared/remote'
@@ -163,6 +166,121 @@ function RelayStatus({ relay }: { relay: RemoteRelayState }) {
         ? ` (${relay.error})`
         : null}
     </p>
+  )
+}
+
+/**
+ * The relay account: a host signs in with GitHub once so the relay knows the Mac is the
+ * user's. Shows the device code while signing in, and the account's Macs after.
+ */
+function RelayAccountPanel({ account }: { account: RemoteRelayAccount }) {
+  const { t } = useTranslation()
+  const signIn = useRemoteStore((s) => s.relaySignIn)
+  const cancel = useRemoteStore((s) => s.relayCancelSignIn)
+  const signOut = useRemoteStore((s) => s.relaySignOut)
+  if (account.status === 'pending') {
+    const openGitHub = () => {
+      // The code is on screen as well, so a blocked clipboard costs one more step.
+      void navigator.clipboard.writeText(account.userCode).catch(() => {})
+      window.open(account.verificationUri, '_blank')
+    }
+    return (
+      <div className="remote-relay-account">
+        <p>{t('remote.account.pendingHelp')}</p>
+        <div className="github-device">
+          <code>{account.userCode}</code>
+          <LoaderIcon size={17} className="animate-spin" aria-label={t('remote.account.waiting')} />
+          <Button size="sm" onClick={openGitHub}>
+            {t('remote.account.copyAndOpen')}
+          </Button>
+          <ActionButton size="sm" variant="ghost" onAction={cancel}>
+            {t('remote.pairCancel')}
+          </ActionButton>
+        </div>
+      </div>
+    )
+  }
+  if (account.status === 'signed-out')
+    return (
+      <div className="remote-relay-account">
+        <p>{t('remote.account.signedOutHelp')}</p>
+        {account.failure ? (
+          <p className="remote-error" role="alert">
+            {t(`remote.account.failure.${account.failure}`)}
+          </p>
+        ) : null}
+        <ActionButton size="sm" onAction={signIn}>
+          {t('remote.account.signIn')}
+        </ActionButton>
+      </div>
+    )
+  return (
+    <div className="remote-relay-account">
+      <div className="remote-relay-login">
+        <span>{t('remote.account.signedInAs', { login: account.login })}</span>
+        <ActionButton size="sm" variant="ghost" onAction={signOut}>
+          {t('remote.account.signOut')}
+        </ActionButton>
+      </div>
+      <RelayMacs />
+    </div>
+  )
+}
+
+/** The Macs on the relay account, each removable; removing one cuts it off at once. */
+function RelayMacs() {
+  const { t } = useTranslation()
+  const macs = useRemoteStore((s) => s.relayMacs)
+  const failure = useRemoteStore((s) => s.relayMacsError)
+  const load = useRemoteStore((s) => s.loadRelayMacs)
+  useEffect(() => {
+    void load()
+  }, [load])
+  return (
+    <>
+      <p className="remote-relay-macs-label">{t('remote.account.macs')}</p>
+      {failure ? (
+        <p className="remote-error" role="alert">
+          {failureMessage(failure)}
+        </p>
+      ) : null}
+      {macs ? (
+        <ul className="remote-device-list">
+          {macs.map((mac) => (
+            <RelayMacRow key={mac.mailbox} mac={mac} />
+          ))}
+        </ul>
+      ) : null}
+    </>
+  )
+}
+
+function RelayMacRow({ mac }: { mac: RemoteRelayMac }) {
+  const { t } = useTranslation()
+  const remove = useRemoteStore((s) => s.relayRemoveMac)
+  const name = mac.name || t('remote.account.unnamedMac')
+  return (
+    <li className="remote-device-row">
+      <i
+        className={`remote-status remote-status-${mac.online ? 'online' : 'offline'}`}
+        aria-hidden
+      />
+      <div>
+        <strong>{mac.thisMac ? t('remote.thisMacNamed', { name }) : name}</strong>
+        <small>
+          {mac.online ? (
+            t('remote.status.online')
+          ) : (
+            <LastSeen
+              at={mac.lastHostAt === null ? null : new Date(mac.lastHostAt).toISOString()}
+            />
+          )}
+        </small>
+      </div>
+      <ActionButton size="sm" variant="ghost" onAction={() => remove(mac.mailbox)}>
+        {t('remote.remove')}
+      </ActionButton>
+    </li>
   )
 }
 
@@ -347,7 +465,14 @@ export function DevicesSettingsPane() {
             label={t('remote.relayAccess')}
             description={t('remote.relayAccessHelp')}
             htmlFor="remote-relay"
-            detail={<RelayStatus relay={overview.relay} />}
+            detail={
+              <>
+                <RelayStatus relay={overview.relay} />
+                {overview.relay.enabled ? (
+                  <RelayAccountPanel account={overview.relay.account} />
+                ) : null}
+              </>
+            }
           >
             <Switch
               id="remote-relay"

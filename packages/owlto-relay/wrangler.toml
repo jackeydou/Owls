@@ -52,6 +52,11 @@ name = "RENDEZVOUS_LIMIT"
 namespace_id = "7103"
 simple = { limit = 10, period = 60 }
 
+[[ratelimits]]
+name = "ACCOUNT_LIMIT"
+namespace_id = "7104"
+simple = { limit = 30, period = 60 }
+
 [env.debug]
 name = "owlto-relay-debug"
 workers_dev = false
@@ -94,3 +99,8 @@ simple = { limit = 30, period = 60 }
 name = "RENDEZVOUS_LIMIT"
 namespace_id = "7203"
 simple = { limit = 10, period = 60 }
+
+[[env.debug.ratelimits]]
+name = "ACCOUNT_LIMIT"
+namespace_id = "7204"
+simple = { limit = 30, period = 60 }

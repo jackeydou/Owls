@@ -38,10 +38,23 @@ export const remoteEn = {
     'The other Mac shows six digits too. If they are not the same, remove it and pair again.',
   'remote.safetyMatch': 'They match',
   'remote.safetyMismatch': 'Remove it',
-  'remote.relayError.relay_login':
-    'Sign in to GitHub (Settings → GitHub) to use the relay. Only this Mac needs to sign in.',
+  'remote.relayError.relay_login': 'Sign in below to use the relay.',
+  'remote.account.signedOutHelp':
+    'Sign in with GitHub so the relay knows this Mac is yours. Only Macs that other devices connect to need this. Owlto only reads your public profile, and the relay keeps its own sign-in, not your GitHub token.',
+  'remote.account.signIn': 'Sign in with GitHub',
+  'remote.account.pendingHelp': 'Enter this code on GitHub to sign in to the relay.',
+  'remote.account.waiting': 'Waiting for GitHub',
+  'remote.account.copyAndOpen': 'Copy code and open GitHub',
+  'remote.account.signedInAs': 'Relay account: @{{login}}',
+  'remote.account.signOut': 'Sign out',
+  'remote.account.macs': 'Macs on this account',
+  'remote.account.unnamedMac': 'Mac',
+  'remote.account.failure.network': 'Could not reach GitHub. Check the connection and try again.',
+  'remote.account.failure.denied': 'The sign-in was canceled on GitHub.',
+  'remote.account.failure.expired': 'The relay sign-in has ended. Sign in again.',
+  'remote.account.failure.relay': 'The relay could not finish the sign-in. Try again in a minute.',
   'remote.relayError.relay_quota':
-    'This GitHub account already has 5 Macs on the relay. Turn the relay off on one you no longer use.',
+    'This account already has 5 Macs on the relay. Remove one you no longer use below.',
   'remote.relayError.relay_replaced':
     'Another Mac with this Mac’s relay identity took over. Turn the switch off and on to take it back.',
   'remote.relayError.relay_denied': 'The relay turned this Mac away. Turn the switch off and on.',
@@ -91,7 +104,8 @@ export const remoteEn = {
   'errors.remote_identity_changed':
     'That device no longer recognizes this one, or its identity changed. Remove it and pair again.',
   'errors.remote_version': 'That device runs a different version of Owlto. Update both Macs.',
-  'errors.remote_unsupported': 'This only works on the device itself.'
+  'errors.remote_unsupported': 'This only works on the device itself.',
+  'errors.remote_relay_login': 'Sign in to the relay first, in Settings → Devices.'
 }
 
 export const remoteZh: Record<keyof typeof remoteEn, string> = {
@@ -131,10 +145,22 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'remote.safetyHelpClient': '另一台 Mac 也会显示 6 位数字。如果不一样，请移除后重新配对。',
   'remote.safetyMatch': '一致',
   'remote.safetyMismatch': '移除',
-  'remote.relayError.relay_login':
-    '使用中继需要先登录 GitHub（设置 → GitHub）。只有这台 Mac 需要登录。',
-  'remote.relayError.relay_quota':
-    '这个 GitHub 账号已经有 5 台 Mac 在用中继。请在不再使用的 Mac 上关掉中继。',
+  'remote.relayError.relay_login': '在下方登录后即可使用中继。',
+  'remote.account.signedOutHelp':
+    '用 GitHub 登录，让中继知道这台 Mac 是你的。只有被其他设备连接的 Mac 需要登录。Owlto 只读取你的公开资料，中继保存的是它自己的登录凭证，不是你的 GitHub token。',
+  'remote.account.signIn': '用 GitHub 登录',
+  'remote.account.pendingHelp': '在 GitHub 上输入这个验证码，即可登录中继。',
+  'remote.account.waiting': '正在等待 GitHub',
+  'remote.account.copyAndOpen': '复制验证码并打开 GitHub',
+  'remote.account.signedInAs': '中继账号：@{{login}}',
+  'remote.account.signOut': '退出登录',
+  'remote.account.macs': '这个账号下的 Mac',
+  'remote.account.unnamedMac': 'Mac',
+  'remote.account.failure.network': '无法连接 GitHub，请检查网络后再试。',
+  'remote.account.failure.denied': '已在 GitHub 上取消登录。',
+  'remote.account.failure.expired': '中继登录已失效，请重新登录。',
+  'remote.account.failure.relay': '中继没能完成登录，请过一分钟再试。',
+  'remote.relayError.relay_quota': '这个账号已经有 5 台 Mac 在用中继。请在下方移除不再使用的那台。',
   'remote.relayError.relay_replaced':
     '另一台使用同一中继身份的 Mac 接管了连接。关掉再打开开关即可拿回。',
   'remote.relayError.relay_denied': '中继拒绝了这台 Mac。请关掉再打开开关。',
@@ -182,5 +208,6 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'errors.remote_identity_changed':
     '这台设备已不认识这台 Mac，或者它的身份变了。请移除后重新配对。',
   'errors.remote_version': '这台设备运行的 Owlto 版本不同，请把两台 Mac 都更新到最新版本。',
-  'errors.remote_unsupported': '这个操作只能在那台设备上进行。'
+  'errors.remote_unsupported': '这个操作只能在那台设备上进行。',
+  'errors.remote_relay_login': '请先在 设置 → 设备 里登录中继。'
 }
