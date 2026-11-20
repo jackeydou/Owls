@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { Permission } from '../../shared/agents.js'
-import type { AgentModel, SessionItem } from '../../shared/app.js'
+import type { AgentModel, CodexAccount, SessionItem } from '../../shared/app.js'
 import { effortSchema } from '../../shared/app.js'
 import { record, recordSchema, safeText, string } from '../app/values.js'
 
@@ -29,6 +29,20 @@ export function approvalOptions(permission: Permission): {
     approvalsReviewer: permission === 'read-only' ? 'user' : 'auto_review',
     sandbox: permission === 'full-access' ? 'danger-full-access' : permission
   }
+}
+
+export function parseAccount(value: unknown): CodexAccount {
+  const response = record(value)
+  if (response.account === null)
+    return response.requiresOpenaiAuth === false ? { kind: 'external' } : { kind: 'signed-out' }
+  const account = record(response.account)
+  if (account.type === 'chatgpt')
+    return {
+      kind: 'chatgpt',
+      email: string(account.email) || null,
+      plan: string(account.planType) || null
+    }
+  return account.type === 'apiKey' ? { kind: 'api-key' } : { kind: 'external' }
 }
 
 export function parseModels(value: unknown): AgentModel[] {

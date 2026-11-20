@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 const readline = require('node:readline')
+const { appendFileSync, existsSync, readFileSync } = require('node:fs')
+const { join } = require('node:path')
+// Lifecycle tests run a private copy with a control file beside it.
+const control = join(__dirname, 'lifecycle.json')
+const controlled = existsSync(control)
 if (process.argv.includes('--version')) {
   console.log('codex-cli fixture')
   process.exit(0)
@@ -21,6 +26,29 @@ const finish = (threadId, turnId, status = 'completed') =>
 lines.on('line', (line) => {
   const frame = JSON.parse(line)
   const { id, method, params = {} } = frame
+  if (controlled && method) {
+    appendFileSync(
+      join(__dirname, 'requests.jsonl'),
+      `${JSON.stringify({ pid: process.pid, method })}\n`
+    )
+    const action = JSON.parse(readFileSync(control, 'utf8'))[method]
+    if (action === 'exit') return process.exit(2)
+    if (action === 'ignore-stop') {
+      process.on('SIGTERM', () => {})
+      lines.removeAllListeners('close')
+      // Bound the fixture lifetime even if cleanup in the code under test regresses.
+      setTimeout(() => process.exit(3), 10_000)
+      return
+    }
+    if (action === 'hang') return
+    if (action === 'other-account')
+      return send({
+        id,
+        result: {
+          account: { type: 'chatgpt', email: 'other@example.com', planType: 'plus' }
+        }
+      })
+  }
   if (!method && toolCalls.has(id)) {
     const { threadId, turnId } = toolCalls.get(id)
     toolCalls.delete(id)

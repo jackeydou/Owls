@@ -260,6 +260,7 @@ function CodexSettingsPane() {
   const connection = useAppStore((s) => s.connection)
   const settings = useAppStore((s) => s.settings)
   const connect = useAppStore((s) => s.connect)
+  const disconnectAgent = useAppStore((s) => s.disconnectAgent)
   const selectExecutable = useAppStore((s) => s.selectExecutable)
   const running = useAppStore((s) =>
     s.sessions.some(
@@ -326,6 +327,11 @@ function CodexSettingsPane() {
             <Button size="sm" pending={signingIn} onClick={() => void signIn()}>
               {signingIn ? t('signingIn') : t('signIn')}
             </Button>
+          ) : null}
+          {connection.status === 'connecting' ? (
+            <ActionButton size="sm" variant="ghost" onAction={() => disconnectAgent('codex')}>
+              {t('cancel')}
+            </ActionButton>
           ) : null}
           <ConnectionButton
             provider="codex"

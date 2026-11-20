@@ -1,7 +1,5 @@
-import { execFile } from 'node:child_process'
 import { realpathSync, statSync } from 'node:fs'
 import { basename } from 'node:path'
-import { promisify } from 'node:util'
 import { z } from 'zod'
 import type {
   AgentRequest,
@@ -19,7 +17,7 @@ import type {
 import { questionSchema } from '../../shared/app.js'
 import { isInlineImage } from '../../shared/attachments.js'
 import { defaultProjectSettings, type SaveProject } from '../../shared/projects.js'
-import { type AgentUsage, unavailableUsage } from '../../shared/usage.js'
+import type { AgentUsage } from '../../shared/usage.js'
 import {
   type RuntimeSend,
   type RuntimeTurn,
@@ -40,9 +38,8 @@ import {
 import type { TurnOutcome, TurnProfile, TurnProfiles } from '../router/service.js'
 import { codexToolName } from '../router/worker-tools.js'
 import { codexCallUsage } from '../usage/turn-usage.js'
-import { CodexClient, discoverExecutable } from './client.js'
-import { approvalOptions, normalizeItem, parseModels, type RpcFrame } from './protocol.js'
-import { parseCodexRateLimits } from './usage.js'
+import { CodexAccountConnection } from './connection.js'
+import { approvalOptions, normalizeItem, type RpcFrame } from './protocol.js'
 
 type Echo = { sent: string; text: string; fields: ReturnType<typeof userItemFields> }
 
@@ -66,7 +63,6 @@ function codexInput(turn: RuntimeTurn): Record<string, unknown>[] {
     ...images.map((image) => ({ type: 'localImage', path: image.path }))
   ]
 }
-const execFileAsync = promisify(execFile)
 const active = (s: Session): boolean => ['starting', 'running', 'waiting'].includes(s.status)
 const CODEX_REPORT_TOOL = {
   type: 'function',
@@ -106,26 +102,23 @@ export class CodexService {
   private readonly interruptions = new Map<string, Promise<void>>()
   private readonly dirty = new Set<string>()
   private flushTimer: ReturnType<typeof setTimeout> | null = null
-  private client: CodexClient | null = null
-  private connecting: Promise<CodexConnection> | null = null
+  private readonly account: CodexAccountConnection
   private loginId: string | null = null
   private profiles: TurnProfiles | null = null
   private recordUsage: WorkerUsageRecorder = () => {}
   /** The model Codex picked for each loaded thread, for usage records. */
   private readonly models = new Map<string, string>()
   private closed = false
-  private connection: CodexConnection = {
-    status: 'disconnected',
-    executablePath: null,
-    version: null,
-    account: { kind: 'signed-out' },
-    models: [],
-    error: null
-  }
   constructor(
     private readonly store: OwltoStore,
     private readonly emit: (event: AppEvent) => void
   ) {
+    this.account = new CodexAccountConnection(
+      () => this.store.settings().executablePath,
+      (frame) => this.onFrame(frame),
+      (connection) => this.emit({ type: 'connection', connection }),
+      (reason) => this.disconnected(reason)
+    )
     for (const session of store.sessions()) {
       if (session.provider !== 'codex') continue
       if (active(session)) {
@@ -160,80 +153,26 @@ export class CodexService {
       sessions: [...this.sessions.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
       projects: this.store.projects(),
       settings: this.store.settings(),
-      connection: this.connection
+      connection: this.account.state
     }
   }
   connectionState(): CodexConnection {
-    return this.connection
+    return this.account.state
   }
   connect(): Promise<CodexConnection> {
-    if (this.connecting) return this.connecting
-    if ([...this.sessions.values()].some(active))
+    if (this.closed) throw new OwltoError('not_connected')
+    if (this.hasActiveTasks())
       throw new OwltoError('busy', 'Stop active tasks before reconnecting Codex.')
-    this.connecting = this.openConnection().finally(() => {
-      this.connecting = null
-    })
-    return this.connecting
+    this.loginId = null
+    this.loaded.clear()
+    return this.account.connect()
   }
-  /** Stops the app server and forgets the account until the user connects again. */
   disconnect(): CodexConnection {
-    if (this.connecting || [...this.sessions.values()].some(active))
+    if (this.hasActiveTasks())
       throw new OwltoError('busy', 'Stop active tasks before disconnecting Codex.')
-    const client = this.client
-    this.client = null
-    // Stopping reports the close through disconnected(); the state below replaces it.
-    client?.stop()
+    this.loginId = null
     this.loaded.clear()
-    this.requests.clear()
-    this.connection = {
-      ...this.connection,
-      status: 'disconnected',
-      account: { kind: 'signed-out' },
-      models: [],
-      error: null
-    }
-    this.emitConnection()
-    return this.connection
-  }
-  private async openConnection(): Promise<CodexConnection> {
-    this.client?.stop()
-    this.loaded.clear()
-    this.connection = { ...this.connection, status: 'connecting', error: null }
-    this.emitConnection()
-    try {
-      const executable = discoverExecutable(this.store.settings().executablePath)
-      const { stdout } = await execFileAsync(executable, ['--version'], {
-        timeout: 10_000,
-        maxBuffer: 4096,
-        windowsHide: true
-      })
-      const client = new CodexClient(
-        (frame) => this.onFrame(frame),
-        (reason) => this.disconnected(reason)
-      )
-      this.client = client
-      // Worker threads get the report tool as a dynamic tool, which needs the experimental API (F6).
-      await client.start(executable, { experimentalApi: true })
-      this.connection = {
-        ...this.connection,
-        executablePath: executable,
-        version: stdout.trim(),
-        status: 'ready'
-      }
-      await this.refreshAccount()
-      return this.connection
-    } catch (error) {
-      this.client?.stop()
-      this.connection = {
-        ...this.connection,
-        status: 'error',
-        account: { kind: 'signed-out' },
-        models: [],
-        error: this.errorText(error)
-      }
-      this.emitConnection()
-      return this.connection
-    }
+    return this.account.disconnect()
   }
   saveSettings(settings: AppSettings): AppSettings {
     if (
@@ -307,7 +246,7 @@ export class CodexService {
   }
   async send(input: RuntimeSend): Promise<void> {
     const session = this.getSession(input.sessionId)
-    const client = this.readyClient()
+    const client = this.account.readyClient()
     if (active(session))
       throw new OwltoError('busy', 'Wait for the current task or stop it before sending.')
     this.validateSelection(session.model, session.effort)
@@ -396,6 +335,7 @@ export class CodexService {
       }
       this.changed(session, true)
     } catch (error) {
+      if (client !== this.account.client) throw error
       session.status = 'failed'
       session.error = this.errorText(error)
       this.settle(session, 'failed')
@@ -411,7 +351,7 @@ export class CodexService {
       return 'not_running'
     const echo = this.expectEcho(session.id, turn)
     try {
-      await this.readyClient().request('turn/steer', {
+      await this.account.readyClient().request('turn/steer', {
         threadId: session.threadId,
         expectedTurnId: session.turnId,
         input: codexInput(turn)
@@ -467,7 +407,8 @@ export class CodexService {
     if (session.threadId && session.turnId) {
       const existing = this.interruptions.get(id)
       if (existing) return existing
-      const pending = this.readyClient()
+      const pending = this.account
+        .readyClient()
         .request('turn/interrupt', {
           threadId: session.threadId,
           turnId: session.turnId
@@ -509,7 +450,7 @@ export class CodexService {
         scope: 'turn'
       }
     } else result = { decision: input.decision }
-    this.readyClient().respond(pending.wireId, result)
+    this.account.readyClient().respond(pending.wireId, result)
     request.status = 'answering'
     this.changed(session, true)
     if (input.decision === 'cancel') void this.interrupt(session.id).catch(() => {})
@@ -524,7 +465,7 @@ export class CodexService {
   }
   async signIn(): Promise<string> {
     const response = record(
-      await this.readyClient().request('account/login/start', { type: 'chatgpt' })
+      await this.account.readyClient().request('account/login/start', { type: 'chatgpt' })
     )
     this.loginId = z.string().parse(response.loginId)
     const url = new URL(z.string().parse(response.authUrl))
@@ -535,67 +476,22 @@ export class CodexService {
   }
   async cancelSignIn(): Promise<void> {
     if (this.loginId)
-      await this.readyClient().request('account/login/cancel', { loginId: this.loginId })
+      await this.account.readyClient().request('account/login/cancel', { loginId: this.loginId })
     this.loginId = null
   }
-  /**
-   * The ChatGPT plan's rate-limit windows and credits from the app-server.
-   * API-key accounts bill per request and have no windows.
-   */
-  async usage(): Promise<AgentUsage> {
-    const { status, account } = this.connection
-    if (status !== 'ready' || !this.client) return unavailableUsage('codex', 'not-connected')
-    if (account.kind === 'signed-out') return unavailableUsage('codex', 'signed-out')
-    if (account.kind === 'api-key') return unavailableUsage('codex', 'api-key')
-    if (account.kind === 'external') return unavailableUsage('codex', 'no-plan-limits')
-    try {
-      return parseCodexRateLimits(
-        // The method takes no params; the app-server rejects `{}` for a unit request.
-        await this.client.request('account/rateLimits/read', null),
-        account.plan
-      )
-    } catch {
-      return unavailableUsage('codex', 'failed', account.plan)
-    }
-  }
-  private async refreshAccount(): Promise<void> {
-    const client = this.client
-    if (!client) return
-    const response = record(await client.request('account/read', { refreshToken: false }))
-    const account = response.account === null ? null : record(response.account)
-    this.connection.account = !account
-      ? response.requiresOpenaiAuth === false
-        ? { kind: 'external' }
-        : { kind: 'signed-out' }
-      : account.type === 'chatgpt'
-        ? {
-            kind: 'chatgpt',
-            email: string(account.email) || null,
-            plan: string(account.planType) || null
-          }
-        : account.type === 'apiKey'
-          ? { kind: 'api-key' }
-          : { kind: 'external' }
-    if (this.connection.account.kind !== 'signed-out') {
-      this.connection.models = parseModels(
-        await client.request('model/list', { limit: 100, includeHidden: false })
-      )
-    } else this.connection.models = []
-    this.emitConnection()
+  usage(): Promise<AgentUsage> {
+    return this.account.usage()
   }
   private onFrame(frame: RpcFrame): void {
     const params = frame.params ?? {}
     if (frame.method === 'account/updated' || frame.method === 'account/login/completed') {
       if (frame.method === 'account/login/completed') this.loginId = null
-      void this.refreshAccount().catch((error) => {
-        this.connection.error = this.errorText(error)
-        this.emitConnection()
-      })
+      void this.account.refreshAccount()
       return
     }
     const session = [...this.sessions.values()].find((s) => s.threadId === params.threadId)
     if (!session) {
-      if (frame.id !== undefined) this.client?.reject(frame.id)
+      if (frame.id !== undefined) this.account.client?.reject(frame.id)
       return
     }
     if (frame.id !== undefined) {
@@ -751,6 +647,7 @@ export class CodexService {
   }
   /** Answers a dynamic tool call: the worker report tool or another Owlto worker tool. */
   private async callTool(session: Session, frame: RpcFrame): Promise<void> {
+    const client = this.account.client
     const wireId = frame.id
     if (wireId === undefined) return
     const params = frame.params ?? {}
@@ -762,7 +659,8 @@ export class CodexService {
         : other
           ? await other.call(params.arguments)
           : { ok: false, text: 'This tool is not available.' }
-    this.client?.respond(wireId, {
+    if (client !== this.account.client) return
+    client?.respond(wireId, {
       success: result.ok,
       contentItems: [{ type: 'inputText', text: result.text }]
     })
@@ -781,7 +679,7 @@ export class CodexService {
               ? 'question'
               : null
     if (!kind) {
-      this.client?.reject(frame.id)
+      this.account.client?.reject(frame.id)
       return
     }
     const id = crypto.randomUUID()
@@ -811,6 +709,9 @@ export class CodexService {
     }
   }
   private disconnected(reason: string): void {
+    this.loginId = null
+    this.cancelled.clear()
+    this.echoes.clear()
     this.loaded.clear()
     this.requests.clear()
     for (const session of this.sessions.values()) {
@@ -822,12 +723,6 @@ export class CodexService {
       this.changed(session, true)
       this.reportTurn(session, 'interrupted', null)
     }
-    this.connection = {
-      ...this.connection,
-      status: 'disconnected',
-      error: { code: 'disconnected', message: reason }
-    }
-    this.emitConnection()
   }
   /**
    * Creates a Router worker's worktree before the agent starts in it. The session
@@ -836,10 +731,12 @@ export class CodexService {
    * when it was stopped or lost its connection and the turn must not start.
    */
   private async prepared(session: Session, previous: Session['status']): Promise<string[] | null> {
+    const client = this.account.client
     let writableRoots: string[]
     try {
       writableRoots = (await this.profiles?.prepare(session.id)) ?? []
     } catch (error) {
+      if (client !== this.account.client) return null
       this.cancelled.delete(session.id)
       if (session.status === 'starting') {
         session.status = previous
@@ -847,9 +744,9 @@ export class CodexService {
       }
       throw error
     }
+    // An older preparation can finish after recovery and a new send on this session.
+    if (client !== this.account.client || session.status !== 'starting') return null
     const stopped = this.cancelled.delete(session.id)
-    // disconnected() already ended and reported it.
-    if (session.status !== 'starting') return null
     if (!stopped) return writableRoots
     session.status = 'interrupted'
     this.changed(session, true)
@@ -871,7 +768,7 @@ export class CodexService {
         'Choose a model before selecting its reasoning effort.'
       )
     if (!model) return
-    const entry = this.connection.models.find((m) => m.id === model)
+    const entry = this.account.state.models.find((m) => m.id === model)
     if (!entry)
       throw new OwltoError(
         'model_unavailable',
@@ -882,11 +779,6 @@ export class CodexService {
         'effort_unavailable',
         'This reasoning effort is not supported by the selected model.'
       )
-  }
-  private readyClient(): CodexClient {
-    if (!this.client || this.connection.status !== 'ready')
-      throw new OwltoError('not_connected', 'Connect your local Codex installation in Settings.')
-    return this.client
   }
   private getSession(id: string): Session {
     const session = this.sessions.get(id)
@@ -911,9 +803,6 @@ export class CodexService {
     }
     this.dirty.clear()
   }
-  private emitConnection(): void {
-    this.emit({ type: 'connection', connection: this.connection })
-  }
   private errorText(error: unknown): Failure {
     return toFailure(error)
   }
@@ -922,7 +811,8 @@ export class CodexService {
   }
   close(): void {
     if (this.closed) return
-    this.client?.stop()
+    this.account.disconnect()
+    this.disconnected('Codex connection closed.')
     this.flush()
     this.closed = true
     this.store.close()

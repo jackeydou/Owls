@@ -41,6 +41,20 @@ native account. Reconnecting is blocked while tasks are active. The optional
 ChatGPT login button calls `account/login/start` and opens the official URL;
 Codex owns the callback, token storage, and refresh.
 
+While connected to a ChatGPT account, the sidebar reads plan usage through a
+short-lived stdio app-server using the connected executable and the same local
+configuration. It checks the native account before requesting rate limits.
+Concurrent reads share one probe. A 30-second deadline covers the handshake
+and both reads. Success, failure, disconnect, and shutdown all release the probe.
+
+If the worker app-server unexpectedly exits after connecting, Owlto interrupts
+its active tasks and tries a fresh handshake after 1, 2, 4, 8, and 16 seconds.
+A connection that stays ready for a minute resets the retry budget. After the
+last failure, Settings offers manual reconnect. Cancel or Disconnect in Settings
+and app shutdown cancel both scheduled and in-flight attempts. Recovery only
+restores the connection and account catalog. The next user message can resume
+a saved thread. Interrupted turns and approvals stay interrupted or unavailable.
+
 Settings and executable choices are persisted through the Codex store and
 existing data-root path flow, without runtime environment-variable overrides.
 
