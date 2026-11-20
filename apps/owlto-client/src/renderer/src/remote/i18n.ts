@@ -3,9 +3,9 @@ export const remoteEn = {
   'remote.title': 'Devices',
   'remote.intro':
     'Use the Router on another Mac from here: messages go to that Mac, its workers run there with its agents, and the results show up here. Nothing is synced; each Mac keeps its own threads.',
-  'remote.thisMacGroup': 'This Mac ({{name}})',
+  'remote.pairPhoneGroup': 'Pair a phone',
   'remote.otherGroup': 'Other devices',
-  'remote.access': 'Let paired devices use this Mac',
+  'remote.access': 'Connect devices',
   'remote.accessHelp':
     "Paired devices can message this Mac's Router and run workers here, with this Mac's agents and plan usage. Owlto must stay open, and the Mac awake.",
   'remote.relayAccess': 'Allow connections over the internet',
@@ -85,7 +85,8 @@ export const remoteEn = {
   'remote.wizard.networkHelp': 'If your phone can’t connect, pick another address and scan again.',
   'remote.wizard.regenerate': 'New code',
   'remote.wizard.newCode': 'Show a code',
-  'remote.wizard.relaySignIn': 'Sign in to use the relay',
+  'remote.wizard.lanOnly':
+    'The phone must be on this Wi-Fi, or on Tailscale. To pair from anywhere, turn on internet connections above and sign in.',
   'remote.wizard.cantScan': 'Can’t scan? Type in the app:',
   'remote.wizard.copyCode': 'Copy code',
   'remote.wizard.otherMac': 'Pairing another Mac? Paste this link in its Add a device:',
@@ -206,9 +207,9 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'remote.title': '设备',
   'remote.intro':
     '在这里使用另一台 Mac 上的 Router：消息发到那台 Mac，Worker 在那里用它的 agent 运行，结果显示在这里。不会同步数据，每台 Mac 保留自己的 Thread。',
-  'remote.thisMacGroup': '这台 Mac（{{name}}）',
+  'remote.pairPhoneGroup': '配对手机',
   'remote.otherGroup': '其他设备',
-  'remote.access': '允许已配对的设备使用这台 Mac',
+  'remote.access': '开启设备连接',
   'remote.accessHelp':
     '已配对的设备可以给这台 Mac 的 Router 发消息，并在这里运行 Worker，使用这台 Mac 的 agent 和额度。需要保持 Owlto 打开、Mac 不睡眠。',
   'remote.relayAccess': '允许通过互联网连接',
@@ -281,7 +282,8 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'remote.wizard.networkHelp': '手机连不上的话，换一个地址再扫一次。',
   'remote.wizard.regenerate': '换一个码',
   'remote.wizard.newCode': '显示配对码',
-  'remote.wizard.relaySignIn': '登录后即可使用中继',
+  'remote.wizard.lanOnly':
+    '手机需要连同一个 Wi-Fi，或在 Tailscale 上。想在任何网络下配对，先在上面打开「允许通过互联网连接」并登录。',
   'remote.wizard.cantScan': '扫不了码？在 App 里输入：',
   'remote.wizard.copyCode': '复制配对码',
   'remote.wizard.otherMac': '配对另一台 Mac？把链接粘贴到它的「添加设备」里：',

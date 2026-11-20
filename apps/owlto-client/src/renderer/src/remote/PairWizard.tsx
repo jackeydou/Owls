@@ -207,28 +207,18 @@ function RouteChoice({
 }
 
 /**
- * Step 2: show a QR code for the phone to scan. Relay works from any network once this Mac
- * is signed in; the same-network code goes straight to one of this Mac's addresses.
+ * Step 2: show a QR code for the phone to scan. The same-network code goes straight to one of
+ * this Mac's addresses; Relay, from any network, is offered once the relay is on and signed in.
  */
-function PairStep({
-  overview,
-  onBack,
-  relayAccount,
-  onRelayAccountShown
-}: {
-  overview: RemoteOverview
-  onBack: () => void
-  /** The relay sign-in, shown while Relay is picked and the relay is not connected yet. */
-  relayAccount: ReactNode
-  onRelayAccountShown: (shown: boolean) => void
-}) {
+function PairStep({ overview, onBack }: { overview: RemoteOverview; onBack: () => void }) {
   const { t } = useTranslation()
   const setAccess = useRemoteStore((s) => s.setAccess)
-  const setRelay = useRemoteStore((s) => s.setRelay)
   const startPairing = useRemoteStore((s) => s.startPairing)
-  const [route, setRoute] = useState<Route>(() => (overview.relay.enabled ? 'relay' : 'lan'))
-  const [address, setAddress] = useState<string | null>(null)
   const { pairing, relay, justPaired } = overview
+  const relayReady = relay.enabled && relay.account.status === 'signed-in'
+  const [picked, setPicked] = useState<Route>(() => (relayReady ? 'relay' : 'lan'))
+  const route: Route = relayReady ? picked : 'lan'
+  const [address, setAddress] = useState<string | null>(null)
   const now = useNow(pairing !== null)
   const addresses = overview.addresses.map((each) => ({
     ...each,
@@ -257,17 +247,6 @@ function PairStep({
   useEffect(() => {
     if (needsInvite) void startPairing()
   }, [needsInvite, startPairing])
-
-  const showsAccount = route === 'relay' && !relayOnline && relay.account.status !== 'signed-in'
-  useEffect(() => {
-    onRelayAccountShown(showsAccount)
-    return () => onRelayAccountShown(false)
-  }, [showsAccount, onRelayAccountShown])
-
-  function pick(next: Route) {
-    setRoute(next)
-    if (next === 'relay' && !relay.enabled && !relay.signInToEnable) void setRelay(true)
-  }
 
   const lanInvite =
     pairing?.key && shownAddress
@@ -302,14 +281,8 @@ function PairStep({
   else if (route === 'relay' && !relayOnline)
     qr = (
       <QrPlaceholder>
-        {relay.enabled && relay.account.status === 'signed-in' ? (
-          <>
-            <LoaderIcon className="animate-spin" />
-            {t('remote.relay.connecting')}
-          </>
-        ) : (
-          t('remote.wizard.relaySignIn')
-        )}
+        <LoaderIcon className="animate-spin" />
+        {t('remote.relay.connecting')}
       </QrPlaceholder>
     )
   else if (route === 'lan' && !lanInvite)
@@ -347,14 +320,31 @@ function PairStep({
           ) : null}
         </div>
         <div className="remote-step-actions">
-          <div
-            className="remote-routes"
-            role="radiogroup"
-            aria-label={t('remote.wizard.routeLabel')}
-          >
-            <RouteChoice route={route} value="relay" icon={<GlobeIcon size={18} />} onPick={pick} />
-            <RouteChoice route={route} value="lan" icon={<NetworkIcon size={18} />} onPick={pick} />
-          </div>
+          {relayReady ? (
+            <div
+              className="remote-routes"
+              role="radiogroup"
+              aria-label={t('remote.wizard.routeLabel')}
+            >
+              <RouteChoice
+                route={route}
+                value="relay"
+                icon={<GlobeIcon size={18} />}
+                onPick={setPicked}
+              />
+              <RouteChoice
+                route={route}
+                value="lan"
+                icon={<NetworkIcon size={18} />}
+                onPick={setPicked}
+              />
+            </div>
+          ) : (
+            <p className="remote-route-hint">
+              <NetworkIcon size={16} />
+              <span>{t('remote.wizard.lanOnly')}</span>
+            </p>
+          )}
           {route === 'lan' && addresses.length > 0 ? (
             <div className="remote-network">
               <label htmlFor="remote-network">{t('remote.wizard.network')}</label>
@@ -385,7 +375,6 @@ function PairStep({
               <span className="remote-network-help">{t('remote.wizard.networkHelp')}</span>
             </div>
           ) : null}
-          {showsAccount ? relayAccount : null}
         </div>
       </div>
       {typed && showsQr ? (
@@ -435,17 +424,7 @@ function PairStep({
 }
 
 /** Pair a phone with this Mac: install the app, then scan a code. */
-export function PairWizard({
-  overview,
-  relayAccount,
-  onRelayAccountShown
-}: {
-  overview: RemoteOverview
-  /** The relay sign-in panel; the wizard shows it while Relay is picked and not connected. */
-  relayAccount: ReactNode
-  /** Whether the wizard shows `relayAccount` now, so the page does not show it twice. */
-  onRelayAccountShown: (shown: boolean) => void
-}) {
+export function PairWizard({ overview }: { overview: RemoteOverview }) {
   const [step, setStep] = useState<Step>('install')
   return (
     <div className="remote-wizard">
@@ -453,12 +432,7 @@ export function PairWizard({
         {step === 'install' ? (
           <InstallStep onContinue={() => setStep('pair')} />
         ) : (
-          <PairStep
-            overview={overview}
-            onBack={() => setStep('install')}
-            relayAccount={relayAccount}
-            onRelayAccountShown={onRelayAccountShown}
-          />
+          <PairStep overview={overview} onBack={() => setStep('install')} />
         )}
       </div>
       <PhoneShowcase pairing={step === 'pair'} />

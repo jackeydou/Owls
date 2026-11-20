@@ -306,7 +306,6 @@ export function DevicesSettingsPane() {
   const setRelay = useRemoteStore((s) => s.setRelay)
   const setKeepAwake = useRemoteStore((s) => s.setKeepAwake)
   const [switching, setSwitching] = useState(false)
-  const [wizardShowsAccount, setWizardShowsAccount] = useState(false)
   useEffect(() => watchRemote(), [])
   const listening = overview?.listening ?? false
   async function toggle(enabled: boolean) {
@@ -323,21 +322,6 @@ export function DevicesSettingsPane() {
     <section className="owlto-settings-section remote-settings">
       <h2>{t('remote.title')}</h2>
       <p className="remote-intro">{t('remote.intro')}</p>
-      {overview ? (
-        <PairWizard
-          overview={overview}
-          onRelayAccountShown={setWizardShowsAccount}
-          relayAccount={
-            <RelayAccountPanel
-              account={overview.relay.account}
-              waiting={overview.relay.signInToEnable}
-            />
-          }
-        />
-      ) : null}
-      <h3 className="remote-group">
-        {t('remote.thisMacGroup', { name: overview?.deviceName ?? '' })}
-      </h3>
       <SettingRow
         label={t('remote.access')}
         description={t('remote.accessHelp')}
@@ -369,8 +353,7 @@ export function DevicesSettingsPane() {
             detail={
               <>
                 <RelayStatus relay={overview.relay} />
-                {(overview.relay.enabled || overview.relay.signInToEnable) &&
-                !wizardShowsAccount ? (
+                {overview.relay.enabled || overview.relay.signInToEnable ? (
                   <RelayAccountPanel
                     account={overview.relay.account}
                     waiting={overview.relay.signInToEnable}
@@ -401,9 +384,11 @@ export function DevicesSettingsPane() {
               }}
             />
           </SettingRow>
+          <h3 className="remote-group">{t('remote.pairPhoneGroup')}</h3>
+          <PairWizard overview={overview} />
         </>
       ) : null}
-      {overview?.clients.length ? (
+      {listening && overview?.clients.length ? (
         <SettingRow
           label={t('remote.clients')}
           description={t('remote.clientsHelp')}
@@ -416,13 +401,17 @@ export function DevicesSettingsPane() {
           }
         />
       ) : null}
-      <h3 className="remote-group">{t('remote.otherGroup')}</h3>
-      <SettingRow
-        label={t('remote.add')}
-        description={t('remote.addHelp')}
-        detail={<AddDevice />}
-      />
-      {overview?.devices.length ? (
+      {listening ? (
+        <>
+          <h3 className="remote-group">{t('remote.otherGroup')}</h3>
+          <SettingRow
+            label={t('remote.add')}
+            description={t('remote.addHelp')}
+            detail={<AddDevice />}
+          />
+        </>
+      ) : null}
+      {listening && overview?.devices.length ? (
         <SettingRow
           label={t('remote.devices')}
           description={t('remote.devicesHelp')}
