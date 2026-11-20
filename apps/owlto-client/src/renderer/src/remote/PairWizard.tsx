@@ -20,7 +20,7 @@ import {
   type RemoteJustPaired,
   type RemoteOverview
 } from '../../../shared/remote'
-import { appLogoIcons } from '../app/AppLogo'
+import { PhoneShowcase } from './PhoneShowcase'
 import { useRemoteStore } from './store'
 
 /**
@@ -399,38 +399,6 @@ function PairStep({
   )
 }
 
-/** A phone showing the app screen that goes with each step. Decorative. */
-function PhonePreview({ step }: { step: Step }) {
-  const { t } = useTranslation()
-  return (
-    <div className="remote-phone-stage" aria-hidden>
-      <div className="remote-phone">
-        <div className="remote-phone-island" />
-        {step === 'install' ? (
-          <div className="remote-phone-screen remote-phone-store">
-            <img src={appLogoIcons['trio-white']} alt="" />
-            <strong>Owlto</strong>
-            <small>{t('remote.wizard.phoneTagline')}</small>
-            <span className="remote-phone-button">{t('remote.wizard.phoneGet')}</span>
-          </div>
-        ) : (
-          <div className="remote-phone-screen remote-phone-scan">
-            <strong>{t('remote.wizard.phoneConnect')}</strong>
-            <div className="remote-phone-viewfinder">
-              <i />
-              <i />
-              <i />
-              <i />
-            </div>
-            <small>{t('remote.wizard.phoneScanHelp')}</small>
-            <span className="remote-phone-button">{t('remote.wizard.phoneScan')}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 /** Pair a phone with this Mac: install the app, then scan a code. */
 export function PairWizard({
   overview,
@@ -458,7 +426,7 @@ export function PairWizard({
           />
         )}
       </div>
-      <PhonePreview step={step} />
+      <PhoneShowcase pairing={step === 'pair'} />
     </div>
   )
 }
