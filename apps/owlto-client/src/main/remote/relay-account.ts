@@ -1,14 +1,19 @@
 import { z } from 'zod'
-import type {
-  RemoteRelayAccount,
-  RemoteRelayMac,
-  RemoteRelaySignInFailure
+import {
+  REMOTE_RELAY_PROVIDERS,
+  type RemoteRelayAccount,
+  type RemoteRelayMac,
+  type RemoteRelayProvider,
+  type RemoteRelaySignInFailure
 } from '../../shared/remote.js'
 import { OwltoError } from '../app/errors.js'
 import type { GitHubCredentialStore } from '../github/auth.js'
 import type { DecryptedSecret, SecretCipher } from '../router/credentials.js'
 
 /**
+ * Identity providers a Mac signs in to the relay with. Each runs a device flow that ends in a
+ * token the relay checks once (`POST /v1/account/login`); only GitHub exists so far.
+ *
  * Owlto's own GitHub OAuth App for the relay, "Owlto Relay". It asks for no scope, so its
  * token can only read a public profile; it is not the app's GitHub connection. Public by
  * design: the device flow needs no client secret.
@@ -33,7 +38,11 @@ const tokenReplySchema = z.object({
   error: z.string().optional(),
   interval: z.number().optional()
 })
-const storedSchema = z.object({ session: z.string(), login: z.string() })
+const storedSchema = z.object({
+  session: z.string(),
+  provider: z.enum(REMOTE_RELAY_PROVIDERS),
+  login: z.string()
+})
 type Stored = z.infer<typeof storedSchema>
 const loginReplySchema = storedSchema
 const macsReplySchema = z.object({
@@ -49,6 +58,7 @@ const macsReplySchema = z.object({
   )
 })
 type Flow = {
+  provider: RemoteRelayProvider
   attempt: number
   deviceCode: string
   intervalMs: number
@@ -94,12 +104,13 @@ export class RelayAccount {
     if (this.flow)
       return {
         status: 'pending',
+        provider: this.flow.provider,
         userCode: this.flow.userCode,
         verificationUri: this.flow.verificationUri,
         expiresAt: new Date(this.flow.deadline).toISOString()
       }
     return this.current
-      ? { status: 'signed-in', login: this.current.login }
+      ? { status: 'signed-in', provider: this.current.provider, login: this.current.login }
       : { status: 'signed-out', failure: this.failure }
   }
 
@@ -119,7 +130,8 @@ export class RelayAccount {
     return this.loading
   }
 
-  async signIn(): Promise<void> {
+  /** Starts `provider`'s device flow; its code shows in `state()` until it ends. */
+  async signIn(provider: RemoteRelayProvider): Promise<void> {
     const unavailable = await this.options.cipher.unavailable()
     if (unavailable) throw new OwltoError('secure_storage_unavailable', unavailable)
     this.stopFlow()
@@ -131,6 +143,7 @@ export class RelayAccount {
       )
       if (attempt !== this.attempt) return
       this.flow = {
+        provider,
         attempt,
         deviceCode: code.device_code,
         intervalMs: code.interval * 1000,
@@ -268,11 +281,15 @@ export class RelayAccount {
     this.finishFlow(reply.error === 'access_denied' ? 'denied' : 'expired')
   }
 
-  /** Trades the GitHub token for a relay session; the token is not kept. */
-  private async complete(flow: Flow, github: string): Promise<void> {
+  /** Trades the provider's token for a relay session; the token is not kept. */
+  private async complete(flow: Flow, token: string): Promise<void> {
     try {
       const stored = loginReplySchema.parse(
-        await this.relay('POST', '/login', null, { github, name: this.options.deviceName() })
+        await this.relay('POST', '/login', null, {
+          provider: flow.provider,
+          token,
+          name: this.options.deviceName()
+        })
       )
       const encoded = await this.options.cipher.encrypt(JSON.stringify(stored))
       if (flow.attempt !== this.attempt) return

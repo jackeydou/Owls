@@ -1,6 +1,10 @@
 import { z } from 'zod'
 import { deviceIdSchema } from '../../shared/app.js'
-import { relayMailboxSchema, remoteCallSchema } from '../../shared/remote.js'
+import {
+  relayMailboxSchema,
+  remoteCallSchema,
+  remoteRelayProviderSchema
+} from '../../shared/remote.js'
 import type { IpcHandle } from '../app/ipc.js'
 import type { RemoteService } from './service.js'
 
@@ -16,7 +20,9 @@ export function registerRemoteIpc(handle: IpcHandle, remote: RemoteService): voi
   handle('remote-revoke-client', (input) => remote.revokeClient(deviceIdSchema.parse(input)))
   handle('remote-pair', (input) => remote.pair(input))
   handle('remote-remove-device', (input) => remote.removeDevice(deviceIdSchema.parse(input)))
-  handle('remote-relay-sign-in', () => remote.relaySignIn())
+  handle('remote-relay-sign-in', (input) =>
+    remote.relaySignIn(remoteRelayProviderSchema.parse(input))
+  )
   handle('remote-relay-cancel-sign-in', () => remote.relayCancelSignIn())
   handle('remote-relay-sign-out', () => remote.relaySignOut())
   handle('remote-relay-macs', () => remote.relayMacs())

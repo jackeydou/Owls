@@ -7,7 +7,9 @@ import {
   type AccountRecord,
   type AccountServices,
   accountOfSession,
-  answerAccount
+  answerAccount,
+  type IdentityProvider,
+  type ProviderIdentity
 } from './accounts.ts'
 import { MAX_MESSAGE_BYTES, parseJson, type QueuedItem, routeOf } from './protocol.ts'
 import {
@@ -42,10 +44,10 @@ export type NodeRelayOptions = {
   port?: number
   host?: string
   /**
-   * Asks GitHub who a token belongs to. When set, hosts need a relay account session
-   * (`accounts.ts`); a self-hosted relay usually leaves it out.
+   * Asks an identity provider who a token belongs to. When set, hosts need a relay account
+   * session (`accounts.ts`); a self-hosted relay usually leaves it out.
    */
-  verifyGitHub?: (token: string) => Promise<{ id: number; login: string } | null>
+  verifyIdentity?: (provider: IdentityProvider, token: string) => Promise<ProviderIdentity | null>
   /** Sends a notification; without it pushes fail, as on a relay with no APNs key. */
   push?: (request: PushRequest) => Promise<PushResult>
   now?: () => number
@@ -87,7 +89,7 @@ export async function startNodeRelay(options: NodeRelayOptions = {}): Promise<No
       randomToken: () => randomBytes(32).toString('base64url')
     })
   const services: RelayServices = {
-    accounts: Boolean(options.verifyGitHub),
+    accounts: Boolean(options.verifyIdentity),
     checkSession: async (session) => {
       const account = accountOfSession(session)
       const hash = account ? await book(account).check(session) : null
@@ -108,7 +110,7 @@ export async function startNodeRelay(options: NodeRelayOptions = {}): Promise<No
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES })
 
   const accountServices: AccountServices = {
-    verifyGitHub: options.verifyGitHub ?? (async () => null),
+    verifyIdentity: options.verifyIdentity ?? (async () => null),
     account: book,
     room: (mailbox) => ({
       status: () => roomFor(mailbox).room.status(),

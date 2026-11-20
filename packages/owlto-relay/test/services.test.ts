@@ -42,8 +42,10 @@ async function host(
     })
   return { mailbox, secret, socket, reply }
 }
-const github = async (value: string) =>
-  value.startsWith('gho_good') ? { id: value.length, login: 'yanlin' } : null
+const github = async (provider: string, value: string) =>
+  provider === 'github' && value.startsWith('gho_good')
+    ? { id: value.length, login: 'yanlin' }
+    : null
 const GOOD = 'gho_good_0123456789abcdef'
 
 async function account(
@@ -65,21 +67,29 @@ async function account(
 }
 async function signIn(base: string, token = GOOD): Promise<string> {
   const reply = await account(base, 'POST', '/login', undefined, {
-    github: token,
+    provider: 'github',
+    token,
     name: 'Mac mini'
   })
   assert.equal(reply.status, 200)
+  assert.equal(reply.body.provider, 'github')
   assert.equal(reply.body.login, 'yanlin')
   return reply.body.session as string
 }
 
 test('a host needs a relay session, and an account holds at most five mailboxes', async (t) => {
-  const { url } = await relay(t, { verifyGitHub: github })
+  const { url } = await relay(t, { verifyIdentity: github })
   assert.deepEqual((await host(t, url)).reply, { t: 'error', code: 'login' })
   const bad = await account(url, 'POST', '/login', undefined, {
-    github: 'gho_bad_0123456789abcdef'
+    provider: 'github',
+    token: 'gho_bad_0123456789abcdef'
   })
   assert.equal(bad.status, 401)
+  const unknown = await account(url, 'POST', '/login', undefined, {
+    provider: 'myspace',
+    token: GOOD
+  })
+  assert.equal(unknown.status, 400)
   const session = await signIn(url)
   assert.match(session, /^s1\.[0-9a-f]{64}\.[A-Za-z0-9_-]{43}$/)
   const forged = `${session.slice(0, -4)}AAAA`
@@ -107,7 +117,7 @@ test('a host needs a relay session, and an account holds at most five mailboxes'
 })
 
 test('the account lists its Macs, and signing out or removing one cuts it off', async (t) => {
-  const relayed = await relay(t, { verifyGitHub: github })
+  const relayed = await relay(t, { verifyIdentity: github })
   const { url } = relayed
   const session = await signIn(url)
   const mine = await host(t, url, { session })
@@ -220,7 +230,7 @@ test('items left while the host is away reach it when it returns, until it acks 
 
 test('a mailbox whose host stays away for 30 days is deleted', async (t) => {
   let now = Date.now()
-  const relayed = await relay(t, { verifyGitHub: github, now: () => now })
+  const relayed = await relay(t, { verifyIdentity: github, now: () => now })
   const session = await signIn(relayed.url)
   const made = await host(t, relayed.url, { session })
   made.socket.socket.close()

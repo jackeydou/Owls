@@ -544,6 +544,7 @@ const service = new RemoteService({
   readAttachment: () => Promise.reject(new Error('The dev host drives no other device.')),
   // A local relay runs without accounts, so the dev host never signs in.
   credentials: { credential: () => null, saveCredential: () => {}, removeCredential: () => {} },
+  relaySignInRequired: false,
   toFailure,
   changed: (overview) => report(overview),
   remoteEvent: () => {},

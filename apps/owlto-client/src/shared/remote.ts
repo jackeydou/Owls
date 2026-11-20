@@ -190,17 +190,33 @@ export type RemoteRelayState = {
   /** Why the relay is not reachable, such as `relay_unreachable`; null otherwise. */
   error: string | null
   account: RemoteRelayAccount
+  /**
+   * The user turned the switch on while signed out: the relay starts once they sign in.
+   * Shown as on, with the sign-in under it.
+   */
+  signInToEnable: boolean
 }
+/** The identity providers a Mac can sign in to the relay with; `IDENTITY_PROVIDERS` on the relay. */
+export const REMOTE_RELAY_PROVIDERS = ['github'] as const
+export type RemoteRelayProvider = (typeof REMOTE_RELAY_PROVIDERS)[number]
+export const remoteRelayProviderSchema = z.enum(REMOTE_RELAY_PROVIDERS)
 /** Why a relay sign-in did not finish, or why a stored one stopped working. */
 export type RemoteRelaySignInFailure = 'network' | 'denied' | 'expired' | 'relay'
 /**
- * This Mac's relay account. A host needs one to use the relay: it signs in with GitHub once
- * and the relay issues its own session, which signing out or removing the Mac ends.
+ * This Mac's relay account. A host needs one to use the relay: it signs in with an identity
+ * provider once and the relay issues its own session, which signing out or removing the Mac
+ * ends.
  */
 export type RemoteRelayAccount =
   | { status: 'signed-out'; failure: RemoteRelaySignInFailure | null }
-  | { status: 'pending'; userCode: string; verificationUri: string; expiresAt: string }
-  | { status: 'signed-in'; login: string }
+  | {
+      status: 'pending'
+      provider: RemoteRelayProvider
+      userCode: string
+      verificationUri: string
+      expiresAt: string
+    }
+  | { status: 'signed-in'; provider: RemoteRelayProvider; login: string }
 /** A Mac on this relay account, as the relay lists it. */
 export type RemoteRelayMac = {
   mailbox: string
@@ -338,10 +354,10 @@ export interface RemoteAPI {
   /** Pairs with a device that shows a code, or from its invite. */
   pair(input: RemotePair): Promise<Reply<RemotePaired>>
   removeDevice(deviceId: string): Promise<Reply<RemoteOverview>>
-  /** Starts the GitHub sign-in for the relay; the code shows in the overview. */
-  relaySignIn(): Promise<Reply<RemoteOverview>>
+  /** Starts the relay sign-in with a provider; its code shows in the overview. */
+  relaySignIn(provider: RemoteRelayProvider): Promise<Reply<RemoteOverview>>
   relayCancelSignIn(): Promise<Reply<RemoteOverview>>
-  /** Signs this Mac out of the relay, which disconnects it there. */
+  /** Signs this Mac out of the relay, which disconnects it there and turns the relay off. */
   relaySignOut(): Promise<Reply<RemoteOverview>>
   /** The Macs on this relay account. */
   relayMacs(): Promise<Reply<RemoteRelayMac[]>>

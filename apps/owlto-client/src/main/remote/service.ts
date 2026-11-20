@@ -10,6 +10,7 @@ import {
   type RemoteOverview,
   type RemotePaired,
   type RemoteRelayMac,
+  type RemoteRelayProvider,
   remoteMethodSchemas,
   remotePairSchema
 } from '../../shared/remote.js'
@@ -54,6 +55,11 @@ export type RemoteServiceDeps = {
   credentials: GitHubCredentialStore
   /** Requests to GitHub and the relay's account routes; tests stand in for both. */
   relayHttp?: typeof fetch
+  /**
+   * Whether turning the relay on needs a relay sign-in first. On for the Owlto relay; tests
+   * against a relay without accounts turn it off.
+   */
+  relaySignInRequired?: boolean
   /** The relay's base URL; the Owlto relay unless a test runs its own. */
   relayUrl?: string
   toFailure: (error: unknown) => Failure
@@ -93,6 +99,8 @@ export class RemoteService {
   private queueWork: Promise<void> = Promise.resolve()
   private relay: RelayListener | null = null
   private readonly account: RelayAccount
+  /** The switch was turned on while signed out: turn the relay on once the sign-in lands. */
+  private enableAfterSignIn = false
   private relayError: string | null = null
   private readonly relayUrl: string
   private listenError: string | null = null
@@ -203,7 +211,8 @@ export class RemoteService {
         enabled: this.deps.relayEnabled(),
         state: this.relay ? this.relay.status().state : 'off',
         error: this.relay ? this.relay.status().error : this.relayError,
-        account: this.account.state()
+        account: this.account.state(),
+        signInToEnable: this.enableAfterSignIn
       },
       clients: this.deps.store.peers('client').map((peer) => ({
         deviceId: peer.deviceId,
@@ -229,6 +238,19 @@ export class RemoteService {
   }
   /** Turns connections through the relay on or off; they also need remote access. */
   async setRelay(enabled: boolean): Promise<RemoteOverview> {
+    if (enabled && this.deps.relaySignInRequired !== false) {
+      await this.account.load()
+      if (this.account.state().status !== 'signed-in') {
+        // The sign-in is asked for here, when the user wants the relay; nothing is saved
+        // until it lands.
+        this.enableAfterSignIn = true
+        return this.changed()
+      }
+    }
+    if (!enabled && this.enableAfterSignIn) {
+      this.enableAfterSignIn = false
+      if (this.account.state().status === 'pending') this.account.cancelSignIn()
+    }
     this.deps.saveRelay(enabled)
     if (enabled && this.server.listening()) await this.startRelay()
     else if (!enabled) this.stopRelay()
@@ -266,17 +288,23 @@ export class RemoteService {
     return this.changed()
   }
   /** Starts the relay's GitHub sign-in; its code shows in the overview. */
-  async relaySignIn(): Promise<RemoteOverview> {
-    await this.account.signIn()
+  async relaySignIn(provider: RemoteRelayProvider): Promise<RemoteOverview> {
+    await this.account.signIn(provider)
     return this.overview()
   }
   relayCancelSignIn(): RemoteOverview {
     this.account.cancelSignIn()
     return this.overview()
   }
+  /** Signs out of the relay; the relay goes off with it, since it needs a sign-in. */
   async relaySignOut(): Promise<RemoteOverview> {
+    this.enableAfterSignIn = false
     await this.account.signOut()
-    return this.overview()
+    if (this.deps.relayEnabled()) {
+      this.deps.saveRelay(false)
+      this.stopRelay()
+    }
+    return this.changed()
   }
   relayMacs(): Promise<RemoteRelayMac[]> {
     return this.account.macs()
@@ -453,6 +481,11 @@ export class RemoteService {
    * the relay disconnects the host itself.
    */
   private accountChanged(): void {
+    if (this.enableAfterSignIn && this.account.state().status === 'signed-in') {
+      this.enableAfterSignIn = false
+      this.deps.saveRelay(true)
+      if (this.server.listening()) void this.startRelay()
+    }
     const relay = this.relay
     const current = this.account.loadedSession()
     if (

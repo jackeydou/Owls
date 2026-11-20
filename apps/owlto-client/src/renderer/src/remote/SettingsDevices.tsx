@@ -10,6 +10,7 @@ import {
   formatRemoteAddress,
   parseRelayCode,
   parseRemoteInvite,
+  REMOTE_RELAY_PROVIDERS,
   type RemoteClient,
   type RemoteDevice,
   type RemotePair,
@@ -170,10 +171,17 @@ function RelayStatus({ relay }: { relay: RemoteRelayState }) {
 }
 
 /**
- * The relay account: a host signs in with GitHub once so the relay knows the Mac is the
- * user's. Shows the device code while signing in, and the account's Macs after.
+ * The relay account: a host signs in once, with one of the identity providers, so the relay
+ * knows the Mac is the user's. Turning the relay on asks for it. Shows the device code while signing in, and the account's Macs after.
  */
-function RelayAccountPanel({ account }: { account: RemoteRelayAccount }) {
+function RelayAccountPanel({
+  account,
+  waiting
+}: {
+  account: RemoteRelayAccount
+  /** The switch was turned on while signed out; the relay starts after the sign-in. */
+  waiting: boolean
+}) {
   const { t } = useTranslation()
   const signIn = useRemoteStore((s) => s.relaySignIn)
   const cancel = useRemoteStore((s) => s.relayCancelSignIn)
@@ -203,21 +211,30 @@ function RelayAccountPanel({ account }: { account: RemoteRelayAccount }) {
   if (account.status === 'signed-out')
     return (
       <div className="remote-relay-account">
-        <p>{t('remote.account.signedOutHelp')}</p>
+        <p>{t(waiting ? 'remote.account.signInToEnable' : 'remote.account.signedOutHelp')}</p>
         {account.failure ? (
           <p className="remote-error" role="alert">
             {t(`remote.account.failure.${account.failure}`)}
           </p>
         ) : null}
-        <ActionButton size="sm" onAction={signIn}>
-          {t('remote.account.signIn')}
-        </ActionButton>
+        <div className="remote-relay-providers">
+          {REMOTE_RELAY_PROVIDERS.map((provider) => (
+            <ActionButton key={provider} size="sm" onAction={() => signIn(provider)}>
+              {t(`remote.account.signInWith.${provider}`)}
+            </ActionButton>
+          ))}
+        </div>
       </div>
     )
   return (
     <div className="remote-relay-account">
       <div className="remote-relay-login">
-        <span>{t('remote.account.signedInAs', { login: account.login })}</span>
+        <span>
+          {t('remote.account.signedInAs', {
+            login: account.login,
+            provider: t(`remote.account.provider.${account.provider}`)
+          })}
+        </span>
         <ActionButton size="sm" variant="ghost" onAction={signOut}>
           {t('remote.account.signOut')}
         </ActionButton>
@@ -468,15 +485,18 @@ export function DevicesSettingsPane() {
             detail={
               <>
                 <RelayStatus relay={overview.relay} />
-                {overview.relay.enabled ? (
-                  <RelayAccountPanel account={overview.relay.account} />
+                {overview.relay.enabled || overview.relay.signInToEnable ? (
+                  <RelayAccountPanel
+                    account={overview.relay.account}
+                    waiting={overview.relay.signInToEnable}
+                  />
                 ) : null}
               </>
             }
           >
             <Switch
               id="remote-relay"
-              checked={overview.relay.enabled}
+              checked={overview.relay.enabled || overview.relay.signInToEnable}
               disabled={switching}
               onCheckedChange={(checked) => void toggleRelay(checked)}
             />

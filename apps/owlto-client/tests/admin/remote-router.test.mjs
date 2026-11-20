@@ -194,6 +194,8 @@ function device(t, name, net, overrides = {}) {
     dropItem: dropRelayItem,
     readAttachment: async () => new Uint8Array([1, 2, 3]),
     credentials: memoryCredentials(),
+    // Most tests run a relay without accounts; the account tests turn this back on.
+    relaySignInRequired: false,
     toFailure,
     changed: (overview) => overviews.push(overview),
     remoteEvent: (deviceId, event) => events.push({ deviceId, event }),
@@ -638,30 +640,43 @@ function relayGitHub(githubToken, seen) {
   }
 }
 
-test('a host signs in to the relay once, keeps only the relay session, and signing out cuts it off', async (t) => {
+test('turning the relay on asks for a sign-in, keeps only the relay session, and signing out turns it off', async (t) => {
   const seen = []
   const { url } = await localRelay(t, {
-    verifyGitHub: async (token) => {
+    verifyIdentity: async (provider, token) => {
       seen.push(token)
-      return token === 'gho_relay_0123456789abcdef' ? { id: 7, login: 'yanlin' } : null
+      return provider === 'github' && token === 'gho_relay_0123456789abcdef'
+        ? { id: 7, login: 'yanlin' }
+        : null
     }
   })
   const credentials = memoryCredentials()
   const host = device(t, 'mini', network(), {
     relayUrl: url,
     credentials,
+    relaySignInRequired: true,
     relayHttp: relayGitHub('gho_relay_0123456789abcdef', seen)
   })
   await host.service.setAccess(true)
-  await host.service.setRelay(true)
-  await until(() => host.service.overview().relay.error === 'relay_login')
-  assert.equal(host.service.overview().relay.account.status, 'signed-out')
+  // Signed out, the switch waits for a sign-in: nothing is saved and the relay is not asked.
+  const waiting = await host.service.setRelay(true)
+  assert.equal(waiting.relay.enabled, false)
+  assert.equal(waiting.relay.state, 'off')
+  assert.equal(waiting.relay.signInToEnable, true)
+  assert.equal(waiting.relay.account.status, 'signed-out')
 
-  const pending = await host.service.relaySignIn()
+  const pending = await host.service.relaySignIn('github')
   assert.equal(pending.relay.account.status, 'pending')
+  assert.equal(pending.relay.account.provider, 'github')
   assert.equal(pending.relay.account.userCode, 'WDJB-MJHT')
   await until(() => host.service.overview().relay.state === 'online')
-  assert.deepEqual(host.service.overview().relay.account, { status: 'signed-in', login: 'yanlin' })
+  assert.equal(host.service.overview().relay.enabled, true)
+  assert.equal(host.service.overview().relay.signInToEnable, false)
+  assert.deepEqual(host.service.overview().relay.account, {
+    status: 'signed-in',
+    provider: 'github',
+    login: 'yanlin'
+  })
   // The relay OAuth App asked GitHub, and the relay saw the token once; only the relay's own
   // session is kept, encrypted.
   assert.deepEqual(seen, ['Ov23liMVwICtVSHS13Jr', 'gho_relay_0123456789abcdef'])
@@ -682,18 +697,20 @@ test('a host signs in to the relay once, keeps only the relay session, and signi
   await until(() => host.service.overview().relay.state === 'online')
   assert.equal(seen.length, 2)
 
-  await host.service.relaySignOut()
-  await until(() => host.service.overview().relay.error === 'relay_login')
-  assert.equal(host.service.overview().relay.account.status, 'signed-out')
+  const signedOut = await host.service.relaySignOut()
+  assert.equal(signedOut.relay.enabled, false)
+  assert.equal(signedOut.relay.state, 'off')
+  assert.equal(signedOut.relay.account.status, 'signed-out')
   assert.equal(credentials.rows.get('relay'), undefined)
   await assert.rejects(host.service.relayMacs(), { code: 'remote_relay_login' })
 })
 
 test('removing a Mac from the relay account cuts it off and ends its sign-in', async (t) => {
   const { url } = await localRelay(t, {
-    verifyGitHub: async () => ({ id: 7, login: 'yanlin' })
+    verifyIdentity: async () => ({ id: 7, login: 'yanlin' })
   })
   const signedIn = async (name) => {
+    // The relay switch is already on, as when a stored sign-in ended.
     const mac = device(t, name, network(), {
       relayUrl: url,
       relayHttp: relayGitHub(`gho_${name}_0123456789abcdef`, [])
@@ -701,7 +718,7 @@ test('removing a Mac from the relay account cuts it off and ends its sign-in', a
     await mac.service.setAccess(true)
     // The sign-in may finish before the relay's first, session-less attempt is turned
     // away; that refusal must not undo it.
-    await Promise.all([mac.service.setRelay(true), mac.service.relaySignIn()])
+    await Promise.all([mac.service.setRelay(true), mac.service.relaySignIn('github')])
     await until(() => mac.service.overview().relay.state === 'online')
     assert.equal(mac.service.overview().relay.account.status, 'signed-in')
     return mac

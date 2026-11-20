@@ -6,6 +6,8 @@ import {
   type AccountServices,
   accountOfSession,
   answerAccount,
+  type IdentityProvider,
+  type ProviderIdentity,
   summarizeAccount
 } from './accounts.ts'
 import { ApnsSender } from './apns.ts'
@@ -98,14 +100,19 @@ const ITEM_PREFIX = 'item:'
 
 function accountServices(env: Env): AccountServices {
   return {
-    verifyGitHub,
+    verifyIdentity: (provider, token) => PROVIDERS[provider](token),
     account: (account) => env.RELAY_ACCOUNT.get(env.RELAY_ACCOUNT.idFromName(account)),
     room: (mailbox) => env.RELAY_ROOM.get(env.RELAY_ROOM.idFromName(mailbox))
   }
 }
 
+/** How each identity provider says who a token belongs to. */
+const PROVIDERS: Record<IdentityProvider, (token: string) => Promise<ProviderIdentity | null>> = {
+  github: verifyGitHub
+}
+
 /** Asks GitHub who a token belongs to. The token is used once and never stored. */
-async function verifyGitHub(token: string): Promise<{ id: number; login: string } | null> {
+async function verifyGitHub(token: string): Promise<ProviderIdentity | null> {
   try {
     const response = await fetch('https://api.github.com/user', {
       headers: {
@@ -343,8 +350,13 @@ export class RelayAccount extends DurableObject<Env> {
       }
     })
   }
-  createSession(account: string, login: string, name: string): Promise<string> {
-    return this.book().createSession(account, login, name)
+  createSession(
+    account: string,
+    provider: IdentityProvider,
+    login: string,
+    name: string
+  ): Promise<string> {
+    return this.book().createSession(account, provider, login, name)
   }
   check(session: string): Promise<string | null> {
     return this.book().check(session)

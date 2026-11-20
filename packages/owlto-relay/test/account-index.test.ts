@@ -25,6 +25,7 @@ function sqliteIndex(db: DatabaseSync): IndexDatabase {
 
 const record = (overrides: Partial<AccountRecord> = {}): AccountRecord => ({
   account: 'a'.repeat(64),
+  provider: 'github',
   login: 'yanlin',
   sessions: [
     { hash: 'h1', name: 'Mac mini', createdAt: 1_000, lastUsedAt: 5_000 },
@@ -38,6 +39,7 @@ test('an account summary counts live sessions and Macs, and keeps no secret', ()
   const now = 9_000 + SESSION_IDLE_MS - 1
   assert.deepEqual(summarizeAccount(record(), now), {
     account: 'a'.repeat(64),
+    provider: 'github',
     login: 'yanlin',
     macs: 1,
     sessions: 1,
@@ -58,10 +60,19 @@ test('the account index keeps one row per account and forgets a deleted one', as
   )
   assert.deepEqual(
     sqlite
-      .prepare('SELECT login, macs, sessions, created_at, updated_at FROM accounts')
+      .prepare('SELECT provider, login, macs, sessions, created_at, updated_at FROM accounts')
       .all()
       .map((row) => ({ ...row })),
-    [{ login: 'yanlin-renamed', macs: 0, sessions: 2, created_at: 10_000, updated_at: 20_000 }]
+    [
+      {
+        provider: 'github',
+        login: 'yanlin-renamed',
+        macs: 0,
+        sessions: 2,
+        created_at: 10_000,
+        updated_at: 20_000
+      }
+    ]
   )
   await writeAccountIndex(db, { gone: 'a'.repeat(64) }, 30_000)
   assert.deepEqual({ ...sqlite.prepare('SELECT count(*) AS n FROM accounts').get() }, { n: 0 })

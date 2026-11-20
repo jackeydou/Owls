@@ -16,11 +16,14 @@ the relay sees ciphertext, connection times, and sizes, never content.
 - A client connects at `/v1/client/<mailbox>` with its ticket. The relay asks the host for a
   pipe, the host opens `/v1/pipe/<mailbox>`, and from then on binary messages pass between
   the two sockets unchanged. Clients without a valid ticket never reach the host.
-- **Accounts.** A Mac signs in once: it gets a GitHub token through Owlto's own no-scope
-  OAuth App ("Owlto Relay", device flow), and posts it to `POST /v1/account/login`. The relay
-  asks GitHub who it is, throws the token away, and returns a relay session
-  `s1.<account>.<random>` (account = `sha256("github:" + id)`; only a hash of the session is
-  stored in `RelayAccount`). Every host hello carries the session, so signing out
+- **Accounts.** A Mac signs in once, when the user turns the relay on, with an identity
+  provider (only GitHub so far: a token from Owlto's own no-scope OAuth App "Owlto Relay",
+  device flow). It posts `{ provider, token, name }` to `POST /v1/account/login`; the relay
+  asks the provider who it is, throws the token away, and returns a relay session
+  `s1.<account>.<random>` (account = `sha256("<provider>:" + id)`, so each provider has its
+  own accounts; only a hash of the session is stored in `RelayAccount`). A new provider is
+  one entry in `IDENTITY_PROVIDERS` (`accounts.ts`) and `PROVIDERS` (`worker.ts`), and one
+  in the app's `REMOTE_RELAY_PROVIDERS`. Every host hello carries the session, so signing out
   (`DELETE /v1/account/session`) or removing a Mac (`DELETE /v1/account/mailbox/<id>`) cuts it
   off at once, and `GET /v1/account` lists the account's Macs. One account owns at most 5
   mailboxes and 20 sessions; a session idle for 180 days stops working. Clients never sign
@@ -52,7 +55,7 @@ logic, with two adapters:
 Each account's record lives in its `RelayAccount` Durable Object, which only answers for
 that one account. So accounts can be counted and found, every change also writes one row
 to the D1 database `owlto-relay-accounts` (`owlto-relay-accounts-debug` for the debug
-relay): `account` (the hash), `login`, `macs`, `sessions`, `created_at`, `last_seen_at`
+relay): `account` (the hash), `provider`, `login`, `macs`, `sessions`, `created_at`, `last_seen_at`
 (a day stale at most), `updated_at`. No session, hash of one, or mailbox id goes there.
 The relay never reads it back, and a failed write is retried by the next change.
 
@@ -63,7 +66,7 @@ The relay never reads it back, and a failed write is retried by the next change.
 pnpm exec wrangler d1 execute owlto-relay-accounts --remote \
   --command "SELECT count(*), sum(macs) FROM accounts"
 pnpm exec wrangler d1 execute owlto-relay-accounts --remote \
-  --command "SELECT * FROM accounts WHERE login = 'octocat'"
+  --command "SELECT * FROM accounts WHERE provider = 'github' AND login = 'octocat'"
 ```
 
 ## Commands

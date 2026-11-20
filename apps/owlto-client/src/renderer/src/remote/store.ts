@@ -4,7 +4,8 @@ import type {
   RemoteOverview,
   RemotePair,
   RemotePaired,
-  RemoteRelayMac
+  RemoteRelayMac,
+  RemoteRelayProvider
 } from '../../../shared/remote'
 import { UIError, uiFailure } from '../app/failures'
 import { useAppStore } from '../app/store'
@@ -25,7 +26,7 @@ type RemoteState = {
   /** Resolves to the paired device with its safety code, or the failure for the form to show. */
   pair(input: RemotePair): Promise<{ paired: RemotePaired } | { failure: Failure }>
   removeDevice(deviceId: string): Promise<void>
-  relaySignIn(): Promise<void>
+  relaySignIn(provider: RemoteRelayProvider): Promise<void>
   relayCancelSignIn(): Promise<void>
   relaySignOut(): Promise<void>
   /** The Macs on this relay account; null until loaded. */
@@ -74,7 +75,7 @@ export const useRemoteStore = create<RemoteState>((set, get) => {
       if (viewingDevice() === deviceId) await useAppStore.getState().viewDevice(null)
       await update(() => window.owlto.remote.removeDevice(deviceId))
     },
-    relaySignIn: () => update(() => window.owlto.remote.relaySignIn()),
+    relaySignIn: (provider) => update(() => window.owlto.remote.relaySignIn(provider)),
     relayCancelSignIn: () => update(() => window.owlto.remote.relayCancelSignIn()),
     relaySignOut: async () => {
       await update(() => window.owlto.remote.relaySignOut())

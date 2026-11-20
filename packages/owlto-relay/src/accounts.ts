@@ -1,19 +1,20 @@
 import { MAILBOX_PATTERN, MAX_MAILBOXES_PER_ACCOUNT, sha256Hex } from './protocol.ts'
 
 /**
- * Relay accounts. A Mac signs in once with GitHub (through Owlto's own no-scope OAuth app, so
- * the token can only read a public profile); the relay checks who it is, throws the GitHub
- * token away, and hands back a session of its own:
+ * Relay accounts. A Mac signs in once with an identity provider (only GitHub for now, through
+ * Owlto's own no-scope OAuth app, so the token can only read a public profile); the relay
+ * checks who it is, throws the provider's token away, and hands back a session of its own:
  *
- *   s1.<account>.<random>      account = sha256("github:" + GitHub user id), hex
+ *   s1.<account>.<random>      account = sha256("<provider>:" + the provider's user id), hex
  *
+ * The provider is part of the account, so the same person on two providers has two accounts.
  * The account part routes the session to its account record without a lookup; only a SHA-256
  * of the whole session is stored. A host presents its session on every connect, so signing
  * out, revoking a session, or removing a Mac on the account cuts that Mac off at once.
  *
  * HTTP, all JSON:
- *   POST   /v1/account/login            { github, name }  → { session, login }
- *   GET    /v1/account                  (Bearer session)  → { login, mailboxes: [{ mailbox, name,
+ *   POST   /v1/account/login            { provider, token, name } → { session, provider, login }
+ *   GET    /v1/account                  (Bearer session)  → { provider, login, mailboxes: [{ mailbox, name,
  *                                                        claimedAt, thisMac, online, lastHostAt }] }
  *   DELETE /v1/account/session          (Bearer session)  → {}   (sign out this Mac)
  *   DELETE /v1/account/mailbox/<id>     (Bearer session)  → {}   (remove a Mac and its session)
@@ -26,14 +27,28 @@ export const MAX_SESSIONS_PER_ACCOUNT = 20
 export const SESSION_IDLE_MS = 180 * 24 * 60 * 60_000
 /** `lastUsedAt` is written at most this often, so a reconnecting host costs no write. */
 const TOUCH_EVERY_MS = 24 * 60 * 60_000
-const GITHUB_TOKEN_PATTERN = /^[A-Za-z0-9_.-]{20,255}$/
+const PROVIDER_TOKEN_PATTERN = /^[A-Za-z0-9_.-]{20,2048}$/
+
+/** The identity providers a Mac can sign in to the relay with. */
+export const IDENTITY_PROVIDERS = ['github'] as const
+export type IdentityProvider = (typeof IDENTITY_PROVIDERS)[number]
+export function isIdentityProvider(value: unknown): value is IdentityProvider {
+  return (IDENTITY_PROVIDERS as readonly unknown[]).includes(value)
+}
+/** Who a provider says a token belongs to: its stable user id and a name to show. */
+export type ProviderIdentity = { id: string | number; login: string }
 
 export type SessionRecord = { hash: string; name: string; createdAt: number; lastUsedAt: number }
 export type OwnedMailbox = { mailbox: string; session: string; claimedAt: number }
-export type AccountInfo = { login: string; mailboxes: (OwnedMailbox & { name: string | null })[] }
+export type AccountInfo = {
+  provider: IdentityProvider
+  login: string
+  mailboxes: (OwnedMailbox & { name: string | null })[]
+}
 export type AccountRecord = {
-  /** `sha256("github:" + id)`, the record's own key, kept so a copy can name it. */
+  /** `sha256("<provider>:" + id)`, the record's own key, kept so a copy can name it. */
   account: string
+  provider: IdentityProvider
   login: string
   sessions: SessionRecord[]
   mailboxes: OwnedMailbox[]
@@ -45,6 +60,7 @@ export type AccountRecord = {
  */
 export type AccountSummary = {
   account: string
+  provider: IdentityProvider
   login: string
   macs: number
   sessions: number
@@ -56,6 +72,7 @@ export function summarizeAccount(record: AccountRecord, now: number): AccountSum
   const live = record.sessions.filter((entry) => now - entry.lastUsedAt < SESSION_IDLE_MS)
   return {
     account: record.account,
+    provider: record.provider,
     login: record.login,
     macs: record.mailboxes.length,
     sessions: live.length,
@@ -85,16 +102,27 @@ export class AccountBook {
     this.io = io
   }
 
-  async createSession(account: string, login: string, name: string): Promise<string> {
+  async createSession(
+    account: string,
+    provider: IdentityProvider,
+    login: string,
+    name: string
+  ): Promise<string> {
     const session = `s1.${account}.${this.io.randomToken()}`
     const now = this.io.now()
-    const record = (await this.io.load()) ?? { account, login, sessions: [], mailboxes: [] }
+    const record = (await this.io.load()) ?? {
+      account,
+      provider,
+      login,
+      sessions: [],
+      mailboxes: []
+    }
     const sessions = this.live(record.sessions)
     // The oldest session goes when an account signs in more often than it signs out.
     while (sessions.length >= MAX_SESSIONS_PER_ACCOUNT) sessions.shift()
     sessions.push({ hash: await sha256Hex(session), name, createdAt: now, lastUsedAt: now })
     // Mailboxes stay with the account across sessions; a host only needs a live session.
-    await this.io.save({ account, login, sessions, mailboxes: record.mailboxes })
+    await this.io.save({ account, provider, login, sessions, mailboxes: record.mailboxes })
     return session
   }
 
@@ -163,6 +191,7 @@ export class AccountBook {
     if (!record) return null
     const names = new Map(this.live(record.sessions).map((entry) => [entry.hash, entry.name]))
     return {
+      provider: record.provider,
       login: record.login,
       mailboxes: record.mailboxes.map((entry) => ({
         ...entry,
@@ -179,11 +208,16 @@ export class AccountBook {
 
 /** What the account routes need from their platform. */
 export interface AccountServices {
-  /** Asks GitHub who a token belongs to; null when it does not check out. */
-  verifyGitHub(token: string): Promise<{ id: number; login: string } | null>
+  /** Asks the provider who a token belongs to; null when it does not check out. */
+  verifyIdentity(provider: IdentityProvider, token: string): Promise<ProviderIdentity | null>
   /** The account record keyed by `account` (a hash). */
   account(account: string): {
-    createSession(account: string, login: string, name: string): Promise<string>
+    createSession(
+      account: string,
+      provider: IdentityProvider,
+      login: string,
+      name: string
+    ): Promise<string>
     check(session: string): Promise<string | null>
     revoke(session: string): Promise<string[]>
     revokeHash(hash: string): Promise<string[]>
@@ -216,16 +250,23 @@ export async function answerAccount(
   services: AccountServices
 ): Promise<AccountReply> {
   if (method === 'POST' && path === '/login') {
-    const input = body as { github?: unknown; name?: unknown } | null
-    const github = input?.github
-    if (typeof github !== 'string' || !GITHUB_TOKEN_PATTERN.test(github))
+    const input = body as { provider?: unknown; token?: unknown; name?: unknown } | null
+    const provider = input?.provider
+    const token = input?.token
+    if (
+      !isIdentityProvider(provider) ||
+      typeof token !== 'string' ||
+      !PROVIDER_TOKEN_PATTERN.test(token)
+    )
       return reply(400, { error: 'bad_request' })
     const name = typeof input?.name === 'string' ? input.name.slice(0, 120) : ''
-    const user = await services.verifyGitHub(github)
+    const user = await services.verifyIdentity(provider, token)
     if (!user) return reply(401, { error: 'login' })
-    const account = await sha256Hex(`github:${user.id}`)
-    const session = await services.account(account).createSession(account, user.login, name)
-    return reply(200, { session, login: user.login })
+    const account = await sha256Hex(`${provider}:${user.id}`)
+    const session = await services
+      .account(account)
+      .createSession(account, provider, user.login, name)
+    return reply(200, { session, provider, login: user.login })
   }
   const session = /^Bearer (\S+)$/.exec(auth ?? '')?.[1] ?? ''
   const account = accountOfSession(session)
@@ -250,7 +291,7 @@ export async function answerAccount(
         }
       })
     )
-    return reply(200, { login: info.login, mailboxes })
+    return reply(200, { provider: info.provider, login: info.login, mailboxes })
   }
   if (method === 'DELETE' && path === '/session') {
     for (const mailbox of await book.revoke(session)) await services.room(mailbox).evict()

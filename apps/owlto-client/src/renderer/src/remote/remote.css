@@ -232,3 +232,8 @@
 .remote-relay-account .remote-device-list {
   align-self: stretch;
 }
+.remote-relay-providers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
