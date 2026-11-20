@@ -359,10 +359,19 @@
 }
 .remote-network {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-sm);
+}
+.remote-network select {
+  flex: 1;
+  min-width: 0;
+}
+.remote-network-help {
+  flex-basis: 100%;
+  font-size: var(--owl-text-xs);
 }
 .remote-cant-scan {
   display: flex;

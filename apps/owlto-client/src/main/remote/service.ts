@@ -7,6 +7,7 @@ import {
   REMOTE_PORT,
   type RemoteEvent,
   type RemoteMethod,
+  type RemoteNetworkAddress,
   type RemoteOverview,
   type RemotePaired,
   type RemoteRelayMac,
@@ -69,7 +70,7 @@ export type RemoteServiceDeps = {
   remoteEvent: (deviceId: string, event: RemoteEvent) => void
   port?: number
   deviceName?: () => string
-  addresses?: () => string[]
+  addresses?: () => RemoteNetworkAddress[]
   now?: () => Date
 }
 
@@ -77,9 +78,9 @@ export type RemoteServiceDeps = {
 export function localDeviceName(): string {
   return hostname().replace(/\.local$/i, '') || 'Mac'
 }
-/** IPv4 addresses another device can reach this Mac at, sorted. */
-export function localAddresses(): string[] {
-  return usableAddresses(networkInterfaces())
+/** This Mac's IPv4 addresses another device might reach it at, recommended ones first. */
+export function localAddresses(): RemoteNetworkAddress[] {
+  return listAddresses(networkInterfaces())
 }
 
 /** Wi-Fi and Ethernet ports: `en*` on macOS, `eth*` / `wl*` / `enp*` on Linux. */
@@ -91,24 +92,28 @@ function isTailscale(address: string): boolean {
 }
 
 /**
- * The non-loopback IPv4 addresses on Wi-Fi, Ethernet, and Tailscale. Bridges and virtual
- * interfaces (Docker, VM hosts, VPNs other than Tailscale) are left out, since another device
- * cannot reach them, unless nothing else is up.
+ * The non-loopback IPv4 addresses, Wi-Fi, Ethernet, and Tailscale first. Bridges and other
+ * virtual interfaces (Docker, VM hosts, VPNs other than Tailscale) usually cannot be reached
+ * from another device, but stay in the list so people can pick one when the first fails.
  */
-export function usableAddresses(
+export function listAddresses(
   interfaces: Partial<
     Record<string, { address: string; family: string | number; internal: boolean }[]>
   >
-): string[] {
-  const all = new Set<string>()
-  const usable = new Set<string>()
+): RemoteNetworkAddress[] {
+  const found = new Map<string, RemoteNetworkAddress>()
   for (const [name, list] of Object.entries(interfaces))
     for (const entry of list ?? []) {
       if ((entry.family !== 'IPv4' && entry.family !== 4) || entry.internal) continue
-      all.add(entry.address)
-      if (PHYSICAL_INTERFACE.test(name) || isTailscale(entry.address)) usable.add(entry.address)
+      if (found.has(entry.address)) continue
+      const recommended = PHYSICAL_INTERFACE.test(name) || isTailscale(entry.address)
+      found.set(entry.address, { host: entry.address, interface: name, recommended })
     }
-  return [...(usable.size ? usable : all)].sort()
+  return [...found.values()].sort(
+    (a, b) =>
+      Number(b.recommended) - Number(a.recommended) ||
+      a.host.localeCompare(b.host, 'en', { numeric: true })
+  )
 }
 
 /**

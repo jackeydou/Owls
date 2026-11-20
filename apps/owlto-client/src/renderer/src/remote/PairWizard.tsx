@@ -230,10 +230,14 @@ function PairStep({
   const [address, setAddress] = useState<string | null>(null)
   const { pairing, relay, justPaired } = overview
   const now = useNow(pairing !== null)
-  const addresses = overview.addresses.map((host) =>
-    formatRemoteAddress({ host, port: overview.port })
-  )
-  const shownAddress = address && addresses.includes(address) ? address : (addresses[0] ?? null)
+  const addresses = overview.addresses.map((each) => ({
+    ...each,
+    value: formatRemoteAddress({ host: each.host, port: overview.port })
+  }))
+  const shownAddress =
+    addresses.find((each) => each.value === address)?.value ?? addresses[0]?.value ?? null
+  const recommended = addresses.filter((each) => each.recommended)
+  const others = addresses.filter((each) => !each.recommended)
 
   // Showing this step means pairing a phone now: turn access on and show a code.
   const started = useRef(false)
@@ -351,7 +355,7 @@ function PairStep({
             <RouteChoice route={route} value="relay" icon={<GlobeIcon size={18} />} onPick={pick} />
             <RouteChoice route={route} value="lan" icon={<NetworkIcon size={18} />} onPick={pick} />
           </div>
-          {route === 'lan' && addresses.length > 1 ? (
+          {route === 'lan' && addresses.length > 0 ? (
             <div className="remote-network">
               <label htmlFor="remote-network">{t('remote.wizard.network')}</label>
               <Select
@@ -359,12 +363,26 @@ function PairStep({
                 value={shownAddress ?? ''}
                 onChange={(event) => setAddress(event.target.value)}
               >
-                {addresses.map((each) => (
-                  <option key={each} value={each}>
-                    {each}
-                  </option>
-                ))}
+                {recommended.length > 0 ? (
+                  <optgroup label={t('remote.wizard.networkRecommended')}>
+                    {recommended.map((each) => (
+                      <option key={each.value} value={each.value}>
+                        {`${each.value} · ${each.interface}`}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {others.length > 0 ? (
+                  <optgroup label={t('remote.wizard.networkOther')}>
+                    {others.map((each) => (
+                      <option key={each.value} value={each.value}>
+                        {`${each.value} · ${each.interface}`}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
               </Select>
+              <span className="remote-network-help">{t('remote.wizard.networkHelp')}</span>
             </div>
           ) : null}
           {showsAccount ? relayAccount : null}

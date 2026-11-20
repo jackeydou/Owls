@@ -237,6 +237,15 @@ export type RemoteRelayMac = {
   lastHostAt: number | null
 }
 export const relayMailboxSchema = z.string().regex(/^[A-Za-z0-9_-]{22,64}$/)
+/** One of this Mac's network addresses, for the same-network QR code. */
+export type RemoteNetworkAddress = {
+  host: string
+  /** The network interface it is on, such as `en0` or `bridge100`. */
+  interface: string
+  /** On Wi-Fi, Ethernet, or Tailscale; bridges and other virtual interfaces are not. */
+  recommended: boolean
+}
+
 export type RemoteOverview = {
   deviceId: string
   deviceName: string
@@ -245,8 +254,8 @@ export type RemoteOverview = {
   /** Why listening failed, such as the port being taken; null otherwise. */
   listenError: string | null
   port: number
-  /** This Mac's network addresses another device can use. */
-  addresses: string[]
+  /** This Mac's IPv4 addresses, recommended ones (Wi-Fi, Ethernet, Tailscale) first. */
+  addresses: RemoteNetworkAddress[]
   pairing: RemotePairing | null
   justPaired: RemoteJustPaired | null
   /** Whether this Mac stays awake on power while remote access is on, and does now. */
