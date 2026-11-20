@@ -6,6 +6,7 @@ struct ThreadView: View {
   let routerId: String
   @Environment(RemoteHub.self) private var hub
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.leaveThread) private var leaveThread
   @State private var draft = ""
   @State private var error: String?
   @State private var loading = true
@@ -16,47 +17,48 @@ struct ThreadView: View {
 
   var body: some View {
     let entries = TimelineEntry.build(store?.threadItems[routerId] ?? [])
-    VStack(spacing: 0) {
-      ScrollViewReader { proxy in
-        ScrollView {
-          LazyVStack(alignment: .leading, spacing: 18) {
-            if loading && entries.isEmpty {
-              ProgressView().frame(maxWidth: .infinity).padding(.top, 40)
-            } else if entries.isEmpty {
-              EmptyState(title: "Say what you need", message: "The Router splits the work and sends workers to your projects. Their results come back here.")
-            }
-            ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-              row(entry, follows: index > 0 && entries[index - 1].continuesRouterTurn)
-            }
-            if router?.isRunning == true {
-              workingRow
-            }
-            Color.clear.frame(height: 1).id("bottom")
+    ScrollViewReader { proxy in
+      ScrollView {
+        LazyVStack(alignment: .leading, spacing: 18) {
+          if loading && entries.isEmpty {
+            ProgressView().frame(maxWidth: .infinity).padding(.top, 40)
+          } else if entries.isEmpty {
+            EmptyState(title: "Say what you need", message: "The Router splits the work and sends workers to your projects. Their results come back here.")
           }
-          .padding(.horizontal, 16)
-          .padding(.vertical, 16)
+          ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+            row(entry, follows: index > 0 && entries[index - 1].continuesRouterTurn)
+          }
+          if router?.isRunning == true {
+            workingRow
+          }
+          Color.clear.frame(height: 1).id("bottom")
         }
-        .onChange(of: entries.count) { proxy.scrollTo("bottom", anchor: .bottom) }
-        .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
       }
-      banners
-      Composer(text: $draft, placeholder: "Message the Router…", sendLabel: "Send to the Router", send: send, onError: { error = describe($0) })
+      .onChange(of: entries.count) { proxy.scrollTo("bottom", anchor: .bottom) }
+      .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
+    }
+    // The composer is content, not a toolbar: it stays horizontal at the bottom of the content
+    // area even where the system moves the bars into a vertical column.
+    .bottomBar {
+      VStack(spacing: 0) {
+        banners
+        Composer(text: $draft, placeholder: "Message the Router…", sendLabel: "Send to the Router", send: send, onError: { error = describe($0) })
+      }
     }
     .background(Theme.background)
     .navigationTitle(router?.title ?? String(localized: "New thread"))
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
+      // A plain button rather than a "More" menu: the system folds it into its own overflow
+      // menu when a vertical bar runs out of room.
       ToolbarItem(placement: .topBarTrailing) {
-        Menu {
-          Button {
-            archive()
-          } label: {
-            Label("Archive thread", systemImage: "archivebox")
-          }
+        Button {
+          archive()
         } label: {
-          Image(systemName: "ellipsis.circle")
+          Label("Archive thread", systemImage: "archivebox")
         }
-        .accessibilityLabel(Text("More"))
       }
     }
     .task(id: routerId) {
@@ -172,7 +174,7 @@ struct ThreadView: View {
     Task {
       do {
         try await hub.perform(hostId, "archiveThread", ["routerId": routerId, "archived": true])
-        dismiss()
+        if let leaveThread { leaveThread() } else { dismiss() }
       } catch {
         self.error = describe(error)
       }
