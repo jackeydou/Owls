@@ -19,7 +19,7 @@ import type {
   ThreadItem,
   TurnInput
 } from '../../shared/app.js'
-import type { Attachment, StageAttachment } from '../../shared/attachments.js'
+import type { Attachment, AttachmentPreview, StageAttachment } from '../../shared/attachments.js'
 import type { Automation, AutomationEnable, AutomationSave } from '../../shared/automations.js'
 import type {
   Board,
@@ -247,7 +247,8 @@ export class OwltoHost {
       send: (input) => this.send(input),
       steer: (sessionId, input) => this.steer(sessionId, input),
       interrupt: (sessionId) => this.interrupt(sessionId),
-      respond: (input) => this.respond(input)
+      respond: (input) => this.respond(input),
+      attachmentFiles: (list) => this.attachments.files(list)
     }
   }
   snapshot(): AppSnapshot {
@@ -661,7 +662,7 @@ export class OwltoHost {
     const [file] = await this.attachments.files([attachment])
     return readFile(file.path)
   }
-  attachmentPreview(attachment: Attachment): Promise<string | null> {
+  attachmentPreview(attachment: Attachment): Promise<AttachmentPreview> {
     return this.attachments.preview(attachment)
   }
   /** The path of a sent attachment, for opening it; refuses one that is gone. */

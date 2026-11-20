@@ -355,6 +355,54 @@ test('files sent to a worker reach its turn, the thread, and the Router', async 
   service.close()
 })
 
+test('files sent to the Router reach its batch as files, and wait while a batch runs', async () => {
+  const { engine, factory } = scriptedEngine()
+  const { service, router, current } = harness([], {
+    factory,
+    projectId: null,
+    host: { missing: ['gone.txt'] }
+  })
+  const shot = { id: crypto.randomUUID(), name: 'shot.png', mimeType: 'image/png', size: 4 }
+  const gone = { id: crypto.randomUUID(), name: 'gone.txt', mimeType: 'text/plain', size: 1 }
+  const commandId = crypto.randomUUID()
+  engine.hold = true
+  await service.send({
+    routerId: router.id,
+    commandId,
+    text: '',
+    cardIds: [],
+    attachments: [shot, gone]
+  })
+  await waitFor(() => engine.release, 'held batch')
+  // Files alone name the thread; the thread shows every file the message carried.
+  assert.equal(current().title, 'shot.png, gone.txt')
+  assert.deepEqual(current().items.find((i) => i.id === commandId).attachments, [shot, gone])
+  // A file deleted since it was sent is left out instead of failing the batch.
+  assert.deepEqual(
+    engine.runs[0].attachments.map((a) => a.path),
+    [`/tmp/owlto-attachments/${shot.id}/shot.png`]
+  )
+  const doc = { id: crypto.randomUUID(), name: 'spec.md', mimeType: 'text/markdown', size: 9 }
+  await service.send({
+    routerId: router.id,
+    commandId: crypto.randomUUID(),
+    text: 'And this one',
+    cardIds: [],
+    attachments: [doc]
+  })
+  // A steered message cannot carry files, so it waits for the next batch.
+  assert.deepEqual(engine.steered, [])
+  engine.hold = false
+  engine.release()
+  await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'second batch')
+  assert.match(engine.runs[1].text, /And this one/)
+  assert.deepEqual(
+    engine.runs[1].attachments.map((a) => a.name),
+    ['spec.md']
+  )
+  service.close()
+})
+
 test('a directed message arriving during a batch does not start another one', async () => {
   const { engine, factory } = scriptedEngine()
   const { service, router, current } = harness([], { factory })

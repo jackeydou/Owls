@@ -100,26 +100,273 @@
 .draft-attachments > li[data-state="failed"] .draft-attachment-remove {
   opacity: 1;
 }
-/* A sent file opens on click; hover and press show it is a button. */
+/* A sent file, and any image, opens on click; hover and press show it is a button. */
 .message-attachments {
   justify-content: flex-end;
   padding: 0;
 }
-.message-attachments button.draft-attachment-body {
+button.draft-attachment-body {
   cursor: pointer;
   transition:
     border-color 120ms ease-out,
     transform 80ms ease-out;
 }
-.message-attachments button.draft-attachment-body:hover {
+button.draft-attachment-body:hover {
   border-color: var(--color-muted-foreground);
 }
-.message-attachments button.draft-attachment-body:active {
+button.draft-attachment-body:active {
   transform: scale(0.97);
 }
+
+/* Preview tiles (the Router page): a 72px square image, or a file card as tall
+   that names its type and shows its first lines. */
+.draft-attachments[data-size="preview"] .draft-attachment-body {
+  height: 72px;
+  max-width: none;
+}
+.draft-attachments[data-size="preview"] > li[data-kind="image"] .draft-attachment-body {
+  width: 72px;
+}
+.draft-attachments[data-size="preview"] > li[data-kind="file"] .draft-attachment-body {
+  width: 184px;
+  min-width: 0;
+  padding: 0;
+  align-items: stretch;
+}
+.draft-attachment-file {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding: 7px 10px;
+}
+.draft-attachment-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.draft-attachment-type {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--owl-radius-xs);
+  background: var(--color-sidebar-active);
+  color: var(--color-muted-foreground);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.draft-attachment-name {
+  overflow: hidden;
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.draft-attachment-excerpt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+}
+/* Code reads best unwrapped: each line keeps its indent and ends in an ellipsis. */
+.draft-attachment-excerpt > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+.draft-attachment-meta {
+  margin-top: auto;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+}
+/* In the thread, a message's files lead it, left-aligned like its text. */
+.router-row .message-attachments {
+  justify-content: flex-start;
+  padding: 2px 0 8px;
+}
+.router-editor .draft-attachments {
+  padding-top: 2px;
+}
+.router-editor-error {
+  margin: 6px 0 0;
+  color: var(--owl-bad);
+  font-size: var(--owl-text-2xs);
+}
+
+/* Files dragged over the Router page: a dashed drop target over the conversation. */
+.file-drop-overlay {
+  position: absolute;
+  inset: 8px;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--owl-radius-lg);
+  background: color-mix(in srgb, var(--color-background) 82%, transparent);
+  pointer-events: none;
+  -webkit-app-region: no-drag;
+  animation: file-drop-in 120ms ease-out;
+}
+.file-drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-lg);
+  background: var(--color-card);
+  box-shadow: var(--owl-float-shadow, 0 8px 24px rgb(0 0 0 / 0.08));
+  color: var(--color-foreground);
+  text-align: center;
+}
+.file-drop-card strong {
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+}
+.file-drop-card > span:last-child {
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.file-drop-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 2px;
+  border-radius: var(--owl-radius-md);
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+@keyframes file-drop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The image viewer: the picture as large as the window allows, its name above. */
+.image-viewer.image-viewer {
+  width: auto;
+  max-width: min(1100px, calc(100vw - 48px));
+  padding: 0;
+  overflow: hidden;
+}
+.image-viewer::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+.image-viewer-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 280px;
+  padding: 6px 6px 6px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.image-viewer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.image-viewer-count {
+  margin-right: 6px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+.image-viewer-stage {
+  position: relative;
+  outline: none;
+  display: grid;
+  place-items: center;
+  background: var(--color-card-muted);
+}
+.image-viewer-stage > img {
+  display: block;
+  max-width: min(1100px, calc(100vw - 48px));
+  max-height: calc(100vh - 140px);
+  object-fit: contain;
+}
+.image-viewer-step.image-viewer-step {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  background: var(--color-card-elevated);
+}
+.image-viewer-step[data-side="previous"] {
+  left: 10px;
+}
+.image-viewer-step[data-side="next"] {
+  right: 10px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .draft-attachment-remove.draft-attachment-remove,
-  .message-attachments button.draft-attachment-body {
+  button.draft-attachment-body {
     transition: none;
   }
+  .file-drop-overlay {
+    animation: none;
+  }
+}
+
+/* Doodle skin: tiles get ink outlines and a hard shadow, the drop target a thick dashed ink line. */
+html[data-skin="doodle"] .draft-attachment-body {
+  border: var(--doodle-border-thin);
+  background: var(--doodle-card);
+  box-shadow: var(--doodle-shadow-sm);
+}
+html[data-skin="doodle"] button.draft-attachment-body:hover {
+  border-color: var(--doodle-line);
+  transform: var(--doodle-lift);
+}
+html[data-skin="doodle"] button.draft-attachment-body:active {
+  box-shadow: none;
+  transform: var(--doodle-press);
+}
+html[data-skin="doodle"] .draft-attachment-type {
+  background: var(--doodle-amber);
+  color: var(--doodle-ink);
+}
+html[data-skin="doodle"] .draft-attachments > li[data-state="failed"] .draft-attachment-body {
+  border-color: var(--owl-bad);
+}
+html[data-skin="doodle"] .file-drop-overlay {
+  border: 3px dashed var(--doodle-line);
+  background: color-mix(in srgb, var(--doodle-bg) 85%, transparent);
+}
+html[data-skin="doodle"] .file-drop-card {
+  border: var(--doodle-border);
+  box-shadow: var(--doodle-shadow);
+}
+html[data-skin="doodle"] .file-drop-card strong {
+  font-family: var(--doodle-display);
+  font-size: var(--owl-text-base);
+  font-style: italic;
+  font-weight: 700;
+}
+html[data-skin="doodle"] .file-drop-icon {
+  border: var(--doodle-border-thin);
+  background: var(--doodle-amber);
+  color: var(--doodle-ink);
+}
+html[data-skin="doodle"] .image-viewer {
+  border: var(--doodle-border);
+  box-shadow: var(--doodle-shadow-lg);
+}
+html[data-skin="doodle"] .image-viewer-head {
+  border-bottom: var(--doodle-border);
 }

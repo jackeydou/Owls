@@ -162,7 +162,18 @@ function DirectedMessage({ item }: { item: SessionItem }) {
           <WorkerLink worker={worker} />
         </div>
       ) : null}
-      {item.attachments?.length ? <MessageAttachments attachments={item.attachments} /> : null}
+      {item.attachments?.length ? (
+        <MessageAttachments attachments={item.attachments} size="preview" />
+      ) : null}
+      {item.text ? <div className="owlto-user-message">{item.text}</div> : null}
+    </>
+  )
+}
+/** A message to the Router with files: the files above the text, as in the editor. */
+function UserMessage({ item }: { item: SessionItem }) {
+  return (
+    <>
+      <MessageAttachments attachments={item.attachments ?? []} size="preview" />
       {item.text ? <div className="owlto-user-message">{item.text}</div> : null}
     </>
   )
@@ -354,6 +365,8 @@ export function RouterTimeline({
                         <GitHubActivity item={entry.item} />
                       ) : entry.item.kind === 'user' && entry.item.workerId ? (
                         <DirectedMessage item={entry.item} />
+                      ) : entry.item.kind === 'user' && entry.item.attachments?.length ? (
+                        <UserMessage item={entry.item} />
                       ) : (
                         <ConversationItem
                           item={entry.item}

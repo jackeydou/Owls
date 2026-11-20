@@ -31,13 +31,29 @@ test('the store keeps a copy, finds it again, and refuses a missing file', async
     const [file] = await store.files([image])
     assert.equal(file.path, join(root, image.id, 'shot.png'))
     assert.deepEqual(readFileSync(file.path), Buffer.from(png))
-    assert.equal(
-      await store.preview(image),
-      `data:image/png;base64,${Buffer.from(png).toString('base64')}`
-    )
-    const text = await store.stage({ name: 'notes.txt', mimeType: '', data: new Uint8Array([104]) })
+    assert.deepEqual(await store.preview(image), {
+      kind: 'image',
+      src: `data:image/png;base64,${Buffer.from(png).toString('base64')}`
+    })
+    const text = await store.stage({
+      name: 'notes.txt',
+      mimeType: '',
+      data: new TextEncoder().encode('\n# Notes\n\tfirst\n\nsecond\nthird\nfourth\nfifth')
+    })
     assert.equal(text.mimeType, 'application/octet-stream')
-    assert.equal(await store.preview(text), null)
+    // The name says text, so the thumbnail shows its first non-empty lines.
+    assert.deepEqual(await store.preview(text), {
+      kind: 'text',
+      excerpt: '# Notes\n  first\nsecond\nthird'
+    })
+    const binary = await store.stage({
+      name: 'data.json',
+      mimeType: 'application/json',
+      data: new Uint8Array([0, 1, 2])
+    })
+    assert.equal(await store.preview(binary), null)
+    const pdf = await store.stage({ name: 'a.pdf', mimeType: 'application/pdf', data: png })
+    assert.equal(await store.preview(pdf), null)
     await assert.rejects(
       store.files([{ ...image, id: crypto.randomUUID() }]),
       (error) => error.code === 'invalid_request'

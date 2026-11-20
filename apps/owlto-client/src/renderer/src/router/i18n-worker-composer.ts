@@ -22,7 +22,16 @@ export const workerComposerEn = {
   'worker.working': '{{agent}} is working',
   'workerComposer.removed': 'This worker was removed, so it cannot take messages.',
   'workerComposer.open': 'Open {{name}}',
-  'workerComposer.you': 'You'
+  'workerComposer.you': 'You',
+  'attachments.view': 'View {{name}}',
+  'attachments.dropTitle': 'Drop files to attach them',
+  'attachments.dropHint': 'They go to the Router with your next message.',
+  'imageViewer.label': 'Image viewer: {{name}}',
+  'imageViewer.count': '{{index}} of {{total}}',
+  'imageViewer.previous': 'Previous image',
+  'imageViewer.next': 'Next image',
+  'imageViewer.open': 'Open in default app',
+  'imageViewer.close': 'Close'
 }
 
 export const workerComposerZh: Record<keyof typeof workerComposerEn, string> = {
@@ -48,5 +57,14 @@ export const workerComposerZh: Record<keyof typeof workerComposerEn, string> = {
   'worker.working': '{{agent}} 正在工作',
   'workerComposer.removed': '这个 Worker 已移除，无法再接收消息。',
   'workerComposer.open': '打开 {{name}}',
-  'workerComposer.you': '你'
+  'workerComposer.you': '你',
+  'attachments.view': '查看 {{name}}',
+  'attachments.dropTitle': '松开即可添加文件',
+  'attachments.dropHint': '文件会随下一条消息一起发给 Router。',
+  'imageViewer.label': '图片查看器：{{name}}',
+  'imageViewer.count': '{{index}} / {{total}}',
+  'imageViewer.previous': '上一张',
+  'imageViewer.next': '下一张',
+  'imageViewer.open': '用默认应用打开',
+  'imageViewer.close': '关闭'
 }

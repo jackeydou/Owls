@@ -1,0 +1,1 @@
+- Router: drop files anywhere on the Router page to attach them to your message; images show as square thumbnails that open in an image viewer, other files as tiles with their type and first lines, and the Router's model receives them.

@@ -8,7 +8,12 @@ import {
   providerSchema
 } from './agents.js'
 import type { FeatureFlagKey, FeatureFlagValue } from './analytics.js'
-import { type Attachment, attachmentSchema, type StageAttachment } from './attachments.js'
+import {
+  type Attachment,
+  type AttachmentPreview,
+  attachmentSchema,
+  type StageAttachment
+} from './attachments.js'
 import type { Automation, AutomationEnable, AutomationSave } from './automations.js'
 import {
   type Board,
@@ -596,8 +601,8 @@ export interface OwltoAPI {
   sendRouter(input: SendRouterMessage): Promise<Reply<void>>
   /** Keeps a copy of a pasted or picked file, ready to send with a worker message. */
   stageAttachment(input: StageAttachment): Promise<Reply<Attachment>>
-  /** An image attachment as a data URL for its thumbnail; null for other files. */
-  attachmentPreview(attachment: Attachment): Promise<Reply<string | null>>
+  /** An image as a data URL, or a text file's first lines, for a thumbnail; null otherwise. */
+  attachmentPreview(attachment: Attachment): Promise<Reply<AttachmentPreview>>
   /** Opens a sent attachment in the system's default app. */
   openAttachment(attachment: Attachment): Promise<Reply<void>>
   /** Resolves to the thread that received the content. */

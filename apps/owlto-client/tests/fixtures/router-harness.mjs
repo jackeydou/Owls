@@ -121,6 +121,12 @@ export function fakeHost(overrides = {}) {
       },
       interrupt: async (sessionId) => {
         interrupted.push(sessionId)
+      },
+      // Main's copy of each file; `missing` names files that were deleted since.
+      attachmentFiles: async (list) => {
+        const gone = list.find((a) => overrides.missing?.includes(a.name))
+        if (gone) throw Object.assign(new Error('gone'), { code: 'invalid_request' })
+        return list.map((a) => ({ ...a, path: `/tmp/owlto-attachments/${a.id}/${a.name}` }))
       }
     }
   }

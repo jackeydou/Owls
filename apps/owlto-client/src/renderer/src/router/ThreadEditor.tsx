@@ -3,6 +3,7 @@ import { LoaderIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
 import { useAppStore } from '../app/store'
+import { DraftAttachmentChips, type DraftAttachments } from './DraftAttachments'
 import { DraftCards, DraftInput, DraftTarget, MentionMenu, useRouterDraft } from './RouterDraft'
 import { ThreadRow } from './ThreadRow'
 
@@ -15,7 +16,14 @@ const isCommandEnter = (event: KeyboardEvent) =>
  * project until its message names one with `@`; until then its tasks run in the
  * workspace folder unless the Router names a project.
  */
-export function ThreadEditor({ router }: { router: Router | undefined }) {
+export function ThreadEditor({
+  router,
+  attachments
+}: {
+  router: Router | undefined
+  /** Files for the message, dropped anywhere on the page or pasted here. */
+  attachments: DraftAttachments
+}) {
   const { t } = useTranslation()
   const hasProjects = useAppStore((s) => s.projects.length > 0)
   const showThread = useAppStore((s) => s.showThread)
@@ -23,34 +31,44 @@ export function ThreadEditor({ router }: { router: Router | undefined }) {
     projectId: null,
     router,
     isSendKey: isCommandEnter,
-    onThread: showThread
+    onThread: showThread,
+    attachments
   })
-  const { empty, sending, addressed } = draft
+  const { sending, addressed } = draft
+  const blank = draft.empty && !attachments.files.length
   return (
     <ThreadRow speaker="user">
       <div className="router-editor">
         {addressed ? <DraftTarget worker={addressed} onClear={draft.clearMention} /> : null}
+        <DraftAttachmentChips attachments={attachments} size="preview" />
         <DraftCards cards={draft.cards} onRemove={draft.removeCard} />
         <DraftInput
           editor={draft.editor}
-          empty={empty}
+          empty={draft.empty}
           label={t(addressed ? 'router.promptWorker' : 'router.prompt')}
           placeholder={
             hasProjects ? t(router ? 'thread.hint' : 'thread.hintNew') : t('router.prompt')
           }
         />
+        {attachments.error ? (
+          <p className="router-editor-error" role="alert">
+            {attachments.error}
+          </p>
+        ) : null}
         <MentionMenu options={draft.options} highlight={draft.highlight} onPick={draft.pick} />
         <div className="router-editor-foot">
-          {!empty ? (
+          {!blank ? (
             <Button
               size="sm"
               variant="ghost"
               className="router-editor-send"
-              disabled={sending}
+              disabled={!draft.canSend}
               onPointerDown={(event) => event.preventDefault()}
               onClick={() => void draft.submit()}
             >
-              {sending ? <LoaderIcon size={15} className="animate-spin" /> : null}
+              {sending || attachments.staging ? (
+                <LoaderIcon size={15} className="animate-spin" />
+              ) : null}
               {t(addressed ? 'router.sendWorker' : 'router.send')}
               <kbd>⌘ ↵</kbd>
             </Button>

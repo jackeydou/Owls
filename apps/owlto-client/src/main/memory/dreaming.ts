@@ -277,7 +277,7 @@ export class DreamingRunner {
     let outcome: Awaited<ReturnType<RouterEngine['run']>>
     try {
       outcome = await engine.run(
-        { batchId: runId, text, native: null },
+        { batchId: runId, text, attachments: [], native: null },
         {
           item: () => {},
           usage: (usage) => {
