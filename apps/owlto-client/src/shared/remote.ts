@@ -91,19 +91,20 @@ export function formatRemoteAddress({ host, port }: RemoteAddress): string {
 }
 
 /**
- * A pairing invite: everything another device needs to pair through the relay, from any
- * network. It carries the host's public key, so the relay cannot stand in for the host.
+ * A pairing invite, shown as a QR code: everything another device needs to pair, with the
+ * host's public key so nothing in between can stand in for the host. Through the relay, from
+ * any network:
  *
  *   owlto://pair?v=1&relay=<wss url>&mailbox=<id>&ticket=<one-time ticket>&code=<code>&key=<public key>
+ *
+ * or straight to the host's address, on the same network or over Tailscale:
+ *
+ *   owlto://pair?v=1&host=<host[:port]>&code=<code>&key=<public key>
  */
 export const REMOTE_INVITE_PREFIX = 'owlto://pair?'
-export type RemoteInvite = {
-  relay: string
-  mailbox: string
-  ticket: string
-  code: string
-  key: string
-}
+export type RemoteInvite =
+  | { relay: string; mailbox: string; ticket: string; code: string; key: string }
+  | { host: string; code: string; key: string }
 const TOKEN = /^[A-Za-z0-9_-]{22,128}$/
 const PUBLIC_KEY = /^[A-Za-z0-9_-]{43}$/
 export function formatRemoteInvite(invite: RemoteInvite): string {
@@ -114,14 +115,19 @@ export function parseRemoteInvite(text: string): RemoteInvite | null {
   const value = text.trim()
   if (!value.startsWith(REMOTE_INVITE_PREFIX) || value.length > 2048) return null
   const params = new URLSearchParams(value.slice(REMOTE_INVITE_PREFIX.length))
+  const key = params.get('key') ?? ''
+  const code = pairingCodeSchema.safeParse(params.get('code') ?? '')
+  if (params.get('v') !== '1' || !code.success || !PUBLIC_KEY.test(key)) return null
+  const host = params.get('host')
+  if (host !== null) {
+    const address = host.length <= 260 ? parseRemoteAddress(host) : null
+    return address ? { host: formatRemoteAddress(address), code: code.data, key } : null
+  }
   const relay = params.get('relay') ?? ''
   const mailbox = params.get('mailbox') ?? ''
   const ticket = params.get('ticket') ?? ''
-  const key = params.get('key') ?? ''
-  const code = pairingCodeSchema.safeParse(params.get('code') ?? '')
-  if (params.get('v') !== '1' || !code.success) return null
   if (!/^wss?:\/\/[^\s?#]+$/.test(relay) || relay.length > 512) return null
-  if (!TOKEN.test(mailbox) || !TOKEN.test(ticket) || !PUBLIC_KEY.test(key)) return null
+  if (!TOKEN.test(mailbox) || !TOKEN.test(ticket)) return null
   return { relay, mailbox, ticket, code: code.data, key }
 }
 export const remoteInviteSchema = z
@@ -172,6 +178,8 @@ export type RemotePairing = {
   expiresAt: string
   /** An invite to pair through the relay, shown as a QR code; null while internet connections are off. */
   invite: string | null
+  /** This Mac's public key, for invites to its own addresses (`formatRemoteInvite` with `host`). */
+  key: string | null
   /** The code to type on a device on another network, `K7Q2-ABCD-EFGH`; null until the relay gives one. */
   relayCode: string | null
 }

@@ -113,9 +113,12 @@ struct RelayCode: Equatable {
 /// It carries the Mac's public key, so the relay cannot stand in for the Mac.
 struct RemoteInvite: Equatable {
   static let prefix = "owlto://pair?"
-  let relay: String
-  let mailbox: String
-  let ticket: String
+  /// How the phone reaches the Mac: through the relay, or straight to an address on its network.
+  enum Route: Equatable {
+    case relay(RelayRoute)
+    case host(RemoteAddress)
+  }
+  let route: Route
   let code: String
   let key: String
 
@@ -126,14 +129,16 @@ struct RemoteInvite: Equatable {
     else { return nil }
     func param(_ name: String) -> String { items.first { $0.name == name }?.value ?? "" }
     let code = param("code")
-    guard param("v") == "1", PairingCode.isValid(code),
-          RelayRoute.isRelayURL(param("relay")), !param("relay").contains("?"), !param("relay").contains("#"),
-          RelayRoute.isToken(param("mailbox")), RelayRoute.isToken(param("ticket")),
-          RemoteCrypto.isPublicKey(param("key"))
-    else { return nil }
-    relay = param("relay")
-    mailbox = param("mailbox")
-    ticket = param("ticket")
+    guard param("v") == "1", PairingCode.isValid(code), RemoteCrypto.isPublicKey(param("key")) else { return nil }
+    if items.contains(where: { $0.name == "host" }) {
+      guard param("host").count <= 260, let address = RemoteAddress(param("host")) else { return nil }
+      route = .host(address)
+    } else {
+      guard RelayRoute.isRelayURL(param("relay")), !param("relay").contains("?"), !param("relay").contains("#"),
+            RelayRoute.isToken(param("mailbox")), RelayRoute.isToken(param("ticket"))
+      else { return nil }
+      route = .relay(RelayRoute(url: param("relay"), mailbox: param("mailbox"), ticket: param("ticket")))
+    }
     self.code = PairingCode.normalize(code)
     key = param("key")
   }

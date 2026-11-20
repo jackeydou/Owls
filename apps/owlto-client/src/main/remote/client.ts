@@ -235,9 +235,17 @@ export class HostLinks {
         opened = await initiate(frames, me, { kind: 'pair', code })
       } else if ('invite' in input) {
         const { invite } = input
-        relay = { url: invite.relay, mailbox: invite.mailbox, ticket: invite.ticket }
-        const frames = await this.deps.dialRelay(relay)
-        opened = await initiate(frames, me, { kind: 'pair', code: invite.code, key: invite.key })
+        if ('host' in invite) {
+          // An invite to the host's own address: a direct connection that pins its key.
+          direct = parseRemoteAddress(invite.host)
+          if (!direct) throw new OwltoError('invalid_request', 'Not a pairing invite.')
+          const frames = await this.deps.dial(direct.host, direct.port)
+          opened = await initiate(frames, me, { kind: 'pair', code: invite.code, key: invite.key })
+        } else {
+          relay = { url: invite.relay, mailbox: invite.mailbox, ticket: invite.ticket }
+          const frames = await this.deps.dialRelay(relay)
+          opened = await initiate(frames, me, { kind: 'pair', code: invite.code, key: invite.key })
+        }
       } else {
         direct = parseRemoteAddress(input.address)
         if (!direct)

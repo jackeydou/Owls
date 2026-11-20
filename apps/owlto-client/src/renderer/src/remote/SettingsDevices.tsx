@@ -2,9 +2,8 @@ import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { LoaderIcon } from '@renderer/components/ui/icons'
 import { Switch } from '@renderer/components/ui/switch'
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { renderSVG } from 'uqr'
 import type { Failure } from '../../../shared/app'
 import {
   formatRemoteAddress,
@@ -22,18 +21,9 @@ import {
 } from '../../../shared/remote'
 import { failureMessage } from '../app/failures'
 import { SettingRow } from '../app/SettingRow'
+import { PairWizard, SafetyCode } from './PairWizard'
 import { useRemoteStore, watchRemote } from './store'
 import './remote.css'
-
-function useNow(active: boolean): number {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    if (!active) return
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(timer)
-  }, [active])
-  return now
-}
 
 function LastSeen({ at }: { at: string | null }) {
   const { t } = useTranslation()
@@ -41,112 +31,6 @@ function LastSeen({ at }: { at: string | null }) {
   return t('remote.lastSeen', {
     time: new Date(at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   })
-}
-
-/** The one-time code another device types, with how long it still works. */
-function PairingCode() {
-  const { t } = useTranslation()
-  const pairing = useRemoteStore((s) => s.overview?.pairing ?? null)
-  const startPairing = useRemoteStore((s) => s.startPairing)
-  const cancelPairing = useRemoteStore((s) => s.cancelPairing)
-  const now = useNow(pairing !== null)
-  if (!pairing)
-    return (
-      <ActionButton size="sm" variant="outline" onAction={startPairing}>
-        {t('remote.pairStart')}
-      </ActionButton>
-    )
-  const left = Math.max(0, Math.round((Date.parse(pairing.expiresAt) - now) / 1000))
-  const shown = `${pairing.code.slice(0, 4)}-${pairing.code.slice(4)}`
-  return (
-    <div className="remote-pairing-card">
-      {pairing.invite ? (
-        <PairingInvite invite={pairing.invite} relayCode={pairing.relayCode} />
-      ) : null}
-      <div className="remote-pairing">
-        <span>{t(pairing.invite ? 'remote.pairSameNetwork' : 'remote.pairCodeLabel')}</span>
-        <code>{shown}</code>
-        <span>
-          {t('remote.pairExpires', {
-            time: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`
-          })}
-        </span>
-        <Button size="sm" variant="ghost" onClick={() => void cancelPairing()}>
-          {t('remote.pairCancel')}
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-/**
- * Pairing from another network: a QR code to scan with the iPhone, a code to type on a
- * device that cannot scan, and the invite link to paste on another Mac.
- */
-function PairingInvite({ invite, relayCode }: { invite: string; relayCode: string | null }) {
-  const { t } = useTranslation()
-  const svg = useMemo(() => renderSVG(invite, { border: 1 }), [invite])
-  return (
-    <div className="remote-invite">
-      <div
-        className="remote-qr"
-        role="img"
-        aria-label={t('remote.qrLabel')}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: uqr renders the QR code as an SVG string from the invite alone.
-        dangerouslySetInnerHTML={{ __html: svg }}
-      />
-      <div className="remote-invite-text">
-        <strong>{t('remote.qrHelp')}</strong>
-        <span>{t('remote.relayCodeHelp')}</span>
-        <code className="remote-relay-code">{relayCode ?? t('remote.relayCodeWaiting')}</code>
-        <ActionButton
-          size="sm"
-          variant="outline"
-          doneLabel={t('remote.inviteCopied')}
-          onAction={async () => {
-            await navigator.clipboard.writeText(invite)
-            return 'done'
-          }}
-        >
-          {t('remote.inviteCopy')}
-        </ActionButton>
-      </div>
-    </div>
-  )
-}
-
-/** The device that just paired, with the digits it should show too. */
-function JustPaired() {
-  const { t } = useTranslation()
-  const paired = useRemoteStore((s) => s.overview?.justPaired ?? null)
-  const dismiss = useRemoteStore((s) => s.dismissJustPaired)
-  const revoke = useRemoteStore((s) => s.revokeClient)
-  if (!paired) return null
-  return (
-    <div className="remote-just-paired" role="status">
-      <p>{t('remote.justPaired', { name: paired.name })}</p>
-      <SafetyCode code={paired.safetyCode} />
-      <p className="remote-safety-help">{t('remote.safetyHelpHost')}</p>
-      <div className="remote-just-paired-actions">
-        <Button size="sm" variant="outline" onClick={() => void dismiss()}>
-          {t('remote.safetyMatch')}
-        </Button>
-        <ActionButton size="sm" variant="ghost" onAction={() => revoke(paired.deviceId)}>
-          {t('remote.safetyMismatch')}
-        </ActionButton>
-      </div>
-    </div>
-  )
-}
-
-function SafetyCode({ code }: { code: string }) {
-  const { t } = useTranslation()
-  return (
-    <p className="remote-safety-code">
-      <span className="sr-only">{t('remote.safetyLabel')}</span>
-      <code>{`${code.slice(0, 3)} ${code.slice(3)}`}</code>
-    </p>
-  )
 }
 
 const RELAY_ERRORS = new Set(['relay_login', 'relay_quota', 'relay_replaced', 'relay_denied'])
@@ -432,6 +316,7 @@ export function DevicesSettingsPane() {
   const setRelay = useRemoteStore((s) => s.setRelay)
   const setKeepAwake = useRemoteStore((s) => s.setKeepAwake)
   const [switching, setSwitching] = useState(false)
+  const [wizardShowsAccount, setWizardShowsAccount] = useState(false)
   useEffect(() => watchRemote(), [])
   const listening = overview?.listening ?? false
   const addresses = (overview?.addresses ?? []).map((host) =>
@@ -451,6 +336,18 @@ export function DevicesSettingsPane() {
     <section className="owlto-settings-section remote-settings">
       <h2>{t('remote.title')}</h2>
       <p className="remote-intro">{t('remote.intro')}</p>
+      {overview ? (
+        <PairWizard
+          overview={overview}
+          onRelayAccountShown={setWizardShowsAccount}
+          relayAccount={
+            <RelayAccountPanel
+              account={overview.relay.account}
+              waiting={overview.relay.signInToEnable}
+            />
+          }
+        />
+      ) : null}
       <h3 className="remote-group">
         {t('remote.thisMacGroup', { name: overview?.deviceName ?? '' })}
       </h3>
@@ -485,7 +382,8 @@ export function DevicesSettingsPane() {
             detail={
               <>
                 <RelayStatus relay={overview.relay} />
-                {overview.relay.enabled || overview.relay.signInToEnable ? (
+                {(overview.relay.enabled || overview.relay.signInToEnable) &&
+                !wizardShowsAccount ? (
                   <RelayAccountPanel
                     account={overview.relay.account}
                     waiting={overview.relay.signInToEnable}
@@ -533,16 +431,6 @@ export function DevicesSettingsPane() {
               )}
             </ul>
           </SettingRow>
-          <SettingRow
-            label={t('remote.pair')}
-            description={t(overview.relay.enabled ? 'remote.pairHelpRelay' : 'remote.pairHelp')}
-            detail={
-              <>
-                <PairingCode />
-                <JustPaired />
-              </>
-            }
-          />
         </>
       ) : null}
       {overview?.clients.length ? (

@@ -86,13 +86,19 @@ final class RelayProtocolTests: XCTestCase {
   /// `formatRemoteInvite` output from the dev host.
   func testParsesAnInvite() throws {
     let invite = try XCTUnwrap(RemoteInvite("owlto://pair?v=1&relay=ws%3A%2F%2F127.0.0.1%3A8792&mailbox=wyA0zlOZrGZVCeCbzRep_X48-ESzHCBR&ticket=PLXtPF7myP7F0MTR13FCsx6QdYopkDaz&code=4VX1Z1NK&key=NUeDpiA6e-q1Poz8e8hhSqXSkUaEEZQLaVTfdDZUMyY"))
-    XCTAssertEqual(invite.relay, "ws://127.0.0.1:8792")
-    XCTAssertEqual(invite.mailbox, "wyA0zlOZrGZVCeCbzRep_X48-ESzHCBR")
-    XCTAssertEqual(invite.ticket, "PLXtPF7myP7F0MTR13FCsx6QdYopkDaz")
+    XCTAssertEqual(invite.route, .relay(RelayRoute(url: "ws://127.0.0.1:8792", mailbox: "wyA0zlOZrGZVCeCbzRep_X48-ESzHCBR", ticket: "PLXtPF7myP7F0MTR13FCsx6QdYopkDaz")))
     XCTAssertEqual(invite.code, "4VX1Z1NK")
     XCTAssertEqual(invite.key, "NUeDpiA6e-q1Poz8e8hhSqXSkUaEEZQLaVTfdDZUMyY")
     XCTAssertNil(RemoteInvite("owlto://pair?v=2&relay=wss%3A%2F%2Frelay.owlto.dev&mailbox=wyA0zlOZrGZVCeCbzRep_X48-ESzHCBR&ticket=PLXtPF7myP7F0MTR13FCsx6QdYopkDaz&code=4VX1Z1NK&key=NUeDpiA6e-q1Poz8e8hhSqXSkUaEEZQLaVTfdDZUMyY"))
     XCTAssertNil(RemoteInvite("https://owlto.dev"))
+  }
+
+  /// `formatRemoteInvite({ host: '192.168.1.20:47330', code: '4VX1Z1NK', key })`: the same-network QR code.
+  func testParsesAHostInvite() throws {
+    let invite = try XCTUnwrap(RemoteInvite("owlto://pair?v=1&host=192.168.1.20%3A47330&code=4VX1Z1NK&key=NUeDpiA6e-q1Poz8e8hhSqXSkUaEEZQLaVTfdDZUMyY"))
+    XCTAssertEqual(invite.route, .host(RemoteAddress(host: "192.168.1.20", port: 47330)))
+    XCTAssertEqual(invite.code, "4VX1Z1NK")
+    XCTAssertNil(RemoteInvite("owlto://pair?v=1&host=a%2Fb&code=4VX1Z1NK&key=NUeDpiA6e-q1Poz8e8hhSqXSkUaEEZQLaVTfdDZUMyY"))
   }
 
   /// `parseRelayCode` in `shared/remote.ts`.

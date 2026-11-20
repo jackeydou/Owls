@@ -25,6 +25,7 @@ const {
   sealForHost,
   dialRelay,
   dropRelayItem,
+  formatRemoteInvite,
   lookupRendezvous,
   normalizePairingCode,
   parseRemoteInvite,
@@ -492,6 +493,24 @@ test('frames larger than a relay message arrive whole', async (t) => {
     routerId: randomUUID()
   })
   assert.equal(reply[0].text.length, big.length)
+})
+
+test('a same-network QR invite pairs straight to the address and pins the host key', async (t) => {
+  const net = network()
+  const host = device(t, 'mini', net)
+  const laptop = device(t, 'laptop', net)
+  await host.service.setAccess(true)
+  const { pairing } = host.service.startPairing()
+  assert.match(pairing.key, /^[A-Za-z0-9_-]{43}$/)
+  const forged = formatRemoteInvite({ host: 'mini', code: pairing.code, key: 'A'.repeat(43) })
+  await assert.rejects(laptop.service.pair({ invite: forged }), { code: 'remote_pairing_failed' })
+  const { pairing: fresh } = host.service.startPairing()
+  const invite = formatRemoteInvite({ host: 'mini:47320', code: fresh.code, key: fresh.key })
+  assert.deepEqual(parseRemoteInvite(invite), { host: 'mini', code: fresh.code, key: fresh.key })
+  const remote = await laptop.service.pair({ invite })
+  assert.equal(remote.address, 'mini')
+  assert.equal(remote.status, 'online')
+  assert.equal(host.service.overview().pairing, null, 'a code works once')
 })
 
 test('a device paired on the same network learns the relay route and falls back to it', async (t) => {
