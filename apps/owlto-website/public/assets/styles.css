@@ -3182,3 +3182,9 @@ details[open] p {
     font-size: 1.35rem;
   }
 }
+
+/* Standalone pages (privacy, support): docs typography without the sidebar. */
+.docs-solo {
+  grid-template-columns: minmax(0, 760px);
+  justify-content: center;
+}
