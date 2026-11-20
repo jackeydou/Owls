@@ -2,8 +2,8 @@ name: Deploy relay
 
 # Deploys packages/owlto-relay to Cloudflare. Run it by hand from the Actions tab; pick
 # debug first, check it, then production. Needs the repository secrets
-# CLOUDFLARE_API_TOKEN (a token with "Workers Scripts: Edit" and "Workers Routes: Edit"
-# on the account and the owlto.dev zone) and CLOUDFLARE_ACCOUNT_ID.
+# CLOUDFLARE_API_TOKEN (a token with "Workers Scripts: Edit" and "D1: Edit" on the account,
+# and "Workers Routes: Edit" on the owlto.dev zone) and CLOUDFLARE_ACCOUNT_ID.
 on:
   workflow_dispatch:
     inputs:
