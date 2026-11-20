@@ -214,6 +214,14 @@ export const CircleXIcon = createIcon(
     <line x1="10.25" y1="5.75" x2="5.75" y2="10.25" />
   </g>
 )
+export const ClockIcon = createIcon(
+  'Clock',
+  'outline',
+  <g>
+    <circle cx="8" cy="8" r="6" />
+    <path d="M8 4.75 L8 8 L10.25 9.5" />
+  </g>
+)
 export const CollapseAllIcon = createIcon(
   'CollapseAll',
   'outline',

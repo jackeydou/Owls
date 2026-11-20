@@ -14,12 +14,38 @@ export const remoteEn = {
   'remote.relay.online': 'Connected to the relay',
   'remote.relay.connecting': 'Connecting to the relay…',
   'remote.relay.offline': 'Cannot reach the relay',
-  'remote.inviteHelp': 'From another network, paste this invite on the other device instead:',
   'remote.inviteLabel': 'Pairing invite',
   'remote.inviteCopy': 'Copy invite',
   'remote.inviteCopied': 'Copied',
   'remote.viaRelay': 'via relay',
   'remote.viaRelayOnly': 'Through the relay',
+  'remote.keepAwake': 'Keep this Mac awake on power',
+  'remote.keepAwakeHelp':
+    'While remote access is on and the Mac is plugged in, it does not sleep, so paired devices can reach it. On battery it sleeps as usual.',
+  'remote.pairHelpRelay':
+    'Shows a QR code and a code for devices anywhere, and a shorter code for devices on this network.',
+  'remote.pairSameNetwork': 'On this network:',
+  'remote.qrLabel': 'QR code for pairing',
+  'remote.qrHelp': 'Scan with Owlto on iPhone',
+  'remote.relayCodeHelp': 'Or type this code on the other device:',
+  'remote.relayCodeWaiting': 'Getting a code from the relay…',
+  'remote.justPaired': '{{name}} paired with this Mac.',
+  'remote.pairedWith': 'Paired with {{name}}.',
+  'remote.safetyLabel': 'Safety code',
+  'remote.safetyHelpHost':
+    'The other device shows six digits too. If they are not the same, remove it: someone may be in between.',
+  'remote.safetyHelpClient':
+    'The other Mac shows six digits too. If they are not the same, remove it and pair again.',
+  'remote.safetyMatch': 'They match',
+  'remote.safetyMismatch': 'Remove it',
+  'remote.relayError.relay_login':
+    'Sign in to GitHub (Settings → GitHub) to use the relay. Only this Mac needs to sign in.',
+  'remote.relayError.relay_quota':
+    'This GitHub account already has 5 Macs on the relay. Turn the relay off on one you no longer use.',
+  'remote.relayError.relay_replaced':
+    'Another Mac with this Mac’s relay identity took over. Turn the switch off and on to take it back.',
+  'remote.relayError.relay_denied': 'The relay turned this Mac away. Turn the switch off and on.',
+  'remote.queued': 'That Mac is offline. Owlto will deliver the message when it is back.',
   'remote.addresses': 'Address',
   'remote.addressesHelp':
     'Type one of these on the other device. Same Wi-Fi works as is; from elsewhere, use the Tailscale address.',
@@ -38,9 +64,9 @@ export const remoteEn = {
   'remote.neverSeen': 'Not connected yet',
   'remote.add': 'Add a device',
   'remote.addHelp':
-    'On the other Mac, open Settings → Devices, turn on access, and click Show code. Then enter its address and the code here, or paste its invite to pair from another network.',
+    'On the other Mac, open Settings → Devices, turn on access, and click Show code. On the same network, enter its address and the short code. From anywhere, type its long code (K7Q2-ABCD-EFGH) or paste its invite.',
   'remote.addAddress': 'Address of the other Mac',
-  'remote.addAddressPlaceholder': '192.168.1.20, mac-mini.tail1234.ts.net, or an invite',
+  'remote.addAddressPlaceholder': '192.168.1.20, K7Q2-ABCD-EFGH, or an invite',
   'remote.addCode': 'Pairing code',
   'remote.addCodePlaceholder': 'ABCD-EFGH',
   'remote.addSubmit': 'Pair',
@@ -83,12 +109,36 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'remote.relay.online': '已连接到中继',
   'remote.relay.connecting': '正在连接中继…',
   'remote.relay.offline': '无法连接到中继',
-  'remote.inviteHelp': '如果在别的网络，请在另一台设备上粘贴这个邀请：',
   'remote.inviteLabel': '配对邀请',
   'remote.inviteCopy': '复制邀请',
   'remote.inviteCopied': '已复制',
   'remote.viaRelay': '经中继',
   'remote.viaRelayOnly': '通过中继连接',
+  'remote.keepAwake': '接电时保持这台 Mac 唤醒',
+  'remote.keepAwakeHelp':
+    '打开远程访问并接通电源时，这台 Mac 不会睡眠，已配对的设备随时能连上。用电池时照常睡眠。',
+  'remote.pairHelpRelay':
+    '显示一个二维码和一个任何网络都能用的配对码，以及一个同一网络下用的短码。',
+  'remote.pairSameNetwork': '同一网络：',
+  'remote.qrLabel': '配对二维码',
+  'remote.qrHelp': '用 iPhone 上的 Owlto 扫码',
+  'remote.relayCodeHelp': '或者在另一台设备上输入这个码：',
+  'remote.relayCodeWaiting': '正在从中继获取配对码…',
+  'remote.justPaired': '{{name}} 已和这台 Mac 配对。',
+  'remote.pairedWith': '已和 {{name}} 配对。',
+  'remote.safetyLabel': '安全码',
+  'remote.safetyHelpHost': '另一台设备也会显示 6 位数字。如果不一样，请移除它：可能有人在中间。',
+  'remote.safetyHelpClient': '另一台 Mac 也会显示 6 位数字。如果不一样，请移除后重新配对。',
+  'remote.safetyMatch': '一致',
+  'remote.safetyMismatch': '移除',
+  'remote.relayError.relay_login':
+    '使用中继需要先登录 GitHub（设置 → GitHub）。只有这台 Mac 需要登录。',
+  'remote.relayError.relay_quota':
+    '这个 GitHub 账号已经有 5 台 Mac 在用中继。请在不再使用的 Mac 上关掉中继。',
+  'remote.relayError.relay_replaced':
+    '另一台使用同一中继身份的 Mac 接管了连接。关掉再打开开关即可拿回。',
+  'remote.relayError.relay_denied': '中继拒绝了这台 Mac。请关掉再打开开关。',
+  'remote.queued': '那台 Mac 不在线，Owlto 会在它回来后把消息送到。',
   'remote.addresses': '地址',
   'remote.addressesHelp':
     '在另一台设备上输入其中一个。同一个 Wi-Fi 下直接可用；在别处请用 Tailscale 地址。',
@@ -107,9 +157,9 @@ export const remoteZh: Record<keyof typeof remoteEn, string> = {
   'remote.neverSeen': '还没有连接过',
   'remote.add': '添加设备',
   'remote.addHelp':
-    '在另一台 Mac 上打开 设置 → 设备，打开访问开关并点「显示配对码」，然后在这里输入它的地址和配对码；不在同一网络时，粘贴它的邀请即可配对。',
+    '在另一台 Mac 上打开 设置 → 设备，打开访问开关并点「显示配对码」。同一网络下，输入它的地址和短码；在任何网络下，输入它的长码（K7Q2-ABCD-EFGH）或粘贴邀请。',
   'remote.addAddress': '另一台 Mac 的地址',
-  'remote.addAddressPlaceholder': '192.168.1.20、mac-mini.tail1234.ts.net 或邀请',
+  'remote.addAddressPlaceholder': '192.168.1.20、K7Q2-ABCD-EFGH 或邀请',
   'remote.addCode': '配对码',
   'remote.addCodePlaceholder': 'ABCD-EFGH',
   'remote.addSubmit': '配对',

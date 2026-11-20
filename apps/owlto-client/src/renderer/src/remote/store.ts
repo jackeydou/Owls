@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Failure, Reply } from '../../../shared/app'
-import type { RemoteOverview, RemotePair } from '../../../shared/remote'
+import type { RemoteOverview, RemotePair, RemotePaired } from '../../../shared/remote'
 import { UIError, uiFailure } from '../app/failures'
 import { useAppStore } from '../app/store'
 import { viewingDevice } from './viewing'
@@ -12,11 +12,13 @@ type RemoteState = {
   load(): Promise<void>
   setAccess(enabled: boolean): Promise<void>
   setRelay(enabled: boolean): Promise<void>
+  setKeepAwake(enabled: boolean): Promise<void>
+  dismissJustPaired(): Promise<void>
   startPairing(): Promise<void>
   cancelPairing(): Promise<void>
   revokeClient(deviceId: string): Promise<void>
-  /** Resolves to the failure for the form to show, or null once paired. */
-  pair(input: RemotePair): Promise<Failure | null>
+  /** Resolves to the paired device with its safety code, or the failure for the form to show. */
+  pair(input: RemotePair): Promise<{ paired: RemotePaired } | { failure: Failure }>
   removeDevice(deviceId: string): Promise<void>
   clearError(): void
 }
@@ -41,16 +43,18 @@ export const useRemoteStore = create<RemoteState>((set, get) => {
     load: () => update(() => window.owlto.remote.overview()),
     setAccess: (enabled) => update(() => window.owlto.remote.setAccess(enabled)),
     setRelay: (enabled) => update(() => window.owlto.remote.setRelay(enabled)),
+    setKeepAwake: (enabled) => update(() => window.owlto.remote.setKeepAwake(enabled)),
+    dismissJustPaired: () => update(() => window.owlto.remote.dismissJustPaired()),
     startPairing: () => update(() => window.owlto.remote.startPairing()),
     cancelPairing: () => update(() => window.owlto.remote.cancelPairing()),
     revokeClient: (deviceId) => update(() => window.owlto.remote.revokeClient(deviceId)),
     pair: async (input) => {
       try {
-        unwrap(await window.owlto.remote.pair(input))
+        const paired = unwrap(await window.owlto.remote.pair(input))
         await get().load()
-        return null
+        return { paired }
       } catch (error) {
-        return uiFailure(error)
+        return { failure: uiFailure(error) }
       }
     },
     removeDevice: async (deviceId) => {
