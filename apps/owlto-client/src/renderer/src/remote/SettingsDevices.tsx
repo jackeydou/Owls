@@ -6,7 +6,6 @@ import { type FormEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Failure } from '../../../shared/app'
 import {
-  formatRemoteAddress,
   parseRelayCode,
   parseRemoteInvite,
   REMOTE_RELAY_PROVIDERS,
@@ -21,7 +20,6 @@ import {
 } from '../../../shared/remote'
 import { failureMessage } from '../app/failures'
 import { SettingRow } from '../app/SettingRow'
-import { AsciiBackdrop } from './AsciiBackdrop'
 import { PairWizard, SafetyCode } from './PairWizard'
 import { useRemoteStore, watchRemote } from './store'
 import './remote.css'
@@ -233,24 +231,27 @@ function DeviceRow({ device }: { device: RemoteDevice }) {
   )
 }
 
-/** Pairs with a device that shows a code: its address and the code, then Pair. */
+/**
+ * Pairs with another Mac from what its pairing card gives: the invite link it copies (same
+ * network or relay), or its long code (`K7Q2-ABCD-EFGH`), which the relay looks up.
+ */
 function AddDevice() {
   const { t } = useTranslation()
   const pair = useRemoteStore((s) => s.pair)
-  const [address, setAddress] = useState('')
-  const [code, setCode] = useState('')
+  const [text, setText] = useState('')
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState<Failure | null>(null)
   const [paired, setPaired] = useState<RemotePaired | null>(null)
-  // A pasted invite carries its own code and the way to reach the other Mac; a relay code
-  // (`K7Q2-ABCD-EFGH`) finds it through the relay.
-  const invite = parseRemoteInvite(address) ? address.trim() : null
-  const relayCode = !invite && parseRelayCode(address) ? address.trim() : null
-  const input: RemotePair = invite ? { invite } : relayCode ? { relayCode } : { address, code }
-  const valid = remotePairSchema.safeParse(input).success
+  const value = text.trim()
+  const input: RemotePair | null = parseRemoteInvite(value)
+    ? { invite: value }
+    : parseRelayCode(value)
+      ? { relayCode: value }
+      : null
+  const valid = input !== null && remotePairSchema.safeParse(input).success
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (!valid || pending) return
+    if (!input || !valid || pending) return
     setPending(true)
     setFailure(null)
     setPaired(null)
@@ -261,31 +262,19 @@ function AddDevice() {
       return
     }
     setPaired(result.paired)
-    setAddress('')
-    setCode('')
+    setText('')
   }
   return (
     <form className="remote-add" onSubmit={(event) => void submit(event)}>
       <input
         className="router-input"
-        aria-label={t('remote.addAddress')}
-        placeholder={t('remote.addAddressPlaceholder')}
+        aria-label={t('remote.addInput')}
+        placeholder={t('remote.addInputPlaceholder')}
         autoComplete="off"
         spellCheck={false}
-        value={address}
-        onChange={(event) => setAddress(event.target.value)}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
       />
-      {invite || relayCode ? null : (
-        <input
-          className="router-input remote-add-code"
-          aria-label={t('remote.addCode')}
-          placeholder={t('remote.addCodePlaceholder')}
-          autoComplete="off"
-          spellCheck={false}
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
-        />
-      )}
       <Button type="submit" size="sm" disabled={!valid} pending={pending}>
         {t('remote.addSubmit')}
       </Button>
@@ -320,9 +309,6 @@ export function DevicesSettingsPane() {
   const [wizardShowsAccount, setWizardShowsAccount] = useState(false)
   useEffect(() => watchRemote(), [])
   const listening = overview?.listening ?? false
-  const addresses = (overview?.addresses ?? []).map((host) =>
-    formatRemoteAddress({ host, port: overview?.port ?? 0 })
-  )
   async function toggle(enabled: boolean) {
     setSwitching(true)
     await setAccess(enabled)
@@ -335,7 +321,6 @@ export function DevicesSettingsPane() {
   }
   return (
     <section className="owlto-settings-section remote-settings">
-      <AsciiBackdrop />
       <h2>{t('remote.title')}</h2>
       <p className="remote-intro">{t('remote.intro')}</p>
       {overview ? (
@@ -415,23 +400,6 @@ export function DevicesSettingsPane() {
                 void setKeepAwake(checked).finally(() => setSwitching(false))
               }}
             />
-          </SettingRow>
-          <SettingRow
-            label={t('remote.addresses')}
-            description={t('remote.addressesHelp')}
-            labelId="remote-addresses"
-          >
-            <ul className="remote-addresses" aria-labelledby="remote-addresses">
-              {addresses.length ? (
-                addresses.map((address) => (
-                  <li key={address}>
-                    <code>{address}</code>
-                  </li>
-                ))
-              ) : (
-                <li>{t('remote.noAddress')}</li>
-              )}
-            </ul>
           </SettingRow>
         </>
       ) : null}

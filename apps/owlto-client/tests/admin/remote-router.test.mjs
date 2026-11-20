@@ -32,7 +32,8 @@ const {
   parseRemoteAddress,
   remotePairSchema,
   tcpListen,
-  toFailure
+  toFailure,
+  listAddresses
 } = require('../../out/main/app/runtime.js')
 
 const MIGRATIONS = resolve(dirname(fileURLToPath(import.meta.url)), '../../migrations')
@@ -201,7 +202,7 @@ function device(t, name, net, overrides = {}) {
     changed: (overview) => overviews.push(overview),
     remoteEvent: (deviceId, event) => events.push({ deviceId, event }),
     deviceName: () => name,
-    addresses: () => ['192.168.1.20'],
+    addresses: () => [{ host: '192.168.1.20', interface: 'en0', recommended: true }],
     ...overrides
   })
   t.after(() => {
@@ -258,7 +259,10 @@ test('pairing with the code links both devices and stores only an encrypted key'
     overview.clients.map((c) => [c.deviceId, c.name, c.connected]),
     [[laptop.store.deviceId, 'laptop', true]]
   )
-  assert.deepEqual(overview.addresses, ['192.168.1.20'])
+  assert.deepEqual(
+    overview.addresses.map((each) => each.host),
+    ['192.168.1.20']
+  )
   const identity = laptop.raw.identity()
   assert.match(identity.secret, /^enc:/)
   assert.ok(!identity.secret.includes('PRIVATE'))
@@ -418,6 +422,27 @@ test('addresses and pairing codes parse the way people type them', () => {
   assert.equal(parseRemoteInvite(invite.replace('wss%3A', 'http%3A')), null)
   assert.equal(remotePairSchema.safeParse({ invite: 'owlto://pair?v=1' }).success, false)
   assert.ok(OwltoError)
+})
+
+test('Wi-Fi, Ethernet, and Tailscale addresses come first, virtual ones stay pickable', () => {
+  const v4 = (address, internal = false) => ({ address, family: 'IPv4', internal })
+  assert.deepEqual(
+    listAddresses({
+      lo0: [v4('127.0.0.1', true)],
+      en0: [v4('192.168.0.251'), { address: 'fe80::1', family: 'IPv6', internal: false }],
+      bridge100: [v4('192.168.148.1')],
+      vmenet0: [v4('192.168.155.1')],
+      utun4: [v4('100.101.102.103')],
+      utun5: [v4('10.255.71.186')]
+    }).map((each) => [each.host, each.interface, each.recommended]),
+    [
+      ['100.101.102.103', 'utun4', true],
+      ['192.168.0.251', 'en0', true],
+      ['10.255.71.186', 'utun5', false],
+      ['192.168.148.1', 'bridge100', false],
+      ['192.168.155.1', 'vmenet0', false]
+    ]
+  )
 })
 
 test('a key the keychain no longer opens is replaced, and its pairings are dropped', async (t) => {
