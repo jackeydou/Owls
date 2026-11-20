@@ -463,6 +463,50 @@ test('stopping a worker from the UI tells the Router without starting a batch', 
   service.close()
 })
 
+test('resolving a blocked worker holds until it runs again', async () => {
+  const blocked = (summary) => ({
+    status: 'completed',
+    structured: { status: 'blocked', summary, artifacts: [] },
+    text: ''
+  })
+  const { service, router, engine, current } = await withTools(async (call) => [
+    await call('dispatch_task', { goal: 'Open the page' })
+  ])
+  const worker = service.snapshot().workers[0]
+  const latest = () => service.snapshot().workers.find((w) => w.id === worker.id)
+  // A finished worker has nothing to resolve.
+  service.settled(worker.sessionId, report('Opened.'))
+  await waitFor(() => engine.runs.length === 2 && current().status === 'idle', 'report batch')
+  service.resolveWorker({ routerId: router.id, workerId: worker.id })
+  assert.equal(latest().resolved, undefined)
+  await service.send({
+    routerId: router.id,
+    commandId: crypto.randomUUID(),
+    text: 'Open it again.',
+    workerId: worker.id
+  })
+  service.settled(worker.sessionId, blocked('The fetch was denied.'))
+  await waitFor(() => engine.runs.length === 3 && current().status === 'idle', 'blocked batch')
+  service.resolveWorker({ routerId: router.id, workerId: worker.id })
+  assert.equal(latest().resolved, true)
+  // Running again clears it, so a new blocked report waits on the user once more.
+  await service.send({
+    routerId: router.id,
+    commandId: crypto.randomUUID(),
+    text: 'Try the browser.',
+    workerId: worker.id
+  })
+  assert.equal(latest().resolved, undefined)
+  service.settled(worker.sessionId, blocked('Still denied.'))
+  await waitFor(() => latest().status === 'reported' || latest().status === 'idle', 'report')
+  assert.equal(latest().resolved, undefined)
+  assert.throws(
+    () => service.resolveWorker({ routerId: router.id, workerId: 'w_missing' }),
+    /no longer exists/
+  )
+  service.close()
+})
+
 test('removing a worker goes through the host and rejects unknown workers', async () => {
   const { service, router, current, fake } = await withTools(async (call) => [
     await call('dispatch_task', { goal: 'Short job' })

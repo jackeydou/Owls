@@ -3,6 +3,7 @@ import { IconButton } from '@renderer/components/ui/icon-button'
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  CircleCheckIcon,
   GitBranchIcon,
   SettingsIcon,
   XIcon
@@ -12,7 +13,7 @@ import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Project } from '../../../shared/app'
 import type { RouterWorker } from '../../../shared/router'
-import { isInPlay } from '../../../shared/worker-map'
+import { isInPlay, isResolvable } from '../../../shared/worker-map'
 import { promotableFolders, WORKSPACE_ID } from '../../../shared/workspace'
 import { useAppStore } from '../app/store'
 import { useWorkspaceStore } from '../app/workspace'
@@ -30,12 +31,17 @@ function WorkerRow({ worker, home }: { worker: RouterWorker; home: string }) {
   const focusProject = useAppStore((s) => s.focusProject)
   const showThread = useAppStore((s) => s.showThread)
   const showPanel = useRouterStore((s) => s.showPanel)
+  const resolveWorker = useRouterStore((s) => s.resolveWorker)
   const current = useRouterStore(
     (s) => s.panel?.kind === 'worker' && s.panel.workerId === worker.id
   )
   const title = workerTitle(worker)
+  const resolvable = isResolvable(worker) && !worker.resolved
+  const resolveLabel = t('router.project.resolve', { worker: title })
   return (
-    <li>
+    <li
+      className={resolvable ? 'router-sidebar-worker-row resolvable' : 'router-sidebar-worker-row'}
+    >
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -59,6 +65,20 @@ function WorkerRow({ worker, home }: { worker: RouterWorker; home: string }) {
         </TooltipTrigger>
         <TooltipContent side="left">{title}</TooltipContent>
       </Tooltip>
+      {resolvable ? (
+        <ActionIconButton
+          size="custom"
+          className="router-worker-resolve"
+          label={resolveLabel}
+          tooltip={resolveLabel}
+          tooltipSide="left"
+          icon={<CircleCheckIcon size={14} />}
+          onAction={async () => {
+            await resolveWorker(worker.routerId, worker.id)
+            return 'quiet'
+          }}
+        />
+      ) : null}
     </li>
   )
 }

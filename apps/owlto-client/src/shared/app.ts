@@ -614,6 +614,8 @@ export interface OwltoAPI {
   resolveBatch(input: ResolveBatch): Promise<Reply<void>>
   discardWorktree(input: WorkerAction): Promise<Reply<void>>
   stopWorker(input: WorkerAction): Promise<Reply<void>>
+  /** Marks a failed or blocked worker as handled, so it no longer waits on the user. */
+  resolveWorker(input: WorkerAction): Promise<Reply<void>>
   /** Sends a message the user lined up while the worker was busy, without waiting for the turn to end. */
   steerPendingMessage(input: PendingMessageAction): Promise<Reply<void>>
   dropPendingMessage(input: PendingMessageAction): Promise<Reply<void>>

@@ -21,6 +21,7 @@ export function remoteHostApi(host: OwltoHost): RemoteHostApi {
     archiveThread: (input) => host.archiveThread(input),
     resolveBatch: (input) => host.resolveBatch(input),
     stopWorker: (input) => host.stopWorker(input),
+    resolveWorker: (input) => host.resolveWorker(input),
     steerPendingMessage: (input) => host.steerPending(input),
     dropPendingMessage: (input) => host.dropPending(input),
     respond: (input) => host.respond(input),

@@ -305,6 +305,7 @@ export const remoteMethodSchemas = {
   archiveThread: archiveThreadSchema,
   resolveBatch: resolveBatchSchema,
   stopWorker: workerActionSchema,
+  resolveWorker: workerActionSchema,
   steerPendingMessage: pendingMessageActionSchema,
   dropPendingMessage: pendingMessageActionSchema,
   respond: respondSchema,
@@ -326,6 +327,7 @@ export type RemoteResults = {
   archiveThread: void
   resolveBatch: void
   stopWorker: void
+  resolveWorker: void
   steerPendingMessage: void
   dropPendingMessage: void
   respond: void

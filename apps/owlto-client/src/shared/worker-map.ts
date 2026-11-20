@@ -55,9 +55,11 @@ const running = (w: RouterWorker) =>
 const undecided = (w: RouterWorker) =>
   (w.status === 'reported' || w.status === 'idle') &&
   (w.report?.status === 'blocked' || w.report?.status === 'needs_input')
-/** Work still moving or stuck on someone. Failed and undecided work never folds away. */
+/** Failed or undecided work: it stays in play until the user resolves it or it runs again. */
+export const isResolvable = (w: RouterWorker) => w.status === 'failed' || undecided(w)
+/** Work still moving or stuck on someone. Failed and undecided work folds away only once resolved. */
 export const isInPlay = (w: RouterWorker) =>
-  running(w) || w.status === 'queued' || w.status === 'failed' || undecided(w)
+  running(w) || w.status === 'queued' || (isResolvable(w) && !w.resolved)
 
 type Tree = {
   id: string

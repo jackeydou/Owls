@@ -106,6 +106,7 @@ export const routerEn = {
   'router.project.showWorkers': 'Show workers in {{project}}',
   'router.project.hideWorkers': 'Hide workers in {{project}}',
   'router.project.worker': '{{worker}}, {{state}}',
+  'router.project.resolve': 'Mark {{worker}} as resolved',
   'router.useAgent': 'Use {{agent}}',
   'router.workerSetupTitle': 'Connect a coding agent to run workers',
   'router.workerSetupBody':
@@ -418,6 +419,7 @@ export const routerZh: Record<keyof typeof routerEn, string> = {
   'router.project.showWorkers': '展开 {{project}} 的 Worker',
   'router.project.hideWorkers': '收起 {{project}} 的 Worker',
   'router.project.worker': '{{worker}}，{{state}}',
+  'router.project.resolve': '将「{{worker}}」标记为已解决',
   'router.useAgent': '使用 {{agent}}',
   'router.workerSetupTitle': '连接一个编码 Agent 以运行 Worker',
   'router.workerSetupBody': '协调者把工作交给编码 Agent，但目前一个都没连接。请在设置中连接。',

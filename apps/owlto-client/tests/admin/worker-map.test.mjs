@@ -156,6 +156,19 @@ test('finished work folds into one node, but failed and undecided work stays', (
   assert.equal(node(result, 'done:p').open, false)
 })
 
+test('resolved failed and undecided work folds away with finished work', () => {
+  const blocked = { status: 'blocked', summary: 'Stuck.', artifacts: [] }
+  const result = map([
+    project('p', [
+      worker('failed', { status: 'failed', resolved: true }),
+      worker('stuck', { status: 'idle', report: blocked, resolved: true }),
+      worker('open', { status: 'idle', report: blocked })
+    ])
+  ])
+  assert.deepEqual(ids(result).sort(), ['done:p', 'open', 'project:p', 'root'])
+  assert.equal(node(result, 'done:p').count, 2)
+})
+
 test('a finished parent stays while work continues below it', () => {
   const result = map([
     project('p', [

@@ -47,6 +47,7 @@ const api: OwltoAPI = {
   resolveBatch: (input) => ipcRenderer.invoke('owlto:router-resolve-batch', input),
   discardWorktree: (input) => ipcRenderer.invoke('owlto:router-discard-worktree', input),
   stopWorker: (input) => ipcRenderer.invoke('owlto:router-stop-worker', input),
+  resolveWorker: (input) => ipcRenderer.invoke('owlto:router-resolve-worker', input),
   steerPendingMessage: (input) => ipcRenderer.invoke('owlto:router-steer-pending', input),
   dropPendingMessage: (input) => ipcRenderer.invoke('owlto:router-drop-pending', input),
   removeWorker: (input) => ipcRenderer.invoke('owlto:router-remove-worker', input),

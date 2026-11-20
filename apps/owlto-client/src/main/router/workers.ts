@@ -21,6 +21,7 @@ import {
   type WorkerReport,
   type WorkerStatus
 } from '../../shared/router.js'
+import { isResolvable } from '../../shared/worker-map.js'
 import type { SessionPlace } from '../app/agent-runtime.js'
 import type { AttachmentFile } from '../app/attachments.js'
 import { OwltoError } from '../app/errors.js'
@@ -499,6 +500,14 @@ export class WorkerPool implements TurnProfiles {
     return { status: 'stopping' }
   }
 
+  /** The user marks a failed or blocked worker as handled; it runs again only when sent a message. */
+  resolve(routerId: string, workerId: string): void {
+    const worker = this.owned(routerId, workerId)
+    if (!isResolvable(worker) || worker.resolved) return
+    worker.resolved = true
+    this.save(worker)
+  }
+
   /**
    * Answers a worker's pending approval request. Whichever answer arrives first
    * wins; a later one finds the request resolved.
@@ -969,6 +978,8 @@ export class WorkerPool implements TurnProfiles {
   }
   private save(worker: RouterWorker): void {
     if (this.closed) return
+    // A resolved worker that runs again settles anew; its next report decides whether it waits.
+    if (worker.resolved && !isResolvable(worker)) delete worker.resolved
     worker.updatedAt = new Date().toISOString()
     this.store.saveWorker(worker)
     this.emit(worker)

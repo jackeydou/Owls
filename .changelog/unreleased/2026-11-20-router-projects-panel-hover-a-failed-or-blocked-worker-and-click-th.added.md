@@ -1,0 +1,1 @@
+- Projects panel: hover a failed or blocked worker and click the check mark to mark it resolved, so it stops waiting on you in the panel and the map; it comes back if it runs again and gets stuck.
