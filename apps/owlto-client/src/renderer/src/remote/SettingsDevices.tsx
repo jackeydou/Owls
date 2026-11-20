@@ -21,7 +21,6 @@ import {
 } from '../../../shared/remote'
 import { failureMessage } from '../app/failures'
 import { SettingRow } from '../app/SettingRow'
-import { AsciiBackdrop } from './AsciiBackdrop'
 import { PairWizard, SafetyCode } from './PairWizard'
 import { useRemoteStore, watchRemote } from './store'
 import './remote.css'
@@ -335,7 +334,6 @@ export function DevicesSettingsPane() {
   }
   return (
     <section className="owlto-settings-section remote-settings">
-      <AsciiBackdrop />
       <h2>{t('remote.title')}</h2>
       <p className="remote-intro">{t('remote.intro')}</p>
       {overview ? (
