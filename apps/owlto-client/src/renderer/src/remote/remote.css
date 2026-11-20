@@ -180,9 +180,9 @@
 .remote-wizard {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 40px;
-  margin: 20px 0 12px;
+  margin: 12px 0;
 }
 .remote-wizard-card {
   border: 1px solid var(--color-border);
@@ -301,6 +301,19 @@
   flex-direction: column;
   gap: 8px;
   align-self: stretch;
+}
+.remote-route-hint {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.remote-route-hint > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 .remote-route {
   position: relative;
