@@ -11,6 +11,7 @@ import { CHANGELOG_ROUTE, changelogFeed, loadChangelog, renderChangelog } from '
 import en from './src/content/en.mjs'
 import zh from './src/content/zh.mjs'
 import { checkDocs, docsText, docUrl, loadDocs, renderDoc } from './src/docs.mjs'
+import { checkLegal, loadLegal, renderLegal } from './src/legal.mjs'
 import { renderPage } from './src/page.mjs'
 import { DOWNLOAD_URL, ISSUES_URL, LOCALES, REPO_URL, SITE_URL } from './src/site.mjs'
 
@@ -70,15 +71,22 @@ Sitemap: ${SITE_URL}/sitemap.xml
 
 // One <url> per page and locale, each listing every locale's version of the
 // page plus x-default (the English page).
-function sitemap(lastmod, docsByLocale, releases) {
-  const routes = ['', CHANGELOG_ROUTE, ...docsByLocale[LOCALES[0].code].map((doc) => doc.route)]
+function sitemap(lastmod, docsByLocale, legalByLocale, releases) {
+  const routes = [
+    '',
+    CHANGELOG_ROUTE,
+    ...docsByLocale[LOCALES[0].code].map((doc) => doc.route),
+    ...legalByLocale[LOCALES[0].code].map((page) => page.route)
+  ]
   const urls = routes.flatMap((route) => {
     const links = LOCALES.map(
       (l) =>
         `    <xhtml:link rel="alternate" hreflang="${l.htmlLang}" href="${SITE_URL}/${l.path}${route}"/>`
     ).join('\n')
     return LOCALES.map((locale) => {
-      const doc = docsByLocale[locale.code].find((item) => item.route === route)
+      const doc =
+        docsByLocale[locale.code].find((item) => item.route === route) ??
+        legalByLocale[locale.code].find((item) => item.route === route)
       return `  <url>
     <loc>${SITE_URL}/${locale.path}${route}</loc>
     <lastmod>${route === CHANGELOG_ROUTE ? releases[0].date : (doc?.updated ?? lastmod)}</lastmod>
@@ -125,6 +133,8 @@ ${docLinks}
 - [Download](${DOWNLOAD_URL}): direct download of the latest stable .dmg
 - [Source code](${REPO_URL}): GitHub repository and README
 - [Issues](${ISSUES_URL}): bug reports and feature requests
+- [Support](${SITE_URL}/support/): help for the Mac and iPhone apps, and how to reach the developers
+- [Privacy policy](${SITE_URL}/privacy/): what the Owlto apps, relay, and website collect
 `
 }
 
@@ -247,6 +257,10 @@ export function build() {
     LOCALES.map((locale) => [locale.code, loadDocs(locale, CONTENT[locale.code].docs.groupOrder)])
   )
   checkDocs(docsByLocale)
+  const legalByLocale = Object.fromEntries(
+    LOCALES.map((locale) => [locale.code, loadLegal(locale)])
+  )
+  checkLegal(legalByLocale)
   const releases = loadChangelog()
   for (const locale of LOCALES) {
     const t = CONTENT[locale.code]
@@ -259,9 +273,15 @@ export function build() {
       `${locale.path}${CHANGELOG_ROUTE}index.html`,
       renderChangelog({ t, locale, releases, docs })
     )
+    for (const page of legalByLocale[locale.code]) {
+      write(`${locale.path}${page.route}index.html`, renderLegal({ t, locale, page, docs }))
+    }
   }
   write('robots.txt', robots())
-  write('sitemap.xml', sitemap(new Date().toISOString().slice(0, 10), docsByLocale, releases))
+  write(
+    'sitemap.xml',
+    sitemap(new Date().toISOString().slice(0, 10), docsByLocale, legalByLocale, releases)
+  )
   write('llms.txt', llms(en, docsByLocale.en))
   write('llms-full.txt', llmsFull(en, LOCALES[0], docsByLocale.en))
   write('zh/llms-full.txt', llmsFull(zh, LOCALES[1], docsByLocale.zh))

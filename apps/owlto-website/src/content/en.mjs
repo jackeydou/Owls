@@ -528,6 +528,10 @@ export default {
     source: 'View CHANGELOG.md on GitHub',
     languageNote: null
   },
+  legal: {
+    updated: 'Last updated',
+    source: 'View this page on GitHub'
+  },
   footer: {
     tagline: 'Your Owlto (auto) agent team: coding owls on your Mac.',
     product: 'Product',
@@ -536,6 +540,8 @@ export default {
     docsHome: 'Documentation',
     releases: 'Releases',
     changelog: 'Changelog',
+    support: 'Support',
+    privacy: 'Privacy policy',
     issues: 'Report an issue',
     contributing: 'Contributing',
     license: 'AGPL-3.0 license',

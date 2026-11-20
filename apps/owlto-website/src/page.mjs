@@ -3,11 +3,11 @@ import { owlSvg } from './owl.mjs'
 import {
   CONTRIBUTING_URL,
   DOWNLOAD_URL,
-  RELEASES_URL,
   ISSUES_URL,
   LICENSE_URL,
   LOCALES,
   localeUrl,
+  RELEASES_URL,
   REPO_URL,
   SITE_URL
 } from './site.mjs'
@@ -599,6 +599,8 @@ export function footer({ t, locale, home = '', otherHref, docs, prefix }) {
     <a href="${RELEASES_URL}" rel="noopener">${esc(t.footer.releases)}</a>
     <a href="${home}changelog/">${esc(t.footer.changelog)}</a>
     <a href="${ISSUES_URL}" rel="noopener">${esc(t.footer.issues)}</a>
+    <a href="${home}support/">${esc(t.footer.support)}</a>
+    <a href="${home}privacy/">${esc(t.footer.privacy)}</a>
     <a href="${CONTRIBUTING_URL}" rel="noopener">${esc(t.footer.contributing)}</a>
     <a href="${LICENSE_URL}" rel="noopener">${esc(t.footer.license)}</a>
     <a href="${otherHref ?? (`${p}${other.path}` || './')}" hreflang="${other.htmlLang}" lang="${other.htmlLang}">${esc(other.label)}</a>

@@ -498,6 +498,10 @@ export default {
     source: '在 GitHub 上查看 CHANGELOG.md',
     languageNote: '更新内容目前以英文撰写。'
   },
+  legal: {
+    updated: '最后更新',
+    source: '在 GitHub 上查看此页'
+  },
   footer: {
     tagline: '你的 Owlto（Auto）智能体团队：Mac 上的猫头鹰编程团队。',
     product: '产品',
@@ -506,6 +510,8 @@ export default {
     docsHome: '文档首页',
     releases: '版本发布',
     changelog: '更新日志',
+    support: '支持',
+    privacy: '隐私政策',
     issues: '反馈问题',
     contributing: '参与贡献',
     license: 'AGPL-3.0 协议',
