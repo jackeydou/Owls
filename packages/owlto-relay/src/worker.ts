@@ -1,31 +1,62 @@
 import { DurableObject } from 'cloudflare:workers'
-import { routeOf } from './protocol.ts'
-import { type Attachment, type Mailbox, newBudgets, Room, type RoomIO } from './room.ts'
+import { ApnsSender } from './apns.ts'
+import { MAX_MAILBOXES_PER_ACCOUNT, type QueuedItem, routeOf, sha256Hex } from './protocol.ts'
+import {
+  type Attachment,
+  type Mailbox,
+  newBudgets,
+  type RelayServices,
+  type RendezvousEntry,
+  Room,
+  type RoomIO
+} from './room.ts'
 
 /**
  * The relay on Cloudflare: a Worker routes `/v1/<kind>/<mailbox>` to one Durable Object per
  * mailbox, which accepts the WebSocket with the hibernation API. Each socket keeps its
  * `Attachment`, so the object may sleep between messages and rebuild the room when it wakes.
+ * Rendezvous codes and per-account mailbox counts are small Durable Objects of their own.
  */
 export interface Env {
   RELAY_ROOM: DurableObjectNamespace<RelayRoom>
+  RELAY_RENDEZVOUS: DurableObjectNamespace<RelayRendezvous>
+  RELAY_ACCOUNT: DurableObjectNamespace<RelayAccount>
   /** New sockets per client IP; see `wrangler.toml`. */
   IP_LIMIT: RateLimit
   /** New sockets per mailbox, checked before its Durable Object wakes. */
   MAILBOX_LIMIT: RateLimit
+  /** Rendezvous lookups per client IP, so four characters cannot be walked. */
+  RENDEZVOUS_LIMIT: RateLimit
+  /** "false" lets anyone register a mailbox, for a private deployment. */
+  REQUIRE_GITHUB?: string
+  /** APNs, set with `wrangler secret put`; pushes fail quietly without them. */
+  APNS_KEY?: string
+  APNS_KEY_ID?: string
+  APNS_TEAM_ID?: string
+  APNS_TOPIC?: string
 }
 
 const tooMany = () => new Response('Too many connections.\n', { status: 429 })
+const json = (body: unknown, status: number) =>
+  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const route = routeOf(new URL(request.url).pathname)
     if (!route) return new Response('Not found\n', { status: 404 })
+    const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
+    if (route.kind === 'rendezvous') {
+      if (request.method !== 'GET') return new Response('Method not allowed\n', { status: 405 })
+      if (!(await env.RENDEZVOUS_LIMIT.limit({ key: ip })).success)
+        return json({ error: 'limited' }, 429)
+      const stub = env.RELAY_RENDEZVOUS.get(env.RELAY_RENDEZVOUS.idFromName(route.code))
+      const found = await stub.lookup()
+      return found ? json(found, 200) : json({ error: 'not_found' }, 404)
+    }
     if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket')
       return new Response('Owlto relay: WebSocket only.\n', { status: 426 })
     // Turned away here, a reconnect loop costs a Worker request and never reaches the
     // Durable Object, which bills by duration.
-    const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
     if (!(await env.IP_LIMIT.limit({ key: ip })).success) return tooMany()
     if (!(await env.MAILBOX_LIMIT.limit({ key: route.mailbox })).success) return tooMany()
     const stub = env.RELAY_ROOM.get(env.RELAY_ROOM.idFromName(route.mailbox))
@@ -34,9 +65,30 @@ export default {
 } satisfies ExportedHandler<Env>
 
 const MAILBOX_KEY = 'mailbox'
+const ITEM_PREFIX = 'item:'
+
+/** Checks a GitHub token by asking GitHub who it belongs to; only a hash of the id is kept. */
+async function verifyGitHub(token: string): Promise<string | null> {
+  try {
+    const response = await fetch('https://api.github.com/user', {
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: 'application/vnd.github+json',
+        'user-agent': 'owlto-relay'
+      }
+    })
+    if (!response.ok) return null
+    const user = (await response.json()) as { id?: unknown }
+    return typeof user.id === 'number' ? await sha256Hex(`github:${user.id}`) : null
+  } catch {
+    return null
+  }
+}
 
 export class RelayRoom extends DurableObject<Env> {
   private readonly budgets = newBudgets()
+  private apns: ApnsSender | null = null
+  private mailboxId: string | null = null
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env)
     // Keepalive pings from either side are answered without waking the object.
@@ -45,8 +97,9 @@ export class RelayRoom extends DurableObject<Env> {
 
   async fetch(request: Request): Promise<Response> {
     const route = routeOf(new URL(request.url).pathname)
-    if (!route) return new Response('Not found\n', { status: 404 })
-    if (!this.room().admit()) return new Response('Too many connections.\n', { status: 429 })
+    if (!route || route.kind === 'rendezvous') return new Response('Not found\n', { status: 404 })
+    await this.rememberMailbox(route.mailbox)
+    if (!this.room().admit()) return tooMany()
     const { 0: client, 1: server } = new WebSocketPair()
     this.ctx.acceptWebSocket(server)
     const hello: Attachment = { kind: route.kind, state: 'hello', at: Date.now() }
@@ -55,6 +108,7 @@ export class RelayRoom extends DurableObject<Env> {
   }
 
   async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    await this.restoreMailbox()
     await this.room().message(
       socket,
       typeof message === 'string' ? message : new Uint8Array(message)
@@ -62,15 +116,61 @@ export class RelayRoom extends DurableObject<Env> {
   }
 
   async webSocketClose(socket: WebSocket): Promise<void> {
-    this.room().closed(socket)
+    await this.restoreMailbox()
+    await this.room().closed(socket)
   }
 
   async webSocketError(socket: WebSocket): Promise<void> {
-    this.room().closed(socket)
+    await this.restoreMailbox()
+    await this.room().closed(socket)
+  }
+
+  async alarm(): Promise<void> {
+    await this.restoreMailbox()
+    if (this.mailboxId) await this.room().expire()
+  }
+
+  /** Waking from hibernation or for an alarm loses memory; the id comes back from storage. */
+  private async restoreMailbox(): Promise<void> {
+    this.mailboxId ??= (await this.ctx.storage.get<string>('id')) ?? null
+  }
+
+  /** The mailbox id is only in the URL, so it is kept for wakes that come without one. */
+  private async rememberMailbox(mailbox: string): Promise<void> {
+    if (this.mailboxId === mailbox) return
+    this.mailboxId = mailbox
+    if ((await this.ctx.storage.get<string>('id')) !== mailbox)
+      await this.ctx.storage.put('id', mailbox)
+  }
+
+  private services(): RelayServices {
+    const env = this.env
+    return {
+      verifyGitHub: env.REQUIRE_GITHUB === 'false' ? null : verifyGitHub,
+      claimMailbox: (account, mailbox) =>
+        env.RELAY_ACCOUNT.get(env.RELAY_ACCOUNT.idFromName(account)).claim(mailbox),
+      releaseMailbox: (account, mailbox) =>
+        env.RELAY_ACCOUNT.get(env.RELAY_ACCOUNT.idFromName(account)).release(mailbox),
+      claimRendezvous: (code, entry) =>
+        env.RELAY_RENDEZVOUS.get(env.RELAY_RENDEZVOUS.idFromName(code)).claim(entry),
+      push: async (request) => {
+        if (!env.APNS_KEY || !env.APNS_KEY_ID || !env.APNS_TEAM_ID || !env.APNS_TOPIC)
+          return 'failed'
+        this.apns ??= new ApnsSender({
+          key: env.APNS_KEY,
+          keyId: env.APNS_KEY_ID,
+          teamId: env.APNS_TEAM_ID,
+          topic: env.APNS_TOPIC
+        })
+        return this.apns.send(request)
+      }
+    }
   }
 
   private room(): Room<WebSocket> {
+    const storage = this.ctx.storage
     const io: RoomIO<WebSocket> = {
+      mailbox: this.mailboxId ?? '',
       sockets: () => this.ctx.getWebSockets(),
       attachment: (socket) => (socket.deserializeAttachment() as Attachment | null) ?? null,
       attach: (socket, attachment) => socket.serializeAttachment(attachment),
@@ -88,8 +188,19 @@ export class RelayRoom extends DurableObject<Env> {
           // Already closed.
         }
       },
-      load: async () => (await this.ctx.storage.get<Mailbox>(MAILBOX_KEY)) ?? null,
-      save: (mailbox) => this.ctx.storage.put(MAILBOX_KEY, mailbox),
+      load: async () => (await storage.get<Mailbox>(MAILBOX_KEY)) ?? null,
+      save: (mailbox) => storage.put(MAILBOX_KEY, mailbox),
+      items: async () => [...(await storage.list<QueuedItem>({ prefix: ITEM_PREFIX })).values()],
+      saveItem: (item) => storage.put(`${ITEM_PREFIX}${item.id}`, item),
+      deleteItems: async (ids) => {
+        if (ids.length) await storage.delete(ids.map((id) => `${ITEM_PREFIX}${id}`))
+      },
+      deleteAll: async () => {
+        await storage.deleteAlarm()
+        await storage.deleteAll()
+        this.mailboxId = null
+      },
+      scheduleExpiry: (at) => storage.setAlarm(at),
       randomId: () => {
         const bytes = crypto.getRandomValues(new Uint8Array(16))
         return btoa(String.fromCharCode(...bytes))
@@ -98,8 +209,45 @@ export class RelayRoom extends DurableObject<Env> {
           .replace(/=+$/, '')
       },
       now: () => Date.now(),
-      budgets: this.budgets
+      budgets: this.budgets,
+      services: this.services()
     }
     return new Room(io)
+  }
+}
+
+/** One rendezvous code: the mailbox and pairing ticket it finds, until it expires. */
+export class RelayRendezvous extends DurableObject<Env> {
+  async claim(entry: RendezvousEntry): Promise<boolean> {
+    const held = await this.ctx.storage.get<RendezvousEntry>('entry')
+    if (held && held.expiresAt > Date.now()) return false
+    await this.ctx.storage.put('entry', entry)
+    await this.ctx.storage.setAlarm(entry.expiresAt)
+    return true
+  }
+  async lookup(): Promise<{ mailbox: string; ticket: string } | null> {
+    const entry = await this.ctx.storage.get<RendezvousEntry>('entry')
+    if (!entry || entry.expiresAt <= Date.now()) return null
+    return { mailbox: entry.mailbox, ticket: entry.ticket }
+  }
+  async alarm(): Promise<void> {
+    await this.ctx.storage.deleteAll()
+  }
+}
+
+/** The mailboxes one GitHub account owns, keyed by a hash of the account id. */
+export class RelayAccount extends DurableObject<Env> {
+  async claim(mailbox: string): Promise<boolean> {
+    const owned = (await this.ctx.storage.get<string[]>('mailboxes')) ?? []
+    if (owned.includes(mailbox)) return true
+    if (owned.length >= MAX_MAILBOXES_PER_ACCOUNT) return false
+    await this.ctx.storage.put('mailboxes', [...owned, mailbox].sort())
+    return true
+  }
+  async release(mailbox: string): Promise<void> {
+    const owned = (await this.ctx.storage.get<string[]>('mailboxes')) ?? []
+    const left = owned.filter((id) => id !== mailbox)
+    if (left.length) await this.ctx.storage.put('mailboxes', left)
+    else await this.ctx.storage.deleteAll()
   }
 }

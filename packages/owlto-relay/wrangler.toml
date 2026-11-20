@@ -7,9 +7,21 @@ compatibility_date = "2026-11-01"
 name = "RELAY_ROOM"
 class_name = "RelayRoom"
 
+[[durable_objects.bindings]]
+name = "RELAY_RENDEZVOUS"
+class_name = "RelayRendezvous"
+
+[[durable_objects.bindings]]
+name = "RELAY_ACCOUNT"
+class_name = "RelayAccount"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RelayRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["RelayRendezvous", "RelayAccount"]
 
 # Per-location rate limits, checked in the Worker before a Durable Object wakes, so a
 # reconnect loop or a flood cannot run up Durable Object duration. Limits are approximate.
@@ -23,3 +35,8 @@ simple = { limit = 120, period = 60 }
 name = "MAILBOX_LIMIT"
 namespace_id = "7102"
 simple = { limit = 30, period = 60 }
+
+[[ratelimits]]
+name = "RENDEZVOUS_LIMIT"
+namespace_id = "7103"
+simple = { limit = 10, period = 60 }
