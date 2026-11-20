@@ -22,7 +22,11 @@ messages and shows state. Nothing about threads is stored on the phone.
   `shared/router.ts`. Decode only what the phone shows; unknown enum values map to
   an `unknown`/`other` case so a newer Mac still decodes.
 - `Owlto/UI/` — SwiftUI screens. Colors come from `Theme.swift`, which mirrors the
-  desktop tokens in `assets/main.css`, light and dark. `OwlAvatar.swift` draws the
+  desktop tokens in `assets/main.css` and, for the Doodle skin, `skin-doodle.css`,
+  light and dark. `Skin.swift` holds the phone's own Style setting (Devices → Style)
+  and the shared surfaces (`owlCard`, `StatusText`, `SectionLabel`); like the desktop
+  skin, Doodle changes colors, outlines, shadows, and title fonts, never layout, so new
+  UI should use those helpers instead of hand-drawn strokes. `OwlAvatar.swift` draws the
   owls from the same SVG path data as `apps/owlto-client/resources/owl-avatars`.
 
 ## Protocol changes

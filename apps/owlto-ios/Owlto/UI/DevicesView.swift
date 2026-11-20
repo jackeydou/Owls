@@ -5,6 +5,7 @@ struct DevicesView: View {
   @Environment(RemoteHub.self) private var hub
   @State private var pairing = false
   @State private var removing: PairedHost?
+  @AppStorage(Skin.storageKey) private var skin: Skin = .standard
 
   var body: some View {
     List {
@@ -23,29 +24,47 @@ struct DevicesView: View {
             Button("Reconnect", systemImage: "arrow.clockwise") { hub.reconnect(host.deviceId) }
             Button("Remove", systemImage: "trash", role: .destructive) { removing = host }
           }
+          .skinnedRow(Theme.elevated)
         }
         Button {
           pairing = true
         } label: {
           Label("Add a Mac", systemImage: "plus")
         }
+        .skinnedRow(Theme.elevated)
       } header: {
-        Text("Paired Macs")
+        header("Paired Macs")
       } footer: {
         Text("Pick a Mac to see its threads. Each Mac keeps its own threads, settings, agent accounts, and GitHub connection.")
       }
 
       Section {
+        Picker("Style", selection: $skin) {
+          ForEach(Skin.allCases) { option in
+            Text(option.label).tag(option)
+          }
+        }
+        .skinnedRow(Theme.elevated)
+      } header: {
+        header("Appearance")
+      } footer: {
+        Text("Doodle matches the Owlto website: cream paper, bold outlines, and hard shadows.")
+      }
+
+      Section {
         LabeledContent("Name", value: hub.phoneName)
+          .skinnedRow(Theme.elevated)
         LabeledContent("Device ID") {
           Text(hub.phoneDeviceId).font(.body.monospaced())
         }
+        .skinnedRow(Theme.elevated)
       } header: {
-        Text("This phone")
+        header("This phone")
       } footer: {
         Text("To cut this phone off, remove it on the Mac in Owlto → Settings → Devices.")
       }
     }
+    .skinnedList(grouped: true)
     .navigationTitle("Devices")
     .sheet(isPresented: $pairing) {
       NavigationStack { PairView(cancellable: true) }
@@ -64,12 +83,21 @@ struct DevicesView: View {
     }
   }
 
+  @ViewBuilder
+  private func header(_ title: LocalizedStringKey) -> some View {
+    if skin == .doodle {
+      SectionLabel(title)
+    } else {
+      Text(title)
+    }
+  }
+
   private func row(_ host: PairedHost) -> some View {
     let status = hub.status(of: host.deviceId)
     return HStack(spacing: 12) {
       OwlAvatar(speaker: status == .offline ? .dreaming : .router, working: status == .online && hub.stores[host.deviceId]?.workers.contains(where: \.isWorking) == true, size: 40)
       VStack(alignment: .leading, spacing: 3) {
-        Text(host.name).font(.body.weight(.semibold))
+        Text(host.name).font(.body.weight(skin == .doodle ? .heavy : .semibold))
         Text(statusLine(host, status)).font(.caption).foregroundStyle(status == .online ? Theme.success : Theme.secondary)
         if status == .offline, let error = hub.lastError[host.deviceId] {
           Text(describe(error)).font(.caption2).foregroundStyle(Theme.tertiary).lineLimit(3)

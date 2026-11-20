@@ -12,6 +12,7 @@ struct InboxView: View {
       if items.isEmpty {
         EmptyState(speaker: .dreaming, title: "Nothing needs you", message: "When a worker asks for approval or has a question, it shows up here.")
           .listRowSeparator(.hidden)
+          .skinnedRow()
       }
       ForEach(items) { item in
         Button {
@@ -20,9 +21,11 @@ struct InboxView: View {
           AttentionRow(item: item, hostName: hub.hosts.count > 1 ? hub.hosts.first { $0.deviceId == item.hostId }?.name : nil)
         }
         .buttonStyle(.plain)
+        .skinnedRow()
       }
     }
     .listStyle(.plain)
+    .skinnedList()
     .navigationTitle("Needs You")
     .sheet(item: $selected) { AttentionSheet(item: $0) }
     .owltoDestinations()
@@ -82,6 +85,14 @@ extension AttentionItem {
     }
   }
 
+  /// The fill behind `kindLabel` in Doodle's outlined pill.
+  var tintFill: Color {
+    switch self {
+    case .request(_, _, _, let request, _): return request.kind == .question ? Theme.infoTint : Theme.warningTint
+    case .batch: return Theme.elevated
+    }
+  }
+
   var dot: Color {
     switch self {
     case .request(_, _, _, let request, _): return request.kind == .question ? Theme.infoDot : Theme.warningDot
@@ -96,13 +107,14 @@ struct AttentionRow: View {
   var compact = false
   var extra = 0
   var hostName: String?
+  @Environment(\.skin) private var skin
 
   var body: some View {
     HStack(spacing: 12) {
       OwlAvatar(speaker: item.speaker, size: compact ? 32 : 40).statusBadge(item.dot, size: compact ? 10 : 12)
       VStack(alignment: .leading, spacing: 3) {
         HStack(alignment: .firstTextBaseline) {
-          Text(item.threadTitle).font((compact ? Font.subheadline : .body).weight(.semibold)).lineLimit(1)
+          Text(item.threadTitle).font((compact ? Font.subheadline : .body).weight(skin == .doodle ? .heavy : .semibold)).lineLimit(1)
           Spacer(minLength: 8)
           if let hostName { Text(hostName).font(.caption).foregroundStyle(Theme.tertiary) }
           if extra > 0 { Text("+\(extra)").font(.caption.weight(.semibold)).foregroundStyle(Theme.secondary) }
@@ -126,6 +138,7 @@ struct AttentionSheet: View {
   @Environment(\.dismiss) private var dismiss
   @State private var error: String?
   @State private var answers: [String: String] = [:]
+  @Environment(\.skin) private var skin
 
   var body: some View {
     NavigationStack {
@@ -144,7 +157,7 @@ struct AttentionSheet: View {
         }
         .padding(20)
       }
-      .background(Theme.elevated)
+      .background(skin == .doodle ? Theme.background : Theme.elevated)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button {
@@ -165,8 +178,8 @@ struct AttentionSheet: View {
     HStack(spacing: 12) {
       OwlAvatar(speaker: item.speaker, size: 48)
       VStack(alignment: .leading, spacing: 4) {
-        Text(item.kindLabel).font(.caption.weight(.semibold)).foregroundStyle(item.tint)
-        Text(heading).font(.title3.weight(.semibold))
+        StatusText(item.kindLabel, color: item.tint, tint: item.tintFill, font: .caption.weight(.semibold))
+        Text(heading).displayFont(.title3.weight(.semibold), size: 22, relativeTo: .title3)
         Text(meta).font(.footnote).foregroundStyle(Theme.secondary).lineLimit(1)
       }
     }
@@ -209,8 +222,7 @@ struct AttentionSheet: View {
                   Spacer(minLength: 0)
                 }
                 .padding(12)
-                .background(Theme.elevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(chosen ? Theme.accent : Theme.border))
+                .owlCard(chosen && skin == .doodle ? Theme.fill : Theme.elevated, stroke: chosen ? Theme.accent : Theme.border, shadow: chosen ? 3 : 0)
               }
               .buttonStyle(.plain)
             }
@@ -235,7 +247,7 @@ struct AttentionSheet: View {
           .textSelection(.enabled)
           .padding(12)
           .frame(maxWidth: .infinity, alignment: .leading)
-          .background(Theme.code, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+          .owlCard(Theme.code, radius: 10)
       }
       VStack(spacing: 10) {
         AsyncButton(action: { try await respond(hostId, sessionId, request, "accept") }, onError: { error = describe($0) }) { Text("Allow") }
@@ -265,8 +277,8 @@ struct AttentionSheet: View {
       }
     }
     .padding(12)
-    .background(Theme.elevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.border))
+    .owlCard(Theme.elevated, stroke: Theme.border, shadow: 0)
+    .tint(skin == .doodle ? Theme.doodleAmber : nil)
   }
 
   private func respond(_ hostId: String, _ sessionId: String, _ request: AgentRequest, _ decision: String, answers questions: [Question] = []) async throws {

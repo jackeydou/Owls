@@ -11,6 +11,7 @@ struct WorkerView: View {
   @State private var showEarlier = false
   @State private var confirmStop = false
   @State private var attention: AttentionItem?
+  @Environment(\.skin) private var skin
 
   private var store: HostStore? { hub.stores[hostId] }
   private var worker: Worker? { store?.worker(workerId) }
@@ -61,8 +62,7 @@ struct WorkerView: View {
             } label: {
               AttentionRow(item: .request(hostId: hostId, worker: worker, sessionId: session?.id ?? "", request: request, at: session?.updatedAt ?? ""), compact: true)
                 .padding(10)
-                .background(Theme.warningTint, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.warningBorder))
+                .owlCard(Theme.warningTint, stroke: Theme.warningBorder)
             }
             .buttonStyle(.plain)
           }
@@ -85,7 +85,20 @@ struct WorkerView: View {
     }
   }
 
+  /// Doodle sets the header on its own outlined card, as the website does.
+  @ViewBuilder
   private func header(_ worker: Worker, pending: Int) -> some View {
+    if skin == .doodle {
+      headerRow(worker, pending: pending)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .owlCard(Theme.elevated, radius: 14)
+    } else {
+      headerRow(worker, pending: pending)
+    }
+  }
+
+  private func headerRow(_ worker: Worker, pending: Int) -> some View {
     let tone = worker.tone(pendingRequests: pending)
     return HStack(alignment: .center, spacing: 14) {
       OwlAvatar(speaker: OwlSpeaker(worker.provider), working: worker.isWorking, size: 64)
@@ -93,8 +106,8 @@ struct WorkerView: View {
       VStack(alignment: .leading, spacing: 6) {
         let agent = worker.provider?.displayName ?? String(localized: "Agent")
         Text(worker.isWorking ? String(localized: "\(agent) is working") : agent)
-          .font(.headline)
-        Text(worker.stateLabel(pendingRequests: pending)).font(.subheadline.weight(.medium)).foregroundStyle(tone.text)
+          .displayFont(.headline, size: 19, relativeTo: .headline)
+        StatusText(worker.stateLabel(pendingRequests: pending), tone: tone, font: .subheadline.weight(.medium))
         HStack(spacing: 6) {
           if let project = store?.project(worker.projectId) { Chip(text: project.name) }
           if let branch = worker.workspace?.branch { Chip(text: branch, monospaced: true) }
@@ -106,14 +119,14 @@ struct WorkerView: View {
   private func reportSection(_ report: WorkerReport, worker: Worker) -> some View {
     VStack(alignment: .leading, spacing: 10) {
       VStack(alignment: .leading, spacing: 6) {
-        Text(reportTitle(report.status)).font(.caption.weight(.semibold)).foregroundStyle(Theme.info)
+        SectionLabel(verbatim: reportTitle(report.status), color: Theme.info)
         MarkdownText(text: report.summary).font(.subheadline)
       }
       .padding(14)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.border))
+      .owlCard(skin == .doodle ? Theme.elevated : .clear, stroke: Theme.border)
       if let artifacts = report.artifacts, !artifacts.isEmpty {
-        Text("Artifacts").font(.caption.weight(.semibold)).foregroundStyle(Theme.tertiary)
+        SectionLabel("Artifacts")
         ForEach(artifacts, id: \.self) { artifact in
           artifactRow(artifact, worker: worker)
         }
@@ -147,7 +160,7 @@ struct WorkerView: View {
     }
     .padding(.horizontal, 12)
     .frame(minHeight: 46)
-    .background(Theme.fill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    .owlCard(skin == .doodle ? Theme.elevated : Theme.fill, radius: 10, shadow: 2)
   }
 
   @ViewBuilder
@@ -166,7 +179,7 @@ struct WorkerView: View {
             }
             .padding(.horizontal, 12)
             .frame(minHeight: 46)
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Theme.border))
+            .owlCard(skin == .doodle ? Theme.elevated : .clear, radius: 10, stroke: Theme.border, shadow: 2)
           }
         }
         if !diff.isEmpty {
@@ -182,7 +195,7 @@ struct WorkerView: View {
             }
             .padding(.horizontal, 12)
             .frame(minHeight: 46)
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Theme.border))
+            .owlCard(skin == .doodle ? Theme.elevated : .clear, radius: 10, stroke: Theme.border, shadow: 2)
           }
         }
       }
@@ -196,7 +209,7 @@ struct WorkerView: View {
     let hidden = showEarlier ? 0 : max(0, items.count - limit)
     if !items.isEmpty {
       VStack(alignment: .leading, spacing: 12) {
-        Text("Conversation").font(.caption.weight(.semibold)).foregroundStyle(Theme.tertiary)
+        SectionLabel("Conversation")
         if hidden > 0 {
           Button("Show \(hidden) earlier messages") { showEarlier = true }.font(.footnote)
         }
@@ -215,7 +228,7 @@ struct WorkerView: View {
         Text(MarkdownText.attributed(item.text))
           .padding(.horizontal, 12)
           .padding(.vertical, 9)
-          .background(Theme.userBubble, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+          .owlCard(Theme.userBubble, shadow: 0)
       }
     case .assistant:
       SpeakerRow(speaker: OwlSpeaker(provider), name: provider?.displayName ?? String(localized: "Agent")) {
@@ -272,14 +285,14 @@ struct WorkerView: View {
               AsyncButton(action: {
                 try await hub.perform(hostId, "dropPendingMessage", ["routerId": worker.routerId, "workerId": worker.id, "messageId": message.id])
               }, onError: { error = describe($0) }) {
-                Text("Remove from queue").padding(.horizontal, 4)
+                Text("Remove from queue").padding(.horizontal, skin == .doodle ? 10 : 4)
               }
               .buttonStyle(OwltoButtonStyle(kind: .secondary, height: 32, font: .footnote.weight(.medium)))
               .fixedSize()
               AsyncButton(action: {
                 try await hub.perform(hostId, "steerPendingMessage", ["routerId": worker.routerId, "workerId": worker.id, "messageId": message.id])
               }, onError: { error = describe($0) }) {
-                Text("Steer").padding(.horizontal, 8)
+                Text("Steer").padding(.horizontal, skin == .doodle ? 12 : 8)
               }
               .buttonStyle(OwltoButtonStyle(height: 32, font: .footnote.weight(.semibold)))
               .fixedSize()
@@ -289,7 +302,7 @@ struct WorkerView: View {
         }
       }
       .padding(12)
-      .background(Theme.fill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+      .owlCard(Theme.fill, shadow: 0, dashed: true)
       .padding(.horizontal, 12)
       .padding(.bottom, 8)
     }

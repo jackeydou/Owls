@@ -12,6 +12,7 @@ struct PairView: View {
   @State private var code = ""
   @State private var error: String?
   @FocusState private var field: Field?
+  @Environment(\.skin) private var skin
 
   enum Field { case address, code }
 
@@ -25,7 +26,7 @@ struct PairView: View {
           OwlAvatar(speaker: .cursor, working: true, size: 44).owlRing()
         }
         VStack(alignment: .leading, spacing: 10) {
-          Text("Connect your Mac").font(.title.bold())
+          Text("Connect your Mac").displayFont(.title.bold(), size: 32, relativeTo: .title)
           Text("Messages go to the Router on your Mac; workers run there with its agents, and the results show up here. This phone keeps no threads of its own.")
             .font(.subheadline)
             .foregroundStyle(Theme.secondary)
@@ -36,10 +37,10 @@ struct PairView: View {
           step(3, "Enter one of the Mac's addresses and the code below.")
         }
         .padding(16)
-        .background(Theme.fill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .owlCard(skin == .doodle ? Theme.elevated : Theme.fill)
 
         VStack(alignment: .leading, spacing: 14) {
-          labeled("Address of the Mac") {
+          labeled("Address of the Mac", focused: field == .address) {
             TextField("192.168.1.20 or mac-mini.tail1234.ts.net", text: $address)
               .textInputAutocapitalization(.never)
               .autocorrectionDisabled()
@@ -48,7 +49,7 @@ struct PairView: View {
               .submitLabel(.next)
               .onSubmit { field = .code }
           }
-          labeled("Pairing code") {
+          labeled("Pairing code", focused: field == .code) {
             TextField("ABCD-EFGH", text: $code)
               .font(.title3.monospaced())
               .textInputAutocapitalization(.characters)
@@ -93,25 +94,46 @@ struct PairView: View {
     if cancellable { dismiss() }
   }
 
+  @ViewBuilder
   private func step(_ number: Int, _ text: LocalizedStringKey) -> some View {
     HStack(alignment: .top, spacing: 12) {
-      Text("\(number)")
-        .font(.caption.weight(.bold))
-        .foregroundStyle(Theme.background)
-        .frame(width: 22, height: 22)
-        .background(Theme.accent, in: Circle())
+      if skin == .doodle {
+        // The website numbers its steps in amber, indigo, and teal.
+        let colors = [Theme.doodleAmber, Theme.doodleIndigo, Theme.doodleTeal]
+        Text("\(number)")
+          .font(.caption.weight(.heavy))
+          .foregroundStyle(Theme.onPrimary)
+          .frame(width: 22, height: 22)
+          .background(colors[(number - 1) % colors.count], in: Circle())
+          .overlay(Circle().strokeBorder(Theme.border, lineWidth: 2))
+      } else {
+        Text("\(number)")
+          .font(.caption.weight(.bold))
+          .foregroundStyle(Theme.background)
+          .frame(width: 22, height: 22)
+          .background(Theme.accent, in: Circle())
+      }
       Text(text).font(.subheadline)
     }
   }
 
-  private func labeled<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text(title).font(.footnote.weight(.medium)).foregroundStyle(Theme.secondary)
+  private func labeled<Content: View>(_ title: LocalizedStringKey, focused: Bool, @ViewBuilder content: () -> Content) -> some View {
+    let doodle = skin == .doodle
+    let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+    return VStack(alignment: .leading, spacing: 6) {
+      Text(title).font(.footnote.weight(doodle ? .heavy : .medium)).foregroundStyle(Theme.secondary)
       content()
         .padding(.horizontal, 14)
         .frame(minHeight: 48)
-        .background(Theme.elevated, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Theme.border))
+        .owlCard(Theme.elevated, radius: 10, stroke: Theme.border, shadow: 0)
+        .overlay {
+          // Doodle shows focus on the field's border in amber, never a black ring.
+          if doodle && focused {
+            shape.strokeBorder(Theme.doodleAmber, lineWidth: 2)
+              .background(shape.stroke(Theme.doodleAmber.opacity(0.3), lineWidth: 6))
+          }
+        }
+        .tint(doodle ? Theme.doodleAmber : nil)
     }
   }
 }

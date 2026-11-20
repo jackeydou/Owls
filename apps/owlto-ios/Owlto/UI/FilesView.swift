@@ -62,6 +62,7 @@ struct DiffView: View {
   let title: String
   let diff: String
   @State private var collapsed: Set<Int> = []
+  @Environment(\.skin) private var skin
 
   var body: some View {
     let files = DiffFile.parse(diff)
@@ -88,9 +89,9 @@ struct DiffView: View {
                   }
                 }
               }
-              .background(Theme.background)
+              .background(skin == .doodle ? Theme.elevated : Theme.background)
               .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-              .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Theme.border))
+              .owlCard(.clear, radius: 10, stroke: Theme.border)
             }
           } header: {
             Button {
@@ -98,7 +99,7 @@ struct DiffView: View {
             } label: {
               HStack(spacing: 8) {
                 Image(systemName: collapsed.contains(file.id) ? "chevron.right" : "chevron.down").font(.caption2.weight(.bold))
-                Text(file.path).font(.footnote.monospaced().weight(.medium)).lineLimit(1).truncationMode(.head)
+                Text(file.path).font(.footnote.monospaced().weight(skin == .doodle ? .bold : .medium)).lineLimit(1).truncationMode(.head)
                 Spacer()
                 Text("+\(file.added)").foregroundStyle(Theme.success)
                 Text("−\(file.removed)").foregroundStyle(Theme.danger)
