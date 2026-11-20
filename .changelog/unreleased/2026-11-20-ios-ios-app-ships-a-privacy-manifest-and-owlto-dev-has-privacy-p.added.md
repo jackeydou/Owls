@@ -1,0 +1,1 @@
+- iOS app: ships a privacy manifest, and owlto.dev has Privacy policy and Support pages for the App Store listing. (#209)
