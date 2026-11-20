@@ -1,8 +1,11 @@
 import { createServer, type Server } from 'node:net'
+import { z } from 'zod'
 import type { Failure } from '../../shared/app.js'
 import {
+  formatRelayCode,
   formatRemoteInvite,
   PAIRING_CODE_TTL_MS,
+  type RemoteJustPaired,
   type RemoteEvent,
   type RemoteMethod,
   type RemotePairing,
@@ -15,7 +18,7 @@ import { type FrameChannel, SocketFrames } from './frames.js'
 import { HandshakeError, type Me, respond } from './handshake.js'
 import { newRelayToken, relayTicketHash } from './relay.js'
 import { RpcConnection } from './rpc.js'
-import type { RemoteStore } from './store.js'
+import { NEW_PEER_EXTRAS, type RemoteStore } from './store.js'
 
 /** What a host does for a request; params are already checked against the method's schema. */
 export type RemoteHostApi = {
@@ -56,6 +59,22 @@ type Client = { deviceId: string; rpc: RpcConnection }
 export const RELAY_ROUTE_METHOD = 'relayRoute'
 export type RelayRouteReply = { url: string; mailbox: string; ticket: string } | null
 
+/**
+ * Sent by a phone outside the Router API: where to push its notifications and the key to
+ * seal them with. Null stops them.
+ */
+export const REGISTER_PUSH_METHOD = 'registerPush'
+export const registerPushSchema = z
+  .object({
+    token: z.string().regex(/^[0-9a-f]{32,200}$/),
+    /** 32 random bytes, base64url, that only this host and the phone hold. */
+    key: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+    /** A debug build's token goes to APNs' sandbox. */
+    sandbox: z.boolean()
+  })
+  .nullable()
+export type RegisterPush = z.infer<typeof registerPushSchema>
+
 export type HostServerDeps = {
   store: RemoteStore
   me: () => Promise<Me>
@@ -69,7 +88,14 @@ export type HostServerDeps = {
   relay: () => { url: string; mailbox: string } | null
   /** The tickets that may reach this host through the relay changed. */
   ticketsChanged: () => void
+  /** A client registered or dropped its push token. */
+  registerPush: (deviceId: string, push: RegisterPush) => Promise<void>
+  /** The relay's rendezvous code for a pairing ticket, once the relay gave one. */
+  rendezvous: () => { ticket: string; code: string } | null
 }
+
+/** How long the just-paired device and its safety code stay on screen. */
+const JUST_PAIRED_MS = 5 * 60_000
 
 /**
  * The host side of Remote Router: listens for paired devices, runs the pairing code,
@@ -78,13 +104,14 @@ export type HostServerDeps = {
 export class HostServer {
   private listener: { close(): void } | null = null
   private pairing:
-    | (Omit<RemotePairing, 'invite'> & {
+    | (Omit<RemotePairing, 'invite' | 'relayCode'> & {
         attempts: number
         timer: NodeJS.Timeout
         /** A one-time relay ticket for the device that pairs from the invite. */
         ticket: string | null
       })
     | null = null
+  private justPaired: (RemoteJustPaired & { timer: NodeJS.Timeout }) | null = null
   /** This device's public key, read at start, for invites. */
   private publicKey: string | null = null
   private clients = new Set<Client>()
@@ -104,6 +131,7 @@ export class HostServer {
   }
   stop(): void {
     this.cancelPairing()
+    this.dismissJustPaired()
     this.listener?.close()
     this.listener = null
     for (const client of this.clients) client.rpc.close()
@@ -123,7 +151,26 @@ export class HostServer {
             key: this.publicKey
           })
         : null
-    return { code, expiresAt, invite }
+    const meet = this.deps.rendezvous()
+    const relayCode =
+      meet && ticket && meet.ticket === ticket
+        ? formatRelayCode({ rendezvous: meet.code, code })
+        : null
+    return { code, expiresAt, invite, relayCode }
+  }
+  /** The open pairing's one-time relay ticket; null when not pairing or not on the relay. */
+  pairingTicket(): string | null {
+    return this.pairing?.ticket ?? null
+  }
+  justPairedState(): RemoteJustPaired | null {
+    if (!this.justPaired) return null
+    const { deviceId, name, safetyCode } = this.justPaired
+    return { deviceId, name, safetyCode }
+  }
+  /** Hides the just-paired notice, as after the user checked the digits or removed it. */
+  dismissJustPaired(): void {
+    if (this.justPaired) clearTimeout(this.justPaired.timer)
+    this.justPaired = null
   }
   /** Hashes of the relay tickets that may connect now: paired clients and a pairing invite. */
   tickets(): string[] {
@@ -137,6 +184,7 @@ export class HostServer {
     if (!this.listener)
       throw new OwltoError('remote_unsupported', 'Turn on remote access before pairing a device.')
     this.cancelPairing()
+    this.dismissJustPaired()
     const expiresAt = new Date(this.deps.now().getTime() + PAIRING_CODE_TTL_MS).toISOString()
     const timer = setTimeout(() => {
       this.cancelPairing()
@@ -218,7 +266,7 @@ export class HostServer {
     } finally {
       this.handshakes--
     }
-    const { channel, peer, paired } = opened
+    const { channel, peer, paired, safetyCode } = opened
     const at = this.deps.now().toISOString()
     if (paired) {
       // The code is spent once a device proves it; a second device needs a new code.
@@ -235,8 +283,16 @@ export class HostServer {
         relayUrl: null,
         relayMailbox: null,
         relayTicket: null,
-        relayTicketHash: null
+        relayTicketHash: null,
+        ...NEW_PEER_EXTRAS
       })
+      this.dismissJustPaired()
+      const timer = setTimeout(() => {
+        this.dismissJustPaired()
+        this.deps.changed()
+      }, JUST_PAIRED_MS)
+      timer.unref?.()
+      this.justPaired = { deviceId: peer.deviceId, name: peer.name, safetyCode, timer }
     } else this.deps.store.seen(peer.deviceId, 'client', peer.name, at)
     const client: Client = {
       deviceId: peer.deviceId,
@@ -261,6 +317,10 @@ export class HostServer {
     if (!this.deps.store.peer(deviceId, 'client'))
       throw new OwltoError('remote_identity_changed', 'This device was removed.')
     if (method === RELAY_ROUTE_METHOD) return this.relayRoute(deviceId)
+    if (method === REGISTER_PUSH_METHOD) {
+      await this.deps.registerPush(deviceId, registerPushSchema.parse(params ?? null))
+      return null
+    }
     if (!Object.hasOwn(remoteMethodSchemas, method))
       throw new OwltoError('remote_unsupported', 'This action only works on the device itself.')
     const name = method as RemoteMethod

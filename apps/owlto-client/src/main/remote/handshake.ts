@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { deflateRawSync, inflateRawSync } from 'node:zlib'
 import { z } from 'zod'
 import { deviceIdSchema } from '../../shared/app.js'
 import { REMOTE_PROTOCOL } from '../../shared/remote.js'
@@ -9,6 +10,7 @@ import {
   isPublicKey,
   type KeyPair,
   pairingSecret,
+  safetyCode,
   sessionKeys,
   sha256
 } from './crypto.js'
@@ -64,24 +66,54 @@ const hs2Schema = z.discriminatedUnion('t', [
 const nameSchema = z.object({
   t: z.enum(['hello', 'welcome']),
   name: z.string().trim().min(1).max(120),
-  appVersion: z.string().max(64)
+  appVersion: z.string().max(64),
+  /** What this side can read beyond protocol 1; older peers send none. */
+  caps: z.array(z.string().max(32)).max(16).default([])
 })
+/** This side reads compressed messages (see `SecureChannel`). */
+export const CAP_DEFLATE = 'deflate'
+const MY_CAPS = [CAP_DEFLATE]
 
-export type Peer = { deviceId: string; name: string; publicKey: string; appVersion: string }
+export type Peer = {
+  deviceId: string
+  name: string
+  publicKey: string
+  appVersion: string
+  caps: string[]
+}
 export type Me = { deviceId: string; name: string; appVersion: string; identity: KeyPair }
 
-/** JSON messages over a channel whose frames are sealed with the session keys. */
+/** Messages shorter than this go uncompressed; deflate would barely shrink them. */
+const COMPRESS_MIN_BYTES = 1024
+/** A compressed message starts with this byte; JSON never does. */
+const DEFLATED = 0x01
+/** The most a compressed message may grow to, so a bad one cannot exhaust memory. */
+const MAX_INFLATED_BYTES = 64 * 1024 * 1024
+
+/**
+ * JSON messages over a channel whose frames are sealed with the session keys. When the peer
+ * reads deflate, long messages (snapshots, thread items) are compressed before sealing:
+ * the plain text is then `0x01 ‖ raw deflate(JSON)`. Compressing before encrypting can leak
+ * through sizes when an attacker controls part of the text; here all of it comes from the
+ * two paired devices, so that risk is small and the savings on a phone network are large.
+ */
 export class SecureChannel {
   private listener: ((message: unknown) => void) | null = null
   constructor(
     private readonly frames: FrameChannel,
     private readonly sender: FrameCipher,
-    private readonly receiver: FrameCipher
+    private readonly receiver: FrameCipher,
+    private readonly compress = false
   ) {
     frames.onFrame((frame) => {
       let message: unknown
       try {
-        message = JSON.parse(this.receiver.open(frame).toString('utf8'))
+        const plain = this.receiver.open(frame)
+        const text =
+          plain[0] === DEFLATED
+            ? inflateRawSync(plain.subarray(1), { maxOutputLength: MAX_INFLATED_BYTES })
+            : plain
+        message = JSON.parse(text.toString('utf8'))
       } catch {
         // A frame that does not open means tampering or a lost frame: nothing after it can be trusted.
         frames.close()
@@ -91,7 +123,12 @@ export class SecureChannel {
     })
   }
   send(message: unknown): void {
-    this.frames.send(this.sender.seal(Buffer.from(JSON.stringify(message), 'utf8')))
+    const text = Buffer.from(JSON.stringify(message), 'utf8')
+    const plain =
+      this.compress && text.length >= COMPRESS_MIN_BYTES
+        ? Buffer.concat([Buffer.from([DEFLATED]), deflateRawSync(text)])
+        : text
+    this.frames.send(this.sender.seal(plain))
   }
   onMessage(listener: (message: unknown) => void): void {
     this.listener = listener
@@ -166,7 +203,7 @@ export async function initiate(
   frames: FrameChannel,
   me: Me,
   mode: InitiatorMode
-): Promise<{ channel: SecureChannel; peer: Peer }> {
+): Promise<{ channel: SecureChannel; peer: Peer; safetyCode: string }> {
   const reader = frameReader(frames, HANDSHAKE_TIMEOUT_MS)
   try {
     const ephemeral = generateKeyPair()
@@ -201,7 +238,15 @@ export async function initiate(
     const sender = new FrameCipher(keys.initiator)
     const receiver = new FrameCipher(keys.responder)
     frames.send(
-      sender.seal(encode({ t: 'hello', name: me.name, appVersion: me.appVersion, nonce: nonce() }))
+      sender.seal(
+        encode({
+          t: 'hello',
+          name: me.name,
+          appVersion: me.appVersion,
+          caps: MY_CAPS,
+          nonce: nonce()
+        })
+      )
     )
     const reply = await reader.next()
     let welcome: z.infer<typeof nameSchema>
@@ -217,13 +262,15 @@ export async function initiate(
     if (welcome.t !== 'welcome') throw new HandshakeError('malformed')
     reader.done()
     return {
-      channel: new SecureChannel(frames, sender, receiver),
+      channel: new SecureChannel(frames, sender, receiver, welcome.caps.includes(CAP_DEFLATE)),
       peer: {
         deviceId: hs2.deviceId,
         name: welcome.name,
         publicKey: hs2.publicKey,
-        appVersion: welcome.appVersion
-      }
+        appVersion: welcome.appVersion,
+        caps: welcome.caps
+      },
+      safetyCode: safetyCode(keys)
     }
   } catch (error) {
     reader.done()
@@ -246,7 +293,7 @@ export async function respond(
   frames: FrameChannel,
   me: Me,
   policy: ResponderPolicy
-): Promise<{ channel: SecureChannel; peer: Peer; paired: boolean }> {
+): Promise<{ channel: SecureChannel; peer: Peer; paired: boolean; safetyCode: string }> {
   const reader = frameReader(frames, HANDSHAKE_TIMEOUT_MS)
   const reject = (reason: RejectReason) => {
     frames.send(encode({ t: 'reject', reason }))
@@ -291,19 +338,27 @@ export async function respond(
     if (hello.t !== 'hello') throw reject('auth_failed')
     frames.send(
       sender.seal(
-        encode({ t: 'welcome', name: me.name, appVersion: me.appVersion, nonce: nonce() })
+        encode({
+          t: 'welcome',
+          name: me.name,
+          appVersion: me.appVersion,
+          caps: MY_CAPS,
+          nonce: nonce()
+        })
       )
     )
     reader.done()
     return {
-      channel: new SecureChannel(frames, sender, receiver),
+      channel: new SecureChannel(frames, sender, receiver, hello.caps.includes(CAP_DEFLATE)),
       peer: {
         deviceId: hs1.deviceId,
         name: hello.name,
         publicKey: hs1.publicKey,
-        appVersion: hello.appVersion
+        appVersion: hello.appVersion,
+        caps: hello.caps
       },
-      paired: pairing
+      paired: pairing,
+      safetyCode: safetyCode(keys)
     }
   } catch (error) {
     reader.done()

@@ -17,6 +17,12 @@ const local: Backend = {
   threadItems: (input) => window.owlto.threadItems(input),
   createThread: (input) => window.owlto.createThread(input),
   sendRouter: (input) => window.owlto.sendRouter({ cardIds: [], attachments: [], ...input }),
+  stageAttachment: ({ name, mimeType, data }) =>
+    window.owlto.stageAttachment({
+      name,
+      mimeType,
+      data: Uint8Array.from(atob(data), (char) => char.charCodeAt(0))
+    }),
   interruptRouter: (routerId) => window.owlto.interruptRouter(routerId),
   archiveThread: (input) => window.owlto.archiveThread(input),
   resolveBatch: (input) => window.owlto.resolveBatch(input),
@@ -37,6 +43,7 @@ function remote(deviceId: string): Backend {
     threadItems: call('threadItems'),
     createThread: call('createThread'),
     sendRouter: call('sendRouter'),
+    stageAttachment: call('stageAttachment'),
     interruptRouter: call('interruptRouter'),
     archiveThread: call('archiveThread'),
     resolveBatch: call('resolveBatch'),

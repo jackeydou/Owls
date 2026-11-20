@@ -293,7 +293,17 @@ export const remotePeersTable = sqliteTable(
     relayMailbox: text('relay_mailbox'),
     relayTicket: text('relay_ticket'),
     /** For a client: the SHA-256 of the relay ticket it was given; the relay stores the same. */
-    relayTicketHash: text('relay_ticket_hash')
+    relayTicketHash: text('relay_ticket_hash'),
+    /**
+     * Messages left on the relay while the host was away carry a sequence number, so one the
+     * relay replays is not run twice. A host keeps the highest it ran from this client; a
+     * client keeps the last it used for this host.
+     */
+    queueSeq: integer('queue_seq').notNull().default(0),
+    /** For a client: its APNs token and the key that seals its notifications (encrypted). */
+    pushToken: text('push_token'),
+    pushKey: text('push_key'),
+    pushSandbox: integer('push_sandbox', { mode: 'boolean' }).notNull().default(false)
   },
   (table) => [primaryKey({ columns: [table.deviceId, table.role] })]
 )

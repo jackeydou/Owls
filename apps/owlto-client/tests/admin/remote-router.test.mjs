@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -12,13 +12,20 @@ import { openSqlite } from '../fixtures/sqlite.mjs'
 const require = createRequire(import.meta.url)
 const {
   FrameCipher,
+  KeepAwake,
   OwltoError,
   OwltoStore,
   RelayListener,
   RemoteService,
   RemoteStore,
   connectFrames,
+  generateKeyPair,
+  openFromClient,
+  openPush,
+  sealForHost,
   dialRelay,
+  dropRelayItem,
+  lookupRendezvous,
   normalizePairingCode,
   parseRemoteInvite,
   parseRemoteAddress,
@@ -121,6 +128,10 @@ function hostApi(calls) {
     threadItems: record('threadItems', []),
     createThread: record('createThread', { id: 'thread' }),
     sendRouter: record('sendRouter', undefined),
+    stageAttachment: (input) => {
+      calls.push({ name: 'stageAttachment', input })
+      return { id: randomUUID(), name: input.name, mimeType: input.mimeType, size: input.data.length }
+    },
     interruptRouter: record('interruptRouter', undefined),
     archiveThread: record('archiveThread', undefined),
     resolveBatch: record('resolveBatch', undefined),
@@ -138,6 +149,7 @@ function device(t, name, net, overrides = {}) {
   const store = new OwltoStore(client, MIGRATIONS)
   let access = false
   let relay = false
+  let keepAwake = false
   const calls = []
   const events = []
   const overviews = []
@@ -155,9 +167,17 @@ function device(t, name, net, overrides = {}) {
     saveRelay: (enabled) => {
       relay = enabled
     },
+    keepAwakeEnabled: () => keepAwake,
+    saveKeepAwake: (enabled) => {
+      keepAwake = enabled
+    },
     listen: net ? net.listen(name) : tcpListen,
     dial: net ? net.dial : connectFrames,
     dialRelay,
+    lookupRendezvous,
+    dropItem: dropRelayItem,
+    readAttachment: async () => new Uint8Array([1, 2, 3]),
+    githubToken: async () => null,
     toFailure,
     changed: (overview) => overviews.push(overview),
     remoteEvent: (deviceId, event) => events.push({ deviceId, event }),
@@ -192,8 +212,8 @@ async function paired(t, address = 'mini') {
 }
 
 /** A Node relay for the test, like the Owlto relay but local. */
-async function localRelay(t) {
-  const relay = await startNodeRelay()
+async function localRelay(t, options = {}) {
+  const relay = await startNodeRelay(options)
   t.after(() => relay.close())
   return relay
 }
@@ -440,8 +460,9 @@ test('a device on another network pairs from the invite and drives the host thro
 
 test('frames larger than a relay message arrive whole', async (t) => {
   const { url } = await localRelay(t)
-  const big = 'x'.repeat(900 * 1024)
-  // A long thread's items: one frame of about 900 KB, far over one relay message.
+  // A long thread's items: one frame of about 900 KB, far over one relay message, and
+  // random so compression cannot shrink it below one.
+  const big = randomBytes(700 * 1024).toString('base64')
   const items = [{ id: 'i1', text: big }]
   const host = await relayHost(t, network(), url, {
     api: { ...hostApi([]), threadItems: () => items }
@@ -530,7 +551,11 @@ test('two Macs with one relay mailbox do not push each other off forever', async
       mailbox,
       secret,
       tickets: () => [],
+      pairingTicket: () => null,
+      githubToken: async () => null,
       accept: (frames) => frames.close(),
+      queued: () => {},
+      pushGone: () => {},
       changed: () => {}
     })
     t.after(() => created.close())
@@ -546,4 +571,180 @@ test('two Macs with one relay mailbox do not push each other off forever', async
   await new Promise((resolve) => setTimeout(resolve, 1_500))
   assert.deepEqual(first.status(), { state: 'offline', error: 'relay_replaced' })
   assert.equal(second.status().state, 'online')
+})
+
+test('a device on another network pairs with a typed relay code, and both show the same digits', async (t) => {
+  const { url } = await localRelay(t)
+  const host = await relayHost(t, network(), url)
+  const laptop = device(t, 'laptop', network(), { relayUrl: url })
+  host.service.startPairing()
+  await until(() => host.service.overview().pairing?.relayCode)
+  const { relayCode, code } = host.service.overview().pairing
+  assert.match(relayCode, /^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/)
+  assert.equal(relayCode.replace(/-/g, '').slice(4), code, 'the pairing code never reaches the relay')
+  await assert.rejects(laptop.service.pair({ relayCode: `0000${code}` }), {
+    code: 'remote_pairing_failed'
+  })
+  const remote = await laptop.service.pair({ relayCode: relayCode.toLowerCase() })
+  assert.equal(remote.via, 'relay')
+  assert.match(remote.safetyCode, /^\d{6}$/)
+  const shown = host.service.overview().justPaired
+  assert.equal(shown.deviceId, laptop.store.deviceId)
+  assert.equal(shown.safetyCode, remote.safetyCode)
+  host.service.dismissJustPaired()
+  assert.equal(host.service.overview().justPaired, null)
+})
+
+test('a relay that asks for a GitHub sign-in gets the token once, and only when it asks', async (t) => {
+  const seen = []
+  const { url } = await localRelay(t, {
+    verifyGitHub: async (token) => {
+      seen.push(token)
+      return token === 'gho_signed_in_0123456789' ? 'account' : null
+    }
+  })
+  const signedOut = device(t, 'mini', network(), { relayUrl: url })
+  await signedOut.service.setAccess(true)
+  await signedOut.service.setRelay(true)
+  await until(() => signedOut.service.overview().relay.error === 'relay_login')
+  const host = await relayHost(t, network(), url, {
+    githubToken: async () => 'gho_signed_in_0123456789'
+  })
+  assert.deepEqual(seen, ['gho_signed_in_0123456789'])
+  // The mailbox is registered now: reconnecting needs its secret only.
+  await host.service.setRelay(false)
+  await host.service.setRelay(true)
+  await until(() => host.service.overview().relay.state === 'online')
+  assert.equal(seen.length, 1)
+})
+
+test('a message sent while the host is away waits on the relay and runs once when it returns', async (t) => {
+  const { url } = await localRelay(t)
+  const host = await relayHost(t, network(), url)
+  const laptop = device(t, 'laptop', network())
+  const { pairing } = host.service.startPairing()
+  const remote = await laptop.service.pair({ invite: pairing.invite })
+  // The host quits: its relay socket and the laptop's pipe close.
+  await host.service.setAccess(false)
+  await until(() => laptop.service.overview().devices[0].status !== 'online')
+  const message = { routerId: randomUUID(), commandId: randomUUID(), text: 'While you were out' }
+  assert.deepEqual(await laptop.service.call(remote.deviceId, 'sendRouter', message), {
+    queued: true
+  })
+  assert.equal(host.calls.length, 0)
+  await host.service.setAccess(true)
+  await until(() => host.calls.some((call) => call.name === 'sendRouter'))
+  const sent = host.calls.find((call) => call.name === 'sendRouter')
+  assert.equal(sent.input.text, 'While you were out')
+  assert.equal(host.raw.peer(laptop.store.deviceId, 'client').queueSeq, 1)
+  // Back online, the host has acked the item: a reconnect runs nothing again.
+  await host.service.setRelay(false)
+  await host.service.setRelay(true)
+  await until(() => host.service.overview().relay.state === 'online')
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  assert.equal(host.calls.filter((call) => call.name === 'sendRouter').length, 1)
+})
+
+test('a queue item opens only on its host, from the client that sealed it, and once', () => {
+  const host = generateKeyPair()
+  const client = generateKeyPair()
+  const stranger = generateKeyPair()
+  const me = { deviceId: 'dv_0123abcd', identity: client }
+  const message = { seq: 3, at: Date.now(), method: 'sendRouter', params: { text: 'hi' } }
+  const item = sealForHost(message, me, host.publicKey)
+  const keys = (id) => (id === me.deviceId ? client.publicKey : null)
+  assert.deepEqual(openFromClient(item, host, keys), { from: me.deviceId, message })
+  assert.equal(openFromClient(item, stranger, keys), null, 'another host cannot open it')
+  assert.equal(
+    openFromClient(item, host, () => stranger.publicKey),
+    null,
+    'it does not open as from another device'
+  )
+  const forged = sealForHost(message, { deviceId: me.deviceId, identity: stranger }, host.publicKey)
+  assert.equal(openFromClient(forged, host, keys), null, 'a stranger cannot write as the client')
+})
+
+test('a phone away from the Mac gets a sealed notification it alone can open', async (t) => {
+  const pushes = []
+  const { url } = await localRelay(t, {
+    push: async (request) => {
+      pushes.push(request)
+      return 'sent'
+    }
+  })
+  const host = await relayHost(t, network(), url)
+  const phone = device(t, 'phone', network())
+  const { pairing } = host.service.startPairing()
+  const remote = await phone.service.pair({ invite: pairing.invite })
+  const key = randomBytes(32)
+  const token = 'ab'.repeat(32)
+  await phone.service.links.request(remote.deviceId, 'registerPush', {
+    token,
+    key: key.toString('base64url'),
+    sandbox: true
+  })
+  const stored = host.raw.peer(phone.store.deviceId, 'client')
+  assert.equal(stored.pushToken, token)
+  assert.match(stored.pushKey, /^enc:/, 'the key is stored encrypted')
+  const notice = {
+    title: 'Codex needs your OK',
+    subtitle: 'Fix the build',
+    body: 'Wants to change files',
+    routerId: randomUUID(),
+    workerId: 'w1'
+  }
+  await host.service.notifyClients(notice)
+  assert.equal(pushes.length, 0, 'a connected phone shows the request itself')
+  phone.service.removeDevice(remote.deviceId)
+  await until(() => host.service.overview().clients.every((client) => !client.connected))
+  await host.service.notifyClients(notice)
+  await until(() => pushes.length === 1)
+  assert.equal(pushes[0].token, token)
+  assert.equal(pushes[0].sandbox, true)
+  assert.deepEqual(openPush(pushes[0].payload, key), notice)
+})
+
+test('files go to the host with the message, and the message carries the host copies', async (t) => {
+  const { host, laptop, remote } = await paired(t)
+  const local = { id: randomUUID(), name: 'shot.png', mimeType: 'image/png', size: 3 }
+  await laptop.service.call(remote.deviceId, 'sendRouter', {
+    routerId: randomUUID(),
+    commandId: randomUUID(),
+    text: 'Look',
+    workerId: 'w1',
+    attachments: [local]
+  })
+  const [staged, sent] = host.calls
+  assert.equal(staged.name, 'stageAttachment')
+  assert.deepEqual([...staged.input.data], [1, 2, 3])
+  assert.equal(sent.name, 'sendRouter')
+  assert.notEqual(sent.input.attachments[0].id, local.id)
+  assert.equal(sent.input.attachments[0].name, 'shot.png')
+})
+
+test('the Mac stays awake on power while remote access wants it, and sleeps on battery', () => {
+  const calls = []
+  let battery = false
+  let wanted = true
+  const keep = new KeepAwake(
+    {
+      onBattery: () => battery,
+      start: () => {
+        calls.push('start')
+        return 7
+      },
+      stop: (handle) => calls.push(`stop ${handle}`)
+    },
+    () => wanted
+  )
+  keep.update()
+  keep.update()
+  assert.deepEqual(calls, ['start'])
+  battery = true
+  keep.update()
+  assert.deepEqual(calls, ['start', 'stop 7'])
+  battery = false
+  wanted = false
+  keep.update()
+  assert.equal(keep.active(), false)
 })

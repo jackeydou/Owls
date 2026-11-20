@@ -1,4 +1,5 @@
 import { mkdirSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import type { z } from 'zod'
 import type {
@@ -654,6 +655,11 @@ export class OwltoHost {
   }
   stageAttachment(input: StageAttachment): Promise<Attachment> {
     return this.attachments.stage(input)
+  }
+  /** A staged file's bytes, as when copying it to a paired Mac with the message. */
+  async readAttachment(attachment: Attachment): Promise<Uint8Array> {
+    const [file] = await this.attachments.files([attachment])
+    return readFile(file.path)
   }
   attachmentPreview(attachment: Attachment): Promise<string | null> {
     return this.attachments.preview(attachment)

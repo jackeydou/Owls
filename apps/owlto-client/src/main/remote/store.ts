@@ -19,7 +19,20 @@ export type PeerRecord = {
   relayTicket: string | null
   /** For a client: the hash of the relay ticket it holds, as the relay stores it. */
   relayTicketHash: string | null
+  /** The relay queue's sequence number: the highest run (host side) or last used (client side). */
+  queueSeq: number
+  /** For a client: where its notifications go, and the key they are sealed with (encrypted). */
+  pushToken: string | null
+  pushKey: string | null
+  pushSandbox: boolean
 }
+/** A new peer's queue and push fields. */
+export const NEW_PEER_EXTRAS = {
+  queueSeq: 0,
+  pushToken: null,
+  pushKey: null,
+  pushSandbox: false
+} as const satisfies Pick<PeerRecord, 'queueSeq' | 'pushToken' | 'pushKey' | 'pushSandbox'>
 export type IdentityRecord = { publicKey: string; secret: string }
 /** This device's mailbox on the relay; the secret is encrypted with safeStorage. */
 export type RelayIdentity = { mailbox: string; secret: string }
@@ -115,6 +128,36 @@ export class RemoteStore {
       .update(remotePeersTable)
       .set({ relayTicketHash: hash })
       .where(and(eq(remotePeersTable.deviceId, deviceId), eq(remotePeersTable.role, 'client')))
+      .run()
+  }
+  saveQueueSeq(deviceId: string, role: PeerRole, seq: number): void {
+    this.db
+      .update(remotePeersTable)
+      .set({ queueSeq: seq })
+      .where(and(eq(remotePeersTable.deviceId, deviceId), eq(remotePeersTable.role, role)))
+      .run()
+  }
+  /** A client's APNs token and sealed key; null stops its notifications. */
+  savePush(
+    deviceId: string,
+    push: { token: string; key: string; sandbox: boolean } | null
+  ): void {
+    this.db
+      .update(remotePeersTable)
+      .set({
+        pushToken: push?.token ?? null,
+        pushKey: push?.key ?? null,
+        pushSandbox: push?.sandbox ?? false
+      })
+      .where(and(eq(remotePeersTable.deviceId, deviceId), eq(remotePeersTable.role, 'client')))
+      .run()
+  }
+  /** APNs said this token is dead: forget it on whichever client had it. */
+  dropPushToken(token: string): void {
+    this.db
+      .update(remotePeersTable)
+      .set({ pushToken: null, pushKey: null, pushSandbox: false })
+      .where(and(eq(remotePeersTable.pushToken, token), eq(remotePeersTable.role, 'client')))
       .run()
   }
   removePeer(deviceId: string, role: PeerRole): void {

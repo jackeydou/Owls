@@ -360,7 +360,12 @@ export const settingsSchema = z.object({
    * Lets paired devices reach this device through the Owlto relay when they are not on its
    * network; needs `remoteAccess`. Added later, so older rows have it off.
    */
-  remoteRelay: z.boolean().catch(false).default(false)
+  remoteRelay: z.boolean().catch(false).default(false),
+  /**
+   * Keeps this Mac from sleeping while remote access is on and it runs on power, so paired
+   * devices can still reach it. Added later, so older rows have it off.
+   */
+  remoteKeepAwake: z.boolean().catch(false).default(false)
 })
 /**
  * Rows from before `connectedAgents` remembered the opposite, the agents the user
@@ -391,7 +396,8 @@ export const settingsUpdateSchema = settingsSchema
     connectedAgents: true,
     profile: true,
     remoteAccess: true,
-    remoteRelay: true
+    remoteRelay: true,
+    remoteKeepAwake: true
   })
   .strict()
 export const modelSchema = z.object({

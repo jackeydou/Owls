@@ -29,6 +29,8 @@ export type AttentionDeps = {
   show(notice: AttentionNotice): NoticeHandle | null
   /** Pending requests across all sessions; 0 clears the badge. */
   badge(count: number): void
+  /** Also tells paired phones, which may be away from this Mac. */
+  remote?(notice: AttentionNotice): void
 }
 
 const BODY_LIMIT = 180
@@ -142,6 +144,7 @@ export class WorkerAttention {
         routerId: worker?.routerId ?? null
       }
     }
+    this.deps.remote?.(notice)
     // One notice per session: a newer request replaces the one still on screen.
     this.closeNotice(session.id)
     const handle = this.deps.show(notice)

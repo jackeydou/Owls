@@ -53,12 +53,39 @@ export const RELAY_KEEPALIVE: Keepalive = { pingMs: 240_000, idleMs: 600_000 }
 /** A connection that lasted this long resets the reconnect backoff. */
 export const STABLE_MS = 60_000
 /** Relay answers that the same attempt would get again. */
-const FINAL_ERRORS = new Set(['relay_denied', 'relay_version', 'relay_bad_request'])
+const FINAL_ERRORS = new Set([
+  'relay_denied',
+  'relay_version',
+  'relay_bad_request',
+  'relay_login',
+  'relay_quota'
+])
 
-function socketUrl(base: string, kind: 'host' | 'client' | 'pipe', mailbox: string): string {
+function socketUrl(
+  base: string,
+  kind: 'host' | 'client' | 'pipe' | 'drop',
+  mailbox: string
+): string {
   return `${base.replace(/\/+$/, '')}/v1/${kind}/${mailbox}`
 }
-function parse(data: unknown): { t?: unknown; code?: unknown; pipe?: unknown } | null {
+function isQueuedItem(value: unknown): value is RelayQueuedItem {
+  const item = value as Partial<RelayQueuedItem> | null
+  return (
+    typeof item?.id === 'string' &&
+    typeof item.from === 'string' &&
+    typeof item.at === 'number' &&
+    typeof item.item === 'string'
+  )
+}
+type RelayMessage = {
+  t?: unknown
+  code?: unknown
+  pipe?: unknown
+  items?: unknown
+  token?: unknown
+  expiresAt?: unknown
+}
+function parse(data: unknown): RelayMessage | null {
   if (typeof data !== 'string') return null
   try {
     const value: unknown = JSON.parse(data)
@@ -75,7 +102,12 @@ function parse(data: unknown): { t?: unknown; code?: unknown; pipe?: unknown } |
 function relaySocket(
   url: string,
   hello: Record<string, unknown>,
-  expect: 'open' | 'ready'
+  expect: 'open' | 'ready' | 'stored',
+  /**
+   * Gets every message from the start. Messages that follow the expected one can arrive in
+   * the same read and be dispatched before the caller could add a listener of its own.
+   */
+  listener?: (event: MessageEvent) => void
 ): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     let socket: WebSocket
@@ -86,6 +118,7 @@ function relaySocket(
       return
     }
     socket.binaryType = 'arraybuffer'
+    if (listener) socket.addEventListener('message', listener)
     let settled = false
     const finish = (error: Error | null) => {
       if (settled) return
@@ -206,6 +239,51 @@ export async function dialRelay(route: RelayRoute): Promise<FrameChannel> {
   return new WebSocketFrames(socket)
 }
 
+/**
+ * Finds the mailbox and pairing ticket behind a rendezvous code (the first four characters of
+ * a code like `K7Q2-ABCD-EFGH`). Null when the code is unknown or expired.
+ */
+export async function lookupRendezvous(
+  url: string,
+  code: string
+): Promise<{ mailbox: string; ticket: string } | null> {
+  const http = url.replace(/^ws/, 'http').replace(/\/+$/, '')
+  let response: Response
+  try {
+    response = await fetch(`${http}/v1/rendezvous/${code}`, {
+      signal: AbortSignal.timeout(OPEN_TIMEOUT_MS)
+    })
+  } catch {
+    throw new RelayError('unreachable')
+  }
+  if (response.status === 404) return null
+  if (response.status === 429) throw new RelayError('limited')
+  if (!response.ok) throw new RelayError('unreachable')
+  const body = (await response.json().catch(() => null)) as {
+    mailbox?: unknown
+    ticket?: unknown
+  } | null
+  const token = /^[A-Za-z0-9_-]{22,128}$/
+  if (
+    typeof body?.mailbox !== 'string' ||
+    typeof body.ticket !== 'string' ||
+    !token.test(body.mailbox) ||
+    !token.test(body.ticket)
+  )
+    throw new RelayError('bad_request')
+  return { mailbox: body.mailbox, ticket: body.ticket }
+}
+
+/** Leaves one sealed item for an offline host; it gets the item when it next connects. */
+export async function dropRelayItem(route: RelayRoute, item: string): Promise<void> {
+  const socket = await relaySocket(
+    socketUrl(route.url, 'drop', route.mailbox),
+    { t: 'drop', v: RELAY_PROTOCOL, ticket: route.ticket, item },
+    'stored'
+  )
+  socket.close()
+}
+
 export type RelayStatus = {
   state: 'connecting' | 'online' | 'offline'
   /** Why the last attempt failed, such as `relay_denied`; null when online. */
@@ -217,9 +295,21 @@ export type RelayListenerOptions = {
   secret: string
   /** Hashes of the tickets that may open pipes now. */
   tickets: () => string[]
+  /** The pairing invite's one-time ticket while pairing is open; null otherwise. */
+  pairingTicket: () => string | null
+  /** A GitHub token, asked for only when the relay needs a sign-in to register the mailbox. */
+  githubToken: () => Promise<string | null>
   accept: (frames: FrameChannel) => void
+  /** Sealed items clients left while this host was away; ack the ones handled. */
+  queued: (items: RelayQueuedItem[]) => void
+  /** APNs no longer takes this device token. */
+  pushGone: (token: string) => void
   changed: () => void
 }
+/** An item a client left on the relay; `from` is the hash of the ticket it used. */
+export type RelayQueuedItem = { id: string; from: string; at: number; item: string }
+/** A short code that finds this host's mailbox while pairing is open. */
+export type RelayRendezvous = { ticket: string; code: string; expiresAt: number }
 
 /**
  * Host reconnect delays, each with ±20% jitter so a relay restart is not met all at once.
@@ -239,6 +329,7 @@ export class RelayListener {
   private failures = 0
   private stopped = false
   private current: RelayStatus = { state: 'connecting', error: null }
+  private meet: RelayRendezvous | null = null
   constructor(private readonly options: RelayListenerOptions) {}
 
   start(): void {
@@ -248,10 +339,35 @@ export class RelayListener {
   status(): RelayStatus {
     return this.current
   }
-  /** Sends the current tickets; call after pairing, revoking, or issuing a ticket. */
+  /**
+   * Sends the current tickets; call after pairing, revoking, or issuing a ticket. While
+   * pairing is open it also asks for a rendezvous code for the invite's ticket.
+   */
   pushTickets(): void {
+    const ticket = this.options.pairingTicket()
+    if (this.meet && this.meet.ticket !== ticket) {
+      this.meet = null
+      this.options.changed()
+    }
     if (this.current.state !== 'online') return
-    this.socket?.send(JSON.stringify({ t: 'tickets', hashes: this.options.tickets() }))
+    this.send({ t: 'tickets', hashes: this.options.tickets() })
+    if (ticket && !this.meet) this.send({ t: 'rendezvous', ticket })
+  }
+  /** The live rendezvous code for the open pairing; null when there is none yet. */
+  rendezvous(): RelayRendezvous | null {
+    return this.meet && this.meet.expiresAt > Date.now() ? this.meet : null
+  }
+  /** Tells the relay these queued items were handled, so it deletes them. */
+  ack(ids: string[]): void {
+    if (ids.length) this.send({ t: 'ack', ids })
+  }
+  /** Asks the relay to deliver a sealed notification through APNs. */
+  push(token: string, sandbox: boolean, payload: string): void {
+    this.send({ t: 'push', token, sandbox, payload })
+  }
+  private send(message: Record<string, unknown>): void {
+    if (this.current.state === 'online' && this.socket?.readyState === WebSocket.OPEN)
+      this.socket.send(JSON.stringify(message))
   }
   close(): void {
     this.stopped = true
@@ -269,20 +385,35 @@ export class RelayListener {
   private async connect(): Promise<void> {
     if (this.stopped) return
     this.set('connecting', this.current.error)
-    let socket: WebSocket
-    try {
-      socket = await relaySocket(
-        socketUrl(this.options.url, 'host', this.options.mailbox),
-        { t: 'host', v: RELAY_PROTOCOL, secret: this.options.secret },
-        'ready'
-      )
-    } catch (error) {
-      const reason = error instanceof RelayError ? error.message : 'relay_unreachable'
-      this.set('offline', reason)
-      // Another secret owns this mailbox, or the relay speaks another protocol: retrying
-      // cannot help, and each attempt is a billed request.
-      if (!FINAL_ERRORS.has(reason)) this.retryLater()
-      return
+    let socket: WebSocket | null = null
+    let github: string | null = null
+    let lastHeard = Date.now()
+    const onMessage = (event: MessageEvent) => {
+      lastHeard = Date.now()
+      this.receive(parse(event.data))
+    }
+    while (!socket) {
+      try {
+        socket = await relaySocket(
+          socketUrl(this.options.url, 'host', this.options.mailbox),
+          { t: 'host', v: RELAY_PROTOCOL, secret: this.options.secret, github },
+          'ready',
+          onMessage
+        )
+      } catch (error) {
+        const reason = error instanceof RelayError ? error.message : 'relay_unreachable'
+        // A new mailbox needs a GitHub sign-in. The token goes to the relay only then, and
+        // only once: a relay that turns the token down is told no more.
+        if (reason === 'relay_login' && github === null && !this.stopped) {
+          github = await this.options.githubToken().catch(() => null)
+          if (github) continue
+        }
+        this.set('offline', reason)
+        // Another secret owns this mailbox, the relay speaks another protocol, or the
+        // sign-in is missing: retrying cannot help, and each attempt is a billed request.
+        if (!FINAL_ERRORS.has(reason)) this.retryLater()
+        return
+      }
     }
     if (this.stopped) {
       socket.close()
@@ -290,14 +421,6 @@ export class RelayListener {
     }
     this.socket = socket
     const openedAt = Date.now()
-    let lastHeard = openedAt
-    socket.addEventListener('message', (event) => {
-      lastHeard = Date.now()
-      const message = parse(event.data)
-      if (message?.t === 'incoming' && typeof message.pipe === 'string') this.openPipe(message.pipe)
-      else if (message?.t === 'error' && message.code === 'replaced')
-        this.current = { state: 'offline', error: 'relay_replaced' }
-    })
     socket.addEventListener('close', () => {
       if (this.socket !== socket) return
       this.socket = null
@@ -321,6 +444,25 @@ export class RelayListener {
     this.keepalive.unref?.()
     this.set('online', null)
     this.pushTickets()
+  }
+  private receive(message: RelayMessage | null): void {
+    if (message?.t === 'incoming' && typeof message.pipe === 'string') this.openPipe(message.pipe)
+    else if (message?.t === 'queued' && Array.isArray(message.items))
+      this.options.queued(message.items.filter(isQueuedItem))
+    else if (message?.t === 'push-gone' && typeof message.token === 'string')
+      this.options.pushGone(message.token)
+    else if (
+      message?.t === 'rendezvous' &&
+      typeof message.code === 'string' &&
+      typeof message.expiresAt === 'number'
+    ) {
+      const ticket = this.options.pairingTicket()
+      if (ticket) {
+        this.meet = { ticket, code: message.code, expiresAt: message.expiresAt }
+        this.options.changed()
+      }
+    } else if (message?.t === 'error' && message.code === 'replaced')
+      this.current = { state: 'offline', error: 'relay_replaced' }
   }
   private openPipe(pipe: string): void {
     relaySocket(

@@ -57,6 +57,13 @@
       "when": 1795126833907,
       "tag": "0007_remote_relay",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795133782544,
+      "tag": "0008_remote_queue_push",
+      "breakpoints": true
     }
   ]
 }

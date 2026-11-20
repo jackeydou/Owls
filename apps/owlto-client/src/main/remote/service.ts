@@ -1,23 +1,31 @@
 import { hostname, networkInterfaces } from 'node:os'
 import type { AppEvent, Failure } from '../../shared/app.js'
+import type { Attachment } from '../../shared/attachments.js'
 import {
   DEFAULT_RELAY_URL,
   isRemoteEvent,
   REMOTE_PORT,
-  type RemoteDevice,
   type RemoteEvent,
   type RemoteMethod,
   type RemoteOverview,
+  type RemotePaired,
   remoteMethodSchemas,
   remotePairSchema
 } from '../../shared/remote.js'
 import { OwltoError } from '../app/errors.js'
 import type { SecretCipher } from '../router/credentials.js'
-import { type Dial, type DialRelay, HostLinks } from './client.js'
+import { type Dial, type DialRelay, HostLinks, type LookupRendezvous } from './client.js'
 import { exportPrivateKey, generateKeyPair, importKeyPair, type KeyPair } from './crypto.js'
 import type { Me } from './handshake.js'
-import { newRelayToken, RelayListener } from './relay.js'
-import { HostServer, type Listen, type RemoteHostApi } from './server.js'
+import { KeepAwake, type KeepAwakePower } from './keep-awake.js'
+import {
+  newRelayToken,
+  type RelayQueuedItem,
+  RelayListener,
+  type RelayRoute
+} from './relay.js'
+import { openFromClient, type PushMessage, sealPush } from './sealed.js'
+import { HostServer, type Listen, type RegisterPush, type RemoteHostApi } from './server.js'
 import type { RemoteStore } from './store.js'
 
 export type RemoteServiceDeps = {
@@ -32,9 +40,20 @@ export type RemoteServiceDeps = {
   /** The persisted switch for connections through the relay. */
   relayEnabled: () => boolean
   saveRelay: (enabled: boolean) => void
+  /** The persisted switch that keeps this Mac awake on power while remote access is on. */
+  keepAwakeEnabled: () => boolean
+  saveKeepAwake: (enabled: boolean) => void
+  /** Electron's power APIs; tests leave it out. */
+  power?: KeepAwakePower
   listen: Listen
   dial: Dial
   dialRelay: DialRelay
+  lookupRendezvous: LookupRendezvous
+  dropItem: (route: RelayRoute, item: string) => Promise<void>
+  /** Reads a staged attachment, to copy it to a host along with a message. */
+  readAttachment: (attachment: Attachment) => Promise<Uint8Array>
+  /** A GitHub token for registering a relay mailbox; null when not signed in. */
+  githubToken: () => Promise<string | null>
   /** The relay's base URL; the Owlto relay unless a test runs its own. */
   relayUrl?: string
   toFailure: (error: unknown) => Failure
@@ -66,20 +85,28 @@ export function localAddresses(): string[] {
  * client (it drives the Routers of hosts it paired with). Both directions use the same
  * key pair, handshake, and messages; only the transport differs later (TCP or relay).
  */
+/** Messages left on the relay are dropped after a week, as the relay does. */
+const QUEUE_MAX_AGE_MS = 7 * 24 * 60 * 60_000
+
 export class RemoteService {
   private identity: Promise<KeyPair> | null = null
+  private queueWork: Promise<void> = Promise.resolve()
   private relay: RelayListener | null = null
   private relayError: string | null = null
   private readonly relayUrl: string
   private listenError: string | null = null
   private readonly server: HostServer
   private readonly links: HostLinks
+  private readonly keepAwake: KeepAwake | null
   private readonly port: number
   private readonly now: () => Date
   constructor(private readonly deps: RemoteServiceDeps) {
     this.port = deps.port ?? REMOTE_PORT
     this.now = deps.now ?? (() => new Date())
     this.relayUrl = deps.relayUrl ?? DEFAULT_RELAY_URL
+    this.keepAwake = deps.power
+      ? new KeepAwake(deps.power, () => deps.keepAwakeEnabled() && this.server.listening())
+      : null
     const me = () => this.me()
     const changed = () => this.changed()
     this.server = new HostServer({
@@ -94,13 +121,18 @@ export class RemoteService {
         const mailbox = this.relay ? this.deps.store.relayIdentity()?.mailbox : null
         return mailbox ? { url: this.relayUrl, mailbox } : null
       },
-      ticketsChanged: () => this.relay?.pushTickets()
+      ticketsChanged: () => this.relay?.pushTickets(),
+      rendezvous: () => this.relay?.rendezvous() ?? null,
+      registerPush: (deviceId, push) => this.registerPush(deviceId, push)
     })
     this.links = new HostLinks({
       store: deps.store,
       me,
       dial: deps.dial,
       dialRelay: deps.dialRelay,
+      relayUrl: this.relayUrl,
+      lookupRendezvous: deps.lookupRendezvous,
+      dropItem: deps.dropItem,
       toFailure: deps.toFailure,
       changed,
       event: deps.remoteEvent,
@@ -122,9 +154,20 @@ export class RemoteService {
       )
   }
   close(): void {
+    this.keepAwake?.close()
     this.stopRelay()
     this.server.stop()
     this.links.close()
+  }
+  /** The Mac switched between battery and power. */
+  powerChanged(): void {
+    this.keepAwake?.update()
+    this.changed()
+  }
+  async setKeepAwake(enabled: boolean): Promise<RemoteOverview> {
+    this.deps.saveKeepAwake(enabled)
+    this.keepAwake?.update()
+    return this.changed()
   }
   /** Reconnects right away after the Mac wakes or its network changes. */
   wake(): void {
@@ -140,6 +183,11 @@ export class RemoteService {
       port: this.port,
       addresses: this.server.listening() ? (this.deps.addresses ?? localAddresses)() : [],
       pairing: this.server.pairingState(),
+      justPaired: this.server.justPairedState(),
+      keepAwake: {
+        enabled: this.deps.keepAwakeEnabled(),
+        active: this.keepAwake?.active() ?? false
+      },
       relay: {
         enabled: this.deps.relayEnabled(),
         state: this.relay ? this.relay.status().state : 'off',
@@ -182,15 +230,21 @@ export class RemoteService {
     this.server.cancelPairing()
     return this.changed()
   }
+  /** Hides the just-paired device's safety code once the user compared it. */
+  dismissJustPaired(): RemoteOverview {
+    this.server.dismissJustPaired()
+    return this.changed()
+  }
   /** Forgets a device that could drive this one and closes its connections. */
   revokeClient(deviceId: string): RemoteOverview {
+    if (this.server.justPairedState()?.deviceId === deviceId) this.server.dismissJustPaired()
     this.deps.store.removePeer(deviceId, 'client')
     this.server.disconnect(deviceId)
     this.relay?.pushTickets()
     return this.changed()
   }
   /** Pairs by address and code, or from an invite (a `RemotePair`); the input is checked here. */
-  async pair(input: unknown): Promise<RemoteDevice> {
+  async pair(input: unknown): Promise<RemotePaired> {
     const device = await this.links.pair(remotePairSchema.parse(input))
     this.changed()
     return device
@@ -201,8 +255,79 @@ export class RemoteService {
   }
   /** Runs one host method on a paired device. The request is checked here and again on the host. */
   async call(deviceId: string, method: RemoteMethod, params: unknown): Promise<unknown> {
+    if (method === 'sendRouter') {
+      const input = remoteMethodSchemas.sendRouter.parse(params)
+      if (!input.attachments.length) return this.links.sendOrQueue(deviceId, input)
+      // Files live on this Mac: copy each to the host, then send the message with the
+      // host's copies. A message with files is not queued while the host is away.
+      const attachments: Attachment[] = []
+      for (const attachment of input.attachments) {
+        const data = await this.deps.readAttachment(attachment)
+        attachments.push(
+          (await this.links.request(deviceId, 'stageAttachment', {
+            name: attachment.name,
+            mimeType: attachment.mimeType,
+            data: Buffer.from(data).toString('base64')
+          })) as Attachment
+        )
+      }
+      return this.links.request(deviceId, 'sendRouter', { ...input, attachments })
+    }
     remoteMethodSchemas[method].parse(params ?? undefined)
     return this.links.request(deviceId, method, params ?? null)
+  }
+  /**
+   * Sends a sealed notification to every paired phone that registered for them and is not
+   * connected right now (a connected phone shows the request itself).
+   */
+  async notifyClients(message: PushMessage): Promise<void> {
+    const relay = this.relay
+    if (!relay || relay.status().state !== 'online') return
+    for (const peer of this.deps.store.peers('client')) {
+      if (!peer.pushToken || !peer.pushKey || this.server.connected(peer.deviceId)) continue
+      const opened = await this.deps.cipher.decrypt(peer.pushKey).catch(() => null)
+      if (!opened) continue
+      relay.push(peer.pushToken, peer.pushSandbox, sealPush(message, Buffer.from(opened.plain, 'base64url')))
+    }
+  }
+  private async registerPush(deviceId: string, push: RegisterPush): Promise<void> {
+    this.deps.store.savePush(
+      deviceId,
+      push ? { ...push, key: await this.deps.cipher.encrypt(push.key) } : null
+    )
+  }
+  /**
+   * Runs the messages clients left on the relay while this host was away, oldest first per
+   * client. Each runs at most once: its sequence number must be above the last one run.
+   */
+  private queued(items: RelayQueuedItem[]): void {
+    this.queueWork = this.queueWork.then(() => this.runQueued(items)).catch(() => {})
+  }
+  private async runQueued(items: RelayQueuedItem[]): Promise<void> {
+    const me = await this.me()
+    const clientKey = (id: string) => this.deps.store.peer(id, 'client')?.publicKey ?? null
+    const opened = items
+      .map((item) => ({ id: item.id, opened: openFromClient(item.item, me.identity, clientKey) }))
+      .sort(
+        (a, b) =>
+          (a.opened?.from ?? '').localeCompare(b.opened?.from ?? '') ||
+          (a.opened?.message.seq ?? 0) - (b.opened?.message.seq ?? 0)
+      )
+    const handled: string[] = []
+    for (const { id, opened: item } of opened) {
+      handled.push(id)
+      if (!item) continue
+      const peer = this.deps.store.peer(item.from, 'client')
+      if (!peer || item.message.seq <= peer.queueSeq) continue
+      this.deps.store.saveQueueSeq(item.from, 'client', item.message.seq)
+      if (this.now().getTime() - item.message.at > QUEUE_MAX_AGE_MS) continue
+      try {
+        await this.deps.api.sendRouter(remoteMethodSchemas.sendRouter.parse(item.message.params))
+      } catch {
+        // The thread may be gone or archived by now; the message cannot run, so it is dropped.
+      }
+    }
+    this.relay?.ack(handled)
   }
   /** Passes this device's events to the devices driving it. */
   observe(event: AppEvent): void {
@@ -261,7 +386,11 @@ export class RemoteService {
         mailbox: saved.mailbox,
         secret,
         tickets: () => this.server.tickets(),
+        pairingTicket: () => this.server.pairingTicket(),
+        githubToken: this.deps.githubToken,
         accept: (frames) => this.server.accept(frames),
+        queued: (items) => this.queued(items),
+        pushGone: (token) => this.deps.store.dropPushToken(token),
         changed: () => this.changed()
       })
       this.relay.start()
@@ -276,6 +405,7 @@ export class RemoteService {
     this.relayError = null
   }
   private changed(): RemoteOverview {
+    this.keepAwake?.update()
     const overview = this.overview()
     this.deps.changed(overview)
     return overview

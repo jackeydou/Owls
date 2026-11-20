@@ -11,6 +11,8 @@ export function registerRemoteIpc(handle: IpcHandle, remote: RemoteService): voi
   handle('remote-set-relay', (input) => remote.setRelay(z.boolean().parse(input)))
   handle('remote-start-pairing', () => remote.startPairing())
   handle('remote-cancel-pairing', () => remote.cancelPairing())
+  handle('remote-set-keep-awake', (input) => remote.setKeepAwake(z.boolean().parse(input)))
+  handle('remote-dismiss-just-paired', () => remote.dismissJustPaired())
   handle('remote-revoke-client', (input) => remote.revokeClient(deviceIdSchema.parse(input)))
   handle('remote-pair', (input) => remote.pair(input))
   handle('remote-remove-device', (input) => remote.removeDevice(deviceIdSchema.parse(input)))

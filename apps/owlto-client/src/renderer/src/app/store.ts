@@ -291,7 +291,8 @@ export const useAppStore = create<State>((set, get) => {
       profile: defaultProfile,
       onboarding: 'pending',
       remoteAccess: false,
-      remoteRelay: false
+      remoteRelay: false,
+      remoteKeepAwake: false
     },
     connection: {
       status: 'disconnected',

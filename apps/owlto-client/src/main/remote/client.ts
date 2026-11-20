@@ -7,20 +7,26 @@ import {
   parseRemoteAddress,
   type RemoteDevice,
   type RemoteEvent,
-  type RemoteInvite
+  type RemoteInvite,
+  type RemotePaired
 } from '../../shared/remote.js'
 import { OwltoError } from '../app/errors.js'
 import type { FrameChannel } from './frames.js'
 import { HandshakeError, initiate, type Me, type Peer, type SecureChannel } from './handshake.js'
 import { RelayError, type RelayRoute, STABLE_MS } from './relay.js'
 import { RemoteCallError, RpcConnection } from './rpc.js'
+import { sealForHost } from './sealed.js'
 import { RELAY_ROUTE_METHOD } from './server.js'
-import type { PeerRecord, RemoteStore } from './store.js'
+import { NEW_PEER_EXTRAS, type PeerRecord, type RemoteStore } from './store.js'
 
 /** Opens a frame channel to an address; TCP in the app, in-memory in tests. */
 export type Dial = (host: string, port: number) => Promise<FrameChannel>
 /** Opens a pipe to a host through the relay. */
 export type DialRelay = (route: RelayRoute) => Promise<FrameChannel>
+export type LookupRendezvous = (
+  url: string,
+  code: string
+) => Promise<{ mailbox: string; ticket: string } | null>
 
 type Via = NonNullable<RemoteDevice['via']>
 type Link = {
@@ -128,6 +134,11 @@ export type HostLinksDeps = {
   me: () => Promise<Me>
   dial: Dial
   dialRelay: DialRelay
+  /** The relay a typed relay code is looked up on: this device's own relay setting. */
+  relayUrl: string
+  lookupRendezvous: LookupRendezvous
+  /** Leaves a sealed item on the relay for an offline host. */
+  dropItem: (route: RelayRoute, item: string) => Promise<void>
   toFailure: (error: unknown) => Failure
   /** A host's connection state changed. */
   changed: () => void
@@ -200,14 +211,29 @@ export class HostLinks {
    * invite. Keeps the connection open.
    */
   async pair(
-    input: { address: string; code: string } | { invite: RemoteInvite }
-  ): Promise<RemoteDevice> {
+    input:
+      | { address: string; code: string }
+      | { invite: RemoteInvite }
+      | { relayCode: { rendezvous: string; code: string } }
+  ): Promise<RemotePaired> {
     const me = await this.deps.me()
     let direct: { host: string; port: number } | null = null
     let relay: RelayRoute | null = null
     let opened: Awaited<ReturnType<typeof initiate>>
     try {
-      if ('invite' in input) {
+      if ('relayCode' in input) {
+        const { rendezvous, code } = input.relayCode
+        const url = this.deps.relayUrl
+        const found = await this.deps.lookupRendezvous(url, rendezvous)
+        if (!found)
+          throw new OwltoError(
+            'remote_pairing_failed',
+            'No Mac is showing this code. Check it, or show a new one.'
+          )
+        relay = { url, ...found }
+        const frames = await this.deps.dialRelay(relay)
+        opened = await initiate(frames, me, { kind: 'pair', code })
+      } else if ('invite' in input) {
         const { invite } = input
         relay = { url: invite.relay, mailbox: invite.mailbox, ticket: invite.ticket }
         const frames = await this.deps.dialRelay(relay)
@@ -239,7 +265,8 @@ export class HostLinks {
       relayUrl: relay?.url ?? null,
       relayMailbox: relay?.mailbox ?? null,
       relayTicket: relay?.ticket ?? null,
-      relayTicketHash: null
+      relayTicketHash: null,
+      ...NEW_PEER_EXTRAS
     }
     this.drop(peer.deviceId)
     this.deps.store.savePeer(peer)
@@ -250,12 +277,59 @@ export class HostLinks {
     else void this.refreshRoute(peer.deviceId, rpc)
     const device = this.devices().find((d) => d.deviceId === peer.deviceId)
     if (!device) throw new OwltoError('storage_error')
-    return device
+    return { ...device, safetyCode: opened.safetyCode }
   }
   remove(deviceId: string): void {
     this.drop(deviceId)
     this.deps.store.removePeer(deviceId, 'host')
     this.deps.changed()
+  }
+  /**
+   * Sends a Router message, or, when the host cannot be reached and it uses the relay, seals
+   * it to the host's key and leaves it on the relay; the host runs it when it comes back.
+   * Only a failure to connect leads to the queue: once a request was sent, it may have run.
+   */
+  async sendOrQueue(deviceId: string, params: unknown): Promise<{ queued: true } | undefined> {
+    let rpc: RpcConnection
+    try {
+      rpc = await this.connect(deviceId)
+    } catch (error) {
+      const offline =
+        error instanceof OwltoError &&
+        (error.code === 'remote_offline' || error.code === 'remote_unreachable')
+      const peer = this.deps.store.peer(deviceId, 'host')
+      const route = peer && !this.links.get(deviceId)?.relayDenied ? relayRouteOf(peer) : null
+      if (!offline || !peer || !route) throw error
+      await this.queue(peer, route, params)
+      return { queued: true }
+    }
+    try {
+      await rpc.request('sendRouter', params)
+      return undefined
+    } catch (error) {
+      if (error instanceof RemoteCallError) throw new OwltoError(error.failure.code, error.message)
+      throw error
+    }
+  }
+  private async queue(peer: PeerRecord, route: RelayRoute, params: unknown): Promise<void> {
+    const me = await this.deps.me()
+    const seq = peer.queueSeq + 1
+    const item = sealForHost(
+      { seq, at: this.deps.now().getTime(), method: 'sendRouter', params },
+      me,
+      peer.publicKey
+    )
+    try {
+      await this.deps.dropItem(route, item)
+    } catch (error) {
+      if (error instanceof RelayError && error.reason === 'full')
+        throw new OwltoError(
+          'remote_offline',
+          'The Mac is offline and has too many messages waiting. Try again when it is back.'
+        )
+      throw linkFailure(error, false)
+    }
+    this.deps.store.saveQueueSeq(peer.deviceId, 'host', seq)
   }
   /** Sends one request to a host, connecting first when it is not connected. */
   async request(deviceId: string, method: string, params: unknown): Promise<unknown> {

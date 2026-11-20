@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createSdkMcpServer, query } from '@anthropic-ai/claude-agent-sdk/core'
 import { is } from '@electron-toolkit/utils'
-import { app, BrowserWindow, dialog, powerMonitor, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, dialog, powerMonitor, powerSaveBlocker, safeStorage, shell } from 'electron'
 import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { RemoteEvent, RemoteEventEnvelope, RemoteOverview } from '../../shared/remote.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
@@ -45,7 +45,7 @@ import {
 import { connectFrames } from '../remote/frames.js'
 import { remoteHostApi } from '../remote/host-api.js'
 import { registerRemoteIpc } from '../remote/ipc.js'
-import { dialRelay } from '../remote/relay.js'
+import { dialRelay, dropRelayItem, lookupRendezvous } from '../remote/relay.js'
 import { tcpListen } from '../remote/server.js'
 import { RemoteService } from '../remote/service.js'
 import { RemoteStore } from '../remote/store.js'
@@ -331,6 +331,14 @@ void app
     attention = new WorkerAttention(
       electronAttention({
         settings,
+        remote: (notice) =>
+          void remote?.notifyClients({
+            title: notice.title,
+            subtitle: notice.subtitle,
+            body: notice.body,
+            routerId: notice.target.routerId,
+            workerId: notice.target.workerId
+          }),
         worker: (sessionId) => {
           const worker = router?.workerForSession(sessionId)
           if (!worker || worker.status === 'removed') return null
@@ -476,12 +484,25 @@ void app
       accessEnabled: () => store.settings().remoteAccess,
       saveAccess: (enabled) =>
         host.saveSettings({ ...host.snapshot().settings, remoteAccess: enabled }),
+      keepAwakeEnabled: () => store.settings().remoteKeepAwake,
+      saveKeepAwake: (enabled) =>
+        host.saveSettings({ ...host.snapshot().settings, remoteKeepAwake: enabled }),
+      power: {
+        onBattery: () => powerMonitor.isOnBatteryPower(),
+        // Sleep is blocked; the display may still turn off.
+        start: () => powerSaveBlocker.start('prevent-app-suspension'),
+        stop: (handle) => powerSaveBlocker.stop(handle)
+      },
       relayEnabled: () => store.settings().remoteRelay,
       saveRelay: (enabled) =>
         host.saveSettings({ ...host.snapshot().settings, remoteRelay: enabled }),
       listen: tcpListen,
       dial: (address, port) => connectFrames(address, port),
       dialRelay,
+      lookupRendezvous,
+      dropItem: dropRelayItem,
+      readAttachment: (attachment) => host.readAttachment(attachment),
+      githubToken: () => github.token(),
       toFailure,
       changed: remoteChanged,
       remoteEvent
@@ -510,6 +531,8 @@ void app
       remote.start()
       // Sleep drops every connection; reconnect at once on wake instead of after the backoff.
       powerMonitor.on('resume', () => remote?.wake())
+      powerMonitor.on('on-ac', () => remote?.powerChanged())
+      powerMonitor.on('on-battery', () => remote?.powerChanged())
     }
     analytics?.start()
     updater.start()
