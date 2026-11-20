@@ -11,6 +11,21 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2000-beta.1
+
+### Highlights
+
+- Drop files on the Router page to attach them to your message; the Router's model receives them.
+- Codex workers recover from usage-check timeouts and unexpected local Codex exits.
+
+### Changes
+
+- Router: drop files anywhere on the Router page to attach them to your message; images show as square thumbnails that open in an image viewer, other files as tiles with their type and first lines, and the Router's model receives them. (#205)
+
+### Fixes
+
+- Codex tasks keep running when usage checks time out. Owlto automatically reconnects after an unexpected local Codex exit. (#200)
+
 ## 2026.11.1800
 
 ### Highlights
