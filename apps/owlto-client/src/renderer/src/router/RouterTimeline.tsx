@@ -1,4 +1,4 @@
-import { ActionButton, ActionIconButton } from '@renderer/components/ui/action-button'
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import {
   AlertCircleIcon,
@@ -15,6 +15,7 @@ import type { FileBase } from '../../../shared/file-preview'
 import { ConversationItem } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { useAppStore } from '../app/store'
+import { WorkingDots } from '../app/WorkingDots'
 import { MessageCards, SaveCardAction } from '../cards/CardActions'
 import { FileBaseContext } from '../files/FileLink'
 import { useDreaming, useDreamingStore, useDreamLocked } from '../memory/dreaming'
@@ -244,8 +245,6 @@ export function RouterTimeline({
   const dreaming = useDreaming(router?.id)
   const locked = useDreamLocked(router?.id)
   const notice = useDreamingStore((s) => (s.notice?.threadId === router?.id ? s.notice : null))
-  const last = entries.at(-1)
-  const lastEntrySpeaker = last ? speakerOf(last) : null
   // Watches the size, not the entries: streaming, the tray, and the draft all grow the thread.
   // Following keeps the editor in view: past the natural end (history scrolled away) the view
   // stays put while a reply grows above the editor, until the editor reaches the bottom.
@@ -391,17 +390,20 @@ export function RouterTimeline({
               </ThreadTurn>
             ))}
             {router && running ? (
-              <ThreadRow speaker="router" follows={lastEntrySpeaker === 'router'}>
-                <div className="owlto-working" role="status">
-                  <LoaderIcon size={15} className="animate-spin" />
-                  {t('router.working')}
-                  <ActionIconButton
-                    size="sm"
-                    label={t('router.stop')}
-                    tooltip={t('router.stop')}
-                    icon={<StopIcon size={12} />}
+              <ThreadRow speaker="router" working>
+                <div className="router-working" role="status">
+                  <WorkingDots speaker="router" />
+                  <span className="sr-only">{t('router.working')}</span>
+                  <ActionButton
+                    size="custom"
+                    variant="outline"
+                    className="router-working-stop"
+                    icon={<StopIcon size={11} />}
+                    aria-label={t('router.stop')}
                     onAction={() => interrupt(router.id)}
-                  />
+                  >
+                    {t('router.stopShort')}
+                  </ActionButton>
                 </div>
               </ThreadRow>
             ) : null}

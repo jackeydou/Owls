@@ -7,6 +7,7 @@ import { type RouterWorker, type WorkerReport, workerReportSchema } from '../../
 import { ConversationItem, RequestCard } from '../app/Conversation'
 import { failureMessage } from '../app/failures'
 import { OwlAvatar } from '../app/OwlAvatar'
+import { WorkingDots } from '../app/WorkingDots'
 import { FileBaseContext } from '../files/FileLink'
 import { isWorking, openRequests } from './activity'
 import { WorkerArtifacts } from './WorkerArtifacts'
@@ -83,13 +84,9 @@ function ReportMessage({
 function WorkingIndicator({ provider, agent }: { provider: AgentProvider; agent: string }) {
   const { t } = useTranslation()
   return (
-    <div className="worker-working" data-speaker={provider} role="status">
+    <div className="worker-working" role="status">
       <OwlAvatar speaker={provider} working />
-      <span className="worker-working-dots" aria-hidden>
-        <i />
-        <i />
-        <i />
-      </span>
+      <WorkingDots speaker={provider} />
       <span className="sr-only">{t('worker.working', { agent })}</span>
     </div>
   )

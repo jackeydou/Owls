@@ -85,10 +85,13 @@ export function ThreadRow({
   speaker,
   follows = false,
   entryId,
+  working = false,
   children
 }: {
   speaker: ThreadSpeaker
   follows?: boolean
+  /** The Router's turn is still running: its owl types away, shown even after its own rows. */
+  working?: boolean
   /** Lets the timeline find a row, e.g. to bring a just-sent message to the top. */
   entryId?: string
   children: ReactNode
@@ -98,7 +101,7 @@ export function ThreadRow({
       <div className="router-row-side">
         <div className="router-row-avatar" aria-hidden="true">
           {follows ? null : speaker === 'router' ? (
-            <OwlAvatar speaker="router" />
+            <OwlAvatar speaker="router" working={working} />
           ) : speaker === 'dreaming' ? (
             <DreamingOwl />
           ) : (

@@ -1,0 +1,1 @@
+- Router: while the Router works, its owl types and bubble dots bounce like a worker's, with a Stop button next to them.

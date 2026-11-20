@@ -659,3 +659,16 @@ html[data-skin="doodle"]:lang(zh-CN)
 :is(.onb-kicker, .onb-hint, .onb-hoot, .onb-setup-text strong) {
   font-style: normal;
 }
+
+/* Working dots and the Router's Stop: outlined pills like the website's badges. Stop keeps the
+   shared button lift and press. */
+html[data-skin="doodle"] .owlto-working-dots {
+  border: var(--doodle-border-thin);
+  background: var(--doodle-card);
+}
+html[data-skin="doodle"] .router-working-stop {
+  border: var(--doodle-border-thin);
+  background: var(--doodle-card);
+  color: var(--color-foreground);
+  font-weight: 700;
+}
