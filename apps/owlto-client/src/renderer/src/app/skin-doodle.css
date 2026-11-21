@@ -212,6 +212,17 @@ html[data-skin="doodle"] .router-row-avatar > :is(.owlto-owl-avatar, .owlto-user
   box-shadow: 0 0 0 2px var(--doodle-line);
 }
 
+/* Starting up: the owl keeps its ink ring and a dashed ink ring runs around it. */
+html[data-skin="doodle"] .router-row-avatar .owlto-owl-waking > .owlto-owl-avatar {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--doodle-line);
+}
+html[data-skin="doodle"] .owlto-owl-waking::after {
+  inset: -5px;
+  border: 2px dashed var(--doodle-line);
+  animation-duration: 2.4s;
+}
+
 /* Dispatched workers: the status turns into an outlined pill. */
 html[data-skin="doodle"] .router-dispatch-row small {
   padding: 0 8px;

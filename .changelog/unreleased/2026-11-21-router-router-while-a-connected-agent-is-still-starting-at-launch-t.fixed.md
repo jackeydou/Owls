@@ -1,0 +1,1 @@
+- Router: while a connected agent is still starting at launch, the Router's owl shows a loading ring instead of flashing the setup notice.

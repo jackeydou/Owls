@@ -3,7 +3,7 @@ import { SettingsIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { type AgentProvider, type Failure, providerSchema, type Router } from '../../../shared/app'
 import type { RouterEngineId } from '../../../shared/router'
-import { agentConnection, isAgentReady, useAppStore } from '../app/store'
+import { agentConnection, isAgentReady, isAgentStarting, useAppStore } from '../app/store'
 import { useViewingRemote } from '../remote/viewing'
 import { ThreadRow } from './ThreadRow'
 
@@ -51,6 +51,30 @@ export function useRouterSetup(router?: Router): RouterSetupNeed | null {
   if (engine === 'owlto' && (!settings.router.owlto || failed)) return { kind: 'owlto', alternate }
   if (!providerSchema.options.some(ready)) return { kind: 'worker', alternate: null }
   return null
+}
+/**
+ * The agent a setup need is still waiting on as it comes up, or null once nothing is: the
+ * app reconnects agents as it starts, so a need for one of them is not settled yet.
+ */
+export function useStartingAgent(need: RouterSetupNeed | null): AgentProvider | null {
+  return useAppStore((s) => {
+    if (!need || need.kind === 'owlto') return null
+    if (need.kind === 'worker')
+      return providerSchema.options.find((p) => isAgentStarting(s, p)) ?? null
+    const engine = need.kind === 'claude' ? 'claude-code' : 'codex'
+    return isAgentStarting(s, engine) ? engine : null
+  })
+}
+/** While the agent the Router needs comes up: the Router's owl wakes, nothing to do yet. */
+export function RouterStarting({ agent }: { agent: AgentProvider }) {
+  const { t } = useTranslation()
+  return (
+    <ThreadRow speaker="router" starting>
+      <div className="router-starting" role="status">
+        {t('router.starting', { agent: t(`agent.${agent}`) })}
+      </div>
+    </ThreadRow>
+  )
 }
 const COPY = {
   owlto: { title: 'router.setupTitle', body: 'router.setupBody' },

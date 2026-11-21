@@ -3,6 +3,7 @@ import codex from '../../../../resources/owl-avatars/codex.svg'
 import cursor from '../../../../resources/owl-avatars/cursor.svg'
 import dreaming from '../../../../resources/owl-avatars/dreaming.svg'
 import router from '../../../../resources/owl-avatars/router.svg'
+import routerWaking from '../../../../resources/owl-avatars/waking/router.svg'
 import claudeCodeWorking from '../../../../resources/owl-avatars/working/claude-code.svg'
 import codexWorking from '../../../../resources/owl-avatars/working/codex.svg'
 import cursorWorking from '../../../../resources/owl-avatars/working/cursor.svg'
@@ -43,4 +44,16 @@ export function OwlAvatar({
 /** Dreaming's own owl, asleep with drifting Zs. The motion lives in the SVG and stops for reduced motion. */
 export function DreamingOwl() {
   return <img className="owlto-owl-avatar" src={dreaming} data-speaker="dreaming" alt="" />
+}
+
+/**
+ * The Router's owl waking up inside a loading ring, while the agent it runs on comes up.
+ * The owl's motion lives in the SVG, the ring's in CSS; both stop for reduced motion.
+ */
+export function WakingOwl() {
+  return (
+    <span className="owlto-owl-waking">
+      <img className="owlto-owl-avatar" src={routerWaking} data-speaker="router" alt="" />
+    </span>
+  )
 }

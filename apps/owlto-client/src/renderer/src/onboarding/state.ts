@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { providerSchema } from '../../../shared/app'
-import { agentConnection, isAgentReady, useAppStore } from '../app/store'
+import { agentConnection, isAgentReady, isAgentStarting, useAppStore } from '../app/store'
 import { useOnboardingStore } from './store'
 
 /**
@@ -8,9 +8,7 @@ import { useOnboardingStore } from './store'
  * never flashes onboarding. Later connections are the user's own and do not reset it.
  */
 export function useStartupSettled(): boolean {
-  const connecting = useAppStore((s) =>
-    providerSchema.options.some((p) => agentConnection(s, p).status === 'connecting')
-  )
+  const connecting = useAppStore((s) => providerSchema.options.some((p) => isAgentStarting(s, p)))
   const [settled, setSettled] = useState(!connecting)
   useEffect(() => {
     if (!connecting) setSettled(true)

@@ -52,6 +52,18 @@ export function agentConnection(
 export function isAgentReady(connection: AgentConnection): boolean {
   return connection.status === 'ready' && connection.account.kind !== 'signed-out'
 }
+/**
+ * Whether an agent is still coming up: connecting now, or connected before and not yet
+ * reconnected, since the app reconnects those only once the login shell's PATH is in.
+ */
+export function isAgentStarting(
+  state: Pick<State, 'connection' | 'claude' | 'cursor' | 'settings'>,
+  provider: AgentProvider
+): boolean {
+  const { status } = agentConnection(state, provider)
+  if (status === 'connecting') return true
+  return status === 'disconnected' && state.settings.connectedAgents.includes(provider)
+}
 function unwrap<T>(reply: Reply<T>): T {
   if (!reply.ok) throw new UIError(reply.error)
   return reply.value
