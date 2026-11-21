@@ -3,7 +3,7 @@ import { IconButton } from '@renderer/components/ui/icon-button'
 import { ChevronDownIcon, CollapseAllIcon, ExpandAllIcon } from '@renderer/components/ui/icons'
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DreamingOwl, OwlAvatar } from '../app/OwlAvatar'
+import { DreamingOwl, OwlAvatar, WakingOwl } from '../app/OwlAvatar'
 import { UserAvatar } from '../app/UserAvatar'
 
 /** `dreaming` is the memory agent, shown at the end of a thread while it reads it. */
@@ -86,12 +86,15 @@ export function ThreadRow({
   follows = false,
   entryId,
   working = false,
+  starting = false,
   children
 }: {
   speaker: ThreadSpeaker
   follows?: boolean
   /** The Router's turn is still running: its owl types away, shown even after its own rows. */
   working?: boolean
+  /** The agent the Router runs on is still coming up: its owl wakes inside a loading ring. */
+  starting?: boolean
   /** Lets the timeline find a row, e.g. to bring a just-sent message to the top. */
   entryId?: string
   children: ReactNode
@@ -100,7 +103,9 @@ export function ThreadRow({
     <div className={`router-row ${speaker}${follows ? ' follows' : ''}`} data-entry-id={entryId}>
       <div className="router-row-side">
         <div className="router-row-avatar" aria-hidden="true">
-          {follows ? null : speaker === 'router' ? (
+          {follows ? null : speaker === 'router' && starting ? (
+            <WakingOwl />
+          ) : speaker === 'router' ? (
             <OwlAvatar speaker="router" working={working} />
           ) : speaker === 'dreaming' ? (
             <DreamingOwl />

@@ -26,6 +26,32 @@
   height: 24px;
   flex: none;
 }
+/* The Router's owl waking up while its agent comes up: a ring runs around it. */
+.owlto-owl-waking {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  border-radius: 50%;
+}
+.owlto-owl-waking::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border: 2px solid color-mix(in oklab, var(--color-muted-foreground) 22%, transparent);
+  border-top-color: var(--color-muted-foreground);
+  border-radius: 50%;
+  animation: owlto-owl-waking-spin 0.9s linear infinite;
+}
+@keyframes owlto-owl-waking-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .owlto-owl-waking::after {
+    animation: none;
+  }
+}
 .owlto-markdown {
   line-height: var(--owl-leading-relaxed);
   font-size: var(--owl-text-base);

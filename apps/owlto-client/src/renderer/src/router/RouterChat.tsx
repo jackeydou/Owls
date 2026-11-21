@@ -6,13 +6,12 @@ import type { Router } from '../../../shared/app'
 import { useAppStore } from '../app/store'
 import { useDreamingStore, useDreamLocked } from '../memory/dreaming'
 import { SetupCard, useSetupCardVisible } from '../onboarding/SetupCard'
-import { useStartupSettled } from '../onboarding/state'
 import { useViewingRemote } from '../remote/viewing'
 import { threadTitle, useThreadTitle } from './activity'
 import { useDraftAttachments } from './DraftAttachments'
 import { FileDropOverlay, useFileDrop } from './FileDrop'
 import { RequestTray } from './RequestTray'
-import { RouterSetupNotice, useRouterSetup } from './RouterSetup'
+import { RouterSetupNotice, RouterStarting, useRouterSetup, useStartingAgent } from './RouterSetup'
 import { RouterTimeline } from './RouterTimeline'
 import { useRouterStore } from './store'
 import { ThreadEditor } from './ThreadEditor'
@@ -53,8 +52,7 @@ export function RouterChat() {
   const setup = useRouterSetup(router)
   const locked = useDreamLocked(router?.id)
   // Agents connect as the app starts, so a working setup must not flash a setup notice.
-  const settled = useStartupSettled()
-  const missing = settled ? setup : null
+  const starting = useStartingAgent(setup)
   const setupCard = useSetupCardVisible()
   useEffect(() => {
     if (threadId) void loadItems(threadId)
@@ -86,7 +84,13 @@ export function RouterChat() {
           editor={
             // A thread the user sent to Dreaming takes no input until the run ends.
             <div className="router-editor-lock" inert={locked}>
-              {setupCard ? <SetupCard /> : missing ? <RouterSetupNotice need={missing} /> : null}
+              {setupCard ? (
+                <SetupCard />
+              ) : starting ? (
+                <RouterStarting agent={starting} />
+              ) : setup ? (
+                <RouterSetupNotice need={setup} />
+              ) : null}
               {router ? <RequestTray routerId={router.id} /> : null}
               <ThreadEditor router={router} attachments={attachments} />
             </div>

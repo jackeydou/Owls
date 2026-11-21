@@ -1831,6 +1831,13 @@ html[data-theme="dark"] .router-automation-run a {
   color: var(--color-muted-foreground);
 }
 /* The Router at work: its owl types in the avatar column, the dots bounce, Stop follows. */
+.router-starting {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+}
 .router-working {
   display: flex;
   align-items: center;
