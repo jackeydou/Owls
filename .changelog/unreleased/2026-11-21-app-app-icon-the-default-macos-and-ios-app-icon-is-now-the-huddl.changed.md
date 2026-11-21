@@ -1,0 +1,1 @@
+- App icon: the default macOS and iOS app icon is now the Huddle cream owl. (#212)
