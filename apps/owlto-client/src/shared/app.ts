@@ -238,7 +238,7 @@ export const appLogoSchema = z.enum([
   'trio-cream'
 ])
 /** Also the artwork of the shipped bundle icon, which Finder keeps showing. */
-export const defaultAppLogo = 'trio-white' satisfies z.infer<typeof appLogoSchema>
+export const defaultAppLogo = 'lean-cream' satisfies z.infer<typeof appLogoSchema>
 /** Width bounds, in CSS pixels, for each pane the user can drag wider or narrower. */
 export const paneWidthBounds = {
   sidebar: { min: 200, max: 440, initial: 264 },
