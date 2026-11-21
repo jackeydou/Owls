@@ -11,6 +11,25 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2000-beta.2
+
+### Highlights
+
+- Remote Router comes to beta: turn on Connect devices in Settings → Devices to drive this Mac's Router from another Mac or the iOS app, over the same network or the Owlto relay.
+- Mark a failed or blocked worker resolved from the Projects panel.
+
+### Changes
+
+- Remote Router: beta builds can connect devices. Turn on Connect devices in Settings → Devices to pair the iOS app or another Mac over the same network or the Owlto relay, then drive this Mac's Router from there. (#210)
+- iOS app: an iPhone app for Remote Router; pair it with a Mac to read threads, message the Router, steer or stop workers, and approve requests or answer questions from the Needs You inbox. (#197)
+- iOS app: a Doodle style matching the Owlto website and the desktop's Doodle skin, in light and dark modes. Switch it in Devices > Style. (#198)
+- iOS app: on iPad and an open iPhone Duo, threads show beside the list, and on iPhone Duo the bars follow the system's vertical layout. (#201)
+- iOS app: ships a privacy manifest, and owlto.dev has Privacy policy and Support pages for the App Store listing. (#209)
+- Projects panel: hover a failed or blocked worker and click the check mark to mark it resolved, so it stops waiting on you in the panel and the map; it comes back if it runs again and gets stuck. (#208)
+- Router: while the Router works, its owl types and bubble dots bounce like a worker's, with a Stop button next to them. (#207)
+
+### Fixes
+
 ## 2026.11.2000-beta.1
 
 ### Highlights
