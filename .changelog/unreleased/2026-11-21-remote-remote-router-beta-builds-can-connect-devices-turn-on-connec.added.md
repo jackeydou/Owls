@@ -1,0 +1,1 @@
+- Remote Router: beta builds can connect devices. Turn on Connect devices in Settings → Devices to pair the iOS app or another Mac over the same network or the Owlto relay, then drive this Mac's Router from there. (#210)

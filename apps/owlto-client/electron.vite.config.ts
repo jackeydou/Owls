@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import reactScan from '@react-scan/vite-plugin-react-scan'
 import tailwindcss from '@tailwindcss/vite'
@@ -10,6 +11,20 @@ function resolveBuildMode(command: string): 'debug' | 'release' {
   }
 
   return command === 'serve' ? 'debug' : 'release'
+}
+
+/**
+ * Remote Router (Settings → Devices, the device picker, the LAN listener and the relay) ships in
+ * debug builds, `pnpm dev` and beta releases; stable releases leave it off until it graduates.
+ * The channel comes from the version the release PR sets in package.json (`-beta.N` = beta), so
+ * a build decides this once at build time and never reads it at runtime.
+ */
+function resolveRemoteRouter(buildMode: 'debug' | 'release'): boolean {
+  if (buildMode === 'debug') return true
+  const { version } = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as {
+    version: string
+  }
+  return version.includes('-beta.')
 }
 
 const DEFAULT_POSTHOG_HOST = 'https://us.i.posthog.com'
@@ -37,7 +52,8 @@ export default defineConfig(({ command, mode }) => {
   const define = {
     __OWLTO_BUILD_MODE__: JSON.stringify(buildMode),
     __OWLTO_DEV__: JSON.stringify(command === 'serve'),
-    __OWLTO_ANALYTICS__: JSON.stringify(Boolean(posthog.key))
+    __OWLTO_ANALYTICS__: JSON.stringify(Boolean(posthog.key)),
+    __OWLTO_REMOTE_ROUTER__: JSON.stringify(resolveRemoteRouter(buildMode))
   }
 
   return {
