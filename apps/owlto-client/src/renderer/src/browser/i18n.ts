@@ -1,0 +1,48 @@
+/** Copy for the right sidebar's in-app browser panel. */
+export const browserEn = {
+  'browser.tabs': 'Browser tabs',
+  'browser.yourTab': 'Your tab',
+  'browser.tabOwner': 'Opened by {{owner}}',
+  'browser.newTab': 'New tab',
+  'browser.closeTab': 'Close {{title}}',
+  'browser.back': 'Back',
+  'browser.forward': 'Forward',
+  'browser.reload': 'Reload',
+  'browser.address': 'Address',
+  'browser.secure': 'Secure connection',
+  'browser.notSecure': 'Local or unencrypted page',
+  'browser.takeOver': 'Take over',
+  'browser.takeOverHint': 'Pause {{owner}} and use this page yourself',
+  'browser.handBack': 'Hand back',
+  'browser.handBackHint': 'Let {{owner}} continue on this page',
+  'browser.driving': 'is using this page',
+  'browser.needsYou': 'needs you',
+  'browser.done': 'Done, hand back',
+  'browser.paused': 'You are using this page. {{owner}} waits until you hand it back.',
+  'browser.empty': 'Pages your workers open show up here. You can watch them and step in.',
+  'browser.agentCursor': '{{owner}}’s pointer'
+}
+
+export const browserZh: Record<keyof typeof browserEn, string> = {
+  'browser.tabs': '浏览器标签页',
+  'browser.yourTab': '你的标签页',
+  'browser.tabOwner': '由 {{owner}} 打开',
+  'browser.newTab': '新标签页',
+  'browser.closeTab': '关闭 {{title}}',
+  'browser.back': '后退',
+  'browser.forward': '前进',
+  'browser.reload': '重新加载',
+  'browser.address': '地址',
+  'browser.secure': '安全连接',
+  'browser.notSecure': '本地或未加密的页面',
+  'browser.takeOver': '接手',
+  'browser.takeOverHint': '暂停 {{owner}}，由你来操作这个页面',
+  'browser.handBack': '交还',
+  'browser.handBackHint': '让 {{owner}} 继续操作这个页面',
+  'browser.driving': '正在操作',
+  'browser.needsYou': '需要你',
+  'browser.done': '完成，交还',
+  'browser.paused': '你正在操作这个页面，{{owner}} 会等你交还后再继续。',
+  'browser.empty': 'Worker 打开的网页会显示在这里，你可以随时看到并接手。',
+  'browser.agentCursor': '{{owner}} 的指针'
+}

@@ -1,6 +1,7 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { automationsEn, automationsZh } from '../automations/i18n'
+import { browserEn, browserZh } from '../browser/i18n'
 import { cardsEn, cardsZh } from '../cards/i18n'
 import { feedbackEn, feedbackZh } from '../feedback/i18n'
 import { filesEn, filesZh } from '../files/i18n'
@@ -413,6 +414,7 @@ void i18next.use(initReactI18next).init({
         ...feedbackEn,
         ...projectsPageEn,
         ...filesEn,
+        ...browserEn,
         ...remoteEn
       }
     },
@@ -437,6 +439,7 @@ void i18next.use(initReactI18next).init({
         ...feedbackZh,
         ...projectsPageZh,
         ...filesZh,
+        ...browserZh,
         ...remoteZh
       }
     }
