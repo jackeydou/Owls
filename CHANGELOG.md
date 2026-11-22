@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2200-beta.1
+
+### Highlights
+
+- Workers now browse in an Owlto Browser panel inside the app instead of a separate Chrome window, and can hand a tab to you for a sign-in or captcha.
+- The default app icon is now the Huddle cream owl.
+
+### Changes
+
+- Browser: workers now browse in an Owlto Browser panel in the right sidebar instead of a separate Chrome window. Tabs show which worker drives them, sign-ins persist, and you can take over a tab and hand it back. Google Chrome is no longer needed. (#214)
+- Browser: workers can hand a tab to you for a sign-in or captcha and wait, with a notification; Claude Code workers get Owlto's browser too (Claude in Chrome now defaults off); each worker's downloads go to its own folder and it gets the paths; Settings → Browser adds site rules (allow, ask, block), asking before forms are submitted on signed-in sites, clearing sign-ins, and the downloads folder. (#214)
+- App icon: the default macOS and iOS app icon is now the Huddle cream owl. (#212)
+
+### Fixes
+
+- Router: while a connected agent is still starting at launch, the Router's owl shows a loading ring instead of flashing the setup notice. (#213)
+
 ## 2026.11.2000-beta.2
 
 ### Highlights
