@@ -1,7 +1,7 @@
 {
   "name": "owlto-client",
   "productName": "Owlto",
-  "version": "2026.11.2000-beta.2",
+  "version": "2026.11.2200-beta.1",
   "description": "Owlto desktop client for AI-assisted workflows.",
   "license": "AGPL-3.0-only",
   "main": "./out/main/index.js",
