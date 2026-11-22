@@ -1186,3 +1186,49 @@ button.owlto-workspace-folder-name:hover {
 .owlto-agent-config + .owlto-note {
   padding-top: 12px;
 }
+
+/* Settings → Browser: add a site on one line, then one compact row per rule. */
+.owlto-browser-site-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.owlto-browser-site-add .router-input {
+  flex: 1;
+  min-width: 180px;
+  height: 32px;
+}
+.owlto-browser-site-add select {
+  width: auto;
+}
+.owlto-browser-sites {
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+.owlto-browser-sites li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--color-border);
+}
+.owlto-browser-sites li > span {
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  padding-left: 4px;
+  font-size: var(--owl-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.owlto-browser-sites select {
+  width: auto;
+}
+.owlto-browser-sites-empty {
+  margin-top: 10px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}

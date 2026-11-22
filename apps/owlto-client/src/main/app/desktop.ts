@@ -343,8 +343,16 @@ void app
       automations
     )
     service.attachRouter(router)
+    const browserDownloads = () =>
+      settings().browserDownloadsPath ?? join(browserHome(), 'downloads')
     const tabs = new BrowserManager({
       home: () => browserHome(),
+      downloadsRoot: browserDownloads,
+      settings: () => settings().browser,
+      needs: (key, need) => {
+        const worker = router?.worker(key)
+        if (worker) attention?.browserNeed(worker.sessionId, worker.provider, need)
+      },
       owner: (key) => {
         const worker = router?.worker(key)
         if (!worker || worker.status === 'removed') return null
@@ -363,7 +371,9 @@ void app
       entry: join(__dirname, 'browser/host.js'),
       endpoint: (key) => gate.endpoint(key),
       waitForAgent: (key, timeoutMs) => tabs.waitForAgent(key, timeoutMs),
-      shotsDir: () => join(browserHome(), 'screenshots')
+      shotsDir: () => join(browserHome(), 'screenshots'),
+      handoff: (key, reason, timeoutMs) => tabs.handoff(key, reason, timeoutMs),
+      takeDownloads: (key) => tabs.takeDownloads(key)
     })
     router.attachBrowser(browser)
     attention = new WorkerAttention(
@@ -564,7 +574,14 @@ void app
       analytics
     )
     registerRemoteIpc(handle, remote)
-    registerBrowserIpc(handle, tabs)
+    registerBrowserIpc(handle, tabs, {
+      settings: () => service?.snapshot().settings ?? settings(),
+      save: (next) => {
+        if (!service) throw new Error('Owlto is not ready.')
+        return service.saveSettings(next)
+      },
+      downloadsRoot: browserDownloads
+    })
     applyAppMenu(store.settings(), menu)
     createWindow()
     if (REMOTE_ROUTER_ENABLED) {

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { AgentProvider } from './agents.js'
-import type { Reply } from './app.js'
+import type { AppSettings, Reply } from './app.js'
 
 /**
  * The in-app browser: tabs main owns (one WebContentsView each) and the panel in the right
@@ -25,6 +25,14 @@ export type BrowserControl =
   | { kind: 'user' }
   | { kind: 'handoff'; reason: string }
 
+/** Something a worker's tab waits on the user for, under a site rule. */
+export type BrowserAsk = {
+  id: string
+  /** `open`: first visit to an "ask" site. `submit`: a form post on a site the user is signed in to. */
+  kind: 'open' | 'submit'
+  host: string
+}
+
 export type BrowserTab = {
   id: string
   owner: BrowserTabOwner
@@ -35,6 +43,7 @@ export type BrowserTab = {
   canGoBack: boolean
   canGoForward: boolean
   control: BrowserControl
+  ask: BrowserAsk | null
 }
 
 /** Every tab, oldest first, and the one the panel shows. */
@@ -63,6 +72,58 @@ export const browserHistorySchema = z.object({
   action: z.enum(['back', 'forward', 'reload'])
 })
 
+/** What a worker may do on a site: browse freely, ask the user first, or never open it. */
+export const browserSiteRuleSchema = z.enum(['allow', 'ask', 'block'])
+export type BrowserSiteRule = z.infer<typeof browserSiteRuleSchema>
+/** A host such as `example.com`; it also covers its subdomains. */
+export const browserHostSchema = z
+  .string()
+  .min(1)
+  .max(253)
+  .regex(/^[a-z0-9-]+(\.[a-z0-9-]+)*(:\d+)?$/)
+export const browserSiteSchema = z.object({ host: browserHostSchema, rule: browserSiteRuleSchema })
+export type BrowserSite = z.infer<typeof browserSiteSchema>
+/** Settings → Browser. Added later, so older rows get the defaults. */
+export const browserSettingsSchema = z.object({
+  sites: z.array(browserSiteSchema).max(500).catch([]).default([]),
+  /** Ask before a worker posts a form on a site the user is signed in to. */
+  askBeforeSubmit: z.boolean().catch(true).default(true)
+})
+export type BrowserSettings = z.infer<typeof browserSettingsSchema>
+export const defaultBrowserSettings: BrowserSettings = { sites: [], askBeforeSubmit: true }
+
+/** The rule for a host: the most specific listed site that covers it, or null when none does. */
+export function siteRuleFor(sites: BrowserSite[], host: string): BrowserSiteRule | null {
+  const bare = host.toLowerCase().replace(/:\d+$/, '')
+  let best: BrowserSite | null = null
+  for (const site of sites) {
+    const listed = site.host.replace(/:\d+$/, '')
+    const covers =
+      site.host === host.toLowerCase() || bare === listed || bare.endsWith(`.${listed}`)
+    if (covers && (!best || site.host.length > best.host.length)) best = site
+  }
+  return best?.rule ?? null
+}
+
+/** What the user typed for a site: a URL or a host, reduced to the host. */
+export function siteHost(input: string): string | null {
+  const text = input.trim().toLowerCase()
+  if (!text) return null
+  try {
+    const host = new URL(/^[a-z]+:\/\//.test(text) ? text : `https://${text}`).host
+    return browserHostSchema.safeParse(host).success ? host : null
+  } catch {
+    return null
+  }
+}
+
+export const browserAnswerSchema = z.object({
+  tabId: browserTabIdSchema,
+  askId: z.string().min(1).max(64),
+  answer: z.enum(['allow', 'always', 'block'])
+})
+export type BrowserAnswer = z.infer<typeof browserAnswerSchema>
+
 /** `window.owlto.browser`. */
 export interface BrowserAPI {
   snapshot(): Promise<Reply<BrowserSnapshot>>
@@ -78,5 +139,17 @@ export interface BrowserAPI {
   handBack(tabId: string): Promise<Reply<void>>
   /** Where to lay the active tab's page; null hides it. */
   setBounds(bounds: BrowserBounds): Promise<Reply<void>>
+  /**
+   * Answers a tab's ask: allow it once, always allow the site, or block it. "Always" saves a
+   * site rule and returns the saved settings; the other answers return null.
+   */
+  answer(input: BrowserAnswer): Promise<Reply<AppSettings | null>>
+  /** Signs out of every site in Owlto's browser by clearing its cookies and storage. */
+  clearSignIns(): Promise<Reply<void>>
+  /** Where downloads go: the chosen folder, or Owlto's default. */
+  downloadsFolder(): Promise<Reply<string>>
+  /** Picks a new downloads folder; null when the user cancels. */
+  pickDownloadsFolder(): Promise<Reply<string | null>>
+  revealDownloadsFolder(): Promise<Reply<void>>
   onChanged(listener: (snapshot: BrowserSnapshot) => void): () => void
 }

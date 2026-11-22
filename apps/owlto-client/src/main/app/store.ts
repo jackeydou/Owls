@@ -14,6 +14,7 @@ import {
   sessionSchema,
   settingsSchema
 } from '../../shared/app.js'
+import { defaultBrowserSettings } from '../../shared/browser-panel.js'
 import { defaultMemorySettings } from '../../shared/memory.js'
 import { defaultProfile } from '../../shared/profile.js'
 import { defaultRouterSettings } from '../../shared/router.js'
@@ -67,7 +68,9 @@ export class OwltoStore {
           onboarding: 'pending',
           remoteAccess: false,
           remoteRelay: false,
-          remoteKeepAwake: false
+          remoteKeepAwake: false,
+          browser: defaultBrowserSettings,
+          browserDownloadsPath: null
         }
   }
   saveSettings(value: AppSettings): AppSettings {

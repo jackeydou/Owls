@@ -9,6 +9,7 @@ import {
   FlaskIcon,
   GitBranchIcon,
   GitPullRequestIcon,
+  GlobeIcon,
   type IconComponent,
   InfoIcon,
   LaptopIcon,
@@ -37,6 +38,7 @@ import { AppLogoSetting } from './AppLogoSetting'
 import { SettingRow } from './SettingRow'
 import { AgentsSettingsPane } from './SettingsAgents'
 import { ArchivesSettingsPane } from './SettingsArchives'
+import { BrowserSettingsPane } from './SettingsBrowser'
 import { ExperimentsSettingsPane } from './SettingsExperiments'
 import { GitHubSettingsPane } from './SettingsGitHub'
 import { ProfileSettingsPane } from './SettingsProfile'
@@ -62,6 +64,7 @@ const TAB_GROUPS: TabEntry[][] = [
     { id: 'router', label: 'routerWorkers.title', icon: RouteIcon },
     { id: 'memory', label: 'memory.title', icon: BrainIcon },
     { id: 'usage', label: 'usageStats.title', icon: ChartIcon },
+    { id: 'browser', label: 'browserSettings.title', icon: GlobeIcon },
     { id: 'archives', label: 'archives.title', icon: ArchiveIcon }
   ],
   [
@@ -282,6 +285,7 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   memory: SettingsMemoryPane,
   usage: UsageStatsPane,
   archives: ArchivesSettingsPane,
+  browser: BrowserSettingsPane,
   experiments: ExperimentsSettingsPane,
   github: GitHubSettingsPane,
   profile: ProfileSettingsPane,

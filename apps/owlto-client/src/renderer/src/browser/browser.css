@@ -185,24 +185,33 @@
   padding: 0 7px;
   gap: 4px;
 }
-.browser-status[data-control="handoff"] {
+.browser-status:is([data-control="handoff"], [data-control="ask"]) {
   gap: 10px;
   padding: 8px 12px;
   background: var(--owl-browser-handoff-bg);
   color: var(--color-foreground);
 }
-.browser-status[data-control="handoff"] p {
+.browser-status:is([data-control="handoff"], [data-control="ask"]) p {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
   gap: 1px;
 }
-.browser-status[data-control="handoff"] p span {
+.browser-status:is([data-control="handoff"], [data-control="ask"]) p span {
   color: var(--color-muted-foreground);
 }
-.browser-status[data-control="handoff"] button {
+.browser-status:is([data-control="handoff"], [data-control="ask"]) button {
   flex: none;
+}
+.browser-status[data-control="ask"] {
+  flex-wrap: wrap;
+}
+.browser-ask-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  margin-left: auto;
 }
 
 /*

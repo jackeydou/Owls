@@ -3,25 +3,33 @@
  * Browser panel. Worker tabs are driven through the CDP gate; the user's own tabs are not
  * exposed to it. See docs/RFC_OWLTO_IN_APP_BROWSER.md.
  */
-import { mkdirSync } from 'node:fs'
-import { join } from 'node:path'
-import { app, type BrowserWindow, type Session, session, WebContentsView } from 'electron'
+import { randomUUID } from 'node:crypto'
+import { type BrowserWindow, WebContentsView } from 'electron'
 import type { AgentProvider } from '../../shared/agents.js'
 import type { AppEvent } from '../../shared/app.js'
 import type {
   BrowserAction,
+  BrowserAsk,
   BrowserBounds,
   BrowserControl,
+  BrowserSettings,
   BrowserSnapshot,
   BrowserTab,
   BrowserTabOwner
 } from '../../shared/browser-panel.js'
 import type { CdpGate, CdpParams, GateBackend, GateTab } from './cdp-gate.js'
+import { BrowserProfile, type DownloadsReport } from './profile.js'
+import { type AskAnswer, SitePolicy } from './site-policy.js'
 
 /** Where a tab sits when the panel does not show it: off the window, so it keeps painting. */
 const PARKED_X = -20_000
 const DEFAULT_SIZE = { width: 1280, height: 800 }
 const ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'about:', 'data:', 'blob:'])
+/** An ask nobody answers counts as blocked after this long. */
+const ASK_TIMEOUT_MS = 5 * 60_000
+
+type PendingAsk = { ask: BrowserAsk; resolve: (answer: AskAnswer) => void; timer: NodeJS.Timeout }
+type PendingHandoff = { resolve: (status: HandoffStatus) => void; timer: NodeJS.Timeout }
 
 type Tab = {
   id: string
@@ -31,7 +39,15 @@ type Tab = {
   control: BrowserControl
   /** Input commands from the gate still in flight; the user's own input is let through then. */
   injecting: number
+  pendingAsk: PendingAsk | null
+  handoff: PendingHandoff | null
 }
+
+export type HandoffStatus = 'done' | 'closed' | 'timeout'
+export type HandoffResult = { status: HandoffStatus; url: string } | { status: 'no-tab'; url: null }
+
+/** What a worker's tab waits on the user for, so Owlto can tell them when they look away. */
+export type BrowserNeed = { tabId: string; kind: 'handoff' | BrowserAsk['kind']; text: string }
 
 export type BrowserOwnerInfo = { provider: AgentProvider; title: string }
 
@@ -44,20 +60,43 @@ export class BrowserManager implements GateBackend {
   private size = DEFAULT_SIZE
   private window: BrowserWindow | null = null
   private gate: CdpGate | null = null
-  private browserSession: Session | null = null
+  private readonly profile: BrowserProfile
+  private readonly policy: SitePolicy
+  private policyInstalled = false
   private nextId = 1
   private waiters = new Set<Waiter>()
   private changeTimer: NodeJS.Timeout | null = null
 
   constructor(
     private readonly deps: {
-      /** Owlto's browser folder in the data root: its session and downloads. */
+      /** Owlto's browser folder in the data root: its session lives here. */
       home: () => string
+      /** The downloads folder: the user's choice, or Owlto's default. */
+      downloadsRoot: () => string
       /** The worker behind a key, for its tab's label; null once it is gone. */
       owner: (key: string) => BrowserOwnerInfo | null
       changed: (snapshot: BrowserSnapshot) => void
+      /** Settings → Browser, read on each request. */
+      settings: () => BrowserSettings
+      /** A worker's tab started or stopped waiting on the user; null when nothing waits. */
+      needs: (key: string, need: BrowserNeed | null) => void
     }
-  ) {}
+  ) {
+    this.profile = new BrowserProfile({
+      home: deps.home,
+      downloadsRoot: deps.downloadsRoot,
+      ownerOf: (id) => this.tabFor(id)?.key ?? null
+    })
+    this.policy = new SitePolicy({
+      settings: deps.settings,
+      workerTab: (id) => {
+        const tab = this.tabFor(id)
+        return tab?.key && tab.control.kind === 'agent' ? { tabId: tab.id, key: tab.key } : null
+      },
+      ask: (tabId, ask) => this.ask(tabId, ask),
+      signedIn: (url) => this.profile.signedIn(url)
+    })
+  }
 
   attachGate(gate: CdpGate): void {
     this.gate = gate
@@ -119,14 +158,63 @@ export class BrowserManager implements GateBackend {
     if (!tab?.key || tab.control.kind === 'user') return
     tab.control = { kind: 'user' }
     this.changed()
+    this.needsChanged(tab.key)
   }
 
   handBack(tabId: string): void {
     const tab = this.byId.get(tabId)
     if (!tab?.key || tab.control.kind === 'agent') return
     tab.control = { kind: 'agent', action: null }
+    this.settleHandoff(tab, 'done')
     this.settleWaiters(tab.key)
     this.changed()
+  }
+
+  /** The tab's ask the user is answering, or null once it is gone or replaced. */
+  pendingAsk(tabId: string, askId: string): BrowserAsk | null {
+    const ask = this.byId.get(tabId)?.pendingAsk?.ask
+    return ask?.id === askId ? ask : null
+  }
+
+  /** The user's answer to a tab's ask; a stale ask id does nothing. */
+  answer(tabId: string, askId: string, answer: AskAnswer): void {
+    const tab = this.byId.get(tabId)
+    if (tab?.pendingAsk?.ask.id === askId) this.settleAsk(tab, answer)
+  }
+
+  /**
+   * A worker hands its tab to the user for one step, such as a sign-in or a captcha, and
+   * waits until they hand it back, close it, or `timeoutMs` passes.
+   */
+  handoff(key: string, reason: string, timeoutMs: number): Promise<HandoffResult> {
+    const owned = [...this.byId.values()].filter((tab) => tab.key === key)
+    const tab = owned.find((t) => t.id === this.activeId) ?? owned.at(-1)
+    if (!tab) return Promise.resolve({ status: 'no-tab', url: null })
+    this.settleHandoff(tab, 'timeout')
+    tab.control = { kind: 'handoff', reason }
+    this.activate(tab.id)
+    this.changed()
+    this.needsChanged(key)
+    return new Promise<HandoffStatus>((resolve) => {
+      tab.handoff = {
+        resolve,
+        timer: setTimeout(() => {
+          if (tab.control.kind === 'handoff') tab.control = { kind: 'agent', action: null }
+          this.settleHandoff(tab, 'timeout')
+          this.settleWaiters(key)
+          this.changed()
+        }, timeoutMs)
+      }
+    }).then((status) => ({ status, url: this.urlOf(tab) }))
+  }
+
+  /** Downloads the worker's pages finished since its last call. */
+  takeDownloads(key: string): DownloadsReport {
+    return this.profile.takeDownloads(key)
+  }
+
+  clearSignIns(): Promise<void> {
+    return this.profile.clearSignIns()
   }
 
   closeTabById(tabId: string): void {
@@ -145,6 +233,8 @@ export class BrowserManager implements GateBackend {
   forgetOwner(key: string): void {
     for (const tab of [...this.byId.values()]) if (tab.key === key) this.remove(tab)
     this.gate?.revoke(key)
+    this.policy.forgetWorker(key)
+    this.profile.forgetWorker(key)
   }
 
   /**
@@ -241,7 +331,9 @@ export class BrowserManager implements GateBackend {
       key,
       view,
       control: key ? { kind: 'agent', action: null } : { kind: 'user' },
-      injecting: 0
+      injecting: 0,
+      pendingAsk: null,
+      handoff: null
     }
     this.byId.set(tab.id, tab)
     this.wire(tab)
@@ -327,6 +419,8 @@ export class BrowserManager implements GateBackend {
 
   private forget(tab: Tab): void {
     this.byId.delete(tab.id)
+    this.settleAsk(tab, 'block')
+    this.settleHandoff(tab, 'closed')
     this.gate?.tabRemoved(tab.id)
     this.window?.contentView.removeChildView(tab.view)
     if (tab.key) this.settleWaiters(tab.key)
@@ -350,6 +444,67 @@ export class BrowserManager implements GateBackend {
 
   private heldByUser(key: string): boolean {
     return [...this.byId.values()].some((tab) => tab.key === key && tab.control.kind !== 'agent')
+  }
+
+  private ask(tabId: string, ask: Omit<BrowserAsk, 'id'>): Promise<AskAnswer> {
+    const tab = this.byId.get(tabId)
+    if (!tab?.key) return Promise.resolve('block')
+    // A newer navigation replaces the one still waiting; the older one is dropped.
+    this.settleAsk(tab, 'block')
+    return new Promise<AskAnswer>((resolve) => {
+      tab.pendingAsk = {
+        ask: { ...ask, id: randomUUID().slice(0, 8) },
+        resolve,
+        timer: setTimeout(() => this.settleAsk(tab, 'block'), ASK_TIMEOUT_MS)
+      }
+      this.activate(tab.id)
+      this.changed()
+      if (tab.key) this.needsChanged(tab.key)
+    })
+  }
+
+  private settleAsk(tab: Tab, answer: AskAnswer): void {
+    const pending = tab.pendingAsk
+    if (!pending) return
+    tab.pendingAsk = null
+    clearTimeout(pending.timer)
+    pending.resolve(answer)
+    this.changed()
+    if (tab.key) this.needsChanged(tab.key)
+  }
+
+  private settleHandoff(tab: Tab, status: HandoffStatus): void {
+    const pending = tab.handoff
+    if (!pending) return
+    tab.handoff = null
+    clearTimeout(pending.timer)
+    pending.resolve(status)
+    if (tab.key) this.needsChanged(tab.key)
+  }
+
+  /** Tells Owlto what, if anything, the worker's tabs still wait on the user for. */
+  private needsChanged(key: string): void {
+    let need: BrowserNeed | null = null
+    for (const tab of this.byId.values()) {
+      if (tab.key !== key) continue
+      if (tab.pendingAsk)
+        need = { tabId: tab.id, kind: tab.pendingAsk.ask.kind, text: tab.pendingAsk.ask.host }
+      else if (tab.handoff && tab.control.kind === 'handoff')
+        need = { tabId: tab.id, kind: 'handoff', text: tab.control.reason }
+    }
+    this.deps.needs(key, need)
+  }
+
+  private tabFor(webContentsId: number): Tab | null {
+    for (const tab of this.byId.values())
+      if (!tab.view.webContents.isDestroyed() && tab.view.webContents.id === webContentsId)
+        return tab
+    return null
+  }
+
+  private urlOf(tab: Tab): string {
+    const contents = tab.view.webContents
+    return contents.isDestroyed() ? '' : contents.getURL()
   }
 
   private settleWaiters(key: string): void {
@@ -379,7 +534,8 @@ export class BrowserManager implements GateBackend {
       loading: !contents.isDestroyed() && contents.isLoading(),
       canGoBack: !contents.isDestroyed() && contents.navigationHistory.canGoBack(),
       canGoForward: !contents.isDestroyed() && contents.navigationHistory.canGoForward(),
-      control: tab.control
+      control: tab.control,
+      ask: tab.pendingAsk?.ask ?? null
     }
   }
 
@@ -392,26 +548,13 @@ export class BrowserManager implements GateBackend {
     }, 50)
   }
 
-  private session(): Session {
-    if (this.browserSession) return this.browserSession
-    const home = this.deps.home()
-    const downloads = join(home, 'downloads')
-    mkdirSync(downloads, { recursive: true })
-    const browserSession = session.fromPath(join(home, 'session'))
-    // Pages ask for nothing: camera, location, notifications and the like are refused.
-    browserSession.setPermissionRequestHandler((_contents, _permission, callback) =>
-      callback(false)
-    )
-    browserSession.setPermissionCheckHandler(() => false)
-    browserSession.on('will-download', (_event, item) => {
-      item.setSavePath(join(downloads, item.getFilename()))
-    })
-    browserSession.setUserAgent(
-      browserSession.getUserAgent().replace(/\s(Owlto|Electron)\/\S+/g, ''),
-      app.getLocale()
-    )
-    this.browserSession = browserSession
-    return browserSession
+  private session() {
+    const target = this.profile.session()
+    if (!this.policyInstalled) {
+      this.policy.install(target)
+      this.policyInstalled = true
+    }
+    return target
   }
 }
 

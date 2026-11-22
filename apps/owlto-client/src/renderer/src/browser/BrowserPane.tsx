@@ -1,3 +1,4 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { IconButton } from '@renderer/components/ui/icon-button'
 import {
@@ -14,10 +15,10 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { BrowserAction, BrowserTab } from '../../../shared/browser-panel'
+import type { BrowserAction, BrowserAsk, BrowserTab } from '../../../shared/browser-panel'
 import { OwlAvatar } from '../app/OwlAvatar'
 import { WorkingDots } from '../app/WorkingDots'
-import { browserActions, useBrowserStore } from './store'
+import { browserActions, tabNeed, useBrowserStore } from './store'
 import './browser.css'
 
 /** Matches the ring browser.css draws around a page a worker drives. */
@@ -57,7 +58,7 @@ function BrowserTabs({ tabs, activeId }: { tabs: BrowserTab[]; activeId: string 
                   <OwnerMark tab={tab} />
                   <span>{title}</span>
                   <span className="sr-only">{ownerLabel}</span>
-                  {tab.control.kind === 'handoff' ? (
+                  {tabNeed(tab) ? (
                     <i
                       className="browser-tab-alert"
                       role="img"
@@ -224,10 +225,39 @@ function ActionText({ action }: { action: BrowserAction }) {
   return <em>{t(`browser.action.${action.kind}`)}</em>
 }
 
+/** A site rule holds the worker until the user allows the site or the form post. */
+function AskStrip({ tab, ask }: { tab: BrowserTab; ask: BrowserAsk }) {
+  const { t } = useTranslation()
+  if (tab.owner.kind !== 'worker') return null
+  const answer = (value: 'allow' | 'always' | 'block') =>
+    browserActions.answer({ tabId: tab.id, askId: ask.id, answer: value })
+  return (
+    <div className="browser-status" data-control="ask" role="alert">
+      <OwlAvatar speaker={tab.owner.provider} />
+      <p>
+        <strong>{t(`browser.ask.${ask.kind}`, { owner: tab.owner.title, host: ask.host })}</strong>
+        <span>{t(`browser.ask.${ask.kind}Hint`, { host: ask.host })}</span>
+      </p>
+      <div className="browser-ask-actions">
+        <ActionButton variant="ghost" size="sm" onAction={() => answer('block')}>
+          {t('browser.ask.block')}
+        </ActionButton>
+        <ActionButton variant="outline" size="sm" onAction={() => answer('always')}>
+          {t('browser.ask.always')}
+        </ActionButton>
+        <ActionButton size="sm" onAction={() => answer('allow')}>
+          {t('browser.ask.allow')}
+        </ActionButton>
+      </div>
+    </div>
+  )
+}
+
 /** One line under the toolbar that says who drives the page, and asks when it needs the user. */
 function BrowserStatus({ tab }: { tab: BrowserTab }) {
   const { t } = useTranslation()
   if (tab.owner.kind === 'user') return null
+  if (tab.ask) return <AskStrip tab={tab} ask={tab.ask} />
   const { provider, title } = tab.owner
   if (tab.control.kind === 'agent')
     return (

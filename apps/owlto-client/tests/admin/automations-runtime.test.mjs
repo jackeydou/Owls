@@ -162,7 +162,13 @@ function fakeHost() {
   const settings = {
     agents: {
       codex: { model: 'gpt-test', effort: null, permission: 'workspace-write', browser: true },
-      'claude-code': { model: null, effort: null, permission: 'workspace-write', chrome: true },
+      'claude-code': {
+        model: null,
+        effort: null,
+        permission: 'workspace-write',
+        browser: true,
+        chrome: false
+      },
       cursor: { model: null, effort: null, permission: 'workspace-write', browser: true }
     },
     router: {
@@ -336,13 +342,17 @@ test('the Router creates an automation whose run comes back to its thread', asyn
   automations.close()
 })
 
-test('Codex and Cursor workers get the browser tool when their setting allows it, read-only included', async () => {
+test('workers get the browser tools when their agent allows it, read-only included', async () => {
   const { router, automations, runs, fake, tools } = app()
   const calls = []
   router.attachBrowser({
     run: async (key, code, timeoutMs, mode) => {
       calls.push({ key, code, timeoutMs, mode })
       return { ok: true, text: 'Result: done' }
+    },
+    handoff: async (key, reason, timeoutMs) => {
+      calls.push({ key, reason, timeoutMs })
+      return { ok: true, text: 'The user handed the tab back.' }
     }
   })
   const thread = router.createThread({ projectId: null })
@@ -368,6 +378,15 @@ test('Codex and Cursor workers get the browser tool when their setting allows it
   const bad = await tool.call({ code: '' })
   assert.equal(bad.ok, false)
   assert.match(bad.text, /^Invalid browser input\./)
+  const handoff = router.profile(writer.sessionId).tools.find((t) => t.name === 'browser_handoff')
+  assert.ok(handoff, 'the hand-off tool comes with the browser tool')
+  await handoff.call({ reason: '  Sign in\n to GitHub ' })
+  assert.deepEqual(calls.at(-1), {
+    key: writer.id,
+    reason: 'Sign in to GitHub',
+    timeoutMs: 900_000
+  })
+  assert.equal((await handoff.call({ reason: '' })).ok, false, 'a hand-off needs a reason')
 
   fake.host.settings().agents.codex.permission = 'read-only'
   const reader = await dispatch({ goal: 'Read the docs' })
@@ -383,17 +402,16 @@ test('Codex and Cursor workers get the browser tool when their setting allows it
   const off = await dispatch({ goal: 'Check another page' })
   await waitFor(() => fake.sent.length === 3, 'the worker turn with the browser off')
   assert.equal(
-    router.profile(off.sessionId).tools.some((t) => t.name === 'browser'),
+    router.profile(off.sessionId).tools.some((t) => t.name.startsWith('browser')),
     false,
-    'the Codex browser switch turns the tool off'
+    'the Codex browser switch turns the tools off'
   )
   const claude = await dispatch({ goal: 'Check with Claude', provider: 'claude-code' })
   await waitFor(() => fake.sent.length === 4, 'the Claude worker turn')
   assert.equal(claude.provider, 'claude-code')
-  assert.equal(
+  assert.ok(
     router.profile(claude.sessionId).tools.some((t) => t.name === 'browser'),
-    false,
-    'Claude Code workers use Claude in Chrome instead'
+    'Claude Code workers get the browser tool too'
   )
   router.close()
   automations.close()

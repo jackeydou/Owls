@@ -610,3 +610,8 @@ p.worker-composer-removed {
   height: 24px;
   color: var(--color-muted-foreground);
 }
+
+/* View in browser: amber while the worker's tab waits on the user. */
+.worker-browser-button[data-needs] {
+  color: var(--owl-browser-handoff, #e8a200);
+}

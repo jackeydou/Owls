@@ -23,7 +23,45 @@ export const browserEn = {
   'browser.addressPlaceholder': 'Search or enter an address',
   'browser.action.open': 'Opening {{host}}',
   'browser.action.click': 'Clicking',
-  'browser.action.type': 'Typing'
+  'browser.action.type': 'Typing',
+  'browser.ask.open': '{{owner}} wants to open {{host}}',
+  'browser.ask.openHint': 'You asked to approve this site first.',
+  'browser.ask.submit': '{{owner}} wants to submit a form on {{host}}',
+  'browser.ask.submitHint': 'You are signed in here, so this may act as you.',
+  'browser.ask.allow': 'Allow once',
+  'browser.ask.always': 'Always allow',
+  'browser.ask.block': 'Block',
+  'browser.viewInBrowser': 'View in browser',
+  'browser.workerNeedsYou': 'Needs you',
+  'browserSettings.title': 'Browser',
+  'browserSettings.body':
+    'Workers open pages in Owlto’s own browser, in the Browser panel. Choose what they may do there.',
+  'browserSettings.sites': 'Site rules',
+  'browserSettings.sitesHelp':
+    'Allow: workers browse and submit forms without asking. Ask: you approve a worker’s first visit. Block: workers can’t open it. A rule covers subdomains too.',
+  'browserSettings.siteLabel': 'Site',
+  'browserSettings.sitePlaceholder': 'example.com',
+  'browserSettings.ruleLabel': 'Rule',
+  'browserSettings.ruleFor': 'Rule for {{host}}',
+  'browserSettings.addSite': 'Add',
+  'browserSettings.removeSite': 'Remove {{host}}',
+  'browserSettings.sitesEmpty': 'No rules yet. Workers may open any site.',
+  'browserSettings.rule.allow': 'Allow',
+  'browserSettings.rule.ask': 'Ask',
+  'browserSettings.rule.block': 'Block',
+  'browserSettings.askBeforeSubmit': 'Ask before submitting forms on signed-in sites',
+  'browserSettings.askBeforeSubmitHelp':
+    'A worker waits for your OK before it submits a form on a site you are signed in to, unless the site is set to Allow.',
+  'browserSettings.downloads': 'Downloads folder',
+  'browserSettings.downloadsHelp':
+    'Each worker’s downloads go to a folder of its own in here, and the worker gets the file paths.',
+  'browserSettings.reveal': 'Show',
+  'browserSettings.choose': 'Choose…',
+  'browserSettings.signIns': 'Sign-ins',
+  'browserSettings.signInsHelp':
+    'Sites you sign in to in Owlto’s browser stay signed in for every worker. Clearing signs you out everywhere.',
+  'browserSettings.clearSignIns': 'Clear sign-ins',
+  'browserSettings.cleared': 'Cleared'
 }
 
 export const browserZh: Record<keyof typeof browserEn, string> = {
@@ -50,5 +88,43 @@ export const browserZh: Record<keyof typeof browserEn, string> = {
   'browser.addressPlaceholder': '搜索或输入网址',
   'browser.action.open': '正在打开 {{host}}',
   'browser.action.click': '正在点击',
-  'browser.action.type': '正在输入'
+  'browser.action.type': '正在输入',
+  'browser.ask.open': '{{owner}} 想打开 {{host}}',
+  'browser.ask.openHint': '你设置了打开这个网站前先问你。',
+  'browser.ask.submit': '{{owner}} 想在 {{host}} 上提交表单',
+  'browser.ask.submitHint': '你在这个网站已登录，提交可能会以你的身份操作。',
+  'browser.ask.allow': '允许一次',
+  'browser.ask.always': '始终允许',
+  'browser.ask.block': '阻止',
+  'browser.viewInBrowser': '在浏览器中查看',
+  'browser.workerNeedsYou': '需要你',
+  'browserSettings.title': '浏览器',
+  'browserSettings.body':
+    'Worker 在 Owlto 自带的浏览器（浏览器面板）里打开网页。在这里决定它们能做什么。',
+  'browserSettings.sites': '网站规则',
+  'browserSettings.sitesHelp':
+    '允许：Worker 可以直接浏览和提交表单。询问：Worker 第一次打开时先问你。禁止：Worker 打不开。规则也覆盖子域名。',
+  'browserSettings.siteLabel': '网站',
+  'browserSettings.sitePlaceholder': 'example.com',
+  'browserSettings.ruleLabel': '规则',
+  'browserSettings.ruleFor': '{{host}} 的规则',
+  'browserSettings.addSite': '添加',
+  'browserSettings.removeSite': '移除 {{host}}',
+  'browserSettings.sitesEmpty': '还没有规则，Worker 可以打开任何网站。',
+  'browserSettings.rule.allow': '允许',
+  'browserSettings.rule.ask': '询问',
+  'browserSettings.rule.block': '禁止',
+  'browserSettings.askBeforeSubmit': '在已登录的网站提交表单前先问我',
+  'browserSettings.askBeforeSubmitHelp':
+    'Worker 在你已登录的网站提交表单前会等你确认，设为「允许」的网站除外。',
+  'browserSettings.downloads': '下载目录',
+  'browserSettings.downloadsHelp':
+    '每个 Worker 的下载会放在这里各自的子文件夹，并把文件路径告诉 Worker。',
+  'browserSettings.reveal': '打开',
+  'browserSettings.choose': '选择…',
+  'browserSettings.signIns': '登录状态',
+  'browserSettings.signInsHelp':
+    '在 Owlto 浏览器里登录的网站，所有 Worker 共用。清除后会在所有网站退出登录。',
+  'browserSettings.clearSignIns': '清除登录',
+  'browserSettings.cleared': '已清除'
 }

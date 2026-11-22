@@ -179,6 +179,11 @@ const api: OwltoAPI = {
     takeOver: (tabId) => ipcRenderer.invoke('owlto:browser-take-over', tabId),
     handBack: (tabId) => ipcRenderer.invoke('owlto:browser-hand-back', tabId),
     setBounds: (bounds) => ipcRenderer.invoke('owlto:browser-bounds', bounds),
+    answer: (input) => ipcRenderer.invoke('owlto:browser-answer', input),
+    clearSignIns: () => ipcRenderer.invoke('owlto:browser-clear-sign-ins'),
+    downloadsFolder: () => ipcRenderer.invoke('owlto:browser-downloads-folder'),
+    pickDownloadsFolder: () => ipcRenderer.invoke('owlto:browser-pick-downloads'),
+    revealDownloadsFolder: () => ipcRenderer.invoke('owlto:browser-reveal-downloads'),
     onChanged: (listener) => {
       const handler = (_: Electron.IpcRendererEvent, snapshot: BrowserSnapshot) =>
         listener(snapshot)

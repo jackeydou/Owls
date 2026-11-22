@@ -1,7 +1,9 @@
 # RFC: In-App Browser For Workers
 
-Status: phase 1 built (panel, tabs, CDP gate, `browser` tool on the gate,
-take over and hand back). Phases 2 and 3 are proposals.
+Status: phases 1 to 3 built (panel, tabs, CDP gate, `browser` and
+`browser_handoff` for all agents, notifications, site rules, Settings →
+Browser, Doodle skin). Not yet checked in a real Electron run; the overlay
+snapshot is not built (the page hides while an overlay covers it).
 
 ## Problem
 
@@ -92,8 +94,9 @@ the Router's worker row says "needs you" instead of a generic wait.
   geolocation, notifications, MIDI, HID, serial) are denied by default.
   `file://`, `chrome://`, `devtools://`, and Owlto's own origins are blocked.
   Pop-ups open as new tabs owned by the same worker.
-- **Downloads** land in `<dataRoot>/browser/downloads/` (phase 1; per worker
-  folders and returning the path to the worker come with phase 2). Uploads keep today's rule: restricted
+- **Downloads** land in a folder per worker under the downloads folder
+  (Settings → Browser, default `<dataRoot>/browser/downloads/`), and the
+  worker's next call lists their paths. Uploads keep today's rule: restricted
   workers cannot pick local files.
 
 ### The CDP gate
@@ -163,10 +166,11 @@ tool takes its place by default.
   site the user signed in to in Owlto's browser. Mitigations: the profile is
   Owlto's, not the user's personal Chrome; every action is visible in the
   panel; read-only workers keep restricted mode and cannot read local files.
-- Phase 3 adds per-site rules in Settings → Browser: a site list with
-  "Allow", "Ask first", or "Block", and "Ask before a worker submits a form on
-  a site you are signed in to" for sensitive hosts. Asks reuse the approval
-  card.
+- Per-site rules in Settings → Browser: a site list with "Allow", "Ask", or
+  "Block", and "Ask before a worker submits a form on a site you are signed
+  in to". Asks show as a strip on the tab (Allow once, Always allow, Block)
+  rather than the approval card, since they belong to the page; they notify
+  like a hand-off. See `docs/BROWSER_TOOL.md`.
 - The gate binds 127.0.0.1, checks the token, and dies with the host.
 - Settings → Browser gets "Clear sign-ins" (clears the partition storage).
 
@@ -197,7 +201,9 @@ tool takes its place by default.
 ## Code
 
 - `shared/browser-panel.ts`: the tab model and `window.owlto.browser`.
-- `main/browser/manager.ts`: tabs, session, layout, control state.
+- `main/browser/manager.ts`: tabs, layout, control state, asks, hand-offs.
+- `main/browser/profile.ts`: the session, per-worker downloads, sign-ins.
+- `main/browser/site-policy.ts`: site rules (`tests/admin/browser-sites.test.mjs`).
 - `main/browser/cdp-gate.ts`: the gate (`tests/admin/browser-gate.test.mjs`).
 - `main/browser/host.ts`, `runner.ts`: scripts over `connectOverCDP`.
-- `renderer/src/browser/`: the panel.
+- `renderer/src/browser/`: the panel; `renderer/src/app/SettingsBrowser.tsx`.

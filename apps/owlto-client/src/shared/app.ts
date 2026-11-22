@@ -15,7 +15,7 @@ import {
   type StageAttachment
 } from './attachments.js'
 import type { Automation, AutomationEnable, AutomationSave } from './automations.js'
-import type { BrowserAPI } from './browser-panel.js'
+import { type BrowserAPI, browserSettingsSchema, defaultBrowserSettings } from './browser-panel.js'
 import {
   type Board,
   type BoardSave,
@@ -378,7 +378,11 @@ export const settingsSchema = z.object({
    * Keeps this Mac from sleeping while remote access is on and it runs on power, so paired
    * devices can still reach it. Added later, so older rows have it off.
    */
-  remoteKeepAwake: z.boolean().catch(false).default(false)
+  remoteKeepAwake: z.boolean().catch(false).default(false),
+  /** Settings → Browser: site rules and form asks. Added later, so older rows get the defaults. */
+  browser: browserSettingsSchema.catch(defaultBrowserSettings).default(defaultBrowserSettings),
+  /** Where Owlto's browser saves downloads; null uses the data root. Saved only through its picker. */
+  browserDownloadsPath: z.string().nullable().catch(null).default(null)
 })
 /**
  * Rows from before `connectedAgents` remembered the opposite, the agents the user
@@ -410,7 +414,8 @@ export const settingsUpdateSchema = settingsSchema
     profile: true,
     remoteAccess: true,
     remoteRelay: true,
-    remoteKeepAwake: true
+    remoteKeepAwake: true,
+    browserDownloadsPath: true
   })
   .strict()
 export const modelSchema = z.object({
