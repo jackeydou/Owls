@@ -13,7 +13,8 @@ const {
   parseLaunchPid,
   runtimeName,
   SimulatorService,
-  simulatorTools
+  simulatorTools,
+  unwrapAvcc
 } = require('../../out/main/app/runtime.js')
 
 const PHONE = '11111111-1111-1111-1111-111111111111'
@@ -99,6 +100,25 @@ test('describeScreen lists elements with refs at their centers', () => {
   assert.deepEqual(screen.refs.get('@e1'), { x: 0.5, y: 0.9 })
 })
 
+test('unwrapAvcc strips serve-sim stream envelopes', () => {
+  const wrap = (tag, payload) => {
+    const out = new Uint8Array(5 + payload.length)
+    new DataView(out.buffer).setUint32(0, payload.length + 1)
+    out[4] = tag
+    out.set(payload, 5)
+    return out
+  }
+  const avcc = [1, 0x64, 0, 0x1f, 0xff]
+  const description = unwrapAvcc(wrap(1, avcc))
+  assert.equal(description.kind, 'description')
+  assert.deepEqual([...description.data], avcc)
+  assert.equal(unwrapAvcc(wrap(2, [0, 0, 0, 1, 0x65])).kind, 'keyframe')
+  assert.equal(unwrapAvcc(wrap(3, [0, 0, 0, 1, 0x41])).kind, 'delta')
+  assert.equal(unwrapAvcc(wrap(4, [0xff, 0xd8])), null)
+  assert.equal(unwrapAvcc(new Uint8Array([0, 0, 0, 9, 1, 2])), null)
+  assert.equal(unwrapAvcc(new Uint8Array([0, 0, 0])), null)
+})
+
 test('keystrokesFor types US-keyboard text and refuses the rest', () => {
   assert.deepEqual(keystrokesFor('aZ1!'), [
     { usage: 4, shift: false },
@@ -110,7 +130,8 @@ test('keystrokesFor types US-keyboard text and refuses the rest', () => {
 })
 
 /** The service over fake simctl and host calls, recording what reached each. */
-function harness({ permission = 'workspace-write', allowed = [] } = {}) {
+function harness({ permission = 'workspace-write', allowed = [], shadowed = false } = {}) {
+  const hub = { shadowed }
   const shots = mkdtempSync(join(tmpdir(), 'owlto-sim-'))
   const calls = []
   const needs = []
@@ -139,6 +160,11 @@ function harness({ permission = 'workspace-write', allowed = [] } = {}) {
       logs: async (udid, seconds, process) => {
         calls.push(['logs', udid, seconds, process])
         return ['one', 'two', 'three']
+      },
+      inputShadowed: async () => hub.shadowed,
+      repairInput: async (udid) => {
+        calls.push(['repairInput', udid])
+        hub.shadowed = false
       }
     },
     host: {
@@ -223,6 +249,22 @@ test('a worker asks before its first device, then drives it through refs', async
   // Another worker cannot take the device the first one holds.
   await assert.rejects(h.service.attachForWorker('w2', PAD), /in use by another worker/)
   await assert.rejects(h.service.screen('w2', true, false), /Call simulator_attach first/)
+})
+
+test('Device Hub taking over input is reported, and repair reconnects the host', async (t) => {
+  const h = harness({ allowed: [PHONE], shadowed: true })
+  t.after(h.cleanup)
+  const text = await h.service.attachForWorker('w1', 'iPhone 17 Pro')
+  assert.match(text, /Device Hub/)
+  assert.deepEqual(h.service.snapshot().inputBlocked, [PHONE])
+  h.calls.length = 0
+  await h.service.repairInput(PHONE)
+  assert.deepEqual(h.calls, [
+    ['repairInput', PHONE],
+    ['detach', PHONE],
+    ['attach', PHONE]
+  ])
+  assert.deepEqual(h.service.snapshot().inputBlocked, [])
 })
 
 test('install waits for approval below full access; full access goes straight through', async (t) => {

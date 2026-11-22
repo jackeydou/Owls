@@ -156,6 +156,28 @@ function AskStrip({ ask, device }: { ask: SimulatorAsk; device: SimulatorDevice 
   )
 }
 
+/** Device Hub disconnected the device's input; repairing it is the user's call. */
+function InputBlockedStrip({ udid }: { udid: string }) {
+  const { t } = useTranslation()
+  return (
+    <div className="browser-status" data-control="ask" role="alert">
+      <p>
+        <strong>{t('simulator.inputBlocked')}</strong>
+        <span>{t('simulator.inputBlockedHint')}</span>
+      </p>
+      <div className="browser-ask-actions">
+        <ActionButton
+          size="sm"
+          variant="outline"
+          onAction={async () => ((await simulatorActions.repairInput(udid)) ? 'done' : 'quiet')}
+        >
+          {t('simulator.repairInput')}
+        </ActionButton>
+      </div>
+    </div>
+  )
+}
+
 /** Who drives the device: the worker holding it, or nobody. */
 function Status({ lease }: { lease: SimulatorLease | null }) {
   const { t } = useTranslation()
@@ -274,6 +296,14 @@ function Screen({
         {state !== 'live' ? (
           <div className="simulator-overlay" role="status">
             {state === 'connecting' ? <p>{t('simulator.connecting')}</p> : null}
+            {state === 'slow' ? (
+              <>
+                <p>{t('simulator.slow')}</p>
+                <Button size="sm" variant="outline" onClick={reconnect}>
+                  {t('simulator.reconnect')}
+                </Button>
+              </>
+            ) : null}
             {state === 'unsupported' ? <p>{t('simulator.unsupportedStream')}</p> : null}
             {state === 'ended' ? (
               <>
@@ -329,6 +359,7 @@ export function SimulatorPane() {
   const attachedList = useSimulatorStore((s) => s.attached)
   const leases = useSimulatorStore((s) => s.leases)
   const ask = useSimulatorStore((s) => s.ask)
+  const inputBlocked = useSimulatorStore((s) => s.inputBlocked)
   const active = devices.find((x) => x.udid === activeUdid) ?? null
   const attached = Boolean(activeUdid && attachedList.includes(activeUdid))
   const lease = activeUdid ? (leases[activeUdid] ?? null) : null
@@ -342,7 +373,13 @@ export function SimulatorPane() {
       aria-label={t('router.panel.simulator')}
     >
       <Toolbar devices={devices} active={active} attached={attached} send={stream.send} />
-      {ask ? <AskStrip ask={ask} device={askDevice} /> : attached ? <Status lease={lease} /> : null}
+      {ask ? (
+        <AskStrip ask={ask} device={askDevice} />
+      ) : attached && activeUdid && inputBlocked.includes(activeUdid) ? (
+        <InputBlockedStrip udid={activeUdid} />
+      ) : attached ? (
+        <Status lease={lease} />
+      ) : null}
       {attached && activeUdid ? (
         <Screen
           udid={activeUdid}

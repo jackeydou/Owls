@@ -36,6 +36,8 @@ export type Simctl = {
   openUrl(udid: string, url: string): Promise<void>
   copy(udid: string, text: string): Promise<void>
   logs(udid: string, seconds: number, process: string | null): Promise<string[]>
+  inputShadowed(udid: string): Promise<boolean>
+  repairInput(udid: string): Promise<void>
 }
 
 /** The host utility process; `call` takes the requests in protocol.ts without their id. */
@@ -97,6 +99,8 @@ export class SimulatorService {
   private readonly leases = new Map<string, Lease>()
   private readonly asks: PendingAsk[] = []
   private readonly bootedByUs = new Set<string>()
+  /** Attached devices whose input Device Hub took over; see `repairInput`. */
+  private readonly inputBlocked = new Set<string>()
   private readonly idleTimers = new Map<string, NodeJS.Timeout>()
   /** Each worker's last look at its screen, for refs and the point size. */
   private readonly screens = new Map<string, AxScreen>()
@@ -130,7 +134,8 @@ export class SimulatorService {
       activeUdid: this.activeUdid,
       attached: [...this.attached].sort(),
       leases,
-      ask: this.asks[0]?.ask ?? null
+      ask: this.asks[0]?.ask ?? null,
+      inputBlocked: [...this.inputBlocked].sort()
     }
   }
 
@@ -152,6 +157,7 @@ export class SimulatorService {
   }
 
   async detach(udid: string): Promise<void> {
+    this.inputBlocked.delete(udid)
     if (this.attached.delete(udid)) await this.deps.host.detach(udid).catch(() => {})
     const lease = this.leases.get(udid)
     if (lease) this.screens.delete(lease.key)
@@ -193,6 +199,7 @@ export class SimulatorService {
   /** The host exited: its captures are gone, and the panel shows the devices as detached. */
   hostExited(): void {
     this.attached.clear()
+    this.inputBlocked.clear()
     this.activeUdid = null
     this.screens.clear()
     this.emit()
@@ -258,7 +265,10 @@ export class SimulatorService {
     }
     this.activeUdid = device.udid
     this.emit()
-    return `Attached ${device.name} (${device.runtime}). It is yours until you stop using it for 10 minutes. Build for a simulator destination, then call simulator_install.`
+    const blocked = this.inputBlocked.has(device.udid)
+      ? ' Xcode Device Hub has disconnected its touch and keyboard input, so taps, swipes, and typing will not reach it; the user can repair it from the Simulator panel.'
+      : ''
+    return `Attached ${device.name} (${device.runtime}). It is yours until you stop using it for 10 minutes. Build for a simulator destination, then call simulator_install.${blocked}`
   }
 
   async install(key: string, appPath: string, launch: boolean, args: string[]): Promise<string> {
@@ -455,6 +465,22 @@ export class SimulatorService {
     }
     await this.deps.host.attach(udid)
     this.attached.add(udid)
+    if (await this.deps.simctl.inputShadowed(udid)) this.inputBlocked.add(udid)
+  }
+
+  /**
+   * Gives input back from Device Hub, as the user asked in the panel. The guest restarts its
+   * input services, so the host reconnects to them afterward.
+   */
+  async repairInput(udid: string): Promise<void> {
+    await this.deps.simctl.repairInput(udid)
+    if (this.attached.has(udid)) {
+      await this.deps.host.detach(udid).catch(() => {})
+      await this.deps.host.attach(udid)
+    }
+    if (await this.deps.simctl.inputShadowed(udid)) this.inputBlocked.add(udid)
+    else this.inputBlocked.delete(udid)
+    this.emit()
   }
 
   /** Runs a worker's call on the device it holds, showing what it does in the panel. */

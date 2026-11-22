@@ -202,6 +202,7 @@ const api: OwltoAPI = {
     attach: (udid) => ipcRenderer.invoke('owlto:simulator-attach', udid),
     detach: (udid) => ipcRenderer.invoke('owlto:simulator-detach', udid),
     shutdown: (udid) => ipcRenderer.invoke('owlto:simulator-shutdown', udid),
+    repairInput: (udid) => ipcRenderer.invoke('owlto:simulator-repair-input', udid),
     answer: (input) => ipcRenderer.invoke('owlto:simulator-answer', input),
     openStream: (udid) => ipcRenderer.invoke('owlto:simulator-open-stream', udid),
     onChanged: (listener) => {

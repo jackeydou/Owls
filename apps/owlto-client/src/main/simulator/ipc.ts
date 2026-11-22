@@ -21,6 +21,9 @@ export function registerSimulatorIpc(
   handle('simulator-attach', (input) => simulator.attach(simulatorUdidSchema.parse(input)))
   handle('simulator-detach', (input) => simulator.detach(simulatorUdidSchema.parse(input)))
   handle('simulator-shutdown', (input) => simulator.shutdown(simulatorUdidSchema.parse(input)))
+  handle('simulator-repair-input', (input) =>
+    simulator.repairInput(simulatorUdidSchema.parse(input))
+  )
   handle('simulator-answer', (input) => {
     const { askId, answer } = simulatorAnswerSchema.parse(input)
     const ask = simulator.pendingAsk(askId)

@@ -6,7 +6,10 @@ import {
   type SimulatorStreamMessage
 } from '../../../shared/simulator'
 
-export type StreamState = 'connecting' | 'live' | 'ended' | 'unsupported'
+/** `slow`: still connecting after `SLOW_MS`, so the panel can say what might be wrong. */
+export type StreamState = 'connecting' | 'slow' | 'live' | 'ended' | 'unsupported'
+
+const SLOW_MS = 12_000
 
 /** `avc1.PPCCLL` from an avcC record: profile, constraints, and level bytes. */
 export function avcCodec(description: Uint8Array): string {
@@ -49,6 +52,10 @@ export function useSimulatorStream(
     let needKey = true
     let stamp = 0
     let disposed = false
+    let live = false
+    const slow = setTimeout(() => {
+      if (!live && !disposed) setState((current) => (current === 'connecting' ? 'slow' : current))
+    }, SLOW_MS)
     const draw = (frame: VideoFrame) => {
       const target = canvas.current
       const context = target?.getContext('2d')
@@ -68,6 +75,7 @@ export function useSimulatorStream(
       decoder = new VideoDecoder({
         output: (frame) => {
           draw(frame)
+          live = true
           setState('live')
         },
         error: () => {
@@ -111,6 +119,7 @@ export function useSimulatorStream(
     })
     return () => {
       disposed = true
+      clearTimeout(slow)
       window.removeEventListener('message', onWindow)
       port.current?.close()
       port.current = null

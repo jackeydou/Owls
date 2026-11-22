@@ -100,13 +100,36 @@ export async function listDevices(): Promise<SimulatorDevice[] | null> {
   }
 }
 
-/** Boots the device and waits until it has finished booting. */
+/** The device's state in `simctl list`, or null when it is not listed. */
+async function deviceState(udid: string): Promise<SimulatorDevice['state'] | null> {
+  const devices = await listDevices()
+  return devices?.find((device) => device.udid === udid)?.state ?? null
+}
+
+/**
+ * Boots the device and waits until it has finished booting. It asks for the boot first and
+ * then only monitors it: on Xcode 27, `bootstatus -b` (boot if needed) can stay blocked after
+ * the device is already booted.
+ */
 export async function bootDevice(udid: string): Promise<void> {
+  let bootError: unknown = null
   try {
-    await simctl(['bootstatus', udid, '-b'], LONG_MS)
+    await simctl(['boot', udid], LONG_MS)
   } catch (error) {
-    throw failure(error, 'The simulator could not boot.')
+    // It also fails when the device is already booted; bootstatus settles which.
+    bootError = error
+    // A device still shut down after a failed boot will not come up; do not wait for it.
+    if ((await deviceState(udid)) === 'shutdown')
+      throw failure(error, 'The simulator could not boot.')
   }
+  try {
+    await simctl(['bootstatus', udid], LONG_MS)
+    return
+  } catch {
+    // bootstatus can exit non-zero or time out with the device ready; check its real state.
+  }
+  if ((await deviceState(udid)) === 'booted') return
+  throw failure(bootError, 'The simulator could not boot.')
 }
 
 export async function shutdownDevice(udid: string): Promise<void> {
@@ -114,6 +137,35 @@ export async function shutdownDevice(udid: string): Promise<void> {
     await simctl(['shutdown', udid])
   } catch (error) {
     throw failure(error, 'The simulator could not shut down.')
+  }
+}
+
+/** The guest flag Device Hub sets when it takes the device's input over. */
+const DEVICE_HUB_INPUT = 'com.apple.coredevice.dtuhidd.active'
+
+/**
+ * Whether Xcode 27's Device Hub has disconnected the device's legacy touch and keyboard
+ * input, which the panel and the worker tools use. False on runtimes without the flag.
+ */
+export async function inputShadowed(udid: string): Promise<boolean> {
+  try {
+    const out = await simctl(['spawn', udid, 'notifyutil', '-g', DEVICE_HUB_INPUT], 5_000)
+    return out.trim() === `${DEVICE_HUB_INPUT} 1`
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Hands input back from Device Hub by restarting backboardd with the flag cleared, in that
+ * order. It restarts SpringBoard and closes running apps, so it only runs when asked.
+ */
+export async function repairInput(udid: string): Promise<void> {
+  try {
+    await simctl(['spawn', udid, 'notifyutil', '-s', DEVICE_HUB_INPUT, '0'])
+    await simctl(['spawn', udid, 'launchctl', 'kickstart', '-k', 'system/com.apple.backboardd'])
+  } catch (error) {
+    throw failure(error, 'The simulator input could not be repaired.')
   }
 }
 

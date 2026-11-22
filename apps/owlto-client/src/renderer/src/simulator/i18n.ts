@@ -20,6 +20,12 @@ export const simulatorEn = {
   'simulator.screenHint': 'Click and drag to tap and swipe. Type while it is focused.',
   'simulator.connecting': 'Connecting to the simulator…',
   'simulator.ended': 'The stream stopped.',
+  'simulator.slow':
+    'Still no picture. If Xcode’s Device Hub shows “Connecting display…”, close its window for this device or restart the device, then reconnect.',
+  'simulator.inputBlocked': 'Xcode’s Device Hub took over touch and keyboard input.',
+  'simulator.inputBlockedHint':
+    'Taps and typing here won’t reach the device. Repairing restarts the home screen and closes running apps.',
+  'simulator.repairInput': 'Repair input',
   'simulator.reconnect': 'Reconnect',
   'simulator.unsupportedStream': 'This version of Owlto cannot decode the simulator’s video.',
   'simulator.driving': 'is using this simulator',
@@ -79,6 +85,12 @@ export const simulatorZh: Record<keyof typeof simulatorEn, string> = {
   'simulator.screenHint': '点击和拖动来点按、滑动，获得焦点后可以直接打字。',
   'simulator.connecting': '正在连接模拟器…',
   'simulator.ended': '画面已停止。',
+  'simulator.slow':
+    '还没有画面。如果 Xcode 的 Device Hub 显示「Connecting display…」，关掉它里面这台设备的窗口或重启设备，再重新连接。',
+  'simulator.inputBlocked': 'Xcode 的 Device Hub 接管了触控和键盘输入。',
+  'simulator.inputBlockedHint':
+    '这里的点按和输入传不到设备。修复会重启主屏幕并关闭正在运行的 app。',
+  'simulator.repairInput': '修复输入',
   'simulator.reconnect': '重新连接',
   'simulator.unsupportedStream': '这个版本的 Owlto 无法解码模拟器画面。',
   'simulator.driving': '正在使用这台模拟器',

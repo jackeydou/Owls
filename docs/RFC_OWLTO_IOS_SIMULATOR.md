@@ -88,6 +88,18 @@ open when a worker attaches; it opens only when an ask needs the user.
 Settings → Browser & Simulator has the enable switch and a button that forgets
 the allowed devices.
 
+### Xcode 27 and Device Hub
+
+- Booting runs `simctl boot` and then `simctl bootstatus` without `-b`, falling back to
+  the device's listed state: on Xcode 27, `bootstatus -b` can stay blocked after the
+  device is booted.
+- Device Hub can disconnect the legacy touch and keyboard input the addon uses (guest flag
+  `com.apple.coredevice.dtuhidd.active`). After attaching, Owlto checks the flag; the
+  panel then says so and offers Repair input, which clears the flag, restarts backboardd
+  (SpringBoard restarts and apps close), and reconnects the host. It never runs on its own.
+- The addon wraps each H.264 chunk in serve-sim's stream envelope (4-byte length, tag);
+  the host strips it (`envelope.ts`) before the panel decodes.
+
 ## Open questions
 
 - Whether to keep depending on `serve-sim` or fork the addon once the API

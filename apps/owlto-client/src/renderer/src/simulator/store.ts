@@ -13,7 +13,8 @@ export const useSimulatorStore = create<SimulatorSnapshot & { loaded: boolean }>
   activeUdid: null,
   attached: [],
   leases: {},
-  ask: null
+  ask: null,
+  inputBlocked: []
 }))
 
 /**
@@ -52,6 +53,12 @@ export const simulatorActions = {
   attach: (udid: string) => call(() => api().attach(udid)),
   detach: (udid: string) => call(() => api().detach(udid)),
   shutdown: (udid: string) => call(() => api().shutdown(udid)),
+  /** Resolves true when the repair ran, so the button can show it finished. */
+  repairInput: async (udid: string) =>
+    (await call(async () => {
+      const reply = await api().repairInput(udid)
+      return reply.ok ? { ok: true as const, value: true } : reply
+    })) ?? false,
   answer: async (input: SimulatorAnswer) => {
     const saved = await call(() => api().answer(input))
     // Allowing a device saved it in Settings; keep the store in step so a later save keeps it.

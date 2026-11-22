@@ -63,6 +63,8 @@ export type SimulatorSnapshot = {
   attached: string[]
   leases: Record<string, SimulatorLease>
   ask: SimulatorAsk | null
+  /** Attached devices whose touch and keyboard input Xcode 27's Device Hub disconnected. */
+  inputBlocked: string[]
 }
 
 export const simulatorUdidSchema = z
@@ -121,6 +123,8 @@ export interface SimulatorAPI {
   /** Stops streaming the device; it keeps running. */
   detach(udid: string): Promise<Reply<void>>
   shutdown(udid: string): Promise<Reply<void>>
+  /** Reconnects input Device Hub disconnected; it restarts SpringBoard and closes apps. */
+  repairInput(udid: string): Promise<Reply<void>>
   /** Answers an ask; allowing a device saves it and returns the saved settings, else null. */
   answer(input: SimulatorAnswer): Promise<Reply<AppSettings | null>>
   /**

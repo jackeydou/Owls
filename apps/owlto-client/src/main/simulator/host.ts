@@ -8,6 +8,7 @@ import { writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import type { MessagePortMain } from 'electron'
 import type { SimulatorInputMessage, SimulatorStreamMessage } from '../../shared/simulator.js'
+import { unwrapAvcc } from './envelope.js'
 import type { SimulatorHostPaths, SimulatorHostReply, SimulatorHostRequest } from './protocol.js'
 
 type Unsubscribe = () => void | Promise<void>
@@ -37,8 +38,6 @@ interface NativeAddon {
 
 const CODEC_AVCC = 1
 const CODEC_SIZE = 2
-const FLAG_DESCRIPTION = 1
-const FLAG_KEYFRAME = 2
 
 type Device = {
   capture: NativeCapture
@@ -47,8 +46,6 @@ type Device = {
   height: number
   stopSize: Unsubscribe
   streams: Map<MessagePortMain, Unsubscribe | null>
-  /** The last decoder configuration, so a panel that joins late can start decoding. */
-  description: SimulatorStreamMessage | null
 }
 
 const paths = JSON.parse(process.argv.at(-1) ?? '{}') as SimulatorHostPaths
@@ -83,8 +80,7 @@ async function attach(udid: string): Promise<void> {
     width: 0,
     height: 0,
     stopSize: () => {},
-    streams: new Map(),
-    description: null
+    streams: new Map()
   }
   devices.set(udid, entry)
   entry.stopSize = await capture.subscribe(CODEC_SIZE, async (_data, width, height) => {
@@ -140,18 +136,18 @@ async function stream(udid: string, port: MessagePortMain): Promise<void> {
   })
   port.start()
   if (entry.width) post(port, { type: 'size', width: entry.width, height: entry.height })
-  if (entry.description) post(port, entry.description)
-  const stop = await entry.capture.subscribe(CODEC_AVCC, async (data, width, height, flags) => {
-    const message: SimulatorStreamMessage = {
+  // Every subscription gets its own encoder, which starts with a description and a keyframe.
+  const stop = await entry.capture.subscribe(CODEC_AVCC, async (data, width, height) => {
+    const chunk = unwrapAvcc(data)
+    if (!chunk) return
+    post(port, {
       type: 'frame',
-      data,
+      data: chunk.data,
       width,
       height,
-      description: (flags & FLAG_DESCRIPTION) !== 0,
-      keyframe: (flags & FLAG_KEYFRAME) !== 0
-    }
-    if (message.description) entry.description = message
-    post(port, message)
+      description: chunk.kind === 'description',
+      keyframe: chunk.kind === 'keyframe'
+    })
   })
   if (entry.streams.has(port)) entry.streams.set(port, stop)
   else await stop()

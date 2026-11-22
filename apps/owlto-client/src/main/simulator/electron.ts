@@ -6,11 +6,13 @@ import { SimulatorService, type SimulatorServiceDeps } from './service.js'
 import {
   bootDevice,
   copyToDevice,
+  inputShadowed,
   installApp,
   launchApp,
   listDevices,
   openUrl,
   recentLogs,
+  repairInput,
   shutdownDevice
 } from './simctl.js'
 
@@ -56,7 +58,9 @@ export function createSimulator(deps: SimulatorDeps): {
       launch: launchApp,
       openUrl,
       copy: copyToDevice,
-      logs: recentLogs
+      logs: recentLogs,
+      inputShadowed,
+      repairInput
     },
     host: hostCalls(host),
     settings: deps.settings,
