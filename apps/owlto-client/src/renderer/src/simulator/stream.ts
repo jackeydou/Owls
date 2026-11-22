@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import type { SimulatorInputMessage, SimulatorStreamMessage } from '../../../shared/simulator'
 import {
   SIMULATOR_STREAM_MESSAGE,
-  type SimulatorInputMessage,
-  type SimulatorStreamEnvelope,
-  type SimulatorStreamMessage
-} from '../../../shared/simulator'
+  type SimulatorStreamEnvelope
+} from '../../../shared/simulator-stream'
 
 /** `slow`: still connecting after `SLOW_MS`, so the panel can say what might be wrong. */
 export type StreamState = 'connecting' | 'slow' | 'live' | 'ended' | 'unsupported'

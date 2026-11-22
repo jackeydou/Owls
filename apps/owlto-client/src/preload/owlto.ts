@@ -3,11 +3,11 @@ import type { AppEvent, OpenWorkerTarget, OwltoAPI } from '../shared/app.js'
 import type { BrowserSnapshot } from '../shared/browser-panel.js'
 import type { MenuCommand } from '../shared/menu.js'
 import type { RemoteEventEnvelope, RemoteOverview } from '../shared/remote.js'
+import type { SimulatorSnapshot } from '../shared/simulator.js'
 import {
   SIMULATOR_STREAM_MESSAGE,
-  type SimulatorSnapshot,
   type SimulatorStreamEnvelope
-} from '../shared/simulator.js'
+} from '../shared/simulator-stream.js'
 import type { UpdateSnapshot } from '../shared/updates.js'
 
 const api: OwltoAPI = {

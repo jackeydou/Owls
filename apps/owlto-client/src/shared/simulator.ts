@@ -109,10 +109,6 @@ export type SimulatorInputMessage =
 export const simulatorButtonSchema = z.enum(['home', 'lock', 'app_switcher', 'siri'])
 export type SimulatorButton = z.infer<typeof simulatorButtonSchema>
 
-/** The `window` message the preload posts a stream port with. */
-export const SIMULATOR_STREAM_MESSAGE = 'owlto:simulator-stream'
-export type SimulatorStreamEnvelope = { type: typeof SIMULATOR_STREAM_MESSAGE; udid: string }
-
 /** `window.owlto.simulator`. */
 export interface SimulatorAPI {
   snapshot(): Promise<Reply<SimulatorSnapshot>>
@@ -130,7 +126,7 @@ export interface SimulatorAPI {
   /**
    * Opens the device's live stream. A MessagePort cannot cross an invoke or the context
    * bridge, so the preload posts it to the page as a `window` message
-   * (`SIMULATOR_STREAM_MESSAGE`, with the udid) carrying the port.
+   * (`SIMULATOR_STREAM_MESSAGE` in `simulator-stream.ts`, with the udid) carrying the port.
    */
   openStream(udid: string): Promise<Reply<void>>
   onChanged(listener: (snapshot: SimulatorSnapshot) => void): () => void

@@ -1,0 +1,1 @@
+- Startup: the window no longer stays blank on launch; the preload could not load in its sandbox since the iOS Simulator panel landed.
