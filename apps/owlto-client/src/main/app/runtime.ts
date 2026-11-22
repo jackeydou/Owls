@@ -27,6 +27,7 @@ export {
   remotePairSchema
 } from '../../shared/remote.js'
 export { ROUTER_INSTRUCTIONS } from '../../shared/router-instructions.js'
+export { keystrokesFor } from '../../shared/simulator-keys.js'
 export { buildWorkerMap, signalRoute, workerSignals } from '../../shared/worker-map.js'
 export {
   artifactFilePath,
@@ -133,6 +134,10 @@ export { WorkerGitHub } from '../router/worker-github.js'
 export { LocalWorkers } from '../router/worker-target.js'
 export { WorkerPool } from '../router/workers.js'
 export { checkoutOnly, GitWorkspaces } from '../router/worktrees.js'
+export { describeScreen } from '../simulator/ax.js'
+export { SimulatorService } from '../simulator/service.js'
+export { compareDevices, parseDevices, parseLaunchPid, runtimeName } from '../simulator/simctl.js'
+export { simulatorTools } from '../simulator/tool.js'
 export { applyCommand } from '../sync/commands.js'
 export { SyncLog } from '../sync/sync-log.js'
 export { UsageLedger } from '../usage/ledger.js'

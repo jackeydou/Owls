@@ -63,6 +63,13 @@ module.exports = {
     // better-sqlite3 loads its N-API prebuilds; the bundled SQLite and C++ sources are build-only.
     '!node_modules/better-sqlite3/{deps,src}/**',
     '!node_modules/better-sqlite3/binding.gyp',
+    // serve-sim: the simulator host loads only its native addon (iPhone Duo folding is not used).
+    // main finds the addon through `serve-sim/middleware`, so that 59-byte entry stays; the CLI,
+    // its preview UI, sources, and the camera and AX helpers are left out.
+    '!node_modules/serve-sim/{src,Sources,Tests,scripts}/**',
+    '!node_modules/serve-sim/Package.swift',
+    '!node_modules/serve-sim/dist/{serve-sim.js,middleware.js}',
+    '!node_modules/serve-sim/dist/{simcam,simax,simduo}/**',
     '!electron.vite.config.{js,ts,mjs,cjs}',
     '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}',
     '!{.env,.env.*,.npmrc,pnpm-lock.yaml}',

@@ -55,6 +55,7 @@ import {
   notesHome,
   projectsHome,
   routerThreadHome,
+  simulatorHome,
   workerWorktreesRoot,
   workspaceHome
 } from '../owlto-paths.js'
@@ -78,6 +79,10 @@ import { RouterStore } from '../router/store.js'
 import { WorkerGitHub } from '../router/worker-github.js'
 import { activeWorker } from '../router/workers.js'
 import { GitWorkspaces } from '../router/worktrees.js'
+import { createSimulator } from '../simulator/electron.js'
+import type { SimulatorHostClient } from '../simulator/host-client.js'
+import { registerSimulatorIpc } from '../simulator/ipc.js'
+import type { SimulatorService } from '../simulator/service.js'
 import { AppUpdater } from '../updates/updater.js'
 import { UsageLedger } from '../usage/ledger.js'
 import { applyAppLogo } from './app-logo.js'
@@ -120,6 +125,9 @@ let browser: BrowserHost | null = null
 /** Owlto's browser tabs, shown in the right sidebar's Browser panel. */
 let browserTabs: BrowserManager | null = null
 let browserGate: CdpGate | null = null
+/** The iOS Simulator panel's devices, and the utility process that captures them. */
+let simulator: SimulatorService | null = null
+let simulatorHost: SimulatorHostClient | null = null
 let remote: RemoteService | null = null
 /** Anonymous usage analytics; null in every build but a release build with a PostHog key. */
 let analytics: Analytics | null = null
@@ -376,6 +384,31 @@ void app
       takeDownloads: (key) => tabs.takeDownloads(key)
     })
     router.attachBrowser(browser)
+    const sim = createSimulator({
+      entry: join(__dirname, 'simulator/host.js'),
+      settings: () => settings().simulator,
+      worker: (key) => {
+        const worker = router?.worker(key)
+        if (!worker || worker.status === 'removed') return null
+        return {
+          provider: worker.provider,
+          title: worker.title ?? worker.goal.split('\n')[0] ?? '',
+          permission: worker.permission
+        }
+      },
+      needs: (key, need) => {
+        const worker = router?.worker(key)
+        if (worker) attention?.simulatorNeed(worker.sessionId, worker.provider, need)
+      },
+      shotsDir: () => join(simulatorHome(), 'screenshots'),
+      changed: (snapshot) => {
+        if (window && !window.isDestroyed())
+          window.webContents.send('owlto:simulator-changed', snapshot)
+      }
+    })
+    simulator = sim.service
+    simulatorHost = sim.host
+    router.attachSimulator(sim.service)
     attention = new WorkerAttention(
       electronAttention({
         settings,
@@ -582,6 +615,14 @@ void app
       },
       downloadsRoot: browserDownloads
     })
+    registerSimulatorIpc(handle, sim.service, sim.host, {
+      contents: () => (window && !window.isDestroyed() ? window.webContents : null),
+      settings: () => service?.snapshot().settings ?? settings(),
+      save: (next) => {
+        if (!service) throw new Error('Owlto is not ready.')
+        return service.saveSettings(next)
+      }
+    })
     applyAppMenu(store.settings(), menu)
     createWindow()
     if (REMOTE_ROUTER_ENABLED) {
@@ -643,6 +684,10 @@ app.on('will-quit', (event) => {
   browserTabs = null
   browserGate?.close()
   browserGate = null
+  simulator?.close()
+  simulator = null
+  simulatorHost?.close()
+  simulatorHost = null
   remote?.close()
   remote = null
   service?.close()

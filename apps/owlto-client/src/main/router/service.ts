@@ -42,6 +42,7 @@ import { browserHandoffTool, browserTool, type WorkerBrowser } from '../browser/
 import type { AgentNoteInput, CapturedContent } from '../cards/service.js'
 import { routerNoteTools, type SaveNoteInput, workerNoteTools } from '../cards/tools.js'
 import type { RouterMemory } from '../memory/service.js'
+import { simulatorTools, type WorkerSimulator } from '../simulator/tool.js'
 import type { RouterCredentials } from './credentials.js'
 import type { RouterBatchOutcome, RouterEngine, RouterSink } from './engine.js'
 import type { EngineFactory } from './engines/factory.js'
@@ -139,6 +140,7 @@ export class RouterService implements TurnProfiles {
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private closed = false
   private browser: WorkerBrowser | null = null
+  private simulator: WorkerSimulator | null = null
   /** The user's Notes, for the save_note tool; the tool is left out until attached. */
   private notes: AgentNotes | null = null
 
@@ -686,6 +688,14 @@ export class RouterService implements TurnProfiles {
     this.browser = browser
   }
 
+  /**
+   * Gives workers the `simulator_*` tools while Settings allows them. The tools drive the iOS
+   * Simulator panel's devices, so they only exist on a Mac.
+   */
+  attachSimulator(simulator: WorkerSimulator): void {
+    this.simulator = simulator
+  }
+
   /** Gives agents the save_note tool. Threads started before this pick it up on their next turn. */
   attachNotes(notes: AgentNotes): void {
     this.notes = notes
@@ -720,7 +730,10 @@ export class RouterService implements TurnProfiles {
     return { saved: { noteId: note.id, title: note.title, tags: note.tags } }
   }
 
-  /** The tools a worker gets besides `report`: notes, automations, and the browser where allowed. */
+  /**
+   * The tools a worker gets besides `report`: notes, automations, and the browser and the iOS
+   * Simulator where allowed.
+   */
   private workerTools(worker: RouterWorker): WorkerTool[] {
     const enabled = workerBrowserEnabled(this.host.settings().agents, worker.provider)
     // Only full access runs scripts as plain Node; anything less, read-only included, gets the
@@ -737,8 +750,12 @@ export class RouterService implements TurnProfiles {
             this.saveNote(input, { router, projectId: worker.projectId, workerId: worker.id })
           )
         : []
-    return [...notes, ...this.workerAutomationTools(worker), ...browser].sort((a, b) =>
-      a.name.localeCompare(b.name)
+    const simulator =
+      this.simulator && this.host.settings().simulator.enabled
+        ? simulatorTools(this.simulator, worker.id)
+        : []
+    return [...notes, ...this.workerAutomationTools(worker), ...browser, ...simulator].sort(
+      (a, b) => a.name.localeCompare(b.name)
     )
   }
 

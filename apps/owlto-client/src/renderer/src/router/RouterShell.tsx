@@ -15,6 +15,7 @@ import { FeedbackButton } from '../feedback/FeedbackButton'
 import { watchDreaming } from '../memory/dreaming'
 import { ProjectsView } from '../projects/ProjectsView'
 import { PullRequestsView } from '../pulls/PullRequestsView'
+import { watchSimulator } from '../simulator/store'
 import { ForwardDialog } from './ForwardDialog'
 import { MapView } from './map/MapView'
 import { usePaneWidth } from './pane-width'
@@ -143,6 +144,7 @@ export function RouterShell() {
   useEffect(() => watchCards(), [])
   useEffect(() => watchDreaming(), [])
   useEffect(() => watchBrowser(), [])
+  useEffect(() => watchSimulator(), [])
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()

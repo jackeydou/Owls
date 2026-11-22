@@ -88,6 +88,11 @@ export function browserHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'browser')
 }
 
+/** The iOS Simulator panel's files: the screenshots workers take of their device. */
+export function simulatorHome(dataRoot = getDataRoot()): string {
+  return join(dataRoot, 'simulator')
+}
+
 /** The empty working directory Dreaming runs in; it has no project to read. */
 export function memoryDreamingHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'memory-dreaming')

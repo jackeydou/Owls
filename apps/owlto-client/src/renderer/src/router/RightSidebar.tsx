@@ -6,7 +6,8 @@ import {
   FolderOpenTiltIcon,
   GlobeIcon,
   PlusIcon,
-  SidebarRightIcon
+  SidebarRightIcon,
+  SmartphoneIcon
 } from '@renderer/components/ui/icons'
 import { ResizeHandle } from '@renderer/components/ui/resize-handle'
 import { type ReactNode, useMemo } from 'react'
@@ -18,6 +19,7 @@ import { BrowserPane } from '../browser/BrowserPane'
 import { NEW_CARD } from '../cards/CardEditor'
 import { useCardsStore } from '../cards/store'
 import { FileViewerPane } from '../files/FileViewer'
+import { SimulatorPane } from '../simulator/SimulatorPane'
 import { ProjectsPane } from './ProjectsSidebar'
 import { usePaneWidth } from './pane-width'
 
@@ -127,7 +129,7 @@ export function RightSidebar() {
   const panel = useAppStore((s) => s.settings.layout.rightPanel)
   // The file viewer keeps its own, wider width, so code has room without widening the lists.
   const { width, handle } = usePaneWidth(
-    panel === 'files' || panel === 'browser' ? panel : 'projects',
+    panel === 'files' || panel === 'browser' || panel === 'simulator' ? panel : 'projects',
     'left'
   )
   return (
@@ -144,9 +146,12 @@ export function RightSidebar() {
           <PanelTab panel="cards" current={panel} icon={<CardsIcon size={18} />} />
           <PanelTab panel="files" current={panel} icon={<FileCodeIcon size={18} />} />
           <PanelTab panel="browser" current={panel} icon={<GlobeIcon size={18} />} />
+          <PanelTab panel="simulator" current={panel} icon={<SmartphoneIcon size={18} />} />
         </nav>
       </header>
-      {panel === 'browser' ? (
+      {panel === 'simulator' ? (
+        <SimulatorPane />
+      ) : panel === 'browser' ? (
         <BrowserPane />
       ) : panel === 'files' ? (
         <FileViewerPane />

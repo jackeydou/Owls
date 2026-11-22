@@ -611,6 +611,30 @@ export const SparklesIcon = createIcon(
     <path d="M12 1.75 C12.225 3.212 12.787 3.775 14.25 4 C12.787 4.225 12.225 4.787 12 6.25 C11.775 4.787 11.213 4.225 9.75 4 C11.213 3.775 11.775 3.212 12 1.75 Z" />
   </g>
 )
+export const SmartphoneIcon = createIcon(
+  'Smartphone',
+  'outline',
+  <g>
+    <rect x="4.25" y="1.75" width="7.5" height="12.5" rx="1.75" />
+    <path d="M7 11.75 H9" />
+  </g>
+)
+export const PowerIcon = createIcon(
+  'Power',
+  'outline',
+  <g>
+    <path d="M8 2 V7.5" />
+    <path d="M4.75 4.5 A5 5 0 1 0 11.25 4.5" />
+  </g>
+)
+export const HomeIcon = createIcon(
+  'Home',
+  'outline',
+  <g>
+    <path d="M2.5 7.25 L8 2.75 L13.5 7.25" />
+    <path d="M4 6.25 V13.25 H12 V6.25" />
+  </g>
+)
 export const StopIcon = createIcon(
   'Stop',
   'outline',
