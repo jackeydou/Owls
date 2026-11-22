@@ -11,6 +11,18 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2200-beta.2
+
+### Highlights
+
+- Watch a booted iOS simulator live in a new Simulator panel, and let workers install, launch, and drive their app on it.
+
+### Changes
+
+- iOS Simulator: a Simulator panel in the right sidebar shows a booted iOS simulator live, and workers get simulator tools to install, launch, look at, and drive their app, with your OK per device and for installs below full access. Works with Xcode 27, and offers Repair input when Xcode disconnects the simulator's input. (#216)
+
+### Fixes
+
 ## 2026.11.2200-beta.1
 
 ### Highlights
