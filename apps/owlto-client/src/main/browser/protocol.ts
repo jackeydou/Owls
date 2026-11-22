@@ -11,8 +11,8 @@ export type BrowserHostRequest = {
   /** `restricted` for workers without full access: no Node and no local files (see sandbox.ts). */
   mode: BrowserRunMode
   timeoutMs: number
-  /** The Chrome profile Owlto's browser keeps, so sign-ins survive restarts. */
-  profileDir: string
+  /** The CDP gate endpoint for this worker; it shows only the worker's own tabs. */
+  endpoint: string
   /** Where a script's returned screenshot bytes are saved. */
   shotsDir: string
 }

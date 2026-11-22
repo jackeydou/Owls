@@ -727,6 +727,21 @@ html.pane-resizing * {
   font-size: var(--owl-text-xs);
   white-space: nowrap;
 }
+.router-dispatch-row .router-dispatch-needs {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+/* The same amber dot the browser tab shows while it waits on the user. */
+.router-dispatch-row .router-dispatch-needs::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--owl-browser-handoff, #e8a200);
+}
 .router-dispatch-row.wait small {
   color: var(--owl-tag-wait-fg);
 }

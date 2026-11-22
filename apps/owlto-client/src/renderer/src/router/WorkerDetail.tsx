@@ -9,6 +9,7 @@ import {
   CircleXIcon,
   ForwardIcon,
   GitBranchIcon,
+  GlobeIcon,
   type IconComponent,
   LoaderIcon,
   StopIcon,
@@ -20,6 +21,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RouterWorker } from '../../../shared/router'
 import { useAppStore } from '../app/store'
+import { showBrowserTab, useWorkerTab } from '../browser/store'
 import { SaveCardAction } from '../cards/CardActions'
 import { canStop, type WorkerState, workerState, workerTitle } from './activity'
 import { DiffCounts, DiffView } from './DiffView'
@@ -81,6 +83,7 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
   const worktree = worker.workspace.kind === 'worktree' ? worker.workspace.branch : null
   const title = workerTitle(worker)
   const follow = useFollowScroll(!showChanges)
+  const browserTab = useWorkerTab(worker.id)
   return (
     <aside className="router-panel worker-panel" aria-label={title}>
       <header>
@@ -108,6 +111,17 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             </Tooltip>
           ) : null}
         </div>
+        {browserTab && !remote ? (
+          <IconButton
+            size="sm"
+            className="worker-browser-button"
+            data-needs={browserTab.needsYou || undefined}
+            label={t('browser.viewInBrowser')}
+            tooltip={t('browser.viewInBrowser')}
+            icon={<GlobeIcon size={15} />}
+            onClick={() => showBrowserTab(browserTab.tabId)}
+          />
+        ) : null}
         {remote ? null : <OpenInButton worker={worker} />}
         {canStop(worker) ? (
           <ActionIconButton

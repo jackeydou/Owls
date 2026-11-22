@@ -1,17 +1,19 @@
 # Owlto Browser Tool
 
-Codex and Cursor workers get one Owlto tool, `browser` (`owlto_browser` on
-Codex), that drives a real Chrome window by running a Playwright script. It is
-served like the other worker tools: Codex as a dynamic tool and Cursor through
-the local HTTP MCP server.
+Workers on every agent get two Owlto tools: `browser` (`owlto_browser` on
+Codex), which drives a tab of Owlto's own browser by running a Playwright
+script, and `browser_handoff`, which hands that tab to the user for one step.
+The tab shows in the right sidebar's Browser panel (see
+`docs/RFC_OWLTO_IN_APP_BROWSER.md`), where the user can watch it and take over. It is
+served like the other worker tools: Codex as a dynamic tool, Cursor through
+the local HTTP MCP server, and Claude Code through the SDK MCP server.
 
 Each agent has a Browser switch in Settings → Router & Workers
-(`settings.agents.codex.browser`, `settings.agents.cursor.browser`), on by
-default. The switch applies at every permission, read only included: a
+(`settings.agents.<agent>.browser`), on by default. The switch applies at every permission, read only included: a
 read-only worker runs scripts in the restricted mode below, which cannot read
 or write local files, so browsing does not widen what it can change on disk.
-Claude Code workers do not get it; they use Claude in Chrome
-(`settings.agents['claude-code'].chrome`).
+Claude Code also keeps Claude in Chrome (`settings.agents['claude-code'].chrome`),
+which drives the user's own Chrome; it is off by default.
 `workerBrowserEnabled` in `shared/agents.ts` is the one rule both the Router
 and Settings read.
 
@@ -30,8 +32,9 @@ Input: `code`, the body of an async function, and optional `timeoutMs`
 
 - `page`: the worker's own Playwright `Page`. The same worker keeps the same
   tab between calls; another worker gets another tab.
-- `context`: the `BrowserContext` of Owlto's persistent Chrome profile
-  (`<dataRoot>/browser/profile`), shared by all workers, so sign-ins persist.
+- `context`: a `BrowserContext` holding only this worker's tabs. All tabs share
+  one persistent session (`<dataRoot>/browser/session`), so sign-ins persist and
+  are shared by all workers.
 - `console`: its output is returned after the result.
 
 The reply is `Result: <JSON>` (or `Error: <message>`), then console lines, cut
@@ -39,16 +42,57 @@ at 20,000 characters. A script that returns bytes, such as
 `await page.screenshot()`, gets the path of a PNG saved under
 `<dataRoot>/browser/screenshots`; agents open it with their own image viewer.
 
+Files a page downloads are saved under the downloads folder (Settings →
+Browser, default `<dataRoot>/browser/downloads`) in a folder per worker, and
+the worker's next `browser` or `browser_handoff` reply lists their paths
+(`Downloaded:`), or names the ones still downloading.
+
+## Hand-off
+
+`browser_handoff` takes `reason` (one sentence, up to 300 characters) and
+optional `timeoutMs` (10 s to 60 min, default 15 min). It marks the worker's
+tab `handoff`: the panel opens on it with the amber "needs you" strip, the
+worker's row in the thread says "Needs you", and Owlto sends a system
+notification and counts it on the dock badge while the app is not focused.
+The call returns when the user hands the tab back (with the tab's URL), closes
+it, or the time runs out, which gives the tab back to the worker. Workers are
+told to use it for sign-ins, captchas, 2FA, and payments, and never to type
+the user's passwords.
+
+## Site rules
+
+Settings → Browser (`settings.browser`) holds a site list, each host set to
+Allow, Ask, or Block (a rule covers subdomains; the most specific wins), and
+"Ask before submitting forms on signed-in sites" (on by default).
+`main/browser/site-policy.ts` checks main-frame requests of tabs a worker is
+driving with `session.webRequest.onBeforeRequest`; the user's own browsing is
+never held up. A blocked site fails to load. An Ask site, and a `POST` on a
+site the session holds cookies for (unless the site is Allow), holds the
+request and shows a strip on the tab: Allow once, Always allow (saves an Allow
+rule), or Block. An Ask site asks once per worker; an unanswered ask blocks
+after 5 minutes. The same page also clears sign-ins (cookies, storage, and
+cache) and picks the downloads folder.
+
 ## Runtime
 
+Tabs are `WebContentsView`s that `main/browser/manager.ts` owns and lays over
+the Browser panel's page area; a tab the panel does not show is parked off the
+window so it keeps painting. Worker tabs attach `webContents.debugger`.
+
+`main/browser/cdp-gate.ts` serves a loopback WebSocket that speaks enough
+browser-level CDP for Playwright's `connectOverCDP`, relaying page sessions to
+the tabs' debuggers. Each worker gets its own endpoint token, which lists and
+opens only that worker's tabs; browser-wide commands are refused, and so is
+script input while the user holds the tab. Owlto never opens Electron's
+`--remote-debugging-port`, which would expose its own window. The gate starts
+on first use.
+
 `main/browser/runner.ts` starts `browser/host.js` as an Electron utility
-process on first use. The host launches the installed Google Chrome (then
-Microsoft Edge) through `playwright-core` with a visible window, so the user
-can watch, and sign in when a site asks. It runs one worker's scripts in order.
-Pages idle for 30 minutes close, and the window closes 10 minutes after the
-last page. A script that outlives its timeout fails the call; if the host stops
-answering 15 s past that, the main process kills it, and the next call starts a
-new host and window.
+process on first use. The host connects to the worker's gate endpoint and runs
+one worker's scripts in order. While the user holds a worker's tab, a call
+waits for the hand-back up to its timeout. Pages idle for 30 minutes close. A
+script that outlives its timeout fails the call; if the host stops answering
+15 s past that, the main process kills it, and the next call starts a new host.
 
 Because the host runs in Owlto, not in the agent's process, a Codex
 `workspace-write` sandbox (no network by default) does not apply to it.

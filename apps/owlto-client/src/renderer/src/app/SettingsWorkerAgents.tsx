@@ -124,6 +124,25 @@ function AgentConfigRows({ provider }: { provider: AgentProvider }) {
               onChange={(permission) => saveConfig({ permission })}
             />
           </SettingRow>
+          <SettingRow
+            label={t('browserTool')}
+            htmlFor={`${id}-browser`}
+            description={t('browserToolHelp')}
+          >
+            <Switch
+              id={`${id}-browser`}
+              checked={workerBrowserEnabled(settings.agents, provider)}
+              onCheckedChange={(browser) =>
+                void save({
+                  ...settings,
+                  agents: {
+                    ...settings.agents,
+                    [provider]: { ...settings.agents[provider], browser }
+                  }
+                })
+              }
+            />
+          </SettingRow>
           {provider === 'claude-code' ? (
             <SettingRow
               label={t('claudeChrome')}
@@ -144,27 +163,7 @@ function AgentConfigRows({ provider }: { provider: AgentProvider }) {
                 }
               />
             </SettingRow>
-          ) : (
-            <SettingRow
-              label={t('browserTool')}
-              htmlFor={`${id}-browser`}
-              description={t('browserToolHelp')}
-            >
-              <Switch
-                id={`${id}-browser`}
-                checked={workerBrowserEnabled(settings.agents, provider)}
-                onCheckedChange={(browser) =>
-                  void save({
-                    ...settings,
-                    agents: {
-                      ...settings.agents,
-                      [provider]: { ...settings.agents[provider], browser }
-                    }
-                  })
-                }
-              />
-            </SettingRow>
-          )}
+          ) : null}
         </div>
       ) : null}
     </div>

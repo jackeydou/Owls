@@ -24,6 +24,7 @@ import {
   defaultLayoutSettings,
   paneWidthBounds
 } from '../../../shared/app'
+import { defaultBrowserSettings } from '../../../shared/browser-panel'
 import type { GitHubAccount } from '../../../shared/github'
 import { defaultMemorySettings } from '../../../shared/memory'
 import { defaultProfile, type ProfileUpdate } from '../../../shared/profile'
@@ -78,6 +79,8 @@ export type SettingsTab =
   | 'usage'
   /** Threads the user archived out of the sidebar. */
   | 'archives'
+  /** Owlto's browser: site rules, sign-ins, and downloads. */
+  | 'browser'
   /** Switches for experimental features. */
   | 'experiments'
   | 'github'
@@ -206,7 +209,8 @@ export const paneWidthKey = {
   projects: 'projectsWidth',
   panel: 'panelWidth',
   card: 'cardWidth',
-  files: 'filesWidth'
+  files: 'filesWidth',
+  browser: 'browserWidth'
 } as const satisfies Record<ResizablePane, keyof typeof defaultLayoutSettings>
 export function clampPaneWidth(pane: ResizablePane, width: number): number {
   const { min, max } = paneWidthBounds[pane]
@@ -304,7 +308,9 @@ export const useAppStore = create<State>((set, get) => {
       onboarding: 'pending',
       remoteAccess: false,
       remoteRelay: false,
-      remoteKeepAwake: false
+      remoteKeepAwake: false,
+      browser: defaultBrowserSettings,
+      browserDownloadsPath: null
     },
     connection: {
       status: 'disconnected',
@@ -664,7 +670,8 @@ export const useAppStore = create<State>((set, get) => {
           requestNotifications: settings.requestNotifications,
           usageData: settings.usageData,
           openInApp: settings.openInApp,
-          onboarding: settings.onboarding
+          onboarding: settings.onboarding,
+          browser: settings.browser
         })
       )
       if (saved) set({ settings: saved })

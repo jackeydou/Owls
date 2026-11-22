@@ -19,6 +19,8 @@ export type AttentionNotice = {
   body: string
   target: AttentionTarget
 }
+/** What a worker's browser tab waits on the user for: a hand-off, or a site rule's ask. */
+export type BrowserNeedNotice = { kind: 'handoff' | 'open' | 'submit'; text: string }
 /** A shown notice, closed once its requests are answered so Notification Center does not keep it. */
 export type NoticeHandle = { close(): void }
 export type AttentionDeps = {
@@ -45,14 +47,24 @@ const COPY = {
     question: (agent: string) => `${agent} has a question`,
     more: (count: number) => ` (+${count} more)`,
     files: 'Wants to change files',
-    permissions: 'Wants more permissions'
+    permissions: 'Wants more permissions',
+    handoff: (agent: string) => `${agent} needs you in the browser`,
+    open: (agent: string) => `${agent} wants to open a site`,
+    openBody: (host: string) => `Allow ${host}?`,
+    submit: (agent: string) => `${agent} wants to submit a form`,
+    submitBody: (host: string) => `On ${host}, where you are signed in.`
   },
   'zh-CN': {
     approval: (agent: string) => `${agent} 需要你批准`,
     question: (agent: string) => `${agent} 有个问题要问你`,
     more: (count: number) => `（还有 ${count} 个）`,
     files: '想要修改文件',
-    permissions: '想要更多权限'
+    permissions: '想要更多权限',
+    handoff: (agent: string) => `${agent} 需要你在浏览器里操作`,
+    open: (agent: string) => `${agent} 想打开一个网站`,
+    openBody: (host: string) => `允许打开 ${host} 吗？`,
+    submit: (agent: string) => `${agent} 想提交表单`,
+    submitBody: (host: string) => `在你已登录的 ${host} 上。`
   }
 } as const
 
@@ -84,6 +96,8 @@ export class WorkerAttention {
   /** Pending request ids per session, as last seen. */
   private readonly pending = new Map<string, Set<string>>()
   private readonly shown = new Map<string, NoticeHandle>()
+  /** Sessions whose worker's browser tab waits on the user, and for what. */
+  private readonly browserNeeds = new Map<string, string>()
   private badgeCount = -1
 
   /** `sessions` are the ones already loaded, whose waiting requests were there before this run. */
@@ -98,7 +112,9 @@ export class WorkerAttention {
   observe(event: AppEvent): void {
     if (event.type === 'removed') {
       this.pending.delete(event.sessionId)
+      this.browserNeeds.delete(event.sessionId)
       this.closeNotice(event.sessionId)
+      this.closeNotice(browserNoticeId(event.sessionId))
       this.refreshBadge()
       return
     }
@@ -118,6 +134,50 @@ export class WorkerAttention {
     if (!this.deps.settings().requestNotifications)
       for (const id of [...this.shown.keys()]) this.closeNotice(id)
     this.refreshBadge()
+  }
+
+  /**
+   * A worker's browser tab started or stopped waiting on the user. It counts toward the badge
+   * like a request, and is announced once while Owlto is not focused.
+   */
+  browserNeed(sessionId: string, provider: AgentProvider, need: BrowserNeedNotice | null): void {
+    const id = browserNoticeId(sessionId)
+    const before = this.browserNeeds.get(sessionId)
+    const key = need ? `${need.kind}:${need.text}` : null
+    if (!key) {
+      this.browserNeeds.delete(sessionId)
+      this.closeNotice(id)
+      this.refreshBadge()
+      return
+    }
+    this.browserNeeds.set(sessionId, key)
+    this.refreshBadge()
+    if (!need || before === key) return
+    const settings = this.deps.settings()
+    if (!settings.requestNotifications || this.deps.focused()) return
+    const copy = COPY[settings.language] ?? COPY.en
+    const agent = AGENTS[provider]
+    const worker = this.deps.worker(sessionId)
+    const notice: AttentionNotice = {
+      title:
+        need.kind === 'handoff'
+          ? copy.handoff(agent)
+          : need.kind === 'open'
+            ? copy.open(agent)
+            : copy.submit(agent),
+      subtitle: clip(worker?.title ?? ''),
+      body:
+        need.kind === 'handoff'
+          ? clip(need.text)
+          : need.kind === 'open'
+            ? copy.openBody(need.text)
+            : copy.submitBody(need.text),
+      target: { sessionId, workerId: worker?.id ?? null, routerId: worker?.routerId ?? null }
+    }
+    this.deps.remote?.(notice)
+    this.closeNotice(id)
+    const handle = this.deps.show(notice)
+    if (handle) this.shown.set(id, handle)
   }
 
   close(): void {
@@ -160,12 +220,18 @@ export class WorkerAttention {
 
   private refreshBadge(): void {
     let count = 0
-    if (this.deps.settings().requestNotifications)
+    if (this.deps.settings().requestNotifications) {
       for (const ids of this.pending.values()) count += ids.size
+      count += this.browserNeeds.size
+    }
     if (count === this.badgeCount) return
     this.badgeCount = count
     this.deps.badge(count)
   }
+}
+
+function browserNoticeId(sessionId: string): string {
+  return `browser:${sessionId}`
 }
 
 function pendingIds(session: Session): Set<string> {

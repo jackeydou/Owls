@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { RouterWorker } from '../../../shared/router'
+import { showBrowserTab, useWorkerTab } from '../browser/store'
 import { workerState, workerTitle, workerTone } from './activity'
 import { useRouterStore } from './store'
 
@@ -29,18 +30,31 @@ function DispatchStatus({ worker }: { worker: RouterWorker }) {
 function DispatchRow({ worker }: { worker: RouterWorker }) {
   const { t } = useTranslation()
   const showPanel = useRouterStore((s) => s.showPanel)
+  const browserTab = useWorkerTab(worker.id)
+  const needsYou = browserTab?.needsYou ?? false
   const title = workerTitle(worker)
+  const state = t(`workerState.${workerState(worker)}`)
   return (
     <li>
       <button
         type="button"
         className={`router-dispatch-row ${workerTone(worker)}`}
-        aria-label={`${title}, ${t(`workerState.${workerState(worker)}`)}`}
-        onClick={() => showPanel({ kind: 'worker', workerId: worker.id })}
+        aria-label={`${title}, ${needsYou ? t('browser.workerNeedsYou') : state}`}
+        onClick={() => {
+          showPanel({ kind: 'worker', workerId: worker.id })
+          // A worker waiting in its browser tab shows that tab too.
+          if (browserTab?.needsYou) showBrowserTab(browserTab.tabId)
+        }}
       >
         <DispatchConnector />
         <span className="router-dispatch-title">{title}</span>
-        <DispatchStatus worker={worker} />
+        {needsYou ? (
+          <small className="router-dispatch-needs" aria-hidden>
+            {t('browser.workerNeedsYou')}
+          </small>
+        ) : (
+          <DispatchStatus worker={worker} />
+        )}
       </button>
     </li>
   )

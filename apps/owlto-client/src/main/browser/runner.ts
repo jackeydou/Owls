@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { type UtilityProcess, utilityProcess } from 'electron'
 import type { ReportToolResult } from '../router/report.js'
+import type { HandoffResult } from './manager.js'
+import type { DownloadsReport } from './profile.js'
 import type { BrowserHostReply, BrowserHostRequest, BrowserRunMode } from './protocol.js'
 import type { WorkerBrowser } from './tool.js'
 
@@ -23,21 +25,47 @@ export class BrowserHost implements WorkerBrowser {
     private readonly paths: {
       /** The built `browser/host.js` entry. */
       entry: string
-      profileDir: () => string
+      /** The CDP gate endpoint for one worker. */
+      endpoint: (key: string) => Promise<string>
+      /** Resolves false if the user still holds the worker's tab after `timeoutMs`. */
+      waitForAgent: (key: string, timeoutMs: number) => Promise<boolean>
       shotsDir: () => string
+      handoff: (key: string, reason: string, timeoutMs: number) => Promise<HandoffResult>
+      /** Downloads the worker's pages finished since its last call. */
+      takeDownloads: (key: string) => DownloadsReport
     }
   ) {}
 
-  run(
+  async handoff(key: string, reason: string, timeoutMs: number): Promise<ReportToolResult> {
+    if (this.closed) return { ok: false, text: 'Owlto is quitting.' }
+    const result = await this.paths.handoff(key, reason, timeoutMs)
+    return withDownloads(handoffText(result), this.paths.takeDownloads(key))
+  }
+
+  async run(
     key: string,
     code: string,
-    timeoutMs: number,
+    budgetMs: number,
     mode: BrowserRunMode
   ): Promise<ReportToolResult> {
-    if (this.closed) return Promise.resolve({ ok: false, text: 'Owlto is quitting.' })
+    if (this.closed) return { ok: false, text: 'Owlto is quitting.' }
+    const started = Date.now()
+    if (!(await this.paths.waitForAgent(key, budgetMs)))
+      return {
+        ok: false,
+        text: 'The user is using your browser tab. Try again after they hand it back.'
+      }
+    if (this.closed) return { ok: false, text: 'Owlto is quitting.' }
+    const timeoutMs = Math.max(1_000, budgetMs - (Date.now() - started))
+    let endpoint: string
+    try {
+      endpoint = await this.paths.endpoint(key)
+    } catch (error) {
+      return { ok: false, text: `Owlto’s browser could not start: ${String(error)}` }
+    }
     const child = this.start()
     const id = randomUUID()
-    return new Promise((resolve) => {
+    const result = await new Promise<ReportToolResult>((resolve) => {
       const timer = setTimeout(() => {
         this.stop('The browser stopped responding, so Owlto restarted it. Open the page again.')
       }, timeoutMs + HANG_GRACE_MS)
@@ -49,11 +77,12 @@ export class BrowserHost implements WorkerBrowser {
         code,
         mode,
         timeoutMs,
-        profileDir: this.paths.profileDir(),
+        endpoint,
         shotsDir: this.paths.shotsDir()
       }
       child.postMessage(request)
     })
+    return withDownloads(result, this.paths.takeDownloads(key))
   }
 
   close(): void {
@@ -97,4 +126,28 @@ export class BrowserHost implements WorkerBrowser {
     }
     this.pending.clear()
   }
+}
+
+function handoffText(result: HandoffResult): ReportToolResult {
+  if (result.status === 'no-tab')
+    return { ok: false, text: 'You have no browser tab yet. Open the page with `browser` first.' }
+  const at = result.url ? ` The tab is at ${result.url}` : ''
+  if (result.status === 'done')
+    return { ok: true, text: `The user handed the tab back.${at} Check the page before you go on.` }
+  if (result.status === 'closed')
+    return { ok: false, text: 'The user closed the tab instead of handing it back.' }
+  return {
+    ok: false,
+    text: `The user did not hand the tab back in time, so it is yours again.${at}`
+  }
+}
+
+/** Adds the worker's new downloads to a reply, so it can open the files. */
+function withDownloads(result: ReportToolResult, downloads: DownloadsReport): ReportToolResult {
+  const lines: string[] = []
+  if (downloads.done.length) lines.push('Downloaded:', ...downloads.done.map((path) => `- ${path}`))
+  if (downloads.pending.length)
+    lines.push(`Still downloading: ${downloads.pending.join(', ')}. The next call lists them.`)
+  if (!lines.length) return result
+  return { ...result, text: `${result.text}\n\n${lines.join('\n')}` }
 }

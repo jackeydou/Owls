@@ -38,7 +38,7 @@ import {
   type UpdateAutomationInput,
   workerAutomationTools
 } from '../automations/tools.js'
-import { browserTool, type WorkerBrowser } from '../browser/tool.js'
+import { browserHandoffTool, browserTool, type WorkerBrowser } from '../browser/tool.js'
 import type { AgentNoteInput, CapturedContent } from '../cards/service.js'
 import { routerNoteTools, type SaveNoteInput, workerNoteTools } from '../cards/tools.js'
 import type { RouterMemory } from '../memory/service.js'
@@ -678,9 +678,9 @@ export class RouterService implements TurnProfiles {
   }
 
   /**
-   * Gives workers Owlto's browser tool where their agent's setting allows it (Codex and
-   * Cursor; see `workerBrowserEnabled`). Scripts run outside the agent's sandbox, restricted
-   * unless the worker has full access.
+   * Gives workers Owlto's browser tools where their agent's setting allows it (see
+   * `workerBrowserEnabled`). Scripts run outside the agent's sandbox, restricted unless the
+   * worker has full access.
    */
   attachBrowser(browser: WorkerBrowser): void {
     this.browser = browser
@@ -726,7 +726,10 @@ export class RouterService implements TurnProfiles {
     // Only full access runs scripts as plain Node; anything less, read-only included, gets the
     // restricted runtime, which cannot touch local files.
     const mode = worker.permission === 'full-access' ? 'full' : 'restricted'
-    const browser = this.browser && enabled ? [browserTool(this.browser, worker.id, mode)] : []
+    const browser =
+      this.browser && enabled
+        ? [browserTool(this.browser, worker.id, mode), browserHandoffTool(this.browser, worker.id)]
+        : []
     const router = this.routers.get(worker.routerId)
     const notes =
       this.notes && router

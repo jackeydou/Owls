@@ -1,6 +1,7 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { automationsEn, automationsZh } from '../automations/i18n'
+import { browserEn, browserZh } from '../browser/i18n'
 import { cardsEn, cardsZh } from '../cards/i18n'
 import { feedbackEn, feedbackZh } from '../feedback/i18n'
 import { filesEn, filesZh } from '../files/i18n'
@@ -78,7 +79,8 @@ const en = {
   claudeChromeHelp:
     'Lets workers use your Chrome through the Claude in Chrome extension. Needs the extension installed and signed in.',
   browserTool: 'Browser',
-  browserToolHelp: 'Lets workers open and operate web pages in a Chrome window Owlto opens.',
+  browserToolHelp:
+    'Lets workers open and operate web pages in Owlto’s Browser panel, where you can watch and take over.',
   cursorAccount: 'Cursor account',
   cursorSignInHelp: 'To switch accounts, run cursor-agent login in Terminal, then reconnect.',
   cursorWorkerOnly: 'Runs workers only, not the Router.',
@@ -266,7 +268,7 @@ const zh: Record<keyof typeof en, string> = {
   claudeChrome: 'Claude in Chrome',
   claudeChromeHelp: '让 Worker 通过 Claude in Chrome 扩展使用你的 Chrome。需要先安装扩展并登录。',
   browserTool: '浏览器',
-  browserToolHelp: '让 Worker 在 Owlto 打开的 Chrome 窗口里打开和操作网页。',
+  browserToolHelp: '让 Worker 在 Owlto 的浏览器面板里打开和操作网页，你可以随时查看和接管。',
   cursorAccount: 'Cursor 账号',
   cursorSignInHelp: '切换账号：在终端运行 cursor-agent login 后重新连接。',
   cursorWorkerOnly: '只能做 Worker，不能当协调者。',
@@ -413,6 +415,7 @@ void i18next.use(initReactI18next).init({
         ...feedbackEn,
         ...projectsPageEn,
         ...filesEn,
+        ...browserEn,
         ...remoteEn
       }
     },
@@ -437,6 +440,7 @@ void i18next.use(initReactI18next).init({
         ...feedbackZh,
         ...projectsPageZh,
         ...filesZh,
+        ...browserZh,
         ...remoteZh
       }
     }

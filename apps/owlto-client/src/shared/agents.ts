@@ -13,22 +13,21 @@ export const agentConfigSchema = z.object({
   permission: permissionSchema
 })
 export type AgentConfig = z.infer<typeof agentConfigSchema>
-/** Claude Code also chooses whether its workers get Claude in Chrome (`--chrome`). */
-export const claudeAgentConfigSchema = agentConfigSchema.extend({
-  chrome: z.boolean().default(true)
-})
-export type ClaudeAgentConfig = z.infer<typeof claudeAgentConfigSchema>
-/**
- * Codex and Cursor choose whether their workers get Owlto's browser tool. Claude Code uses
- * Claude in Chrome instead.
- */
+/** Whether a coding agent's workers get Owlto's browser tool (the Browser panel's tabs). */
 export const browserAgentConfigSchema = agentConfigSchema.extend({
   browser: z.boolean().default(true)
 })
 export type BrowserAgentConfig = z.infer<typeof browserAgentConfigSchema>
+/**
+ * Claude Code also chooses whether its workers get Claude in Chrome (`--chrome`), which drives
+ * the user's own Chrome. Off by default: Owlto's browser covers the same ground in the app.
+ */
+export const claudeAgentConfigSchema = browserAgentConfigSchema.extend({
+  chrome: z.boolean().default(false)
+})
+export type ClaudeAgentConfig = z.infer<typeof claudeAgentConfigSchema>
 /** Whether a worker on this agent gets Owlto's browser tool. */
 export function workerBrowserEnabled(configs: AgentConfigs, provider: AgentProvider): boolean {
-  if (provider === 'claude-code') return false
   return configs[provider].browser
 }
 /**
@@ -59,7 +58,7 @@ export const defaultAgentConfig: AgentConfig = {
 }
 export const defaultAgentConfigs: AgentConfigs = {
   codex: { ...defaultAgentConfig, browser: true },
-  'claude-code': { ...defaultAgentConfig, chrome: true },
+  'claude-code': { ...defaultAgentConfig, browser: true, chrome: false },
   cursor: { ...defaultAgentConfig, permission: 'full-access', browser: true }
 }
 

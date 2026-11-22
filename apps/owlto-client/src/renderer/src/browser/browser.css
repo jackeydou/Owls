@@ -1,0 +1,265 @@
+/* The right sidebar's in-app browser: tabs, toolbar, who-drives line, and the page. */
+.browser-pane {
+  flex: 1;
+  gap: 0;
+  min-height: 0;
+  margin: 0 -8px -12px;
+}
+
+/* Tabs, editor style like the file viewer: the active one is a filled chip. */
+.browser-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 8px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--color-border);
+}
+.browser-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 1;
+  min-width: 96px;
+  max-width: 200px;
+  height: 30px;
+  padding: 0 2px 0 6px;
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+  transition: background 120ms ease;
+}
+.browser-tab:hover {
+  background: var(--color-sidebar-hover);
+}
+.browser-tab[data-active] {
+  background: var(--color-sidebar-active);
+  color: var(--color-foreground);
+}
+.browser-tab > button:first-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  font-size: var(--owl-text-sm);
+}
+.browser-tab > button:first-child:active {
+  opacity: 0.7;
+}
+.browser-tab > button:first-child > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.browser-tab .owlto-owl-avatar {
+  width: 18px;
+  height: 18px;
+}
+.browser-tab-user {
+  flex: none;
+  margin: 0 2px;
+}
+.browser-tab-alert {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--owl-browser-handoff);
+}
+.browser-tab .browser-tab-close {
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  color: inherit;
+}
+.browser-tabs .browser-tab-new {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+
+.browser-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  height: 42px;
+  padding: 0 8px;
+}
+.browser-address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  margin: 0 4px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  -webkit-app-region: no-drag;
+}
+.browser-address[data-locked] {
+  background: var(--color-card-muted);
+}
+.browser-address-scheme {
+  display: inline-flex;
+  flex: none;
+}
+.browser-address-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-foreground);
+  font: inherit;
+  outline: none;
+}
+.browser-address:focus-within {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
+.browser-address-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.browser-address-text strong {
+  color: var(--color-foreground);
+  font-weight: 500;
+}
+.browser-toolbar .browser-control {
+  flex: none;
+  gap: 6px;
+  padding: 0 10px;
+}
+.browser-toolbar .browser-control .owlto-owl-avatar {
+  width: 18px;
+  height: 18px;
+}
+
+/* Who has the controls. Agent: a quiet line. Handoff: an amber ask. User: muted note. */
+:root {
+  --owl-browser-handoff: #e8a200;
+  --owl-browser-handoff-bg: color-mix(in srgb, #f0b400 14%, var(--color-sidebar));
+}
+[data-theme="dark"] {
+  --owl-browser-handoff: #f5bd2e;
+  --owl-browser-handoff-bg: color-mix(in srgb, #f0b400 16%, var(--color-sidebar));
+}
+.browser-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+.browser-status strong {
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+.browser-status em {
+  overflow: hidden;
+  min-width: 0;
+  margin-left: 2px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.browser-status em::before {
+  content: "· ";
+}
+.browser-status .owlto-working-dots {
+  height: 16px;
+  padding: 0 7px;
+  gap: 4px;
+}
+.browser-status:is([data-control="handoff"], [data-control="ask"]) {
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--owl-browser-handoff-bg);
+  color: var(--color-foreground);
+}
+.browser-status:is([data-control="handoff"], [data-control="ask"]) p {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+}
+.browser-status:is([data-control="handoff"], [data-control="ask"]) p span {
+  color: var(--color-muted-foreground);
+}
+.browser-status:is([data-control="handoff"], [data-control="ask"]) button {
+  flex: none;
+}
+.browser-status[data-control="ask"] {
+  flex-wrap: wrap;
+}
+.browser-ask-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/*
+ * The page. This box stays empty: main lays the tab's WebContentsView over it, inset by the
+ * ring's width while a worker drives, so the colored ring shows around the page.
+ */
+.browser-viewport {
+  --browser-agent: #1f2228;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-top: 1px solid var(--color-border);
+  background: #ffffff;
+  -webkit-app-region: no-drag;
+}
+.browser-viewport[data-speaker="claude-code"] {
+  --browser-agent: #e8785a;
+}
+.browser-viewport[data-speaker="cursor"] {
+  --browser-agent: #7c8cff;
+}
+[data-theme="dark"] .browser-viewport[data-speaker="codex"] {
+  --browser-agent: #c9ced8;
+}
+.browser-viewport[data-control="agent"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 2px var(--browser-agent);
+  pointer-events: none;
+}
+.browser-viewport[data-control="handoff"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 2px var(--owl-browser-handoff);
+  pointer-events: none;
+}
+.browser-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+  text-align: center;
+}

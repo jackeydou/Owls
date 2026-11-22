@@ -1,0 +1,1 @@
+- Browser: workers now browse in an Owlto Browser panel in the right sidebar instead of a separate Chrome window. Tabs show which worker drives them, sign-ins persist, and you can take over a tab and hand it back. Google Chrome is no longer needed. (#214)

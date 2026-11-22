@@ -4,6 +4,7 @@ export {
   settingsSchema
 } from '../../shared/app.js'
 export { nextAutomationRun, scheduleFromInput } from '../../shared/automations.js'
+export { browserSettingsSchema, siteHost, siteRuleFor } from '../../shared/browser-panel.js'
 export { commandReceiptSchema, deviceCommandSchema } from '../../shared/device.js'
 export * as feedback from '../../shared/feedback.js'
 export {
@@ -40,8 +41,10 @@ export { Analytics } from '../analytics/service.js'
 export { PullRequestWatcher, pullRequestChanges } from '../automations/pull-request-events.js'
 export { AutomationService } from '../automations/service.js'
 export { AutomationStore } from '../automations/store.js'
+export { CdpGate } from '../browser/cdp-gate.js'
 export { BROWSER_RESULT_LIMIT, runBrowserCode } from '../browser/run-code.js'
 export { runRestrictedBrowserCode } from '../browser/sandbox.js'
+export { SitePolicy } from '../browser/site-policy.js'
 export { BROWSER_TOOL_NAME, browserTool } from '../browser/tool.js'
 export { CardService } from '../cards/service.js'
 export { CardStore } from '../cards/store.js'

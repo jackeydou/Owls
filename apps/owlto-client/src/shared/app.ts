@@ -15,6 +15,7 @@ import {
   type StageAttachment
 } from './attachments.js'
 import type { Automation, AutomationEnable, AutomationSave } from './automations.js'
+import { type BrowserAPI, browserSettingsSchema, defaultBrowserSettings } from './browser-panel.js'
 import {
   type Board,
   type BoardSave,
@@ -246,12 +247,14 @@ export const paneWidthBounds = {
   panel: { min: 360, max: 960, initial: 480 },
   card: { min: 340, max: 960, initial: 460 },
   /** The right sidebar while it shows the file viewer, which wants room for code. */
-  files: { min: 320, max: 960, initial: 520 }
+  files: { min: 320, max: 960, initial: 520 },
+  /** The right sidebar while it shows the browser, which needs room for a real page. */
+  browser: { min: 400, max: 1280, initial: 640 }
 } as const
 export type ResizablePane = keyof typeof paneWidthBounds
 /** A width the user dragged to, or null to follow the pane's current default. */
 const paneWidthSchema = z.number().int().positive().nullable()
-export const rightPanelSchema = z.enum(['projects', 'cards', 'files'])
+export const rightPanelSchema = z.enum(['projects', 'cards', 'files', 'browser'])
 export type RightPanel = z.infer<typeof rightPanelSchema>
 export const layoutSettingsSchema = z.object({
   sidebarWidth: paneWidthSchema,
@@ -261,6 +264,8 @@ export const layoutSettingsSchema = z.object({
   cardWidth: paneWidthSchema.catch(null),
   /** The right sidebar on its file viewer tab; added later, so older rows follow the default. */
   filesWidth: paneWidthSchema.catch(null),
+  /** The right sidebar on its browser tab; added later, so older rows follow the default. */
+  browserWidth: paneWidthSchema.catch(null),
   /** Whether the right-hand sidebar is open; named for its first and once only content. */
   projectsOpen: z.boolean(),
   /** Which list the right-hand sidebar shows; added later, so older rows show projects. */
@@ -280,6 +285,7 @@ export const defaultLayoutSettings: LayoutSettings = {
   panelWidth: null,
   cardWidth: null,
   filesWidth: null,
+  browserWidth: null,
   projectsOpen: false,
   rightPanel: 'projects'
 }
@@ -372,7 +378,11 @@ export const settingsSchema = z.object({
    * Keeps this Mac from sleeping while remote access is on and it runs on power, so paired
    * devices can still reach it. Added later, so older rows have it off.
    */
-  remoteKeepAwake: z.boolean().catch(false).default(false)
+  remoteKeepAwake: z.boolean().catch(false).default(false),
+  /** Settings → Browser: site rules and form asks. Added later, so older rows get the defaults. */
+  browser: browserSettingsSchema.catch(defaultBrowserSettings).default(defaultBrowserSettings),
+  /** Where Owlto's browser saves downloads; null uses the data root. Saved only through its picker. */
+  browserDownloadsPath: z.string().nullable().catch(null).default(null)
 })
 /**
  * Rows from before `connectedAgents` remembered the opposite, the agents the user
@@ -404,7 +414,8 @@ export const settingsUpdateSchema = settingsSchema
     profile: true,
     remoteAccess: true,
     remoteRelay: true,
-    remoteKeepAwake: true
+    remoteKeepAwake: true,
+    browserDownloadsPath: true
   })
   .strict()
 export const modelSchema = z.object({
@@ -662,6 +673,7 @@ export interface OwltoAPI {
   automations: AutomationsAPI
   updates: UpdatesAPI
   remote: RemoteAPI
+  browser: BrowserAPI
 }
 /** `window.owlto.automations`: tasks that wake the Router or a worker on a schedule. */
 export interface AutomationsAPI {

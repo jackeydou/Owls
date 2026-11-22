@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AppEvent, OpenWorkerTarget, OwltoAPI } from '../shared/app.js'
+import type { BrowserSnapshot } from '../shared/browser-panel.js'
 import type { MenuCommand } from '../shared/menu.js'
 import type { RemoteEventEnvelope, RemoteOverview } from '../shared/remote.js'
 import type { UpdateSnapshot } from '../shared/updates.js'
@@ -166,6 +167,28 @@ const api: OwltoAPI = {
       const handler = (_: Electron.IpcRendererEvent, overview: RemoteOverview) => listener(overview)
       ipcRenderer.on('owlto:remote-changed', handler)
       return () => ipcRenderer.removeListener('owlto:remote-changed', handler)
+    }
+  },
+  browser: {
+    snapshot: () => ipcRenderer.invoke('owlto:browser-snapshot'),
+    activate: (tabId) => ipcRenderer.invoke('owlto:browser-activate', tabId),
+    close: (tabId) => ipcRenderer.invoke('owlto:browser-close', tabId),
+    newTab: () => ipcRenderer.invoke('owlto:browser-new-tab'),
+    navigate: (input) => ipcRenderer.invoke('owlto:browser-navigate', input),
+    history: (input) => ipcRenderer.invoke('owlto:browser-history', input),
+    takeOver: (tabId) => ipcRenderer.invoke('owlto:browser-take-over', tabId),
+    handBack: (tabId) => ipcRenderer.invoke('owlto:browser-hand-back', tabId),
+    setBounds: (bounds) => ipcRenderer.invoke('owlto:browser-bounds', bounds),
+    answer: (input) => ipcRenderer.invoke('owlto:browser-answer', input),
+    clearSignIns: () => ipcRenderer.invoke('owlto:browser-clear-sign-ins'),
+    downloadsFolder: () => ipcRenderer.invoke('owlto:browser-downloads-folder'),
+    pickDownloadsFolder: () => ipcRenderer.invoke('owlto:browser-pick-downloads'),
+    revealDownloadsFolder: () => ipcRenderer.invoke('owlto:browser-reveal-downloads'),
+    onChanged: (listener) => {
+      const handler = (_: Electron.IpcRendererEvent, snapshot: BrowserSnapshot) =>
+        listener(snapshot)
+      ipcRenderer.on('owlto:browser-changed', handler)
+      return () => ipcRenderer.removeListener('owlto:browser-changed', handler)
     }
   }
 }

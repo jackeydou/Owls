@@ -683,3 +683,57 @@ html[data-skin="doodle"] .router-working-stop {
   color: var(--color-foreground);
   font-weight: 700;
 }
+
+/* The Browser panel: inked tabs and address bar, the amber "needs you" strip in the website's
+   dashed style. The ring around a driven page keeps its agent's color. */
+html[data-skin="doodle"] {
+  --owl-browser-handoff: var(--doodle-amber);
+  --owl-browser-handoff-bg: var(--doodle-tint);
+}
+html[data-skin="doodle"] .browser-tabs {
+  border-bottom: var(--doodle-border-thin);
+}
+html[data-skin="doodle"] .browser-tab[data-active] {
+  background: var(--doodle-card);
+  box-shadow:
+    inset 0 0 0 1.5px var(--doodle-line),
+    var(--doodle-shadow-sm);
+}
+html[data-skin="doodle"] .browser-tab-alert {
+  box-shadow: 0 0 0 1.5px var(--doodle-line);
+}
+html[data-skin="doodle"] .browser-address {
+  border: var(--doodle-border-thin);
+  font-weight: 600;
+}
+html[data-skin="doodle"] .browser-address[data-locked] {
+  background: var(--doodle-tint);
+}
+html[data-skin="doodle"] .browser-status:is([data-control="handoff"], [data-control="ask"]) {
+  outline: 2px dashed var(--doodle-line);
+  outline-offset: -2px;
+}
+html[data-skin="doodle"] .browser-status:is([data-control="handoff"], [data-control="ask"]) strong {
+  font: italic 800 var(--owl-text-sm) / 1.2 var(--doodle-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+html[data-skin="doodle"] .browser-status[data-control="handoff"] button,
+html[data-skin="doodle"] .browser-ask-actions button:last-child {
+  background: var(--doodle-green);
+  color: #fff;
+}
+html[data-skin="doodle"] .browser-viewport {
+  border-top: var(--doodle-border-thin);
+}
+html[data-skin="doodle"] .router-dispatch-row .router-dispatch-needs {
+  font: italic 800 var(--owl-text-xs) / 1.2 var(--doodle-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+html[data-skin="doodle"] .router-dispatch-row .router-dispatch-needs::before {
+  box-shadow: 0 0 0 1.5px var(--doodle-line);
+}
+html[data-skin="doodle"] .owlto-browser-site-add .router-input {
+  border-color: var(--doodle-line);
+}

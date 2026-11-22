@@ -340,7 +340,7 @@ test('Claude service runs local turns through the SDK contract', async () => {
     assert.equal(first.disallowedTools, undefined)
     assert.deepEqual(first.settingSources, ['user', 'project', 'local'])
     assert.deepEqual(first.systemPrompt, { type: 'preset', preset: 'claude_code' })
-    assert.deepEqual(first.extraArgs, { chrome: null }, 'Claude in Chrome is on by default')
+    assert.deepEqual(first.extraArgs, { chrome: null }, 'Claude in Chrome turned on adds --chrome')
     assert.equal(first.resume, undefined)
 
     await service.send({ sessionId: session.id, commandId, text: 'hello' })

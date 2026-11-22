@@ -1,76 +1,64 @@
 /**
- * The browser host: an Electron utility process that owns one Chrome window
- * through Playwright and runs worker scripts against it. It lives outside the
- * main process so a script that hangs or crashes only takes this process down,
- * and outside every agent's sandbox so pages load with the user's network.
+ * The browser host: an Electron utility process that runs worker scripts with Playwright
+ * against Owlto's own browser tabs, reached through the main process's CDP gate. It lives
+ * outside the main process so a script that hangs or crashes only takes this process down.
  */
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { type BrowserContext, chromium, type Page } from 'playwright-core'
+import { type Browser, type BrowserContext, chromium, type Page } from 'playwright-core'
 import type { BrowserHostReply, BrowserHostRequest } from './protocol.js'
 import { runBrowserCode } from './run-code.js'
 import { runRestrictedBrowserCode } from './sandbox.js'
 
-/** Installed browsers Playwright can drive without a download, most preferred first. */
-const CHANNELS = ['chrome', 'msedge'] as const
 const PAGE_IDLE_MS = 30 * 60_000
-const CONTEXT_IDLE_MS = 10 * 60_000
 
-type Slot = { page: Page | null; used: number; queue: Promise<unknown> }
+/** One worker: its connection to the gate, its page, and its queue of scripts. */
+type Slot = {
+  browser: Promise<Browser> | null
+  page: Page | null
+  used: number
+  queue: Promise<unknown>
+}
 
-let context: Promise<BrowserContext> | null = null
-let contextUsed = Date.now()
 const slots = new Map<string, Slot>()
 let shotSeq = 0
 
-function launch(profileDir: string): Promise<BrowserContext> {
-  context ??= (async () => {
-    await mkdir(profileDir, { recursive: true })
-    const failures: string[] = []
-    for (const channel of CHANNELS) {
-      try {
-        const opened = await chromium.launchPersistentContext(profileDir, {
-          channel,
-          headless: false,
-          viewport: null
-        })
-        // The user closed the window, or Chrome quit: the next run opens a new one.
-        opened.on('close', () => {
-          context = null
-          for (const slot of slots.values()) slot.page = null
-        })
-        return opened
-      } catch (error) {
-        failures.push(
-          `${channel}: ${error instanceof Error ? error.message.split('\n')[0] : error}`
-        )
-      }
+function connect(slot: Slot, endpoint: string): Promise<Browser> {
+  slot.browser ??= chromium.connectOverCDP(endpoint).then(
+    (browser) => {
+      browser.on('disconnected', () => {
+        slot.browser = null
+        slot.page = null
+      })
+      return browser
+    },
+    (error: unknown) => {
+      slot.browser = null
+      throw error
     }
-    context = null
-    throw new Error(
-      `Owlto could not open Google Chrome or Microsoft Edge. Install Google Chrome and try again. (${failures.join('; ')})`
-    )
-  })()
-  return context
+  )
+  return slot.browser
 }
 
-async function pageFor(key: string, opened: BrowserContext): Promise<Page> {
-  const slot = slots.get(key)
-  if (slot?.page && !slot.page.isClosed()) return slot.page
-  const page = await opened.newPage()
-  if (slot) slot.page = page
-  return page
+async function pageFor(
+  slot: Slot,
+  endpoint: string
+): Promise<{ page: Page; context: BrowserContext }> {
+  const browser = await connect(slot, endpoint)
+  const context = browser.contexts()[0]
+  if (!context) throw new Error('Owlto’s browser is not ready. Try again.')
+  if (!slot.page || slot.page.isClosed())
+    slot.page = context.pages()[0] ?? (await context.newPage())
+  return { page: slot.page, context }
 }
 
-async function run(request: BrowserHostRequest): Promise<BrowserHostReply> {
+async function run(slot: Slot, request: BrowserHostRequest): Promise<BrowserHostReply> {
   try {
-    const opened = await launch(request.profileDir)
-    contextUsed = Date.now()
-    const page = await pageFor(request.key, opened)
+    const { page, context } = await pageFor(slot, request.endpoint)
     const runCode = request.mode === 'full' ? runBrowserCode : runRestrictedBrowserCode
     const outcome = await runCode(
       request.code,
-      { page, context: opened },
+      { page, context },
       request.timeoutMs,
       async (bytes) => {
         await mkdir(request.shotsDir, { recursive: true })
@@ -80,7 +68,6 @@ async function run(request: BrowserHostRequest): Promise<BrowserHostReply> {
         return path
       }
     )
-    contextUsed = Date.now()
     return { type: 'result', id: request.id, ...outcome }
   } catch (error) {
     return {
@@ -96,30 +83,31 @@ async function run(request: BrowserHostRequest): Promise<BrowserHostReply> {
 function enqueue(request: BrowserHostRequest): void {
   let slot = slots.get(request.key)
   if (!slot) {
-    slot = { page: null, used: Date.now(), queue: Promise.resolve() }
+    slot = { browser: null, page: null, used: Date.now(), queue: Promise.resolve() }
     slots.set(request.key, slot)
   }
-  slot.used = Date.now()
-  const next = slot.queue.then(() => run(request))
-  slot.queue = next.catch(() => {})
-  void next.then((reply) => process.parentPort.postMessage(reply))
+  const current = slot
+  current.used = Date.now()
+  const next = current.queue.then(() => run(current, request))
+  current.queue = next.catch(() => {})
+  void next.then((reply) => {
+    current.used = Date.now()
+    process.parentPort.postMessage(reply)
+  })
 }
 
+/** Closes a worker's page, which closes its tab in the panel, and drops its connection. */
 async function release(key: string): Promise<void> {
   const slot = slots.get(key)
   slots.delete(key)
   if (slot?.page && !slot.page.isClosed()) await slot.page.close().catch(() => {})
+  const browser = await slot?.browser?.catch(() => null)
+  await browser?.close().catch(() => {})
 }
 
-// Closes pages a worker left behind, then the window once nothing uses it.
 setInterval(() => {
   const now = Date.now()
   for (const [key, slot] of slots) if (now - slot.used > PAGE_IDLE_MS) void release(key)
-  if (context && !slots.size && now - contextUsed > CONTEXT_IDLE_MS) {
-    const closing = context
-    context = null
-    void closing.then((opened) => opened.close()).catch(() => {})
-  }
 }, 60_000).unref()
 
 process.parentPort.on('message', (event) => {
