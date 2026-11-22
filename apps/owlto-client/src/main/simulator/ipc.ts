@@ -1,6 +1,7 @@
 import { MessageChannelMain, type WebContents } from 'electron'
 import type { AppSettings } from '../../shared/app.js'
 import { simulatorAnswerSchema, simulatorUdidSchema } from '../../shared/simulator.js'
+import { SIMULATOR_STREAM_MESSAGE } from '../../shared/simulator-stream.js'
 import type { IpcHandle } from '../app/ipc.js'
 import type { SimulatorHostClient } from './host-client.js'
 import type { SimulatorService } from './service.js'
@@ -49,6 +50,6 @@ export function registerSimulatorIpc(
     // The host and the panel talk over this channel directly, so video skips the main process.
     const { port1, port2 } = new MessageChannelMain()
     await host.call({ type: 'stream', udid }, [port1])
-    target.postMessage('owlto:simulator-stream', udid, [port2])
+    target.postMessage(SIMULATOR_STREAM_MESSAGE, udid, [port2])
   })
 }
