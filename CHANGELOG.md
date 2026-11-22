@@ -11,6 +11,18 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2200-beta.3
+
+### Highlights
+
+- Fixes the blank window on launch in 2026.11.2200-beta.2.
+
+### Changes
+
+### Fixes
+
+- Startup: the window no longer stays blank on launch; the preload could not load in its sandbox since the iOS Simulator panel landed. (#218)
+
 ## 2026.11.2200-beta.2
 
 ### Highlights
