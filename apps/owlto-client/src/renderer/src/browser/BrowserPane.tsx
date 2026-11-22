@@ -12,13 +12,16 @@ import {
   XIcon
 } from '@renderer/components/ui/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { BrowserTab } from '../../../shared/browser-panel'
+import type { BrowserAction, BrowserTab } from '../../../shared/browser-panel'
 import { OwlAvatar } from '../app/OwlAvatar'
 import { WorkingDots } from '../app/WorkingDots'
-import { PrototypePage } from './PrototypePage'
-import { useBrowserStore } from './store'
+import { browserActions, useBrowserStore } from './store'
 import './browser.css'
+
+/** Matches the ring browser.css draws around a page a worker drives. */
+const RING_WIDTH = 2
 
 const ownerName = (tab: BrowserTab) => (tab.owner.kind === 'worker' ? tab.owner.title : null)
 
@@ -30,13 +33,12 @@ function OwnerMark({ tab }: { tab: BrowserTab }) {
 
 function BrowserTabs({ tabs, activeId }: { tabs: BrowserTab[]; activeId: string | null }) {
   const { t } = useTranslation()
-  const activate = useBrowserStore((s) => s.activate)
-  const close = useBrowserStore((s) => s.close)
   return (
     <div className="browser-tabs" role="tablist" aria-label={t('browser.tabs')}>
       {tabs.map((tab) => {
         const owner = ownerName(tab)
         const ownerLabel = owner ? t('browser.tabOwner', { owner }) : t('browser.yourTab')
+        const title = tab.title || t('browser.newTab')
         return (
           <div
             key={tab.id}
@@ -50,10 +52,10 @@ function BrowserTabs({ tabs, activeId }: { tabs: BrowserTab[]; activeId: string 
                   type="button"
                   role="tab"
                   aria-selected={tab.id === activeId}
-                  onClick={() => activate(tab.id)}
+                  onClick={() => void browserActions.activate(tab.id)}
                 >
                   <OwnerMark tab={tab} />
-                  <span>{tab.title}</span>
+                  <span>{title}</span>
                   <span className="sr-only">{ownerLabel}</span>
                   {tab.control.kind === 'handoff' ? (
                     <i
@@ -69,9 +71,9 @@ function BrowserTabs({ tabs, activeId }: { tabs: BrowserTab[]; activeId: string 
             <IconButton
               size="sm"
               className="browser-tab-close"
-              label={t('browser.closeTab', { title: tab.title })}
+              label={t('browser.closeTab', { title })}
               icon={<XIcon size={13} />}
-              onClick={() => close(tab.id)}
+              onClick={() => void browserActions.close(tab.id)}
             />
           </div>
         )
@@ -83,20 +85,73 @@ function BrowserTabs({ tabs, activeId }: { tabs: BrowserTab[]; activeId: string 
         tooltip={t('browser.newTab')}
         tooltipSide="bottom"
         icon={<PlusIcon size={15} />}
-        onClick={() => {}}
+        onClick={() => void browserActions.newTab()}
       />
     </div>
+  )
+}
+
+/** The address: read-only while a worker drives, a field the user can type in otherwise. */
+function AddressField({ tab, locked }: { tab: BrowserTab; locked: boolean }) {
+  const { t } = useTranslation()
+  const [draft, setDraft] = useState<string | null>(null)
+  const { host, rest } = splitUrl(tab.url)
+  const blank = !tab.url || tab.url === 'about:blank'
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const url = (draft ?? '').trim()
+    setDraft(null)
+    if (url) void browserActions.navigate(tab.id, url)
+  }
+  return (
+    <form className="browser-address" data-locked={locked || undefined} onSubmit={submit}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="browser-address-scheme"
+            role="img"
+            aria-label={t(tab.secure ? 'browser.secure' : 'browser.notSecure')}
+          >
+            {tab.secure ? <LockIcon size={13} /> : <GlobeIcon size={13} />}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {t(tab.secure ? 'browser.secure' : 'browser.notSecure')}
+        </TooltipContent>
+      </Tooltip>
+      {locked ? (
+        <span className="browser-address-text">
+          <span className="sr-only">{t('browser.address')}</span>
+          <strong>{host}</strong>
+          {rest}
+        </span>
+      ) : (
+        <input
+          className="browser-address-input"
+          aria-label={t('browser.address')}
+          placeholder={t('browser.addressPlaceholder')}
+          spellCheck={false}
+          value={draft ?? (blank ? '' : tab.url)}
+          onChange={(event) => setDraft(event.target.value)}
+          onFocus={(event) => event.target.select()}
+          onBlur={() => setDraft(null)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              setDraft(null)
+              event.currentTarget.blur()
+            }
+          }}
+        />
+      )}
+    </form>
   )
 }
 
 /** Back, forward, reload, the address, and the button that moves the controls. */
 function BrowserToolbar({ tab }: { tab: BrowserTab }) {
   const { t } = useTranslation()
-  const takeOver = useBrowserStore((s) => s.takeOver)
-  const handBack = useBrowserStore((s) => s.handBack)
   const owner = ownerName(tab)
-  const locked = tab.control.kind === 'agent'
-  const { host, rest } = splitUrl(tab.url)
+  const locked = tab.control.kind === 'agent' && tab.owner.kind === 'worker'
   return (
     <div className="browser-toolbar">
       <IconButton
@@ -106,7 +161,7 @@ function BrowserToolbar({ tab }: { tab: BrowserTab }) {
         tooltipSide="bottom"
         disabled={locked || !tab.canGoBack}
         icon={<ArrowLeftIcon size={16} />}
-        onClick={() => {}}
+        onClick={() => void browserActions.history(tab.id, 'back')}
       />
       <IconButton
         size="sm"
@@ -115,7 +170,7 @@ function BrowserToolbar({ tab }: { tab: BrowserTab }) {
         tooltipSide="bottom"
         disabled={locked || !tab.canGoForward}
         icon={<ArrowRightIcon size={16} />}
-        onClick={() => {}}
+        onClick={() => void browserActions.history(tab.id, 'forward')}
       />
       <IconButton
         size="sm"
@@ -123,30 +178,10 @@ function BrowserToolbar({ tab }: { tab: BrowserTab }) {
         tooltip={t('browser.reload')}
         tooltipSide="bottom"
         disabled={locked}
-        icon={<RefreshIcon size={15} />}
-        onClick={() => {}}
+        icon={<RefreshIcon size={15} className={tab.loading ? 'animate-spin' : undefined} />}
+        onClick={() => void browserActions.history(tab.id, 'reload')}
       />
-      <div className="browser-address" data-locked={locked || undefined}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span
-              className="browser-address-scheme"
-              role="img"
-              aria-label={t(tab.secure ? 'browser.secure' : 'browser.notSecure')}
-            >
-              {tab.secure ? <LockIcon size={13} /> : <GlobeIcon size={13} />}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {t(tab.secure ? 'browser.secure' : 'browser.notSecure')}
-          </TooltipContent>
-        </Tooltip>
-        <span className="sr-only">{t('browser.address')}</span>
-        <span className="browser-address-text">
-          <strong>{host}</strong>
-          {rest}
-        </span>
-      </div>
+      <AddressField key={tab.id} tab={tab} locked={locked} />
       {owner && tab.control.kind === 'agent' ? (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -154,7 +189,7 @@ function BrowserToolbar({ tab }: { tab: BrowserTab }) {
               variant="outline"
               size="sm"
               className="browser-control"
-              onClick={() => takeOver(tab.id)}
+              onClick={() => void browserActions.takeOver(tab.id)}
             >
               <HandIcon size={15} />
               {t('browser.takeOver')}
@@ -163,16 +198,16 @@ function BrowserToolbar({ tab }: { tab: BrowserTab }) {
           <TooltipContent side="bottom">{t('browser.takeOverHint', { owner })}</TooltipContent>
         </Tooltip>
       ) : null}
-      {owner && tab.control.kind === 'user' ? (
+      {owner && tab.control.kind === 'user' && tab.owner.kind === 'worker' ? (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="outline"
               size="sm"
               className="browser-control"
-              onClick={() => handBack(tab.id)}
+              onClick={() => void browserActions.handBack(tab.id)}
             >
-              <OwlAvatar speaker={tab.owner.kind === 'worker' ? tab.owner.provider : 'router'} />
+              <OwlAvatar speaker={tab.owner.provider} />
               {t('browser.handBack')}
             </Button>
           </TooltipTrigger>
@@ -183,10 +218,15 @@ function BrowserToolbar({ tab }: { tab: BrowserTab }) {
   )
 }
 
+function ActionText({ action }: { action: BrowserAction }) {
+  const { t } = useTranslation()
+  if (action.kind === 'open') return <em>{t('browser.action.open', { host: action.host })}</em>
+  return <em>{t(`browser.action.${action.kind}`)}</em>
+}
+
 /** One line under the toolbar that says who drives the page, and asks when it needs the user. */
 function BrowserStatus({ tab }: { tab: BrowserTab }) {
   const { t } = useTranslation()
-  const handBack = useBrowserStore((s) => s.handBack)
   if (tab.owner.kind === 'user') return null
   const { provider, title } = tab.owner
   if (tab.control.kind === 'agent')
@@ -195,7 +235,7 @@ function BrowserStatus({ tab }: { tab: BrowserTab }) {
         <strong>{title}</strong>
         <span>{t('browser.driving')}</span>
         <WorkingDots speaker={provider} />
-        {tab.control.action ? <em>{tab.control.action}</em> : null}
+        {tab.control.action ? <ActionText action={tab.control.action} /> : null}
       </div>
     )
   if (tab.control.kind === 'handoff')
@@ -208,7 +248,7 @@ function BrowserStatus({ tab }: { tab: BrowserTab }) {
           </strong>
           <span>{tab.control.reason}</span>
         </p>
-        <Button size="sm" onClick={() => handBack(tab.id)}>
+        <Button size="sm" onClick={() => void browserActions.handBack(tab.id)}>
           {t('browser.done')}
         </Button>
       </div>
@@ -221,20 +261,101 @@ function BrowserStatus({ tab }: { tab: BrowserTab }) {
   )
 }
 
+/**
+ * True while a menu, popover, or dialog overlaps the page area. The page is a native view
+ * drawn above every DOM element, so it would hide them. Tooltips are left out: they are small
+ * and brief, and hiding the page for each would flicker.
+ */
+function overlayOver(area: DOMRect): boolean {
+  const overlays = document.body.querySelectorAll<HTMLElement>(
+    ':scope > [data-radix-popper-content-wrapper], :scope > [role="dialog"], :scope [role="dialog"][data-state="open"]'
+  )
+  for (const overlay of overlays) {
+    if (overlay.querySelector('[role="tooltip"]')) continue
+    const rect = overlay.getBoundingClientRect()
+    if (
+      rect.right > area.left &&
+      rect.left < area.right &&
+      rect.bottom > area.top &&
+      rect.top < area.bottom
+    )
+      return true
+  }
+  return false
+}
+
 function splitUrl(url: string): { host: string; rest: string } {
   const match = /^[a-z]+:\/\/([^/]+)(.*)$/i.exec(url)
   return match ? { host: match[1], rest: match[2] } : { host: url, rest: '' }
 }
 
 /**
- * The right sidebar's browser. In the real panel the page area is a placeholder whose bounds
- * main follows with the tab's WebContentsView; the prototype draws a stand-in page there.
+ * Where the page goes. The box itself stays empty: main lays the active tab's
+ * WebContentsView over its bounds, so this reports them whenever they change, and null
+ * once the box leaves the screen.
  */
+function Viewport({ tab }: { tab: BrowserTab }) {
+  const box = useRef<HTMLDivElement>(null)
+  const report = useRef<() => void>(() => {})
+  // A driven page sits inside its colored ring; the native view would cover it otherwise.
+  const inset = tab.control.kind === 'user' ? 0 : RING_WIDTH
+  useLayoutEffect(() => {
+    const element = box.current
+    if (!element) return
+    let frame = 0
+    report.current = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const rect = element.getBoundingClientRect()
+        const edge = Number(element.dataset.inset ?? 0)
+        if (overlayOver(rect)) return browserActions.setBounds(null)
+        browserActions.setBounds({
+          x: Math.max(0, rect.left + edge),
+          y: Math.max(0, rect.top + edge),
+          width: Math.max(0, rect.width - edge * 2),
+          height: Math.max(0, rect.height - edge * 2)
+        })
+      })
+    }
+    const observer = new ResizeObserver(() => report.current())
+    observer.observe(element)
+    const resized = () => report.current()
+    window.addEventListener('resize', resized)
+    // Menus, popovers, and dialogs portal into body; the page steps aside while one covers it.
+    const overlays = new MutationObserver(resized)
+    overlays.observe(document.body, { childList: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+      overlays.disconnect()
+      window.removeEventListener('resize', resized)
+      browserActions.setBounds(null)
+    }
+  }, [])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new tab or ring re-reports the same box.
+  useLayoutEffect(() => report.current(), [tab.id, inset])
+  return (
+    <div
+      ref={box}
+      className="browser-viewport"
+      role="tabpanel"
+      data-inset={inset}
+      data-control={tab.control.kind}
+      data-speaker={tab.owner.kind === 'worker' ? tab.owner.provider : undefined}
+    />
+  )
+}
+
+/** The right sidebar's browser: the tabs main owns, and the active tab's page. */
 export function BrowserPane() {
   const { t } = useTranslation()
   const tabs = useBrowserStore((s) => s.tabs)
   const activeId = useBrowserStore((s) => s.activeId)
   const tab = tabs.find((x) => x.id === activeId) ?? null
+  // Without a page to show, the view must not stay over the panel.
+  useEffect(() => {
+    if (!tab) browserActions.setBounds(null)
+  }, [tab])
   return (
     <section className="router-right-pane browser-pane" aria-label={t('router.panel.browser')}>
       <BrowserTabs tabs={tabs} activeId={activeId} />
@@ -242,21 +363,7 @@ export function BrowserPane() {
         <>
           <BrowserToolbar tab={tab} />
           <BrowserStatus tab={tab} />
-          <div
-            className="browser-viewport"
-            role="tabpanel"
-            data-control={tab.control.kind}
-            data-speaker={tab.owner.kind === 'worker' ? tab.owner.provider : undefined}
-          >
-            <PrototypePage
-              tab={tab}
-              cursorLabel={
-                tab.owner.kind === 'worker'
-                  ? t('browser.agentCursor', { owner: tab.owner.title })
-                  : ''
-              }
-            />
-          </div>
+          <Viewport tab={tab} />
         </>
       ) : (
         <div className="browser-empty">

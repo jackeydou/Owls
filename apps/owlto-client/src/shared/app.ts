@@ -15,6 +15,7 @@ import {
   type StageAttachment
 } from './attachments.js'
 import type { Automation, AutomationEnable, AutomationSave } from './automations.js'
+import type { BrowserAPI } from './browser-panel.js'
 import {
   type Board,
   type BoardSave,
@@ -667,6 +668,7 @@ export interface OwltoAPI {
   automations: AutomationsAPI
   updates: UpdatesAPI
   remote: RemoteAPI
+  browser: BrowserAPI
 }
 /** `window.owlto.automations`: tasks that wake the Router or a worker on a schedule. */
 export interface AutomationsAPI {

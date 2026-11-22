@@ -112,6 +112,20 @@
   display: inline-flex;
   flex: none;
 }
+.browser-address-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-foreground);
+  font: inherit;
+  outline: none;
+}
+.browser-address:focus-within {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
 .browser-address-text {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -192,8 +206,8 @@
 }
 
 /*
- * The page. In the real panel this box is empty and main lays the tab's WebContentsView over
- * its bounds; the colored inner ring says an agent is driving and the page ignores clicks.
+ * The page. This box stays empty: main lays the tab's WebContentsView over it, inset by the
+ * ring's width while a worker drives, so the colored ring shows around the page.
  */
 .browser-viewport {
   --browser-agent: #1f2228;
@@ -221,28 +235,12 @@
   box-shadow: inset 0 0 0 2px var(--browser-agent);
   pointer-events: none;
 }
-.browser-viewport[data-control="agent"] .mock-page {
-  cursor: not-allowed;
-}
 .browser-viewport[data-control="handoff"]::after {
   content: "";
   position: absolute;
   inset: 0;
   box-shadow: inset 0 0 0 2px var(--owl-browser-handoff);
   pointer-events: none;
-}
-.browser-agent-cursor {
-  position: absolute;
-  right: -10px;
-  bottom: -14px;
-  display: inline-flex;
-  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.3));
-}
-.browser-agent-cursor path {
-  fill: var(--browser-agent);
-  stroke: #ffffff;
-  stroke-width: 1.2;
-  stroke-linejoin: round;
 }
 .browser-empty {
   display: flex;

@@ -1,7 +1,7 @@
 # RFC: In-App Browser For Workers
 
-Status: proposal with a renderer prototype (debug builds only). Nothing in
-main, preload, or the worker tools changes yet.
+Status: phase 1 built (panel, tabs, CDP gate, `browser` tool on the gate,
+take over and hand back). Phases 2 and 3 are proposals.
 
 ## Problem
 
@@ -71,8 +71,8 @@ the Router's worker row says "needs you" instead of a generic wait.
  renderer (BrowserPane)          main                             page
  ─────────────────────           ──────────────────────           ─────────────
  placeholder div  ──bounds──▶    BrowserManager                   WebContentsView
- tab strip, toolbar ◀─events──   ├ one WebContentsView per tab    partition
-                                 ├ control state per tab          persist:owlto-browser
+ tab strip, toolbar ◀─events──   ├ one WebContentsView per tab    session in
+                                 ├ control state per tab          <dataRoot>/browser
                                  └ CdpGate (loopback, token) ◀──  Playwright connectOverCDP
                                         ▲                          (browser host process)
                                         └── webContents.debugger (in-process CDP)
@@ -83,7 +83,7 @@ the Router's worker row says "needs you" instead of a generic wait.
   device pixels) and main lays the active view over it. Hidden tabs are
   removed from the window but keep running (`backgroundThrottling: false`
   while a worker drives them).
-- **Session.** All tabs use `session.fromPartition('persist:owlto-browser')`,
+- **Session.** All tabs use `session.fromPath(<dataRoot>/browser/session)`,
   stored in the data root, so sign-ins persist and stay separate from Owlto's
   own renderer session. Owlto's Chrome profile under `<dataRoot>/browser` is
   no longer used; no migration, the user signs in once more (beta).
@@ -92,8 +92,8 @@ the Router's worker row says "needs you" instead of a generic wait.
   geolocation, notifications, MIDI, HID, serial) are denied by default.
   `file://`, `chrome://`, `devtools://`, and Owlto's own origins are blocked.
   Pop-ups open as new tabs owned by the same worker.
-- **Downloads** land in `<dataRoot>/browser/downloads/<workerId>/` and the
-  path is returned to the worker. Uploads keep today's rule: restricted
+- **Downloads** land in `<dataRoot>/browser/downloads/` (phase 1; per worker
+  folders and returning the path to the worker come with phase 2). Uploads keep today's rule: restricted
   workers cannot pick local files.
 
 ### The CDP gate
@@ -194,8 +194,10 @@ tool takes its place by default.
 3. **Site rules and polish.** Settings → Browser (site rules, clear sign-ins,
    downloads folder), overlays snapshot, Doodle skin pass.
 
-## Prototype
+## Code
 
-`apps/owlto-client/src/renderer/src/browser/` holds the panel UI against a
-demo store (`store.ts`) with stand-in pages (`PrototypePage.tsx`), shown only
-in debug builds. `shared/browser-panel.ts` is the tab model main would send.
+- `shared/browser-panel.ts`: the tab model and `window.owlto.browser`.
+- `main/browser/manager.ts`: tabs, session, layout, control state.
+- `main/browser/cdp-gate.ts`: the gate (`tests/admin/browser-gate.test.mjs`).
+- `main/browser/host.ts`, `runner.ts`: scripts over `connectOverCDP`.
+- `renderer/src/browser/`: the panel.

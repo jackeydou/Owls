@@ -1,82 +1,46 @@
 import { create } from 'zustand'
-import type { BrowserTab } from '../../../shared/browser-panel'
+import type { Reply } from '../../../shared/app'
+import type { BrowserBounds, BrowserSnapshot } from '../../../shared/browser-panel'
+import { UIError, uiFailure } from '../app/failures'
+import { useRouterStore } from '../router/store'
 
-/**
- * Prototype state for the in-app browser panel. The real panel would mirror tabs that
- * main owns (one WebContentsView each) through `window.owlto.browser` events; here the
- * actions only change local state so the design can be clicked through.
- */
-type BrowserState = {
-  tabs: BrowserTab[]
-  activeId: string | null
-  activate(id: string): void
-  close(id: string): void
-  takeOver(id: string): void
-  handBack(id: string): void
+/** The browser's tabs as main last reported them; main owns the tabs and their pages. */
+export const useBrowserStore = create<BrowserSnapshot>(() => ({ tabs: [], activeId: null }))
+
+/** Follows main's tabs for as long as the shell is mounted. */
+export function watchBrowser(): () => void {
+  void window.owlto.browser.snapshot().then((reply) => {
+    if (reply.ok) useBrowserStore.setState(reply.value)
+  })
+  return window.owlto.browser.onChanged((snapshot) => useBrowserStore.setState(snapshot))
 }
 
-const DEMO_TABS: BrowserTab[] = [
-  {
-    id: 'tab-codex',
-    owner: { kind: 'worker', workerId: 'w-codex', provider: 'codex', title: 'Check settings page' },
-    url: 'http://localhost:5173/settings',
-    title: 'Taskboard · Settings',
-    secure: false,
-    loading: false,
-    canGoBack: true,
-    canGoForward: false,
-    control: { kind: 'agent', action: 'Click "Save changes"' }
-  },
-  {
-    id: 'tab-cursor',
-    owner: {
-      kind: 'worker',
-      workerId: 'w-cursor',
-      provider: 'cursor',
-      title: 'Pull billing export'
-    },
-    url: 'https://accounts.example.com/sign-in',
-    title: 'Sign in · Example',
-    secure: true,
-    loading: false,
-    canGoBack: true,
-    canGoForward: false,
-    control: { kind: 'handoff', reason: 'Sign in to accounts.example.com, then hand it back.' }
-  },
-  {
-    id: 'tab-user',
-    owner: { kind: 'user' },
-    url: 'https://docs.example.dev/api/webhooks',
-    title: 'Webhooks · Example Docs',
-    secure: true,
-    loading: false,
-    canGoBack: false,
-    canGoForward: false,
-    control: { kind: 'user' }
+/** Runs a browser call; a failure shows in the shell's error toast. */
+async function call<T>(run: () => Promise<Reply<T>>): Promise<T | undefined> {
+  try {
+    const reply = await run()
+    if (!reply.ok) throw new UIError(reply.error)
+    return reply.value
+  } catch (error) {
+    useRouterStore.setState({ error: uiFailure(error) })
+    return undefined
   }
-]
+}
 
-const setControl = (tabs: BrowserTab[], id: string, control: BrowserTab['control']) =>
-  tabs.map((tab) => (tab.id === id ? { ...tab, control } : tab))
+const api = () => window.owlto.browser
 
-// Only debug builds show the prototype, so release builds never ship demo pages.
-const demo = __OWLTO_BUILD_MODE__ === 'debug'
-
-export const useBrowserStore = create<BrowserState>((set) => ({
-  tabs: demo ? DEMO_TABS : [],
-  activeId: demo ? 'tab-codex' : null,
-  activate: (activeId) => set({ activeId }),
-  close: (id) =>
-    set((state) => {
-      const index = state.tabs.findIndex((tab) => tab.id === id)
-      const tabs = state.tabs.filter((tab) => tab.id !== id)
-      const activeId =
-        state.activeId === id
-          ? (tabs[Math.min(index, tabs.length - 1)]?.id ?? null)
-          : state.activeId
-      return { tabs, activeId }
-    }),
-  takeOver: (id) => set((state) => ({ tabs: setControl(state.tabs, id, { kind: 'user' }) })),
-  handBack: (id) =>
-    set((state) => ({ tabs: setControl(state.tabs, id, { kind: 'agent', action: null }) }))
-}))
+export const browserActions = {
+  activate: (tabId: string) => call(() => api().activate(tabId)),
+  close: (tabId: string) => call(() => api().close(tabId)),
+  newTab: () => call(() => api().newTab()),
+  navigate: (tabId: string, url: string) => call(() => api().navigate({ tabId, url })),
+  history: (tabId: string, action: 'back' | 'forward' | 'reload') =>
+    call(() => api().history({ tabId, action })),
+  takeOver: (tabId: string) => call(() => api().takeOver(tabId)),
+  handBack: (tabId: string) => call(() => api().handBack(tabId)),
+  /** Bounds are sent often while dragging; a failure here has nothing to tell the user. */
+  setBounds: (bounds: BrowserBounds) =>
+    void api()
+      .setBounds(bounds)
+      .catch(() => {})
+}

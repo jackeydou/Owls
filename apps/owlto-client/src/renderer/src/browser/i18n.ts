@@ -20,7 +20,10 @@ export const browserEn = {
   'browser.done': 'Done, hand back',
   'browser.paused': 'You are using this page. {{owner}} waits until you hand it back.',
   'browser.empty': 'Pages your workers open show up here. You can watch them and step in.',
-  'browser.agentCursor': '{{owner}}’s pointer'
+  'browser.addressPlaceholder': 'Search or enter an address',
+  'browser.action.open': 'Opening {{host}}',
+  'browser.action.click': 'Clicking',
+  'browser.action.type': 'Typing'
 }
 
 export const browserZh: Record<keyof typeof browserEn, string> = {
@@ -44,5 +47,8 @@ export const browserZh: Record<keyof typeof browserEn, string> = {
   'browser.done': '完成，交还',
   'browser.paused': '你正在操作这个页面，{{owner}} 会等你交还后再继续。',
   'browser.empty': 'Worker 打开的网页会显示在这里，你可以随时看到并接手。',
-  'browser.agentCursor': '{{owner}} 的指针'
+  'browser.addressPlaceholder': '搜索或输入网址',
+  'browser.action.open': '正在打开 {{host}}',
+  'browser.action.click': '正在点击',
+  'browser.action.type': '正在输入'
 }

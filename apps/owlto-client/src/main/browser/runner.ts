@@ -23,18 +23,35 @@ export class BrowserHost implements WorkerBrowser {
     private readonly paths: {
       /** The built `browser/host.js` entry. */
       entry: string
-      profileDir: () => string
+      /** The CDP gate endpoint for one worker. */
+      endpoint: (key: string) => Promise<string>
+      /** Resolves false if the user still holds the worker's tab after `timeoutMs`. */
+      waitForAgent: (key: string, timeoutMs: number) => Promise<boolean>
       shotsDir: () => string
     }
   ) {}
 
-  run(
+  async run(
     key: string,
     code: string,
-    timeoutMs: number,
+    budgetMs: number,
     mode: BrowserRunMode
   ): Promise<ReportToolResult> {
-    if (this.closed) return Promise.resolve({ ok: false, text: 'Owlto is quitting.' })
+    if (this.closed) return { ok: false, text: 'Owlto is quitting.' }
+    const started = Date.now()
+    if (!(await this.paths.waitForAgent(key, budgetMs)))
+      return {
+        ok: false,
+        text: 'The user is using your browser tab. Try again after they hand it back.'
+      }
+    if (this.closed) return { ok: false, text: 'Owlto is quitting.' }
+    const timeoutMs = Math.max(1_000, budgetMs - (Date.now() - started))
+    let endpoint: string
+    try {
+      endpoint = await this.paths.endpoint(key)
+    } catch (error) {
+      return { ok: false, text: `Owlto’s browser could not start: ${String(error)}` }
+    }
     const child = this.start()
     const id = randomUUID()
     return new Promise((resolve) => {
@@ -49,7 +66,7 @@ export class BrowserHost implements WorkerBrowser {
         code,
         mode,
         timeoutMs,
-        profileDir: this.paths.profileDir(),
+        endpoint,
         shotsDir: this.paths.shotsDir()
       }
       child.postMessage(request)

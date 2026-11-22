@@ -143,10 +143,7 @@ export function RightSidebar() {
           />
           <PanelTab panel="cards" current={panel} icon={<CardsIcon size={18} />} />
           <PanelTab panel="files" current={panel} icon={<FileCodeIcon size={18} />} />
-          {/* Prototype: debug builds only until the in-app browser is built for real. */}
-          {__OWLTO_BUILD_MODE__ === 'debug' ? (
-            <PanelTab panel="browser" current={panel} icon={<GlobeIcon size={18} />} />
-          ) : null}
+          <PanelTab panel="browser" current={panel} icon={<GlobeIcon size={18} />} />
         </nav>
       </header>
       {panel === 'browser' ? (

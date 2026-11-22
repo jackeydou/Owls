@@ -1,7 +1,9 @@
 # Owlto Browser Tool
 
 Codex and Cursor workers get one Owlto tool, `browser` (`owlto_browser` on
-Codex), that drives a real Chrome window by running a Playwright script. It is
+Codex), that drives a tab of Owlto's own browser by running a Playwright script.
+The tab shows in the right sidebar's Browser panel (see
+`docs/RFC_OWLTO_IN_APP_BROWSER.md`), where the user can watch it and take over. It is
 served like the other worker tools: Codex as a dynamic tool and Cursor through
 the local HTTP MCP server.
 
@@ -30,8 +32,9 @@ Input: `code`, the body of an async function, and optional `timeoutMs`
 
 - `page`: the worker's own Playwright `Page`. The same worker keeps the same
   tab between calls; another worker gets another tab.
-- `context`: the `BrowserContext` of Owlto's persistent Chrome profile
-  (`<dataRoot>/browser/profile`), shared by all workers, so sign-ins persist.
+- `context`: a `BrowserContext` holding only this worker's tabs. All tabs share
+  one persistent session (`<dataRoot>/browser/session`), so sign-ins persist and
+  are shared by all workers.
 - `console`: its output is returned after the result.
 
 The reply is `Result: <JSON>` (or `Error: <message>`), then console lines, cut
@@ -41,14 +44,24 @@ at 20,000 characters. A script that returns bytes, such as
 
 ## Runtime
 
+Tabs are `WebContentsView`s that `main/browser/manager.ts` owns and lays over
+the Browser panel's page area; a tab the panel does not show is parked off the
+window so it keeps painting. Worker tabs attach `webContents.debugger`.
+
+`main/browser/cdp-gate.ts` serves a loopback WebSocket that speaks enough
+browser-level CDP for Playwright's `connectOverCDP`, relaying page sessions to
+the tabs' debuggers. Each worker gets its own endpoint token, which lists and
+opens only that worker's tabs; browser-wide commands are refused, and so is
+script input while the user holds the tab. Owlto never opens Electron's
+`--remote-debugging-port`, which would expose its own window. The gate starts
+on first use.
+
 `main/browser/runner.ts` starts `browser/host.js` as an Electron utility
-process on first use. The host launches the installed Google Chrome (then
-Microsoft Edge) through `playwright-core` with a visible window, so the user
-can watch, and sign in when a site asks. It runs one worker's scripts in order.
-Pages idle for 30 minutes close, and the window closes 10 minutes after the
-last page. A script that outlives its timeout fails the call; if the host stops
-answering 15 s past that, the main process kills it, and the next call starts a
-new host and window.
+process on first use. The host connects to the worker's gate endpoint and runs
+one worker's scripts in order. While the user holds a worker's tab, a call
+waits for the hand-back up to its timeout. Pages idle for 30 minutes close. A
+script that outlives its timeout fails the call; if the host stops answering
+15 s past that, the main process kills it, and the next call starts a new host.
 
 Because the host runs in Owlto, not in the agent's process, a Codex
 `workspace-write` sandbox (no network by default) does not apply to it.

@@ -22,6 +22,9 @@ import { Analytics } from '../analytics/service.js'
 import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
 import { AutomationStore } from '../automations/store.js'
+import { CdpGate } from '../browser/cdp-gate.js'
+import { registerBrowserIpc } from '../browser/ipc.js'
+import { BrowserManager } from '../browser/manager.js'
 import { BrowserHost } from '../browser/runner.js'
 import {
   DEBUG_APP_NAME,
@@ -114,6 +117,9 @@ let updater: AppUpdater | null = null
 /** Notifies the user when a worker waits on them while Owlto is in the background. */
 let attention: WorkerAttention | null = null
 let browser: BrowserHost | null = null
+/** Owlto's browser tabs, shown in the right sidebar's Browser panel. */
+let browserTabs: BrowserManager | null = null
+let browserGate: CdpGate | null = null
 let remote: RemoteService | null = null
 /** Anonymous usage analytics; null in every build but a release build with a PostHog key. */
 let analytics: Analytics | null = null
@@ -142,6 +148,7 @@ function emit(event: AppEvent): void {
   attention?.observe(event)
   analytics?.observe(event)
   remote?.observe(event)
+  browserTabs?.observe(event)
   if (window && !window.isDestroyed()) window.webContents.send('owlto:event', event)
 }
 function remoteChanged(overview: RemoteOverview): void {
@@ -232,6 +239,7 @@ function createWindow(): void {
     window?.show()
   })
   rememberWindowState(window, statePath)
+  browserTabs?.attachWindow(window)
   // Keep the native profile name when the renderer loads its generic HTML title.
   window.on('page-title-updated', (event) => event.preventDefault())
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -335,9 +343,26 @@ void app
       automations
     )
     service.attachRouter(router)
+    const tabs = new BrowserManager({
+      home: () => browserHome(),
+      owner: (key) => {
+        const worker = router?.worker(key)
+        if (!worker || worker.status === 'removed') return null
+        return { provider: worker.provider, title: worker.title ?? worker.goal.split('\n')[0] }
+      },
+      changed: (snapshot) => {
+        if (window && !window.isDestroyed())
+          window.webContents.send('owlto:browser-changed', snapshot)
+      }
+    })
+    const gate = new CdpGate(tabs)
+    tabs.attachGate(gate)
+    browserTabs = tabs
+    browserGate = gate
     browser = new BrowserHost({
       entry: join(__dirname, 'browser/host.js'),
-      profileDir: () => join(browserHome(), 'profile'),
+      endpoint: (key) => gate.endpoint(key),
+      waitForAgent: (key, timeoutMs) => tabs.waitForAgent(key, timeoutMs),
       shotsDir: () => join(browserHome(), 'screenshots')
     })
     router.attachBrowser(browser)
@@ -539,6 +564,7 @@ void app
       analytics
     )
     registerRemoteIpc(handle, remote)
+    registerBrowserIpc(handle, tabs)
     applyAppMenu(store.settings(), menu)
     createWindow()
     if (REMOTE_ROUTER_ENABLED) {
@@ -596,6 +622,10 @@ app.on('will-quit', (event) => {
   attention = null
   browser?.close()
   browser = null
+  browserTabs?.close()
+  browserTabs = null
+  browserGate?.close()
+  browserGate = null
   remote?.close()
   remote = null
   service?.close()

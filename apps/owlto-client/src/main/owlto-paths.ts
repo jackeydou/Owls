@@ -83,7 +83,7 @@ export function attachmentsHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'attachments')
 }
 
-/** Owlto's browser for workers: its Chrome profile and the screenshots scripts return. */
+/** Owlto's browser: its session (sign-ins), downloads, and the screenshots scripts return. */
 export function browserHome(dataRoot = getDataRoot()): string {
   return join(dataRoot, 'browser')
 }

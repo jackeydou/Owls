@@ -7,6 +7,7 @@ import { failureMessage } from '../app/failures'
 import { SettingsPage } from '../app/Settings'
 import { useAppStore } from '../app/store'
 import { AutomationsView } from '../automations/AutomationsView'
+import { watchBrowser } from '../browser/store'
 import { CaptureDialog, SendCardsDialog } from '../cards/CardDialogs'
 import { CardsView } from '../cards/CardsView'
 import { useCardsStore, watchCards } from '../cards/store'
@@ -141,6 +142,7 @@ export function RouterShell() {
   const sidebarLabel = t(collapsed ? 'router.showSidebar' : 'router.hideSidebar')
   useEffect(() => watchCards(), [])
   useEffect(() => watchDreaming(), [])
+  useEffect(() => watchBrowser(), [])
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()
