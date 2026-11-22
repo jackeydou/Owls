@@ -21,6 +21,12 @@ export type AttentionNotice = {
 }
 /** What a worker's browser tab waits on the user for: a hand-off, or a site rule's ask. */
 export type BrowserNeedNotice = { kind: 'handoff' | 'open' | 'submit'; text: string }
+/** What a worker waits on the user for in the iOS Simulator panel. */
+export type SimulatorNeedNotice = {
+  kind: 'device' | 'install' | 'launch' | 'open-url'
+  /** The device name, app path, bundle id, or URL. */
+  text: string
+}
 /** A shown notice, closed once its requests are answered so Notification Center does not keep it. */
 export type NoticeHandle = { close(): void }
 export type AttentionDeps = {
@@ -52,7 +58,13 @@ const COPY = {
     open: (agent: string) => `${agent} wants to open a site`,
     openBody: (host: string) => `Allow ${host}?`,
     submit: (agent: string) => `${agent} wants to submit a form`,
-    submitBody: (host: string) => `On ${host}, where you are signed in.`
+    submitBody: (host: string) => `On ${host}, where you are signed in.`,
+    simulator: {
+      device: (agent: string) => `${agent} wants to use a simulator`,
+      install: (agent: string) => `${agent} wants to install an app in the simulator`,
+      launch: (agent: string) => `${agent} wants to launch an app in the simulator`,
+      'open-url': (agent: string) => `${agent} wants to open a URL in the simulator`
+    }
   },
   'zh-CN': {
     approval: (agent: string) => `${agent} 需要你批准`,
@@ -64,7 +76,13 @@ const COPY = {
     open: (agent: string) => `${agent} 想打开一个网站`,
     openBody: (host: string) => `允许打开 ${host} 吗？`,
     submit: (agent: string) => `${agent} 想提交表单`,
-    submitBody: (host: string) => `在你已登录的 ${host} 上。`
+    submitBody: (host: string) => `在你已登录的 ${host} 上。`,
+    simulator: {
+      device: (agent: string) => `${agent} 想使用模拟器`,
+      install: (agent: string) => `${agent} 想在模拟器里安装 app`,
+      launch: (agent: string) => `${agent} 想在模拟器里启动 app`,
+      'open-url': (agent: string) => `${agent} 想在模拟器里打开链接`
+    }
   }
 } as const
 
@@ -98,6 +116,8 @@ export class WorkerAttention {
   private readonly shown = new Map<string, NoticeHandle>()
   /** Sessions whose worker's browser tab waits on the user, and for what. */
   private readonly browserNeeds = new Map<string, string>()
+  /** Sessions whose worker waits on the user in the iOS Simulator panel, and for what. */
+  private readonly simulatorNeeds = new Map<string, string>()
   private badgeCount = -1
 
   /** `sessions` are the ones already loaded, whose waiting requests were there before this run. */
@@ -113,8 +133,10 @@ export class WorkerAttention {
     if (event.type === 'removed') {
       this.pending.delete(event.sessionId)
       this.browserNeeds.delete(event.sessionId)
+      this.simulatorNeeds.delete(event.sessionId)
       this.closeNotice(event.sessionId)
       this.closeNotice(browserNoticeId(event.sessionId))
+      this.closeNotice(simulatorNoticeId(event.sessionId))
       this.refreshBadge()
       return
     }
@@ -180,6 +202,40 @@ export class WorkerAttention {
     if (handle) this.shown.set(id, handle)
   }
 
+  /** Like `browserNeed`, for an ask in the iOS Simulator panel. */
+  simulatorNeed(
+    sessionId: string,
+    provider: AgentProvider,
+    need: SimulatorNeedNotice | null
+  ): void {
+    const id = simulatorNoticeId(sessionId)
+    const before = this.simulatorNeeds.get(sessionId)
+    if (!need) {
+      this.simulatorNeeds.delete(sessionId)
+      this.closeNotice(id)
+      this.refreshBadge()
+      return
+    }
+    const key = `${need.kind}:${need.text}`
+    this.simulatorNeeds.set(sessionId, key)
+    this.refreshBadge()
+    if (before === key) return
+    const settings = this.deps.settings()
+    if (!settings.requestNotifications || this.deps.focused()) return
+    const copy = COPY[settings.language] ?? COPY.en
+    const worker = this.deps.worker(sessionId)
+    const notice: AttentionNotice = {
+      title: copy.simulator[need.kind](AGENTS[provider]),
+      subtitle: clip(worker?.title ?? ''),
+      body: clip(need.text),
+      target: { sessionId, workerId: worker?.id ?? null, routerId: worker?.routerId ?? null }
+    }
+    this.deps.remote?.(notice)
+    this.closeNotice(id)
+    const handle = this.deps.show(notice)
+    if (handle) this.shown.set(id, handle)
+  }
+
   close(): void {
     for (const id of [...this.shown.keys()]) this.closeNotice(id)
     this.deps.badge(0)
@@ -223,6 +279,7 @@ export class WorkerAttention {
     if (this.deps.settings().requestNotifications) {
       for (const ids of this.pending.values()) count += ids.size
       count += this.browserNeeds.size
+      count += this.simulatorNeeds.size
     }
     if (count === this.badgeCount) return
     this.badgeCount = count
@@ -232,6 +289,10 @@ export class WorkerAttention {
 
 function browserNoticeId(sessionId: string): string {
   return `browser:${sessionId}`
+}
+
+function simulatorNoticeId(sessionId: string): string {
+  return `simulator:${sessionId}`
 }
 
 function pendingIds(session: Session): Set<string> {

@@ -3,6 +3,11 @@ import type { AppEvent, OpenWorkerTarget, OwltoAPI } from '../shared/app.js'
 import type { BrowserSnapshot } from '../shared/browser-panel.js'
 import type { MenuCommand } from '../shared/menu.js'
 import type { RemoteEventEnvelope, RemoteOverview } from '../shared/remote.js'
+import {
+  SIMULATOR_STREAM_MESSAGE,
+  type SimulatorSnapshot,
+  type SimulatorStreamEnvelope
+} from '../shared/simulator.js'
 import type { UpdateSnapshot } from '../shared/updates.js'
 
 const api: OwltoAPI = {
@@ -190,8 +195,29 @@ const api: OwltoAPI = {
       ipcRenderer.on('owlto:browser-changed', handler)
       return () => ipcRenderer.removeListener('owlto:browser-changed', handler)
     }
+  },
+  simulator: {
+    snapshot: () => ipcRenderer.invoke('owlto:simulator-snapshot'),
+    refresh: () => ipcRenderer.invoke('owlto:simulator-refresh'),
+    attach: (udid) => ipcRenderer.invoke('owlto:simulator-attach', udid),
+    detach: (udid) => ipcRenderer.invoke('owlto:simulator-detach', udid),
+    shutdown: (udid) => ipcRenderer.invoke('owlto:simulator-shutdown', udid),
+    repairInput: (udid) => ipcRenderer.invoke('owlto:simulator-repair-input', udid),
+    answer: (input) => ipcRenderer.invoke('owlto:simulator-answer', input),
+    openStream: (udid) => ipcRenderer.invoke('owlto:simulator-open-stream', udid),
+    onChanged: (listener) => {
+      const handler = (_: Electron.IpcRendererEvent, snapshot: SimulatorSnapshot) =>
+        listener(snapshot)
+      ipcRenderer.on('owlto:simulator-changed', handler)
+      return () => ipcRenderer.removeListener('owlto:simulator-changed', handler)
+    }
   }
 }
+// A stream port cannot cross the context bridge, so it goes to the page as a window message.
+ipcRenderer.on(SIMULATOR_STREAM_MESSAGE, (event, udid: string) => {
+  const envelope: SimulatorStreamEnvelope = { type: SIMULATOR_STREAM_MESSAGE, udid }
+  window.postMessage(envelope, window.location.origin, event.ports)
+})
 contextBridge.exposeInMainWorld('owlto', api)
 contextBridge.exposeInMainWorld(
   'owltoPlatform',

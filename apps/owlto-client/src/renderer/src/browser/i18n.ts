@@ -33,7 +33,7 @@ export const browserEn = {
   'browser.ask.block': 'Block',
   'browser.viewInBrowser': 'View in browser',
   'browser.workerNeedsYou': 'Needs you',
-  'browserSettings.title': 'Browser',
+  'browserSettings.title': 'Browser & Simulator',
   'browserSettings.body':
     'Workers open pages in Owlto’s own browser, in the Browser panel. Choose what they may do there.',
   'browserSettings.sites': 'Site rules',
@@ -98,7 +98,7 @@ export const browserZh: Record<keyof typeof browserEn, string> = {
   'browser.ask.block': '阻止',
   'browser.viewInBrowser': '在浏览器中查看',
   'browser.workerNeedsYou': '需要你',
-  'browserSettings.title': '浏览器',
+  'browserSettings.title': '浏览器与模拟器',
   'browserSettings.body':
     'Worker 在 Owlto 自带的浏览器（浏览器面板）里打开网页。在这里决定它们能做什么。',
   'browserSettings.sites': '网站规则',

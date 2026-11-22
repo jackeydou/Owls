@@ -69,6 +69,11 @@ import {
   unknownBatchSchema,
   type WorkerAction
 } from './router.js'
+import {
+  defaultSimulatorSettings,
+  type SimulatorAPI,
+  simulatorSettingsSchema
+} from './simulator.js'
 import { type UpdateSnapshot, updateChannelSchema } from './updates.js'
 import type { UsageOverview } from './usage.js'
 import type { UsageStats, UsageStatsRequest } from './usage-stats.js'
@@ -249,12 +254,14 @@ export const paneWidthBounds = {
   /** The right sidebar while it shows the file viewer, which wants room for code. */
   files: { min: 320, max: 960, initial: 520 },
   /** The right sidebar while it shows the browser, which needs room for a real page. */
-  browser: { min: 400, max: 1280, initial: 640 }
+  browser: { min: 400, max: 1280, initial: 640 },
+  /** The right sidebar while it shows the iOS Simulator, sized for a phone screen. */
+  simulator: { min: 320, max: 960, initial: 420 }
 } as const
 export type ResizablePane = keyof typeof paneWidthBounds
 /** A width the user dragged to, or null to follow the pane's current default. */
 const paneWidthSchema = z.number().int().positive().nullable()
-export const rightPanelSchema = z.enum(['projects', 'cards', 'files', 'browser'])
+export const rightPanelSchema = z.enum(['projects', 'cards', 'files', 'browser', 'simulator'])
 export type RightPanel = z.infer<typeof rightPanelSchema>
 export const layoutSettingsSchema = z.object({
   sidebarWidth: paneWidthSchema,
@@ -266,6 +273,8 @@ export const layoutSettingsSchema = z.object({
   filesWidth: paneWidthSchema.catch(null),
   /** The right sidebar on its browser tab; added later, so older rows follow the default. */
   browserWidth: paneWidthSchema.catch(null),
+  /** The right sidebar on its simulator tab; added later, so older rows follow the default. */
+  simulatorWidth: paneWidthSchema.catch(null),
   /** Whether the right-hand sidebar is open; named for its first and once only content. */
   projectsOpen: z.boolean(),
   /** Which list the right-hand sidebar shows; added later, so older rows show projects. */
@@ -286,6 +295,7 @@ export const defaultLayoutSettings: LayoutSettings = {
   cardWidth: null,
   filesWidth: null,
   browserWidth: null,
+  simulatorWidth: null,
   projectsOpen: false,
   rightPanel: 'projects'
 }
@@ -382,7 +392,11 @@ export const settingsSchema = z.object({
   /** Settings → Browser: site rules and form asks. Added later, so older rows get the defaults. */
   browser: browserSettingsSchema.catch(defaultBrowserSettings).default(defaultBrowserSettings),
   /** Where Owlto's browser saves downloads; null uses the data root. Saved only through its picker. */
-  browserDownloadsPath: z.string().nullable().catch(null).default(null)
+  browserDownloadsPath: z.string().nullable().catch(null).default(null),
+  /** The iOS Simulator panel: whether workers get its tools, and the devices they may use. */
+  simulator: simulatorSettingsSchema
+    .catch(defaultSimulatorSettings)
+    .default(defaultSimulatorSettings)
 })
 /**
  * Rows from before `connectedAgents` remembered the opposite, the agents the user
@@ -674,6 +688,7 @@ export interface OwltoAPI {
   updates: UpdatesAPI
   remote: RemoteAPI
   browser: BrowserAPI
+  simulator: SimulatorAPI
 }
 /** `window.owlto.automations`: tasks that wake the Router or a worker on a schedule. */
 export interface AutomationsAPI {

@@ -1,0 +1,1 @@
+- iOS Simulator: a Simulator panel in the right sidebar shows a booted iOS simulator live, and workers get simulator tools to install, launch, look at, and drive their app, with your OK per device and for installs below full access.

@@ -35,6 +35,7 @@ import type {
   SaveProject
 } from '../../../shared/projects'
 import { defaultRouterSettings } from '../../../shared/router'
+import { defaultSimulatorSettings } from '../../../shared/simulator'
 import { WORKSPACE_ID } from '../../../shared/workspace'
 import { backend } from '../remote/backend'
 import { useViewingStore, viewingDevice } from '../remote/viewing'
@@ -210,7 +211,8 @@ export const paneWidthKey = {
   panel: 'panelWidth',
   card: 'cardWidth',
   files: 'filesWidth',
-  browser: 'browserWidth'
+  browser: 'browserWidth',
+  simulator: 'simulatorWidth'
 } as const satisfies Record<ResizablePane, keyof typeof defaultLayoutSettings>
 export function clampPaneWidth(pane: ResizablePane, width: number): number {
   const { min, max } = paneWidthBounds[pane]
@@ -310,7 +312,8 @@ export const useAppStore = create<State>((set, get) => {
       remoteRelay: false,
       remoteKeepAwake: false,
       browser: defaultBrowserSettings,
-      browserDownloadsPath: null
+      browserDownloadsPath: null,
+      simulator: defaultSimulatorSettings
     },
     connection: {
       status: 'disconnected',
@@ -671,7 +674,8 @@ export const useAppStore = create<State>((set, get) => {
           usageData: settings.usageData,
           openInApp: settings.openInApp,
           onboarding: settings.onboarding,
-          browser: settings.browser
+          browser: settings.browser,
+          simulator: settings.simulator
         })
       )
       if (saved) set({ settings: saved })

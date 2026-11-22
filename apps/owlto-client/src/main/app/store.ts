@@ -18,6 +18,7 @@ import { defaultBrowserSettings } from '../../shared/browser-panel.js'
 import { defaultMemorySettings } from '../../shared/memory.js'
 import { defaultProfile } from '../../shared/profile.js'
 import { defaultRouterSettings } from '../../shared/router.js'
+import { defaultSimulatorSettings } from '../../shared/simulator.js'
 import { loadDeviceIdentity } from '../sync/device-identity.js'
 import { logChange } from '../sync/sync-log.js'
 import { OwltoError } from './errors.js'
@@ -70,7 +71,8 @@ export class OwltoStore {
           remoteRelay: false,
           remoteKeepAwake: false,
           browser: defaultBrowserSettings,
-          browserDownloadsPath: null
+          browserDownloadsPath: null,
+          simulator: defaultSimulatorSettings
         }
   }
   saveSettings(value: AppSettings): AppSettings {

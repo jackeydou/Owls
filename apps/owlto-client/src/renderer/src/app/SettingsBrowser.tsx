@@ -169,6 +169,57 @@ function DownloadsRow() {
   )
 }
 
+/** Whether workers get the iOS Simulator tools, and the devices the user let them use. */
+function SimulatorSettings() {
+  const { t } = useTranslation()
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
+  const allowed = settings.simulator.allowedDevices.length
+  return (
+    <>
+      <h3 className="owlto-settings-subhead">{t('simulatorSettings.title')}</h3>
+      <SettingRow
+        label={t('simulatorSettings.enabled')}
+        htmlFor="simulator-enabled"
+        description={t('simulatorSettings.enabledHelp')}
+      >
+        <Switch
+          id="simulator-enabled"
+          checked={settings.simulator.enabled}
+          onCheckedChange={(enabled) =>
+            void saveSettings({ ...settings, simulator: { ...settings.simulator, enabled } })
+          }
+        />
+      </SettingRow>
+      <SettingRow
+        label={t('simulatorSettings.allowed')}
+        description={
+          allowed
+            ? t('simulatorSettings.allowedCount', { count: allowed })
+            : t('simulatorSettings.allowedNone')
+        }
+      >
+        <ActionButton
+          size="sm"
+          variant="outline"
+          disabled={!allowed}
+          doneLabel={t('simulatorSettings.forgotten')}
+          onAction={async () => {
+            await saveSettings({
+              ...settings,
+              simulator: { ...settings.simulator, allowedDevices: [] }
+            })
+            const left = useAppStore.getState().settings.simulator.allowedDevices.length
+            return left ? 'quiet' : 'done'
+          }}
+        >
+          {t('simulatorSettings.forget')}
+        </ActionButton>
+      </SettingRow>
+    </>
+  )
+}
+
 /** Settings → Browser: what workers may do in Owlto's browser, its sign-ins and downloads. */
 export function BrowserSettingsPane() {
   const { t } = useTranslation()
@@ -206,6 +257,7 @@ export function BrowserSettingsPane() {
           {t('browserSettings.clearSignIns')}
         </ActionButton>
       </SettingRow>
+      <SimulatorSettings />
     </section>
   )
 }

@@ -74,7 +74,9 @@ export default defineConfig(({ command, mode }) => {
             'app/runtime': resolve('src/main/app/runtime.ts'),
             'app/ipc': resolve('src/main/app/ipc.ts'),
             // The browser host runs in its own utility process (see browser/runner.ts).
-            'browser/host': resolve('src/main/browser/host.ts')
+            'browser/host': resolve('src/main/browser/host.ts'),
+            // So does the simulator host, which loads serve-sim's native addon (simulator/host-client.ts).
+            'simulator/host': resolve('src/main/simulator/host.ts')
           }
         },
         externalizeDeps: {
