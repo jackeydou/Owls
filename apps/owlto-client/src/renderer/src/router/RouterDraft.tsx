@@ -14,6 +14,7 @@ import { useViewingRemote } from '../remote/viewing'
 import { byRelevance, projectHue, workerTitle } from './activity'
 import type { DraftAttachments } from './DraftAttachments'
 import { ProjectIcon } from './ProjectIcon'
+import { type DraftQuote, withQuotes } from './quotes'
 import { useRouterStore } from './store'
 import { WorkerDot } from './WorkerLink'
 
@@ -151,6 +152,12 @@ function useMentions(
   }, [workers, projects, cards, attached, router, query])
 }
 
+export type DraftQuotes = {
+  items: DraftQuote[]
+  clear: () => void
+  removeLast: () => void
+}
+
 /**
  * A message being written. Text goes to the thread's Router, creating the thread
  * on the first send, unless a worker is addressed, by `@` here or by `target`
@@ -167,7 +174,8 @@ export function useRouterDraft({
   onThread,
   linkedCards,
   onSent,
-  attachments
+  attachments,
+  quotes
 }: {
   projectId: string | null
   router: Router | undefined
@@ -182,6 +190,8 @@ export function useRouterDraft({
   onSent?: () => void
   /** Files the draft carries, for a message to a worker; pasting or dropping files adds them. */
   attachments?: DraftAttachments
+  /** Passages of the thread the message quotes; they go out ahead of its text. */
+  quotes?: DraftQuotes
 }) {
   const { createThread, send, sending } = useRouterStore()
   /** A thread made by a send that failed, so trying again does not leave another. */
@@ -265,8 +275,10 @@ export function useRouterDraft({
   }
   const files = attachments?.ready ?? []
   const waiting = attachments?.staging ?? false
+  const quoted = quotes?.items ?? []
   async function submit() {
-    const message = editor.getText({ blockSeparator: '\n' }).trim()
+    const typed = editor.getText({ blockSeparator: '\n' }).trim()
+    const message = withQuotes(quoted, typed)
     if ((!message && !files.length) || sending || waiting) return
     const chosen = router ? null : (firstProject(editor) ?? projectId)
     const current = router ?? created.current ?? (await createThread(chosen))
@@ -278,6 +290,7 @@ export function useRouterDraft({
       setMention(null)
       setCards([])
       attachments?.clear()
+      quotes?.clear()
       onSent?.()
       created.current = null
       if (!router) onThread?.(current.id)
@@ -310,6 +323,10 @@ export function useRouterDraft({
       setCards((list) => list.slice(0, -1))
       return true
     }
+    if (event.key === 'Backspace' && editor.isEmpty && quoted.length) {
+      quotes?.removeLast()
+      return true
+    }
     if (event.key === 'Backspace' && editor.isEmpty && attachments?.files.length) {
       attachments.removeLast()
       return true
@@ -325,7 +342,7 @@ export function useRouterDraft({
     editor,
     empty,
     /** Something to send, with every attached file ready. */
-    canSend: (!empty || files.length > 0) && !waiting && !sending,
+    canSend: (!empty || files.length > 0 || quoted.length > 0) && !waiting && !sending,
     sending,
     addressed,
     options,

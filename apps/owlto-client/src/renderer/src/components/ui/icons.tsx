@@ -509,6 +509,16 @@ export const PlusIcon = createIcon(
     <line x1="2.75" y1="8" x2="13.25" y2="8" />
   </g>
 )
+export const QuoteIcon = createIcon(
+  'Quote',
+  'outline',
+  <g>
+    <line x1="2.5" y1="3.5" x2="2.5" y2="12.5" />
+    <line x1="5.5" y1="4.5" x2="13.5" y2="4.5" />
+    <line x1="5.5" y1="8" x2="13.5" y2="8" />
+    <line x1="5.5" y1="11.5" x2="10.5" y2="11.5" />
+  </g>
+)
 export const RefreshIcon = createIcon(
   'Refresh',
   'outline',

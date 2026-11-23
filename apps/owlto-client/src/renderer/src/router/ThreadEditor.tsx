@@ -1,9 +1,12 @@
 import { Button } from '@renderer/components/ui/button'
 import { LoaderIcon } from '@renderer/components/ui/icons'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
 import { useAppStore } from '../app/store'
 import { DraftAttachmentChips, type DraftAttachments } from './DraftAttachments'
+import { DraftQuoteTags } from './DraftQuotes'
+import { useQuoteStore, useThreadQuotes } from './quotes'
 import { DraftCards, DraftInput, DraftTarget, MentionMenu, useRouterDraft } from './RouterDraft'
 import { ThreadRow } from './ThreadRow'
 
@@ -27,19 +30,39 @@ export function ThreadEditor({
   const { t } = useTranslation()
   const hasProjects = useAppStore((s) => s.projects.length > 0)
   const showThread = useAppStore((s) => s.showThread)
+  const quotes = useThreadQuotes(router?.id)
+  const { remove: removeQuote, clear: clearQuotes } = useQuoteStore()
+  const routerId = router?.id
   const draft = useRouterDraft({
     projectId: null,
     router,
     isSendKey: isCommandEnter,
     onThread: showThread,
-    attachments
+    attachments,
+    quotes: routerId
+      ? {
+          items: quotes,
+          clear: () => clearQuotes(routerId),
+          removeLast: () => {
+            const last = quotes.at(-1)
+            if (last) removeQuote(routerId, last.id)
+          }
+        }
+      : undefined
   })
-  const { sending, addressed } = draft
-  const blank = draft.empty && !attachments.files.length
+  const { sending, addressed, editor } = draft
+  // A new quote is something to write about: the caret moves here, bringing the editor into view.
+  const quoteCount = useRef(quotes.length)
+  useEffect(() => {
+    if (quotes.length > quoteCount.current) editor.commands.focus('end')
+    quoteCount.current = quotes.length
+  }, [quotes.length, editor])
+  const blank = draft.empty && !attachments.files.length && !quotes.length
   return (
     <ThreadRow speaker="user">
       <div className="router-editor">
         {addressed ? <DraftTarget worker={addressed} onClear={draft.clearMention} /> : null}
+        <DraftQuoteTags quotes={quotes} onRemove={(id) => routerId && removeQuote(routerId, id)} />
         <DraftAttachmentChips attachments={attachments} size="preview" />
         <DraftCards cards={draft.cards} onRemove={draft.removeCard} />
         <DraftInput

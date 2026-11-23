@@ -8,7 +8,13 @@ import {
   type VirtualElement
 } from '@floating-ui/react-dom'
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { CardPlusIcon, CheckIcon, CopyIcon, ForwardIcon } from '@renderer/components/ui/icons'
+import {
+  CardPlusIcon,
+  CheckIcon,
+  CopyIcon,
+  ForwardIcon,
+  QuoteIcon
+} from '@renderer/components/ui/icons'
 import { type RefObject, useEffect, useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
@@ -17,6 +23,7 @@ import { CARD_BODY_LIMIT } from '../../../shared/cards'
 import { titleFrom } from '../cards/CardActions'
 import { useCardsStore } from '../cards/store'
 import { useViewingRemote } from '../remote/viewing'
+import { QuotePanel } from './QuotePanel'
 import { useRouterStore } from './store'
 
 /** Message text a selection can quote: a reply's Markdown or a user's own message. */
@@ -24,11 +31,12 @@ const QUOTABLE = '.owlto-markdown, .owlto-user-message'
 /** How long Copy shows its check mark. */
 const COPIED_MS = 1600
 
-type Selected = { item: SessionItem; text: string; anchor: VirtualElement }
+export type Selected = { item: SessionItem; text: string; anchor: VirtualElement }
 
 /**
- * The message actions (Copy, Forward, Save as note) for a selection inside one message,
- * floating above it. Forward and Save take only the selected text.
+ * The message actions (Quote, Copy, Forward, Save as note) for a selection inside one message,
+ * floating above it. Forward and Save take only the selected text. Quote turns the bar into
+ * a small input for a note on the passage; the quote then waits above the thread's editor.
  */
 export function SelectionActions({
   scroller,
@@ -41,14 +49,40 @@ export function SelectionActions({
   itemOf: (entryId: string) => SessionItem | null
 }) {
   const selected = useSelection(scroller, itemOf)
-  // Forwarding and notes stay on this Mac; another device's threads are read here only.
-  const remote = useViewingRemote()
-  if (!router || !selected || remote) return null
-  return <SelectionToolbar key={selected.item.id} selected={selected} router={router} />
+  // The passage being quoted outlives the selection: writing the note moves focus away from it.
+  const [quoting, setQuoting] = useState<Selected | null>(null)
+  const routerId = router?.id
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a quote belongs to the thread it came from.
+  useEffect(() => setQuoting(null), [routerId])
+  if (!router) return null
+  if (quoting)
+    return <QuotePanel selected={quoting} routerId={router.id} onClose={() => setQuoting(null)} />
+  if (!selected) return null
+  return (
+    <SelectionToolbar
+      key={selected.item.id}
+      selected={selected}
+      router={router}
+      onQuote={() => {
+        setQuoting(selected)
+        window.getSelection()?.removeAllRanges()
+      }}
+    />
+  )
 }
 
-function SelectionToolbar({ selected, router }: { selected: Selected; router: Router }) {
+function SelectionToolbar({
+  selected,
+  router,
+  onQuote
+}: {
+  selected: Selected
+  router: Router
+  onQuote: () => void
+}) {
   const { t } = useTranslation()
+  // Forwarding and notes stay on this Mac; another device's threads are only read and quoted.
+  const remote = useViewingRemote()
   const startForward = useRouterStore((s) => s.startForward)
   const startCapture = useCardsStore((s) => s.startCapture)
   const [copied, setCopied] = useState(false)
@@ -83,6 +117,13 @@ function SelectionToolbar({ selected, router }: { selected: Selected; router: Ro
     >
       <IconButton
         size="sm"
+        label={t('quote.action')}
+        tooltip={t('quote.action')}
+        icon={<QuoteIcon size={15} />}
+        onClick={onQuote}
+      />
+      <IconButton
+        size="sm"
         label={t(copied ? 'copied' : 'router.copySelection')}
         tooltip={t(copied ? 'copied' : 'router.copySelection')}
         icon={copied ? <CheckIcon size={15} /> : <CopyIcon size={15} />}
@@ -90,31 +131,35 @@ function SelectionToolbar({ selected, router }: { selected: Selected; router: Ro
           void navigator.clipboard.writeText(text).then(() => setCopied(true))
         }}
       />
-      <IconButton
-        size="sm"
-        label={t('router.forwardSelection')}
-        tooltip={t('router.forwardSelection')}
-        icon={<ForwardIcon size={15} />}
-        onClick={() => {
-          startForward({ source, preview: text, projectId: router.projectId })
-          done()
-        }}
-      />
-      <IconButton
-        size="sm"
-        label={t('router.saveSelection')}
-        tooltip={t('router.saveSelection')}
-        icon={<CardPlusIcon size={15} />}
-        onClick={() => {
-          startCapture({
-            source,
-            title: titleFrom(text),
-            preview: text,
-            projectId: router.projectId
-          })
-          done()
-        }}
-      />
+      {remote ? null : (
+        <>
+          <IconButton
+            size="sm"
+            label={t('router.forwardSelection')}
+            tooltip={t('router.forwardSelection')}
+            icon={<ForwardIcon size={15} />}
+            onClick={() => {
+              startForward({ source, preview: text, projectId: router.projectId })
+              done()
+            }}
+          />
+          <IconButton
+            size="sm"
+            label={t('router.saveSelection')}
+            tooltip={t('router.saveSelection')}
+            icon={<CardPlusIcon size={15} />}
+            onClick={() => {
+              startCapture({
+                source,
+                title: titleFrom(text),
+                preview: text,
+                projectId: router.projectId
+              })
+              done()
+            }}
+          />
+        </>
+      )}
     </div>,
     document.body
   )
@@ -171,7 +216,8 @@ function selectionIn(
 ): Selected | null {
   const selection = window.getSelection()
   if (!selection || selection.isCollapsed || !selection.rangeCount) return null
-  const range = selection.getRangeAt(0)
+  // A copy, so the anchor stays put once the selection moves on (as it does while quoting).
+  const range = selection.getRangeAt(0).cloneRange()
   const common = range.commonAncestorContainer
   const element = common instanceof Element ? common : common.parentElement
   const message = element?.closest<HTMLElement>(QUOTABLE)

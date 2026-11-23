@@ -1,0 +1,164 @@
+/* Quoting a passage of the thread: the panel over the selection, the tags above the editor,
+   and the quotes inside a sent message. */
+.owlto-quote-panel {
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(340px, calc(100vw - 16px));
+  max-height: 220px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-lg);
+  background: var(--color-card-elevated);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.1);
+  -webkit-app-region: no-drag;
+}
+.owlto-quote-panel-text,
+.router-draft-quote-label > span {
+  overflow: hidden;
+  color: var(--color-muted-foreground);
+}
+.owlto-quote-panel-text {
+  display: -webkit-box;
+  flex-shrink: 0;
+  margin: 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--color-border-strong);
+  font-size: var(--owl-text-xs);
+  line-height: var(--owl-leading-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.owlto-quote-panel-field {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-height: 0;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-md);
+  background: var(--color-card);
+}
+.owlto-quote-panel-field:focus-within {
+  border-color: var(--owl-field-focus-border);
+  box-shadow: var(--owl-field-focus-shadow);
+}
+.owlto-quote-panel-field textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 120px;
+  padding: 3px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--color-foreground);
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+  resize: none;
+}
+.owlto-quote-panel-field textarea::placeholder {
+  color: var(--color-muted-foreground);
+}
+.owlto-quote-panel .owlto-quote-panel-add {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+}
+.owlto-quote-panel-full {
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+}
+
+/* Tags above the editor, one line each. */
+.router-draft-quotes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 6px;
+}
+.router-draft-quotes li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 280px;
+  height: 26px;
+  padding: 0 2px 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--owl-radius-sm);
+  background: var(--color-card-muted);
+  font-size: var(--owl-text-2xs);
+}
+.router-draft-quote-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  border-radius: var(--owl-radius-xs);
+  cursor: default;
+}
+.router-draft-quote-label > svg {
+  flex-shrink: 0;
+  color: var(--color-muted-foreground);
+}
+.router-draft-quote-label > span {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.router-draft-quotes button {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+.router-quote-tooltip {
+  max-width: min(420px, calc(100vw - 16px));
+  max-height: 60vh;
+  overflow: hidden;
+}
+.router-quote-tooltip blockquote {
+  margin: 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--color-border-strong);
+  color: var(--color-muted-foreground);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.router-quote-tooltip p {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* A sent message's quotes, set off above the text that follows each. */
+.owlto-user-message .router-message-quote {
+  margin: 0 0 6px;
+  padding-left: 10px;
+  border-left: 2px solid var(--color-border-strong);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-sm);
+}
+.owlto-user-message > p {
+  margin: 0 0 10px;
+}
+.owlto-user-message > :last-child {
+  margin-bottom: 0;
+}
+
+html[data-skin="doodle"] .owlto-quote-panel {
+  border: var(--doodle-border);
+  background: var(--doodle-card);
+  box-shadow: var(--doodle-shadow-lg);
+}
+html[data-skin="doodle"] .owlto-quote-panel-field,
+html[data-skin="doodle"] .router-draft-quotes li {
+  border: var(--doodle-border);
+  background: var(--doodle-card);
+}
+html[data-skin="doodle"] .owlto-quote-panel-text,
+html[data-skin="doodle"] .owlto-user-message .router-message-quote {
+  border-left-color: var(--doodle-line);
+}
