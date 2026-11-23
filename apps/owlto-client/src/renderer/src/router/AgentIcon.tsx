@@ -2,8 +2,8 @@ import type { AgentProvider } from '../../../shared/app'
 
 // Claude Code's and Cursor's marks come from simple-icons (CC0); the OpenAI mark, for Codex,
 // matches resources/openai.svg. All are their owners' trademarks and stay unmodified.
-// Antigravity has no published mark there, so it gets Owlto's own glyph: the two rising
-// chevrons on the Antigravity owl's chest.
+// Antigravity has no published mark there, so it gets Owlto's own glyph: two rising
+// chevrons, for anti-gravity.
 const MARKS: Record<AgentProvider, { path: string; fillRule?: 'evenodd' }> = {
   'claude-code': {
     path: 'M21 10.5h3v3h-3v3h-1.5v3H18v-3h-1.5v3H15v-3H9v3H7.5v-3H6v3H4.5v-3H3v-3H0v-3h3v-6h18Zm-15 0h1.5v-3H6Zm10.5 0H18v-3h-1.5z'

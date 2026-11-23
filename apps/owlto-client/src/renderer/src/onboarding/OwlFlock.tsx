@@ -4,10 +4,10 @@ import { type OwlId, owlDrawing } from './owl-art'
 
 /**
  * Owl, scale, and how much of the drawing shows from the top of the head (drawing units).
- * An owl with something above its head, like Antigravity's floating orb, starts higher.
+ * An owl with something above its head, like Antigravity's orbit ring, starts higher.
  */
 const FLOCK: [OwlId, number, number, number?][] = [
-  ['antigravity', 0.72, 290, 36],
+  ['antigravity', 0.72, 290, 72],
   ['user', 0.78, 300],
   ['claude-code', 0.86, 315],
   ['router', 1, 335],
