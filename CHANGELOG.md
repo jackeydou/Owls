@@ -11,6 +11,22 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2300-beta.1
+
+### Highlights
+
+- A worker's conversation now opens in the right sidebar, next to the Router thread.
+- The update notice links to the new version's release notes.
+
+### Changes
+
+- Workers: a worker's conversation opens in the right sidebar with its actions in a second bar; clicking a project there folds its workers. (#222)
+- Updates: the update notice links to the new version's release notes, and Check for Updates in the app menu shows a small corner notice that follows the check, download, and ready steps instead of opening Settings. (#223)
+
+### Fixes
+
+- Settings: the Settings sidebar no longer scrolls away with a long page. (#222)
+
 ## 2026.11.2200-beta.4
 
 ### Highlights
