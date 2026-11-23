@@ -11,6 +11,18 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2200-beta.4
+
+### Highlights
+
+- Antigravity CLI joins Codex, Claude Code, and Cursor as a worker agent.
+
+### Changes
+
+- Agents: Antigravity CLI (agy) can run workers next to Codex, Claude Code, and Cursor, with its own owl. (#220)
+
+### Fixes
+
 ## 2026.11.2200-beta.3
 
 ### Highlights
