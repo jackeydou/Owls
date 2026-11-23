@@ -16,7 +16,7 @@
   -webkit-app-region: no-drag;
 }
 /* One line: the title shrinks first, then its change counts. */
-.worker-panel > header > div {
+.worker-title {
   display: flex;
   flex: 1;
   align-items: center;
@@ -428,8 +428,8 @@ button.worker-artifact-name:hover {
   background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 /* "Open in": a split button, the remembered app's icon plus a chevron for the others.
-   The header's `> div` rule stretches its title block; this one keeps its own width. */
-.worker-panel > header > .open-in {
+   It keeps its own width beside the stretching title block. */
+.worker-actions .open-in {
   display: inline-flex;
   flex: none;
   align-items: stretch;

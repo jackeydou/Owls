@@ -1,5 +1,6 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
 import { CardPlusIcon, CardsIcon, CheckIcon } from '@renderer/components/ui/icons'
+import { MenuItem } from '@renderer/components/ui/menu'
 import { useTranslation } from 'react-i18next'
 import type { CardCapture, CardRef } from '../../../shared/cards'
 import { useAppStore } from '../app/store'
@@ -30,22 +31,16 @@ function useOpenCard(): (cardId: string) => void {
   }
 }
 
-/**
- * Saves a message or worker result as a card. Once saved, it opens that card
- * instead, so the same text is not saved twice by accident.
- */
-export function SaveCardAction({
-  source,
-  text,
-  title,
-  projectId
-}: {
+type SaveCardProps = {
   source: CardCapture['source']
   text: string
   /** A better default title than the text's first line, such as a worker's title. */
   title?: string
   projectId: string | null
-}) {
+}
+
+/** What saving offers: open the card already saved from this source, or start a new one. */
+function useSaveCard({ source, text, title, projectId }: SaveCardProps) {
   const { t } = useTranslation()
   const saved = useCardsStore((s) =>
     s.cards.find((card) =>
@@ -60,25 +55,45 @@ export function SaveCardAction({
   const remote = useViewingRemote()
   if (remote) return null
   if (saved)
-    return (
-      <IconButton
-        size="sm"
-        label={t('cards.saved', { title: saved.title })}
-        tooltip={t('cards.saved', { title: saved.title })}
-        icon={<CheckIcon size={15} />}
-        onClick={() => open(saved.id)}
-      />
-    )
+    return {
+      saved: true,
+      label: t('cards.saved', { title: saved.title }),
+      run: () => open(saved.id)
+    }
+  return {
+    saved: false,
+    label: t('cards.saveAction'),
+    run: () => startCapture({ source, title: title ?? titleFrom(text), preview: text, projectId })
+  }
+}
+
+/**
+ * Saves a message or worker result as a card. Once saved, it opens that card
+ * instead, so the same text is not saved twice by accident.
+ */
+export function SaveCardAction(props: SaveCardProps) {
+  const save = useSaveCard(props)
+  if (!save) return null
   return (
     <IconButton
       size="sm"
-      label={t('cards.saveAction')}
-      tooltip={t('cards.saveAction')}
-      icon={<CardPlusIcon size={15} />}
-      onClick={() =>
-        startCapture({ source, title: title ?? titleFrom(text), preview: text, projectId })
-      }
+      label={save.label}
+      tooltip={save.label}
+      icon={save.saved ? <CheckIcon size={15} /> : <CardPlusIcon size={15} />}
+      onClick={save.run}
     />
+  )
+}
+
+/** SaveCardAction as an item of another menu, such as a bar's More menu. */
+export function SaveCardMenuItem(props: SaveCardProps) {
+  const save = useSaveCard(props)
+  if (!save) return null
+  return (
+    <MenuItem onSelect={save.run}>
+      {save.saved ? <CheckIcon size={15} /> : <CardPlusIcon size={15} />}
+      <span className="min-w-0 flex-1 truncate">{save.label}</span>
+    </MenuItem>
   )
 }
 
