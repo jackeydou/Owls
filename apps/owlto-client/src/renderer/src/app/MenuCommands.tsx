@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MenuCommand } from '../../../shared/menu'
 import { NewProjectDialog, type NewProjectSource } from '../router/AddProjectMenu'
+import { useUpdateNoticeStore } from '../updates/notice-store'
 import { useAppStore } from './store'
 
 function run(command: MenuCommand, openProjectForm: (source: NewProjectSource) => void) {
@@ -19,7 +20,8 @@ function run(command: MenuCommand, openProjectForm: (source: NewProjectSource) =
     case 'settings':
       return app.showSettings()
     case 'updates':
-      return app.showSettings('updates')
+      // A small notice follows the check in place; Settings → Updates keeps the full page.
+      return void useUpdateNoticeStore.getState().check()
     case 'toggle-sidebar':
       return inSettings ? undefined : app.toggleSidebar()
     case 'toggle-projects':

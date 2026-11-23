@@ -9,7 +9,7 @@ import { OnboardingHost } from '../onboarding/state'
 import { viewingDevice } from '../remote/viewing'
 import { OpenWorkerFromNotification } from '../router/OpenWorkerFromNotification'
 import { RouterShell } from '../router/RouterShell'
-import { UpdatePopup } from '../updates/UpdatePopup'
+import { UpdateNotice } from '../updates/UpdateNotice'
 import { failureMessage } from './failures'
 import { MenuCommands } from './MenuCommands'
 import { useAppStore } from './store'
@@ -65,7 +65,7 @@ export default function App() {
       {loaded ? <OnboardingHost /> : null}
       {loaded ? <Onboarding /> : null}
       <OpenWorkerFromNotification />
-      {loaded ? <UpdatePopup /> : null}
+      {loaded ? <UpdateNotice /> : null}
       {error ? (
         <div className="owlto-error-toast" role="alert">
           <AlertCircleIcon size={18} />
