@@ -737,3 +737,17 @@ html[data-skin="doodle"] .router-dispatch-row .router-dispatch-needs::before {
 html[data-skin="doodle"] .owlto-browser-site-add .router-input {
   border-color: var(--doodle-line);
 }
+
+/* Update notice: amber progress and countdown on an inked track. */
+html[data-skin="doodle"] .owlto-update-progress {
+  border: var(--doodle-border-thin);
+  background: var(--doodle-card);
+}
+html[data-skin="doodle"] .owlto-update-progress > span {
+  background: var(--doodle-amber);
+  opacity: 1;
+}
+html[data-skin="doodle"] .owlto-update-countdown-bar {
+  stroke: var(--doodle-amber);
+  stroke-width: 3;
+}

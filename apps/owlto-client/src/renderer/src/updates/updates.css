@@ -49,10 +49,136 @@
   gap: 8px;
   margin-top: 12px;
 }
-.owlto-update-popup-close {
+.owlto-update-popup-icon[data-tone="good"] {
+  color: var(--color-success);
+}
+.owlto-update-popup-icon[data-tone="bad"] {
+  color: var(--color-destructive);
+}
+.owlto-update-notice-close {
   flex-shrink: 0;
-  margin: -6px -6px 0 0;
+  margin: -4px -4px 0 0;
   color: var(--color-muted-foreground);
+}
+
+/* Opens the incoming version's release notes. */
+.owlto-update-notes-link {
+  gap: 4px;
+  margin-top: 6px;
+  padding: 0;
+  color: var(--owl-link);
+  font-size: var(--owl-text-xs);
+  font-weight: 500;
+}
+.owlto-update-notes-link:hover {
+  color: var(--owl-link-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Downloading reports no byte progress (Squirrel.Mac sends none), so the bar is indeterminate. */
+.owlto-update-progress {
+  position: relative;
+  height: 4px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-card-muted);
+}
+.owlto-update-progress > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--color-foreground);
+  opacity: 0.7;
+  animation: owlto-update-progress 1.4s ease-in-out infinite;
+}
+@keyframes owlto-update-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+/* "Up to date" closes itself: the ring around the close button empties, paused while the
+   pointer or focus is on the notice. */
+.owlto-update-countdown {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px 0 0;
+}
+.owlto-update-countdown > svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.owlto-update-countdown circle {
+  fill: none;
+  stroke-width: 2;
+}
+.owlto-update-countdown-track {
+  stroke: var(--color-border);
+}
+.owlto-update-countdown-bar {
+  stroke: var(--color-foreground);
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  animation: owlto-update-countdown 5s linear forwards;
+}
+.owlto-update-popup:is(:hover, :focus-within) .owlto-update-countdown-bar {
+  animation-play-state: paused;
+}
+.owlto-update-countdown .owlto-update-notice-close {
+  margin: 0;
+}
+@keyframes owlto-update-countdown {
+  to {
+    stroke-dashoffset: 100;
+  }
+}
+
+/* Release notes of the incoming version. */
+.owlto-update-notes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.owlto-update-notes-head h2 {
+  margin: 0;
+  font-size: var(--owl-text-base);
+  font-weight: 600;
+}
+.owlto-update-notes-body {
+  max-height: min(60vh, 520px);
+  padding: 4px 20px 20px;
+  overflow-y: auto;
+  font-size: var(--owl-text-sm);
+  line-height: var(--owl-leading-normal);
+}
+.owlto-update-notes-body h2 {
+  margin: 16px 0 6px;
+  font-size: var(--owl-text-sm);
+  font-weight: 600;
+}
+.owlto-update-notes-body ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+.owlto-update-notes-body li + li {
+  margin-top: 6px;
 }
 @keyframes owlto-update-popup-in {
   from {
@@ -74,6 +200,9 @@
   .owlto-update-popup,
   .owlto-status-refresh {
     animation: none;
+  }
+  .owlto-update-progress > span {
+    animation-duration: 3s;
   }
 }
 

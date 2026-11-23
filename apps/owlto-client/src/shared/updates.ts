@@ -114,9 +114,10 @@ export type UpdateState =
   | { status: 'idle' }
   | { status: 'checking' }
   | { status: 'up-to-date'; checkedAt: string }
-  | { status: 'downloading'; version: string }
+  /** `notes` is the feed's Markdown release notes for `version` (`release-notes/<version>.md`). */
+  | { status: 'downloading'; version: string; notes: string }
   /** Installed when the app quits, or right away through `install`. */
-  | { status: 'ready'; version: string }
+  | { status: 'ready'; version: string; notes: string }
   | { status: 'failed'; failure: UpdateFailure; checkedAt: string }
 export type UpdateSnapshot = {
   currentVersion: string

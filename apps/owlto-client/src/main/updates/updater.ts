@@ -88,7 +88,7 @@ export class AppUpdater {
     if (!isNewerRelease(entry.data.version, app.getVersion())) {
       return this.set(this.checked('up-to-date'))
     }
-    this.set({ status: 'downloading', version: entry.data.version })
+    this.set({ status: 'downloading', version: entry.data.version, notes: entry.data.notes })
     try {
       autoUpdater.setFeedURL({
         url,
@@ -145,7 +145,7 @@ export class AppUpdater {
 
   private readonly downloaded = () => {
     if (this.state.status === 'downloading')
-      this.set({ status: 'ready', version: this.state.version })
+      this.set({ status: 'ready', version: this.state.version, notes: this.state.notes })
   }
 
   /** The feed changed between Owlto's read and Squirrel's, for example a release was pulled. */

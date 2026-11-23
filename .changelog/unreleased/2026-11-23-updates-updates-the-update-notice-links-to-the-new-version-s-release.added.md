@@ -1,0 +1,1 @@
+- Updates: the update notice links to the new version's release notes, and Check for Updates in the app menu shows a small corner notice that follows the check, download, and ready steps instead of opening Settings.
