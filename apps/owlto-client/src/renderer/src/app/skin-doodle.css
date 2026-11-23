@@ -157,11 +157,14 @@ html[data-skin="doodle"] :is(.router-sidebar, .owlto-settings-nav) {
 html[data-skin="doodle"] .router-projects {
   border-left: var(--doodle-border);
 }
-html[data-skin="doodle"] :is(.owlto-topbar, .router-panel > header) {
+html[data-skin="doodle"] :is(.owlto-topbar, .router-panel > header, .worker-panel > header) {
   border-bottom: var(--doodle-border);
 }
 html[data-skin="doodle"] .router-panel {
   border-left: var(--doodle-border);
+}
+html[data-skin="doodle"] .worker-panel {
+  border-top: var(--doodle-border);
 }
 
 /* Section labels: the website's condensed italic capitals. */
@@ -169,7 +172,7 @@ html[data-skin="doodle"]
 :is(
   .router-sidebar-threads h2,
   .router-projects-head h2,
-  .router-right-pane > header h2,
+  .router-right-pane:not(.worker-panel) > header h2,
   .owlto-settings-group
 ) {
   color: var(--color-muted-foreground);
@@ -184,7 +187,7 @@ html[data-skin="doodle"][lang="zh-CN"]
   :is(
     .router-sidebar-threads h2,
     .router-projects-head h2,
-    .router-right-pane > header h2,
+    .router-right-pane:not(.worker-panel) > header h2,
     .owlto-settings-group
   ) {
   font-style: normal;

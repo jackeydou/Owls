@@ -193,6 +193,8 @@ type State = {
   toggleSidebar(): void
   /** Opens or closes the right-hand sidebar, keeping the list it last showed. */
   toggleProjects(): void
+  /** Opens the right-hand sidebar on whatever it shows, as when a worker opens there. */
+  openRightSidebar(): void
   /** Opens the right-hand sidebar on one of its lists. */
   showRightPanel(panel: RightPanel): void
   /** Clamps and persists one pane's width, typically once a drag ends. */
@@ -621,6 +623,13 @@ export const useAppStore = create<State>((set, get) => {
       const { settings, saveSettings } = get()
       void saveSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })
     },
+    openRightSidebar: () => {
+      const { settings, saveSettings } = get()
+      if (settings.layout.projectsOpen) return
+      const layout = { ...settings.layout, projectsOpen: true }
+      set({ settings: { ...settings, layout } })
+      void saveSettings({ ...settings, layout })
+    },
     toggleProjects: () => {
       const { settings, saveSettings } = get()
       const layout = { ...settings.layout, projectsOpen: !settings.layout.projectsOpen }
@@ -630,6 +639,9 @@ export const useAppStore = create<State>((set, get) => {
     },
     showRightPanel: (rightPanel) => {
       const { settings, saveSettings } = get()
+      // A worker's conversation covers the sidebar's lists, so showing a list closes it.
+      const router = useRouterStore.getState()
+      if (router.panel?.kind === 'worker') router.showPanel(null)
       if (settings.layout.projectsOpen && settings.layout.rightPanel === rightPanel) return
       const layout = { ...settings.layout, projectsOpen: true, rightPanel }
       set({ settings: { ...settings, layout } })

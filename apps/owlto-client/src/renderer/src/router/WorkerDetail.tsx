@@ -3,6 +3,7 @@ import { IconButton } from '@renderer/components/ui/icon-button'
 import {
   AlertCircleIcon,
   ArrowDownIcon,
+  ArrowLeftIcon,
   CircleCheckIcon,
   CircleDashedIcon,
   CircleMinusIcon,
@@ -13,8 +14,7 @@ import {
   type IconComponent,
   LoaderIcon,
   StopIcon,
-  TrashIcon,
-  XIcon
+  TrashIcon
 } from '@renderer/components/ui/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useMemo, useState } from 'react'
@@ -85,8 +85,17 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
   const follow = useFollowScroll(!showChanges)
   const browserTab = useWorkerTab(worker.id)
   return (
-    <aside className="router-panel worker-panel" aria-label={title}>
+    <section className="router-right-pane worker-panel" aria-label={title}>
+      {/* The sidebar's second bar: back to the list, the worker, and what can be done with it. */}
       <header>
+        <IconButton
+          size="sm"
+          className="worker-back"
+          label={t('back')}
+          tooltip={t('back')}
+          icon={<ArrowLeftIcon size={16} />}
+          onClick={() => showPanel(null)}
+        />
         <div>
           <h2>
             <WorkerStateIcon worker={worker} />
@@ -163,13 +172,6 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
             projectId={worker.projectId}
           />
         ) : null}
-        <IconButton
-          size="sm"
-          label={t('worker.close')}
-          tooltip={t('worker.close')}
-          icon={<XIcon size={17} />}
-          onClick={() => showPanel(null)}
-        />
       </header>
       {worktree ? (
         <p className="worker-branch">
@@ -210,6 +212,6 @@ export function WorkerDetail({ worker }: { worker: RouterWorker }) {
         ) : null}
       </div>
       <WorkerComposer key={worker.id} worker={worker} />
-    </aside>
+    </section>
   )
 }

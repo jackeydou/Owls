@@ -248,7 +248,16 @@ html[data-platform="darwin"] {
 .router-project.foldable {
   padding-right: 32px;
 }
+/* A project row is a plain label unless it has workers to fold. */
+div.router-project {
+  -webkit-app-region: no-drag;
+}
+div.router-project:hover {
+  background: none;
+}
 .router-project-fold {
+  display: grid;
+  place-items: center;
   position: absolute;
   top: 4px;
   right: 5px;

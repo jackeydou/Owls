@@ -24,19 +24,16 @@ import { RouterChat } from './RouterChat'
 import { RouterDetail } from './RouterDetail'
 import { Sidebar } from './Sidebar'
 import { useRouterStore } from './store'
-import { WorkerDetail } from './WorkerDetail'
 import './router.css'
 
+/** The thread's details beside the view; a worker's conversation opens in the right sidebar. */
 function Panel() {
-  const panel = useRouterStore((s) => s.panel)
-  const router = useRouterStore((s) =>
-    panel?.kind === 'router' ? s.routers.find((r) => r.id === panel.routerId) : undefined
-  )
-  const worker = useRouterStore((s) =>
-    panel?.kind === 'worker' ? s.workers.find((w) => w.id === panel.workerId) : undefined
-  )
-  if (panel?.kind === 'router') return <RouterDetail router={router} />
-  return worker ? <WorkerDetail key={worker.id} worker={worker} /> : null
+  const router = useRouterStore((s) => {
+    const panel = s.panel
+    return panel?.kind === 'router' ? s.routers.find((r) => r.id === panel.routerId) : undefined
+  })
+  const open = useRouterStore((s) => s.panel?.kind === 'router')
+  return open ? <RouterDetail router={router} /> : null
 }
 /** The stage around the current view and its details panel, whose width it owns. */
 function Stage({
@@ -51,7 +48,7 @@ function Stage({
     s.view === 'pulls' && !s.settings.pullRequestsVisible ? 'chat' : s.view
   )
   const threadId = useAppStore((s) => s.threadId)
-  const panelOpen = useRouterStore((s) => s.panel !== null)
+  const panelOpen = useRouterStore((s) => s.panel?.kind === 'router')
   const { width, handle } = usePaneWidth('panel', 'left')
   return (
     <div
@@ -145,6 +142,15 @@ export function RouterShell() {
   useEffect(() => watchDreaming(), [])
   useEffect(() => watchBrowser(), [])
   useEffect(() => watchSimulator(), [])
+  // A worker's conversation lives in the right sidebar, so opening one from anywhere opens it.
+  useEffect(
+    () =>
+      useRouterStore.subscribe((state, prev) => {
+        if (state.panel?.kind === 'worker' && state.panel !== prev.panel)
+          useAppStore.getState().openRightSidebar()
+      }),
+    []
+  )
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) return stepBack()
