@@ -15,10 +15,12 @@ import type { AppEvent, ClaudeConnection } from '../../shared/app.js'
 import type { RemoteEvent, RemoteEventEnvelope, RemoteOverview } from '../../shared/remote.js'
 import type { UpdateSnapshot } from '../../shared/updates.js'
 import type { UsageEntry } from '../../shared/usage-stats.js'
+import { AcpAgentService } from '../acp/service.js'
 import { analyticsBuildConfig } from '../analytics/build-config.js'
 import { loadIdentity, saveIdentity } from '../analytics/identity.js'
 import { posthogSink } from '../analytics/posthog.js'
 import { Analytics } from '../analytics/service.js'
+import { antigravityAgent } from '../antigravity/agent.js'
 import { PullRequestWatcher } from '../automations/pull-request-events.js'
 import { AutomationService } from '../automations/service.js'
 import { AutomationStore } from '../automations/store.js'
@@ -36,7 +38,7 @@ import { CardService } from '../cards/service.js'
 import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
 import { CodexService } from '../codex/service.js'
-import { CursorService } from '../cursor/service.js'
+import { cursorAgent } from '../cursor/agent.js'
 import { configureDevAppInstanceProfile } from '../dev-app-instance.js'
 import { GitHubAuth } from '../github/auth.js'
 import { fetchGitHubAvatar } from '../github/avatar.js'
@@ -291,11 +293,13 @@ void app
       })
     }
     const claude = new ClaudeService(store, emit, { query, createSdkMcpServer })
-    const cursor = new CursorService(store, emit)
+    const cursor = new AcpAgentService(store, emit, cursorAgent)
+    const antigravity = new AcpAgentService(store, emit, antigravityAgent)
     service = new OwltoHost(
       new CodexService(store, emit),
       claude,
       cursor,
+      antigravity,
       routerThreadHome(root),
       projectsHome(root),
       workspaceHome(root),
@@ -304,6 +308,7 @@ void app
     claude.setWorkspaceFolder(() => service?.workspaceFolder() ?? workspaceHome(root))
     claude.setNotesFolder(notesHome(root))
     cursor.setNotesFolder(notesHome(root))
+    antigravity.setNotesFolder(notesHome(root))
     const usage = new UsageLedger(store)
     service.attachUsage(usage)
     const recordUsage = (entry: UsageEntry) => usage.record(entry)

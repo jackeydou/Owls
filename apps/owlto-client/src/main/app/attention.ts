@@ -45,7 +45,8 @@ const BODY_LIMIT = 180
 const AGENTS: Record<AgentProvider, string> = {
   'claude-code': 'Claude Code',
   codex: 'Codex',
-  cursor: 'Cursor'
+  cursor: 'Cursor',
+  antigravity: 'Antigravity'
 }
 const COPY = {
   en: {

@@ -7,7 +7,13 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
-const { CursorService, cursorNormalize, parseReport } = require('../../out/main/app/runtime.js')
+const {
+  AcpAgentService,
+  acpNormalize,
+  cursorAgent,
+  cursorNormalize,
+  parseReport
+} = require('../../out/main/app/runtime.js')
 const fixture = fileURLToPath(new URL('../fixtures/cursor/mock-cursor-agent.cjs', import.meta.url))
 chmodSync(fixture, 0o755)
 
@@ -62,7 +68,11 @@ function frames(project) {
 function setup(t, profile = null) {
   const project = realpathSync(mkdtempSync(join(tmpdir(), 'owlto-cursor-')))
   const events = []
-  const service = new CursorService(memoryStore(project), (event) => events.push(event))
+  const service = new AcpAgentService(
+    memoryStore(project),
+    (event) => events.push(event),
+    cursorAgent
+  )
   const profiles = fakeProfiles(profile)
   withProfiles(service, profiles)
   t.after(() => {
@@ -75,16 +85,16 @@ function setup(t, profile = null) {
 const session = (service, id) => service.sessionList().find((s) => s.id === id)
 
 test('Cursor normalization reads accounts, models, tools, and approvals', () => {
-  const n = cursorNormalize
+  const n = { ...acpNormalize, ...cursorNormalize }
   assert.deepEqual(n.parseCursorStatus('{"isAuthenticated":false,"message":"Not logged in"}'), {
     kind: 'signed-out'
   })
   assert.deepEqual(n.parseCursorStatus('{"isAuthenticated":true,"user":{"email":"a@b.co"}}'), {
-    kind: 'cursor',
+    kind: 'signed-in',
     email: 'a@b.co'
   })
   assert.deepEqual(n.parseCursorStatus('Logged in as owl@example.com'), {
-    kind: 'cursor',
+    kind: 'signed-in',
     email: 'owl@example.com'
   })
   assert.deepEqual(n.parseCursorStatus('Not logged in'), { kind: 'signed-out' })
@@ -186,7 +196,7 @@ test('Cursor service connects and runs a turn over ACP with approvals and stream
   const connection = await service.connect()
   assert.equal(connection.status, 'ready')
   assert.equal(connection.version, '2026.11.10-fixture')
-  assert.deepEqual(connection.account, { kind: 'cursor', email: 'owl@example.com' })
+  assert.deepEqual(connection.account, { kind: 'signed-in', email: 'owl@example.com' })
   assert.deepEqual(
     connection.models.map((m) => m.id),
     ['auto', 'gpt-5', 'sonnet-4.5']
@@ -335,7 +345,11 @@ test('Cursor service stops a running turn and uses ask mode for read-only work',
 
 test('Cursor service reports a missing executable and refuses turns until connected', async (t) => {
   const project = realpathSync(mkdtempSync(join(tmpdir(), 'owlto-cursor-')))
-  const service = new CursorService(memoryStore(project, join(project, 'missing-agent')), () => {})
+  const service = new AcpAgentService(
+    memoryStore(project, join(project, 'missing-agent')),
+    () => {},
+    cursorAgent
+  )
   t.after(() => {
     service.close()
     rmSync(project, { recursive: true, force: true })

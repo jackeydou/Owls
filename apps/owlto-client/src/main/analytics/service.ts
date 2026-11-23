@@ -42,7 +42,8 @@ const IPC_EVENTS: Record<
 const CONNECT_CHANNELS: Record<string, string> = {
   connect: 'codex',
   'connect-claude': 'claude-code',
-  'connect-cursor': 'cursor'
+  'connect-cursor': 'cursor',
+  'connect-antigravity': 'antigravity'
 }
 /** Flags are read once per launch and again after this long. */
 const FLAGS_TTL_MS = 60 * 60_000

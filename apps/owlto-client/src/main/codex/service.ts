@@ -127,7 +127,10 @@ export class CodexService {
   owns(sessionId: string): boolean {
     return this.sessions.has(sessionId)
   }
-  snapshot(): Omit<AppSnapshot, 'claude' | 'cursor' | 'github' | 'routers' | 'workers'> {
+  snapshot(): Omit<
+    AppSnapshot,
+    'claude' | 'cursor' | 'antigravity' | 'github' | 'routers' | 'workers'
+  > {
     this.flush()
     return {
       sessions: [...this.sessions.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),

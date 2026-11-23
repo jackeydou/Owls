@@ -15,6 +15,7 @@ export const onboardingEn = {
   'onboarding.agentHelp.claude-code': 'Uses your Claude Code sign-in.',
   'onboarding.agentHelp.codex': 'Uses your Codex sign-in.',
   'onboarding.agentHelp.cursor': 'Uses your Cursor sign-in.',
+  'onboarding.agentHelp.antigravity': 'Uses your Antigravity (Google) sign-in.',
   'onboarding.connect': 'Connect',
   'onboarding.connected': 'Connected',
   'onboarding.agentsReady_one': '1 agent connected',
@@ -47,6 +48,7 @@ export const onboardingEn = {
   'onboarding.owl.claude-code': 'Claude Code owl',
   'onboarding.owl.codex': 'Codex owl',
   'onboarding.owl.cursor': 'Cursor owl',
+  'onboarding.owl.antigravity': 'Antigravity owl',
   'onboarding.cardTitle': 'Finish setting up Owlto',
   'onboarding.cardBody': 'Connect a coding agent and pick who runs the Router.',
   'onboarding.cardAction': 'Set up'
@@ -66,6 +68,7 @@ export const onboardingZh: Record<keyof typeof onboardingEn, string> = {
   'onboarding.agentHelp.claude-code': '使用你的 Claude Code 登录。',
   'onboarding.agentHelp.codex': '使用你的 Codex 登录。',
   'onboarding.agentHelp.cursor': '使用你的 Cursor 登录。',
+  'onboarding.agentHelp.antigravity': '使用你的 Antigravity（Google）登录。',
   'onboarding.connect': '连接',
   'onboarding.connected': '已连接',
   'onboarding.agentsReady_one': '已连接 1 个 Agent',
@@ -97,6 +100,7 @@ export const onboardingZh: Record<keyof typeof onboardingEn, string> = {
   'onboarding.owl.claude-code': 'Claude Code 猫头鹰',
   'onboarding.owl.codex': 'Codex 猫头鹰',
   'onboarding.owl.cursor': 'Cursor 猫头鹰',
+  'onboarding.owl.antigravity': 'Antigravity 猫头鹰',
   'onboarding.cardTitle': '完成 Owlto 设置',
   'onboarding.cardBody': '连接一个编码 Agent，并选择由谁运行协调者。',
   'onboarding.cardAction': '去设置'

@@ -1,0 +1,1 @@
+- Agents: Antigravity CLI (agy) can run workers next to Codex, Claude Code, and Cursor, with its own owl. (#220)

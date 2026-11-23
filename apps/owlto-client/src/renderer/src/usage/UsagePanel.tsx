@@ -3,6 +3,7 @@ import { Button } from '@renderer/components/ui/button'
 import { ExternalLinkIcon, RefreshIcon } from '@renderer/components/ui/icons'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { isAcpProvider } from '../../../shared/agents'
 import type { AgentProvider } from '../../../shared/app'
 import type { AgentUsage, UsageWindow } from '../../../shared/usage'
 import { OwlAvatar } from '../app/OwlAvatar'
@@ -45,7 +46,7 @@ function useWindowLabel(): (provider: AgentProvider, window: UsageWindow) => str
       return provider === 'claude-code'
         ? t('usage.window.claude-code.model', { model: window.label ?? '' })
         : t('usage.window.model', { model: window.label ?? '' })
-    if ((window.kind === 'session' || window.kind === 'weekly') && provider !== 'cursor')
+    if ((window.kind === 'session' || window.kind === 'weekly') && !isAcpProvider(provider))
       return t(`usage.window.${provider}.${window.kind}`)
     const minutes = window.windowMinutes
     if (!minutes) return t('usage.window.other')
@@ -96,7 +97,7 @@ function AgentUsageCard({ usage }: { usage: AgentUsage }) {
       </header>
       {usage.state === 'unavailable' ? (
         <div className="owlto-usage-unavailable">
-          <p>{t(`usage.reason.${usage.reason}`)}</p>
+          <p>{t(`usage.reason.${usage.reason}`, { agent: t(`agent.${usage.provider}`) })}</p>
           {usage.reason === 'not-connected' || usage.reason === 'signed-out' ? (
             <Button variant="outline" size="sm" onClick={() => showAgentSettings(usage.provider)}>
               {t('usage.connect')}

@@ -217,7 +217,8 @@ html[data-theme="dark"] .onb-stars-b {
 }
 .onb-agents {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Four agents sit two by two. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   width: 100%;
   margin: 22px 0 0;

@@ -115,6 +115,7 @@ export function registerIpc(
   handle('connect', () => host.connect())
   handle('connect-claude', () => host.connectClaude())
   handle('connect-cursor', () => host.connectCursor())
+  handle('connect-antigravity', () => host.connectAntigravity())
   handle('disconnect-agent', (input) => host.disconnectAgent(providerSchema.parse(input)))
   handle('detect-agents', () => host.detectAgents())
   handle('settings', (input) => {
@@ -349,6 +350,18 @@ export function registerIpc(
     if (result.canceled || !result.filePaths[0]) return null
     host.saveSettings({ ...host.snapshot().settings, cursorExecutablePath: result.filePaths[0] })
     return host.connectCursor()
+  })
+  handle('select-antigravity-executable', async () => {
+    const result = await dialog.showOpenDialog({
+      defaultPath: executableFolder(host.snapshot().settings.antigravityExecutablePath),
+      properties: ['openFile', 'showHiddenFiles']
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    host.saveSettings({
+      ...host.snapshot().settings,
+      antigravityExecutablePath: result.filePaths[0]
+    })
+    return host.connectAntigravity()
   })
   return handle
 }

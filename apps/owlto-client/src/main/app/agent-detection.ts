@@ -1,12 +1,15 @@
 import type { AgentDetection, AgentProvider, AppSettings } from '../../shared/app.js'
+import { discoverExecutable as discoverAcpExecutable } from '../acp/discovery.js'
+import { antigravityAgent } from '../antigravity/agent.js'
 import { discoverClaudeExecutable } from '../claude/discovery.js'
 import { discoverExecutable } from '../codex/client.js'
-import { discoverCursorExecutable } from '../cursor/discovery.js'
+import { cursorAgent } from '../cursor/agent.js'
 
 const DISCOVER: Record<AgentProvider, (settings: AppSettings) => string> = {
   'claude-code': (s) => discoverClaudeExecutable(s.claudeExecutablePath),
   codex: (s) => discoverExecutable(s.executablePath),
-  cursor: (s) => discoverCursorExecutable(s.cursorExecutablePath)
+  cursor: (s) => discoverAcpExecutable(s.cursorExecutablePath, cursorAgent.search),
+  antigravity: (s) => discoverAcpExecutable(s.antigravityExecutablePath, antigravityAgent.search)
 }
 
 /**
@@ -21,5 +24,10 @@ export function detectAgents(settings: AppSettings): AgentDetection {
       return { path: null }
     }
   }
-  return { 'claude-code': find('claude-code'), codex: find('codex'), cursor: find('cursor') }
+  return {
+    'claude-code': find('claude-code'),
+    codex: find('codex'),
+    cursor: find('cursor'),
+    antigravity: find('antigravity')
+  }
 }

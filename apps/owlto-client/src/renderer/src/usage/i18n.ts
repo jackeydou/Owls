@@ -27,7 +27,7 @@ export const usageEn = {
     'Signed in with an API key, which bills per request. There is no 5-hour or weekly limit.',
   'usage.reason.no-plan-limits': 'This account has no plan limits to show.',
   'usage.reason.not-supported':
-    'Cursor CLI shows usage only in its interactive /usage screen, so Owlto cannot read it.',
+    '{{agent}} CLI shows usage only in its interactive terminal screens, so Owlto cannot read it.',
   'usage.reason.failed': 'Could not read usage. Try refreshing.',
   'usage.connect': 'Connect',
   'usage.openDashboard': 'Open Cursor dashboard',
@@ -62,7 +62,7 @@ export const usageZh: typeof usageEn = {
   'usage.reason.api-key': '使用 API Key 登录，按请求计费，没有 5 小时或每周额度。',
   'usage.reason.no-plan-limits': '此账号没有可显示的套餐额度。',
   'usage.reason.not-supported':
-    'Cursor CLI 只在交互式 /usage 界面显示用量，没有可读取的接口，Owlto 暂时无法获取。',
+    '{{agent}} CLI 只在交互式终端界面显示用量，没有可读取的接口，Owlto 暂时无法获取。',
   'usage.reason.failed': '读取用量失败，请刷新重试。',
   'usage.connect': '去连接',
   'usage.openDashboard': '打开 Cursor 用量页',

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /** Who ran a model call: a worker provider, or the Owlto Router engine with the user's API key. */
-export const usageAgentSchema = z.enum(['claude-code', 'codex', 'cursor', 'owlto'])
+export const usageAgentSchema = z.enum(['claude-code', 'codex', 'cursor', 'antigravity', 'owlto'])
 /** What the call was for. */
 export const usageRoleSchema = z.enum(['router', 'worker', 'dreaming'])
 export const usageRangeSchema = z.enum(['7d', '30d', '90d', 'all'])

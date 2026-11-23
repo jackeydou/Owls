@@ -1,9 +1,11 @@
+import antigravity from '../../../../resources/owl-avatars/antigravity.svg'
 import claudeCode from '../../../../resources/owl-avatars/claude-code.svg'
 import codex from '../../../../resources/owl-avatars/codex.svg'
 import cursor from '../../../../resources/owl-avatars/cursor.svg'
 import dreaming from '../../../../resources/owl-avatars/dreaming.svg'
 import router from '../../../../resources/owl-avatars/router.svg'
 import routerWaking from '../../../../resources/owl-avatars/waking/router.svg'
+import antigravityWorking from '../../../../resources/owl-avatars/working/antigravity.svg'
 import claudeCodeWorking from '../../../../resources/owl-avatars/working/claude-code.svg'
 import codexWorking from '../../../../resources/owl-avatars/working/codex.svg'
 import cursorWorking from '../../../../resources/owl-avatars/working/cursor.svg'
@@ -13,12 +15,19 @@ import type { AgentProvider } from '../../../shared/app'
 /** Who is speaking: the Router itself, or the provider running a worker. */
 export type AgentSpeaker = AgentProvider | 'router'
 
-const OWLTO: Record<AgentSpeaker, string> = { 'claude-code': claudeCode, codex, cursor, router }
+const OWLTO: Record<AgentSpeaker, string> = {
+  'claude-code': claudeCode,
+  codex,
+  cursor,
+  antigravity,
+  router
+}
 /** The same owls typing on a laptop. The motion lives in the SVG and stops for reduced motion. */
 const WORKING_OWLTO: Record<AgentSpeaker, string> = {
   'claude-code': claudeCodeWorking,
   codex: codexWorking,
   cursor: cursorWorking,
+  antigravity: antigravityWorking,
   router: routerWorking
 }
 

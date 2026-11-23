@@ -108,6 +108,9 @@ export const failureSchema = z.object({
     'cursor_not_installed',
     'cursor_not_connected',
     'cursor_disconnected',
+    'antigravity_not_installed',
+    'antigravity_not_connected',
+    'antigravity_disconnected',
     'router_model_unconfigured',
     'router_auth_failed',
     'router_unavailable',
@@ -325,6 +328,8 @@ export const settingsSchema = z.object({
   claudeExecutablePath: z.string().nullable(),
   /** Added with the Cursor agent, so older rows auto-detect it. */
   cursorExecutablePath: z.string().nullable().default(null),
+  /** Added with the Antigravity agent, so older rows auto-detect it. */
+  antigravityExecutablePath: z.string().nullable().default(null),
   router: routerSettingsSchema,
   /** Added after the first release of settings, so older rows get the defaults. */
   memory: memorySettingsSchema.default(defaultMemorySettings),
@@ -407,7 +412,9 @@ export function migrateConnectedAgents(value: unknown): unknown {
   if (!value || typeof value !== 'object' || 'connectedAgents' in value) return value
   const { disconnectedAgents, ...rest } = value as Record<string, unknown>
   const disconnected = Array.isArray(disconnectedAgents) ? disconnectedAgents : []
-  const connectedAgents = providerSchema.options.filter((p) => !disconnected.includes(p)).sort()
+  // Only the agents that existed before `connectedAgents`; newer agents start disconnected.
+  const legacy: AgentProvider[] = ['claude-code', 'codex', 'cursor']
+  const connectedAgents = legacy.filter((p) => !disconnected.includes(p)).sort()
   return { ...rest, connectedAgents }
 }
 export const projectSchema = z.object({
@@ -422,6 +429,7 @@ export const settingsUpdateSchema = settingsSchema
     executablePath: true,
     claudeExecutablePath: true,
     cursorExecutablePath: true,
+    antigravityExecutablePath: true,
     workspacePath: true,
     workspaceDismissed: true,
     connectedAgents: true,
@@ -509,27 +517,30 @@ export type ClaudeConnection = {
   models: AgentModel[]
   error: Failure | null
 }
-export type CursorAccount =
-  | { kind: 'cursor'; email: string | null }
+/** The account an agent driven over ACP (Cursor, Antigravity) reports through its CLI. */
+export type AcpAccount =
+  | { kind: 'signed-in'; email: string | null }
   | { kind: 'signed-out' }
   | { kind: 'unknown' }
-export type CursorConnection = {
+/** A worker-only agent Owlto drives over the Agent Client Protocol. */
+export type AcpAgentConnection = {
   status: CodexConnection['status']
   executablePath: string | null
   version: string | null
-  account: CursorAccount
+  account: AcpAccount
   models: AgentModel[]
   error: Failure | null
 }
 /** Any worker provider's connection; each provider keeps its own account shape. */
-export type AgentConnection = CodexConnection | ClaudeConnection | CursorConnection
+export type AgentConnection = CodexConnection | ClaudeConnection | AcpAgentConnection
 export type AppSnapshot = {
   sessions: Session[]
   projects: Project[]
   settings: AppSettings
   connection: CodexConnection
   claude: ClaudeConnection
-  cursor: CursorConnection
+  cursor: AcpAgentConnection
+  antigravity: AcpAgentConnection
   routers: Router[]
   workers: RouterWorker[]
   github: GitHubAccount
@@ -537,7 +548,8 @@ export type AppSnapshot = {
 export type AppEvent =
   | { type: 'connection'; connection: CodexConnection }
   | { type: 'claude-connection'; connection: ClaudeConnection }
-  | { type: 'cursor-connection'; connection: CursorConnection }
+  | { type: 'cursor-connection'; connection: AcpAgentConnection }
+  | { type: 'antigravity-connection'; connection: AcpAgentConnection }
   | { type: 'session'; session: Session }
   | { type: 'removed'; sessionId: string }
   | { type: 'router'; router: Router }
@@ -582,8 +594,10 @@ export interface OwltoAPI {
   selectExecutable(): Promise<Reply<CodexConnection | null>>
   connectClaude(): Promise<Reply<ClaudeConnection>>
   selectClaudeExecutable(): Promise<Reply<ClaudeConnection | null>>
-  connectCursor(): Promise<Reply<CursorConnection>>
-  selectCursorExecutable(): Promise<Reply<CursorConnection | null>>
+  connectCursor(): Promise<Reply<AcpAgentConnection>>
+  selectCursorExecutable(): Promise<Reply<AcpAgentConnection | null>>
+  connectAntigravity(): Promise<Reply<AcpAgentConnection>>
+  selectAntigravityExecutable(): Promise<Reply<AcpAgentConnection | null>>
   /** Disconnects one agent; it stays disconnected, across restarts, until connected again. */
   disconnectAgent(provider: AgentProvider): Promise<Reply<AgentConnection>>
   /** Looks for each agent's CLI on this Mac without starting or connecting it. */

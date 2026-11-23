@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import type { z } from 'zod'
 import type {
+  AcpAgentConnection,
   AgentConnection,
   AgentDetection,
   AgentProvider,
@@ -10,7 +11,6 @@ import type {
   AppSnapshot,
   ClaudeConnection,
   CodexConnection,
-  CursorConnection,
   Project,
   RespondRequest,
   Router,
@@ -64,12 +64,12 @@ import { type UsageOverview, unavailableUsage } from '../../shared/usage.js'
 import type { UsageStats, UsageStatsRequest } from '../../shared/usage-stats.js'
 import { isInPlay } from '../../shared/worker-map.js'
 import { type WorkspaceListing, workerHome } from '../../shared/workspace.js'
+import type { AcpAgentService } from '../acp/service.js'
 import type { PullRequestWatcher } from '../automations/pull-request-events.js'
 import type { AutomationService } from '../automations/service.js'
 import type { CardService } from '../cards/service.js'
 import type { ClaudeService } from '../claude/service.js'
 import type { CodexService } from '../codex/service.js'
-import type { CursorService } from '../cursor/service.js'
 import type { GitHubAuth } from '../github/auth.js'
 import type { FeedbackSender } from '../github/feedback.js'
 import type { DreamingRunner } from '../memory/dreaming.js'
@@ -95,7 +95,7 @@ import {
 } from './workspace-folders.js'
 
 const USAGE_TTL_MS = 60_000
-const USAGE_ORDER: AgentProvider[] = ['claude-code', 'codex', 'cursor']
+const USAGE_ORDER: AgentProvider[] = ['claude-code', 'codex', 'cursor', 'antigravity']
 
 type CardSaveInput = z.infer<typeof cardSaveSchema>
 type CardCaptureInput = z.infer<typeof cardCaptureSchema>
@@ -131,7 +131,8 @@ export class OwltoHost {
   constructor(
     private readonly codex: CodexService,
     private readonly claude: ClaudeService,
-    private readonly cursor: CursorService,
+    private readonly cursor: AcpAgentService,
+    private readonly antigravity: AcpAgentService,
     private readonly threadHome: string,
     private readonly projectsHome: string,
     /** The workspace folder used while the user has not picked one. */
@@ -139,7 +140,7 @@ export class OwltoHost {
     /** Where attached files are kept; next to the Router thread folders by default. */
     attachmentsRoot = join(dirname(threadHome), 'attachments')
   ) {
-    this.runtimes = { codex, 'claude-code': claude, cursor }
+    this.runtimes = { codex, 'claude-code': claude, cursor, antigravity }
     this.attachments = new AttachmentStore(attachmentsRoot)
   }
   /** Connects the Routers, which start every session of this host. */
@@ -259,10 +260,12 @@ export class OwltoHost {
       sessions: [
         ...codex.sessions,
         ...this.claude.sessionList(),
-        ...this.cursor.sessionList()
+        ...this.cursor.sessionList(),
+        ...this.antigravity.sessionList()
       ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
       claude: this.claude.connectionState(),
       cursor: this.cursor.connectionState(),
+      antigravity: this.antigravity.connectionState(),
       github: this.github?.auth.account() ?? { status: 'signed-out', failure: null },
       ...router
     }
@@ -273,8 +276,11 @@ export class OwltoHost {
   claudeConnection(): ClaudeConnection {
     return this.claude.connectionState()
   }
-  cursorConnection(): CursorConnection {
+  cursorConnection(): AcpAgentConnection {
     return this.cursor.connectionState()
+  }
+  antigravityConnection(): AcpAgentConnection {
+    return this.antigravity.connectionState()
   }
   connect(): Promise<CodexConnection> {
     const connection = this.codex.connect()
@@ -286,9 +292,14 @@ export class OwltoHost {
     this.rememberConnected('claude-code', true)
     return connection
   }
-  connectCursor(): Promise<CursorConnection> {
+  connectCursor(): Promise<AcpAgentConnection> {
     const connection = this.cursor.connect()
     this.rememberConnected('cursor', true)
+    return connection
+  }
+  connectAntigravity(): Promise<AcpAgentConnection> {
+    const connection = this.antigravity.connect()
+    this.rememberConnected('antigravity', true)
     return connection
   }
   /**
@@ -301,6 +312,7 @@ export class OwltoHost {
       void this.codex.connect()
     if (connected.has('claude-code')) void this.claude.connect()
     if (connected.has('cursor')) void this.cursor.connect()
+    if (connected.has('antigravity')) void this.antigravity.connect()
     this.markPathReady()
   }
   private markPathReady: () => void = () => {}
@@ -337,6 +349,12 @@ export class OwltoHost {
       this.cursor.hasActiveTasks()
     ) {
       throw new OwltoError('busy', 'Stop active tasks before changing the Cursor executable.')
+    }
+    if (
+      settings.antigravityExecutablePath !== previous.antigravityExecutablePath &&
+      this.antigravity.hasActiveTasks()
+    ) {
+      throw new OwltoError('busy', 'Stop active tasks before changing the Antigravity executable.')
     }
     const routerChanged = JSON.stringify(settings.router) !== JSON.stringify(previous.router)
     if (routerChanged && this.router?.isRunning())
@@ -706,6 +724,7 @@ export class OwltoHost {
     this.router?.close()
     this.claude.close()
     this.cursor.close()
+    this.antigravity.close()
     // The Codex service closes the shared store last.
     this.codex.close()
   }

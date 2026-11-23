@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'full-access'])
-export const providerSchema = z.enum(['codex', 'claude-code', 'cursor'])
+export const providerSchema = z.enum(['codex', 'claude-code', 'cursor', 'antigravity'])
 export const effortSchema = z.string().min(1).max(64)
 export type AgentProvider = z.infer<typeof providerSchema>
 export type Permission = z.infer<typeof permissionSchema>
@@ -30,19 +30,32 @@ export type ClaudeAgentConfig = z.infer<typeof claudeAgentConfigSchema>
 export function workerBrowserEnabled(configs: AgentConfigs, provider: AgentProvider): boolean {
   return configs[provider].browser
 }
+/** Worker-only agents Owlto drives over the Agent Client Protocol. */
+export const acpProviders = ['cursor', 'antigravity'] as const satisfies AgentProvider[]
+export type AcpProvider = (typeof acpProviders)[number]
+export function isAcpProvider(provider: AgentProvider): provider is AcpProvider {
+  return (acpProviders as readonly AgentProvider[]).includes(provider)
+}
 /**
- * The permissions each agent offers in Settings. Cursor has no reviewer that
- * works over ACP, so it keeps only its native modes: `ask` (read only) and
- * `agent` (full access).
+ * The permissions each agent offers in Settings. ACP agents (Cursor, Antigravity)
+ * have no reviewer that works over ACP, so they keep only read only (Cursor's
+ * `ask`, Antigravity's `plan` mode) and full access.
  */
 export function agentPermissions(provider: AgentProvider): Permission[] {
-  return provider === 'cursor' ? ['read-only', 'full-access'] : [...permissionSchema.options]
+  return isAcpProvider(provider) ? ['read-only', 'full-access'] : [...permissionSchema.options]
 }
 export const agentConfigsSchema = z
   .object({
     codex: browserAgentConfigSchema,
     'claude-code': claudeAgentConfigSchema,
-    cursor: browserAgentConfigSchema
+    cursor: browserAgentConfigSchema,
+    /** Added with the Antigravity agent, so older rows get its defaults. */
+    antigravity: browserAgentConfigSchema.default({
+      model: null,
+      effort: null,
+      permission: 'full-access',
+      browser: true
+    })
   })
   // Settings saved before Cursor dropped workspace access move to its agent mode.
   .transform((configs) =>
@@ -59,7 +72,8 @@ export const defaultAgentConfig: AgentConfig = {
 export const defaultAgentConfigs: AgentConfigs = {
   codex: { ...defaultAgentConfig, browser: true },
   'claude-code': { ...defaultAgentConfig, browser: true, chrome: false },
-  cursor: { ...defaultAgentConfig, permission: 'full-access', browser: true }
+  cursor: { ...defaultAgentConfig, permission: 'full-access', browser: true },
+  antigravity: { ...defaultAgentConfig, permission: 'full-access', browser: true }
 }
 
 /** Most models one agent's list keeps for a project. */
@@ -84,14 +98,16 @@ export const projectAgentsSchema = z.object({
   models: z.object({
     codex: rankedModelsSchema,
     'claude-code': rankedModelsSchema,
-    cursor: rankedModelsSchema
+    cursor: rankedModelsSchema,
+    /** Added with the Antigravity agent, so older rows start empty. */
+    antigravity: rankedModelsSchema.default([])
   })
 })
 export type ProjectAgents = z.infer<typeof projectAgentsSchema>
 export type RankedModel = z.infer<typeof rankedModelSchema>
 export const defaultProjectAgents: ProjectAgents = {
   order: [],
-  models: { codex: [], 'claude-code': [], cursor: [] }
+  models: { codex: [], 'claude-code': [], cursor: [], antigravity: [] }
 }
 
 /** True when the project picks its own agents; otherwise any connected agent takes its tasks. */

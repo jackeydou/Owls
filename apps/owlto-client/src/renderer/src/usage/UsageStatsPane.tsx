@@ -282,7 +282,7 @@ function useGroupName(): (groupBy: UsageGroupBy, key: string | null) => string {
     if (groupBy === 'agent')
       return key === 'owlto'
         ? t('usageStats.agent.owlto')
-        : key === 'claude-code' || key === 'codex' || key === 'cursor'
+        : key === 'claude-code' || key === 'codex' || key === 'cursor' || key === 'antigravity'
           ? t(`agent.${key}`)
           : t('usageStats.unknown')
     if (groupBy === 'role')

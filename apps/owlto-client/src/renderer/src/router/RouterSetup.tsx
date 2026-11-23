@@ -36,12 +36,13 @@ export function useRouterSetup(router?: Router): RouterSetupNeed | null {
   const settings = useAppStore((s) => s.settings)
   const claude = useAppStore((s) => s.claude)
   const cursor = useAppStore((s) => s.cursor)
+  const antigravity = useAppStore((s) => s.antigravity)
   const connection = useAppStore((s) => s.connection)
   // A paired device's Router runs on that device's settings, which stay there.
   const remote = useViewingRemote()
   if (remote) return null
   const ready = (provider: AgentProvider) =>
-    isAgentReady(agentConnection({ claude, cursor, connection }, provider))
+    isAgentReady(agentConnection({ claude, cursor, antigravity, connection }, provider))
   const engine = settings.router.engine
   const failed = Boolean(router?.error && isSetupFailure(router.error))
   const alternate = ENGINE_AGENTS.find((a) => a !== engine && ready(a)) ?? null
