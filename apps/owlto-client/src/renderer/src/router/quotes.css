@@ -101,9 +101,14 @@
   border-radius: var(--owl-radius-xs);
   cursor: default;
 }
-.router-draft-quote-label > svg {
+/* A Markdown quote's bar in place of an icon. */
+.router-draft-quote-label::before {
+  content: "";
   flex-shrink: 0;
-  color: var(--color-muted-foreground);
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--color-muted-foreground);
 }
 .router-draft-quote-label > span {
   text-overflow: ellipsis;
@@ -157,6 +162,9 @@ html[data-skin="doodle"] .owlto-quote-panel-field,
 html[data-skin="doodle"] .router-draft-quotes li {
   border: var(--doodle-border);
   background: var(--doodle-card);
+}
+html[data-skin="doodle"] .router-draft-quote-label::before {
+  background: var(--doodle-line);
 }
 html[data-skin="doodle"] .owlto-quote-panel-text,
 html[data-skin="doodle"] .owlto-user-message .router-message-quote {

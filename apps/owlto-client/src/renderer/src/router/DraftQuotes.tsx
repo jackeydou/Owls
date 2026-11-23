@@ -1,5 +1,5 @@
 import { IconButton } from '@renderer/components/ui/icon-button'
-import { QuoteIcon, XIcon } from '@renderer/components/ui/icons'
+import { XIcon } from '@renderer/components/ui/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useTranslation } from 'react-i18next'
 import type { DraftQuote } from './quotes'
@@ -23,7 +23,6 @@ export function DraftQuoteTags({
             <TooltipTrigger asChild>
               {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focus reveals the whole quote in the tooltip. */}
               <span className="router-draft-quote-label" tabIndex={0}>
-                <QuoteIcon size={13} />
                 <span>{quote.text}</span>
               </span>
             </TooltipTrigger>
