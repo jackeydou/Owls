@@ -27,6 +27,7 @@ import { isSetupFailure } from './RouterSetup'
 import { SelectionActions } from './SelectionActions'
 import { useRouterStore } from './store'
 import { ThreadRow, ThreadTurn } from './ThreadRow'
+import { UserText } from './UserText'
 import { RouterIdContext, WorkerLink, workerMarkdown } from './WorkerLink'
 
 type Entry = { id: string; item: SessionItem } | { id: string; workerIds: string[] }
@@ -166,7 +167,7 @@ function DirectedMessage({ item }: { item: SessionItem }) {
       {item.attachments?.length ? (
         <MessageAttachments attachments={item.attachments} size="preview" />
       ) : null}
-      {item.text ? <div className="owlto-user-message">{item.text}</div> : null}
+      {item.text ? <UserText text={item.text} /> : null}
     </>
   )
 }
@@ -175,7 +176,7 @@ function UserMessage({ item }: { item: SessionItem }) {
   return (
     <>
       <MessageAttachments attachments={item.attachments ?? []} size="preview" />
-      {item.text ? <div className="owlto-user-message">{item.text}</div> : null}
+      {item.text ? <UserText text={item.text} /> : null}
     </>
   )
 }
@@ -366,6 +367,8 @@ export function RouterTimeline({
                         <DirectedMessage item={entry.item} />
                       ) : entry.item.kind === 'user' && entry.item.attachments?.length ? (
                         <UserMessage item={entry.item} />
+                      ) : entry.item.kind === 'user' ? (
+                        <UserText text={entry.item.text} />
                       ) : (
                         <ConversationItem
                           item={entry.item}
