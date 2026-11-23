@@ -52,6 +52,7 @@ export class OwltoStore {
           sidebarCollapsed: false,
           claudeExecutablePath: null,
           cursorExecutablePath: null,
+          antigravityExecutablePath: null,
           router: defaultRouterSettings,
           memory: defaultMemorySettings,
           layout: defaultLayoutSettings,

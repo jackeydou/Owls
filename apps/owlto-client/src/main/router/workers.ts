@@ -744,7 +744,8 @@ export class WorkerPool implements TurnProfiles {
     if (
       event.type === 'connection' ||
       event.type === 'claude-connection' ||
-      event.type === 'cursor-connection'
+      event.type === 'cursor-connection' ||
+      event.type === 'antigravity-connection'
     ) {
       if (event.connection.status === 'ready') this.schedule()
       return

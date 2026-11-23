@@ -1,18 +1,20 @@
 import { createElement, type ReactNode } from 'react'
+import antigravity from '../../../../resources/owl-avatars/antigravity.svg?raw'
 import claudeCode from '../../../../resources/owl-avatars/claude-code.svg?raw'
 import codex from '../../../../resources/owl-avatars/codex.svg?raw'
 import cursor from '../../../../resources/owl-avatars/cursor.svg?raw'
 import router from '../../../../resources/owl-avatars/router.svg?raw'
 import user from '../../../../resources/owl-avatars/user.svg?raw'
 
-export type OwlId = 'user' | 'claude-code' | 'router' | 'codex' | 'cursor'
+export type OwlId = 'user' | 'claude-code' | 'router' | 'codex' | 'cursor' | 'antigravity'
 
 const SOURCES: Record<OwlId, string> = {
   user,
   'claude-code': claudeCode,
   router,
   codex,
-  cursor
+  cursor,
+  antigravity
 }
 
 const camel = (name: string) => name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())

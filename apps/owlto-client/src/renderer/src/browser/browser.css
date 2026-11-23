@@ -234,6 +234,9 @@
 .browser-viewport[data-speaker="cursor"] {
   --browser-agent: #7c8cff;
 }
+.browser-viewport[data-speaker="antigravity"] {
+  --browser-agent: #2fae8f;
+}
 [data-theme="dark"] .browser-viewport[data-speaker="codex"] {
   --browser-agent: #c9ced8;
 }

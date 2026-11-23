@@ -309,7 +309,12 @@ test('the Router reads each project description in its project list', () => {
 
 test('the Router reads each project agent order and model lists', () => {
   const settings = (agents) => ({ description: '', agents })
-  const models = (claude = [], codex = []) => ({ codex, 'claude-code': claude, cursor: [] })
+  const models = (claude = [], codex = []) => ({
+    codex,
+    'claude-code': claude,
+    cursor: [],
+    antigravity: []
+  })
   const text = renderProjects(
     [
       {
@@ -641,13 +646,17 @@ test('the host lists the sessions of every runtime, newest first, and routes by 
     },
     { ...runtime('claude', ['claude-worker']), sessionList: () => [session('claude-worker', '2')] },
     { ...runtime('cursor', ['cursor-worker']), sessionList: () => [session('cursor-worker', '3')] },
+    {
+      ...runtime('antigravity', ['antigravity-worker']),
+      sessionList: () => [session('antigravity-worker', '4')]
+    },
     '/tmp/owlto-thread-home',
     '/tmp/owlto-projects',
     '/tmp/owlto-workspace'
   )
   assert.deepEqual(
     host.snapshot().sessions.map((s) => s.id),
-    ['cursor-worker', 'claude-worker', 'codex-worker']
+    ['antigravity-worker', 'cursor-worker', 'claude-worker', 'codex-worker']
   )
   const workers = host.workerHost()
   await workers.interrupt('cursor-worker')

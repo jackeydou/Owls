@@ -23,7 +23,9 @@ const {
   OwltoHost,
   OwltoStore,
   ClaudeService,
-  CursorService
+  AcpAgentService,
+  antigravityAgent,
+  cursorAgent
 } = require('../../out/main/app/runtime.js')
 const fixture = fileURLToPath(new URL('../fixtures/codex/mock-codex.cjs', import.meta.url))
 const migrations = fileURLToPath(new URL('../../migrations', import.meta.url))
@@ -73,7 +75,8 @@ function setup(t) {
   const host = new OwltoHost(
     codex,
     new ClaudeService(store, () => {}),
-    new CursorService(store, () => {}),
+    new AcpAgentService(store, () => {}, cursorAgent),
+    new AcpAgentService(store, () => {}, antigravityAgent),
     join(root, 't'),
     join(root, 'p'),
     root

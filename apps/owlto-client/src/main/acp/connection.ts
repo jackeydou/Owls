@@ -1,6 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import { z } from 'zod'
+import type { Failure } from '../../shared/app.js'
 import { OwltoError } from '../app/errors.js'
 import { safeText } from '../app/values.js'
 
@@ -28,6 +29,18 @@ export class AcpReplyError extends Error {
   ) {
     super(message)
     this.name = 'AcpReplyError'
+  }
+}
+
+/** The agent answered a request with a JSON-RPC error; `rpcCode` is its code. */
+export class AcpRequestError extends OwltoError {
+  constructor(
+    code: Failure['code'],
+    message: string,
+    readonly rpcCode: number
+  ) {
+    super(code, message)
+    this.name = 'AcpRequestError'
   }
 }
 
@@ -59,7 +72,14 @@ export class AcpConnection {
   private closed = false
   private stderr = ''
 
-  constructor(private readonly handlers: AcpHandlers) {}
+  /**
+   * `label` names the agent in launch errors; `disconnected` is the agent's own
+   * error code for a broken connection, such as `cursor_disconnected`.
+   */
+  constructor(
+    private readonly handlers: AcpHandlers,
+    private readonly agent: { label: string; disconnected: Failure['code'] }
+  ) {}
 
   start(executable: string, args: string[], cwd: string): void {
     if (this.child || this.closed) throw new OwltoError('busy', 'The agent is already running.')
@@ -91,7 +111,9 @@ export class AcpConnection {
     child.stderr.on('data', (data: Buffer) => {
       this.stderr = (this.stderr + data.toString('utf8')).slice(-STDERR_LIMIT)
     })
-    child.on('error', () => this.fail('Unable to launch the selected Cursor executable.'))
+    child.on('error', () =>
+      this.fail(`Unable to launch the selected ${this.agent.label} executable.`)
+    )
     child.on('exit', (code, signal) => {
       lines.close()
       if (this.child === child) this.fail(`The agent exited (${signal ?? code ?? 'exit'}).`)
@@ -107,7 +129,7 @@ export class AcpConnection {
   request(method: string, params: unknown, timeoutMs: number | null): Promise<unknown> {
     const child = this.child
     if (!child || this.closed)
-      return Promise.reject(new OwltoError('cursor_disconnected', 'The agent is not running.'))
+      return Promise.reject(new OwltoError(this.agent.disconnected, 'The agent is not running.'))
     const id = this.nextId++
     return new Promise((resolve, reject) => {
       const timer =
@@ -115,7 +137,7 @@ export class AcpConnection {
           ? null
           : setTimeout(() => {
               this.pending.delete(id)
-              reject(new OwltoError('cursor_disconnected', `The agent did not answer ${method}.`))
+              reject(new OwltoError(this.agent.disconnected, `The agent did not answer ${method}.`))
             }, timeoutMs)
       this.pending.set(id, { method, resolve, reject, timer })
       this.write({ jsonrpc: '2.0', id, method, params })
@@ -162,9 +184,10 @@ export class AcpConnection {
     this.pending.delete(frame.id)
     if (frame.error)
       pending.reject(
-        new OwltoError(
-          'cursor_disconnected',
-          `${pending.method}: ${safeText(frame.error.message).slice(0, 800)}`
+        new AcpRequestError(
+          this.agent.disconnected,
+          `${pending.method}: ${safeText(frame.error.message).slice(0, 800)}`,
+          frame.error.code
         )
       )
     else pending.resolve(frame.result ?? null)
@@ -197,7 +220,7 @@ export class AcpConnection {
     this.child = null
     for (const pending of this.pending.values()) {
       if (pending.timer) clearTimeout(pending.timer)
-      pending.reject(new OwltoError('cursor_disconnected', reason))
+      pending.reject(new OwltoError(this.agent.disconnected, reason))
     }
     this.pending.clear()
     this.handlers.closed(reason)

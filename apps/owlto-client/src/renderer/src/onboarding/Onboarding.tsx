@@ -19,7 +19,7 @@ import './onboarding.css'
 
 type Step = 'agents' | 'router' | 'done'
 type EngineAgent = Exclude<RouterEngineId, 'owlto'>
-/** Agents that can also run the Router. Cursor runs workers only. */
+/** Agents that can also run the Router. Cursor and Antigravity run workers only. */
 const ENGINE_AGENTS: EngineAgent[] = ['claude-code', 'codex']
 const ENGINES: RouterEngineId[] = [...ENGINE_AGENTS, 'owlto']
 const isAgent = (engine: RouterEngineId): engine is EngineAgent => engine !== 'owlto'
@@ -50,7 +50,13 @@ function ConnectButton({ provider }: { provider: AgentProvider }) {
   const { t } = useTranslation()
   const status = useAppStore((s) => agentConnection(s, provider).status)
   const connect = useAppStore((s) =>
-    provider === 'codex' ? s.connect : provider === 'cursor' ? s.connectCursor : s.connectClaude
+    provider === 'codex'
+      ? s.connect
+      : provider === 'cursor'
+        ? s.connectCursor
+        : provider === 'antigravity'
+          ? s.connectAntigravity
+          : s.connectClaude
   )
   return (
     <Button size="sm" pending={status === 'connecting'} onClick={() => void connect()}>
@@ -356,7 +362,7 @@ export function Onboarding() {
   const ready = useReadyAgents()
   // Owls hop when their agent connects, and all of them at the end.
   const hop: OwlId[] =
-    step === 'done' ? ['user', 'claude-code', 'router', 'codex', 'cursor'] : ready
+    step === 'done' ? ['antigravity', 'user', 'claude-code', 'router', 'codex', 'cursor'] : ready
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
     if (open) setStep('agents')

@@ -2,14 +2,19 @@ import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type OwlId, owlDrawing } from './owl-art'
 
-/** Owl, scale, and how much of the drawing shows from the top of the head (drawing units). */
-const FLOCK: [OwlId, number, number][] = [
+/**
+ * Owl, scale, and how much of the drawing shows from the top of the head (drawing units).
+ * An owl with something above its head, like Antigravity's floating orb, starts higher.
+ */
+const FLOCK: [OwlId, number, number, number?][] = [
+  ['antigravity', 0.72, 290, 36],
   ['user', 0.78, 300],
   ['claude-code', 0.86, 315],
   ['router', 1, 335],
   ['codex', 0.86, 315],
   ['cursor', 0.78, 300]
 ]
+const HEAD_TOP = 80
 /** How far a pupil travels toward the pointer, in drawing units, so it stays inside the eye. */
 const REACH = 26
 const HOOTS = 5
@@ -98,7 +103,7 @@ export function OwlFlock({
       ref={ref}
       className={['onb-flock', compact ? 'is-compact' : null, className].filter(Boolean).join(' ')}
     >
-      {FLOCK.map(([owl, scale, height], index) => (
+      {FLOCK.map(([owl, scale, height, top = HEAD_TOP], index) => (
         <button
           key={owl}
           type="button"
@@ -114,7 +119,7 @@ export function OwlFlock({
           >
             <svg
               className="onb-owl-svg"
-              viewBox={`52 80 408 ${height}`}
+              viewBox={`52 ${top} 408 ${height + HEAD_TOP - top}`}
               aria-hidden="true"
               focusable="false"
             >

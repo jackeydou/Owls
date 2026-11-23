@@ -293,6 +293,10 @@
   --working-dot-from: #7c8cff;
   --working-dot-to: #c08cff;
 }
+.owlto-working-dots[data-speaker="antigravity"] {
+  --working-dot-from: #2fae8f;
+  --working-dot-to: #8fd8c4;
+}
 [data-theme="dark"] .owlto-working-dots[data-speaker="router"] {
   --working-dot-from: #e6e8ec;
   --working-dot-to: #7d8594;

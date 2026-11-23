@@ -3,7 +3,8 @@ import { Button } from '@renderer/components/ui/button'
 import { ExternalLinkIcon, FolderOpenIcon } from '@renderer/components/ui/icons'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { AgentProvider, CodexConnection, Failure } from '../../../shared/app'
+import type { AcpProvider } from '../../../shared/agents'
+import type { AgentProvider, AppSettings, CodexConnection, Failure } from '../../../shared/app'
 import { AgentIcon } from '../router/AgentIcon'
 import { useAgentPresence, useDetectAgents, useDetectedPath } from './agent-detection'
 import { failureMessage, uiFailure } from './failures'
@@ -71,11 +72,12 @@ function planText(plan: string | null | undefined, label: string): string | null
   return plan ? `${label} · ${plan.charAt(0).toUpperCase()}${plan.slice(1)}` : null
 }
 
-const AGENT_TABS: AgentProvider[] = ['claude-code', 'codex', 'cursor']
+const AGENT_TABS: AgentProvider[] = ['claude-code', 'codex', 'cursor', 'antigravity']
 const AGENT_PANES: Record<AgentProvider, () => React.JSX.Element> = {
   'claude-code': ClaudeSettingsPane,
   codex: CodexSettingsPane,
-  cursor: CursorSettingsPane
+  cursor: () => <AcpSettingsPane provider="cursor" />,
+  antigravity: () => <AcpSettingsPane provider="antigravity" />
 }
 
 /** Every coding agent on one page, one horizontal tab each. */
@@ -197,57 +199,87 @@ function ClaudeSettingsPane() {
   )
 }
 
-function CursorSettingsPane() {
+/** What differs between the settings panes of the worker-only ACP agents. */
+const ACP_PANES = {
+  cursor: {
+    account: 'cursorAccount',
+    signInHelp: 'cursorSignInHelp',
+    installUrl: 'https://cursor.com/cli',
+    executable: (settings: AppSettings) => settings.cursorExecutablePath
+  },
+  antigravity: {
+    account: 'antigravityAccount',
+    signInHelp: 'antigravitySignInHelp',
+    installUrl: 'https://antigravity.google/docs/cli/reference/',
+    executable: (settings: AppSettings) => settings.antigravityExecutablePath
+  }
+} as const satisfies Record<
+  AcpProvider,
+  {
+    account: string
+    signInHelp: string
+    installUrl: string
+    executable(settings: AppSettings): string | null
+  }
+>
+
+/** A worker-only agent Owlto drives over ACP: Cursor or Antigravity. */
+function AcpSettingsPane({ provider }: { provider: AcpProvider }) {
   const { t } = useTranslation()
-  const cursor = useAppStore((s) => s.cursor)
+  const pane = ACP_PANES[provider]
+  const connection = useAppStore((s) => s[provider])
   const settings = useAppStore((s) => s.settings)
   const running = useAppStore((s) =>
     s.sessions.some(
       (session) =>
-        session.provider === 'cursor' && ['running', 'starting', 'waiting'].includes(session.status)
+        session.provider === provider && ['running', 'starting', 'waiting'].includes(session.status)
     )
   )
-  const connectCursor = useAppStore((s) => s.connectCursor)
-  const selectCursorExecutable = useAppStore((s) => s.selectCursorExecutable)
-  const account = cursor.account
-  const ready = cursor.status === 'ready'
-  const row = useDetectedRow('cursor', settings.cursorExecutablePath, cursor.executablePath)
+  const connect = useAppStore((s) =>
+    provider === 'cursor' ? s.connectCursor : s.connectAntigravity
+  )
+  const selectExecutable = useAppStore((s) =>
+    provider === 'cursor' ? s.selectCursorExecutable : s.selectAntigravityExecutable
+  )
+  const account = connection.account
+  const ready = connection.status === 'ready'
+  const row = useDetectedRow(provider, pane.executable(settings), connection.executablePath)
   return (
     <>
       <SettingRow
         label={
           !ready
             ? row.notConnected
-            : account.kind === 'cursor'
-              ? (account.email ?? t('cursorAccount'))
+            : account.kind === 'signed-in'
+              ? (account.email ?? t(pane.account))
               : account.kind === 'signed-out'
                 ? t('signedOut')
-                : t('cursorAccount')
+                : t(pane.account)
         }
-        description={t('cursorWorkerOnly')}
+        description={t('workerOnlyAgent')}
       >
         <ConnectionButton
-          provider="cursor"
-          status={cursor.status}
+          provider={provider}
+          status={connection.status}
           running={running}
           missing={row.missing}
-          onConnect={() => void connectCursor()}
+          onConnect={() => void connect()}
         />
       </SettingRow>
-      {cursor.error ? (
+      {connection.error ? (
         <div role="alert" className="owlto-inline-error">
-          {failureMessage(cursor.error)}
+          {failureMessage(connection.error)}
         </div>
       ) : null}
       <ExecutableRow
         path={row.path}
-        version={cursor.version}
-        disabled={cursor.status === 'connecting' || running}
-        onBrowse={() => void selectCursorExecutable()}
+        version={connection.version}
+        disabled={connection.status === 'connecting' || running}
+        onBrowse={() => void selectExecutable()}
       />
       <p className="owlto-note">
-        {t('cursorSignInHelp')}{' '}
-        <a href="https://cursor.com/cli" target="_blank" rel="noreferrer">
+        {t(pane.signInHelp)}{' '}
+        <a href={pane.installUrl} target="_blank" rel="noreferrer">
           {t('installLink')} <ExternalLinkIcon size={12} />
         </a>
       </p>

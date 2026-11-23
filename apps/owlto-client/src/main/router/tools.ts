@@ -173,7 +173,7 @@ export function routerTools(handlers: RouterToolHandlers): RouterTool[] {
     tool(
       'dispatch_task',
       'Dispatch task',
-      "Start a background worker (a Codex, Claude Code, or Cursor task in one of the user's projects or the workspace) for one piece of work. Returns immediately with the worker ID and whether it started or is queued behind other workers; the worker reports back in a later batch.",
+      "Start a background worker (a Codex, Claude Code, Cursor, or Antigravity task in one of the user's projects or the workspace) for one piece of work. Returns immediately with the worker ID and whether it started or is queued behind other workers; the worker reports back in a later batch.",
       dispatchTaskInput,
       (input) => handlers.dispatchTask(input)
     ),

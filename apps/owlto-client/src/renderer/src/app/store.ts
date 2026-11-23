@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { defaultAgentConfigs } from '../../../shared/agents'
 import type {
+  AcpAgentConnection,
   AgentConnection,
   AgentProvider,
   AppEvent,
@@ -8,7 +9,6 @@ import type {
   AppSnapshot,
   ClaudeConnection,
   CodexConnection,
-  CursorConnection,
   Failure,
   Project,
   Reply,
@@ -45,10 +45,16 @@ import { useRouterStore } from '../router/store'
 import { UIError, uiFailure } from './failures'
 
 export function agentConnection(
-  state: { connection: CodexConnection; claude: ClaudeConnection; cursor: CursorConnection },
+  state: {
+    connection: CodexConnection
+    claude: ClaudeConnection
+    cursor: AcpAgentConnection
+    antigravity: AcpAgentConnection
+  },
   provider: AgentProvider
 ): AgentConnection {
   if (provider === 'claude-code') return state.claude
+  if (provider === 'antigravity') return state.antigravity
   return provider === 'cursor' ? state.cursor : state.connection
 }
 export function isAgentReady(connection: AgentConnection): boolean {
@@ -59,7 +65,7 @@ export function isAgentReady(connection: AgentConnection): boolean {
  * reconnected, since the app reconnects those only once the login shell's PATH is in.
  */
 export function isAgentStarting(
-  state: Pick<State, 'connection' | 'claude' | 'cursor' | 'settings'>,
+  state: Pick<State, 'connection' | 'claude' | 'cursor' | 'antigravity' | 'settings'>,
   provider: AgentProvider
 ): boolean {
   const { status } = agentConnection(state, provider)
@@ -129,7 +135,8 @@ type State = {
   settings: AppSettings
   connection: CodexConnection
   claude: ClaudeConnection
-  cursor: CursorConnection
+  cursor: AcpAgentConnection
+  antigravity: AcpAgentConnection
   /** Loads the shown device's state; `fresh` also opens its latest thread, as on a switch. */
   initialize(options?: { fresh: boolean }): Promise<void>
   event(event: AppEvent): void
@@ -198,6 +205,8 @@ type State = {
   /** Disconnects one agent until the user connects it again. */
   disconnectAgent(provider: AgentProvider): Promise<void>
   selectCursorExecutable(): Promise<void>
+  connectAntigravity(): Promise<void>
+  selectAntigravityExecutable(): Promise<void>
   saveSettings(settings: AppSettings): Promise<void>
   /** Saves the user's name or avatar choice; resolves to whether it was saved. */
   saveProfile(update: ProfileUpdate): Promise<boolean>
@@ -231,6 +240,7 @@ function latestThread(routers: Router[], projectId?: string): Router | null {
 let connectionEvents = 0
 let claudeEvents = 0
 let cursorEvents = 0
+let antigravityEvents = 0
 let gitHubEvents = 0
 export const useAppStore = create<State>((set, get) => {
   async function action<T>(fn: () => Promise<Reply<T>>): Promise<T | undefined> {
@@ -293,6 +303,7 @@ export const useAppStore = create<State>((set, get) => {
       sidebarCollapsed: false,
       claudeExecutablePath: null,
       cursorExecutablePath: null,
+      antigravityExecutablePath: null,
       router: defaultRouterSettings,
       memory: defaultMemorySettings,
       layout: defaultLayoutSettings,
@@ -339,10 +350,19 @@ export const useAppStore = create<State>((set, get) => {
       models: [],
       error: null
     },
+    antigravity: {
+      status: 'disconnected',
+      executablePath: null,
+      version: null,
+      account: { kind: 'unknown' },
+      models: [],
+      error: null
+    },
     initialize: async (options) => {
       const version = connectionEvents
       const claudeVersion = claudeEvents
       const cursorVersion = cursorEvents
+      const antigravityVersion = antigravityEvents
       const gitHubVersion = gitHubEvents
       const device = viewingDevice()
       const fresh = options?.fresh ?? false
@@ -378,6 +398,11 @@ export const useAppStore = create<State>((set, get) => {
         connection: version === connectionEvents ? snapshot.connection : state.connection,
         claude: claudeVersion === claudeEvents ? snapshot.claude : state.claude,
         cursor: cursorVersion === cursorEvents ? snapshot.cursor : state.cursor,
+        // A paired Mac on an older Owlto sends no Antigravity connection.
+        antigravity:
+          antigravityVersion === antigravityEvents
+            ? (snapshot.antigravity ?? state.antigravity)
+            : state.antigravity,
         github: own && gitHubVersion === gitHubEvents ? own.github : state.github
       }))
     },
@@ -406,6 +431,11 @@ export const useAppStore = create<State>((set, get) => {
       if (event.type === 'cursor-connection') {
         cursorEvents++
         set({ cursor: event.connection })
+        return
+      }
+      if (event.type === 'antigravity-connection') {
+        antigravityEvents++
+        set({ antigravity: event.connection })
         return
       }
       if (event.type === 'github-account') {
@@ -651,6 +681,17 @@ export const useAppStore = create<State>((set, get) => {
       const cursor = await action(() => window.owlto.selectCursorExecutable())
       if (cursor) {
         set({ cursor })
+        await get().initialize()
+      }
+    },
+    connectAntigravity: async () => {
+      const antigravity = await action(() => window.owlto.connectAntigravity())
+      if (antigravity) set({ antigravity })
+    },
+    selectAntigravityExecutable: async () => {
+      const antigravity = await action(() => window.owlto.selectAntigravityExecutable())
+      if (antigravity) {
+        set({ antigravity })
         await get().initialize()
       }
     },

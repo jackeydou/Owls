@@ -11,7 +11,9 @@ const require = createRequire(import.meta.url)
 const {
   ClaudeService,
   CodexService,
-  CursorService,
+  AcpAgentService,
+  antigravityAgent,
+  cursorAgent,
   OwltoHost,
   OwltoStore,
   parseClaudeUsage,
@@ -152,17 +154,28 @@ test('The host reads every agent through its own runtime and keeps the answer a 
     ...store.settings(),
     executablePath: CODEX,
     claudeExecutablePath: CLAUDE,
-    cursorExecutablePath: join(root, 'missing-cursor')
+    cursorExecutablePath: join(root, 'missing-cursor'),
+    antigravityExecutablePath: join(root, 'missing-agy')
   })
   const sdk = claudeSdk()
   const codex = new CodexService(store, () => {})
   const claude = new ClaudeService(store, () => {}, sdk)
-  const cursor = new CursorService(store, () => {})
-  const host = new OwltoHost(codex, claude, cursor, join(root, 't'), join(root, 'p'), root)
+  const cursor = new AcpAgentService(store, () => {}, cursorAgent)
+  const antigravity = new AcpAgentService(store, () => {}, antigravityAgent)
+  const host = new OwltoHost(
+    codex,
+    claude,
+    cursor,
+    antigravity,
+    join(root, 't'),
+    join(root, 'p'),
+    root
+  )
   t.after(() => {
     codex.close()
     claude.close()
     cursor.close()
+    antigravity.close()
     client.close()
     rmSync(root, { recursive: true, force: true })
   })
@@ -173,7 +186,8 @@ test('The host reads every agent through its own runtime and keeps the answer a 
     [
       ['claude-code', 'unavailable', 'not-connected'],
       ['codex', 'unavailable', 'not-connected'],
-      ['cursor', 'unavailable', 'not-connected']
+      ['cursor', 'unavailable', 'not-connected'],
+      ['antigravity', 'unavailable', 'not-connected']
     ]
   )
 

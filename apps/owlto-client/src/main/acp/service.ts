@@ -3,10 +3,11 @@ import { promisify } from 'node:util'
 import { z } from 'zod'
 import appPackage from '../../../package.json'
 import type {
+  AcpAgentConnection,
   AgentRequest,
   AppEvent,
   CreateSession,
-  CursorConnection,
+  Failure,
   RespondRequest,
   Session
 } from '../../shared/app.js'
@@ -26,23 +27,15 @@ import { recordSchema, safeText, string } from '../app/values.js'
 import { turnDiff } from '../claude/normalize.js'
 import { REPORT_SERVER_NAME } from '../router/report.js'
 import type { TurnProfiles } from '../router/service.js'
-import { AcpConnection, AcpReplyError, METHOD_NOT_FOUND } from './acp.js'
-import { discoverCursorExecutable } from './discovery.js'
+import type { AcpAgent } from './agent.js'
+import { AcpConnection, AcpReplyError, METHOD_NOT_FOUND } from './connection.js'
+import { discoverExecutable } from './discovery.js'
 import {
-  type AskQuestion,
   approvalPolicy,
   approvalRequest,
-  askQuestionSchema,
   chooseOption,
-  createPlanSchema,
-  cursorMode,
   mergeToolCall,
-  parseCursorModels,
-  parseCursorStatus,
   permissionOptionSchema,
-  planRequest,
-  questionRequest,
-  questionResponse,
   workerPrompt
 } from './normalize.js'
 import { TurnView } from './projection.js'
@@ -59,7 +52,7 @@ const noCapabilities = {
   promptCapabilities: { image: false }
 }
 /** Keeps an inline image's base64 copy to a size agents accept. */
-const CURSOR_IMAGE_MAX_BYTES = 3_750_000
+const ACP_IMAGE_MAX_BYTES = 3_750_000
 const initializeSchema = z.object({
   protocolVersion: z.number().optional(),
   agentCapabilities: z
@@ -97,10 +90,68 @@ const modesSchema = z
   })
   .nullish()
   .catch(null)
+/** ACP's draft model picker, sent by agents that let a client choose the session's model. */
+const sessionModelsSchema = z
+  .object({
+    currentModelId: z.string(),
+    availableModels: z.array(z.object({ modelId: z.string() }).loose()).catch([])
+  })
+  .nullish()
+  .catch(null)
+const configOptionValueSchema = z.object({ value: z.string() }).loose()
+/** ACP session config options; only select options are read. */
+const configOptionsSchema = z
+  .array(
+    z
+      .object({
+        id: z.string(),
+        category: z.string().nullish(),
+        currentValue: z.unknown().optional(),
+        options: z
+          .array(
+            z.union([
+              configOptionValueSchema,
+              z.object({ options: z.array(configOptionValueSchema).catch([]) }).loose()
+            ])
+          )
+          .catch([])
+          .default([])
+      })
+      .loose()
+  )
+  .nullish()
+  .catch(null)
+export type SessionConfigOption = NonNullable<z.infer<typeof configOptionsSchema>>[number]
 const sessionResultSchema = z.object({
   sessionId: z.string().min(1).optional(),
-  modes: modesSchema
+  modes: modesSchema,
+  models: sessionModelsSchema,
+  configOptions: configOptionsSchema
 })
+type SessionResult = z.infer<typeof sessionResultSchema>
+
+/** The values a select config option offers, flattened out of any groups. */
+function optionValues(option: SessionConfigOption): string[] {
+  return option.options.flatMap((entry) =>
+    'value' in entry && typeof entry.value === 'string'
+      ? [entry.value]
+      : 'options' in entry && Array.isArray(entry.options)
+        ? entry.options.map((o) => o.value)
+        : []
+  )
+}
+/** The config option a session offers for `category`, such as `model` or `thought_level`. */
+export function configOption(
+  options: SessionConfigOption[] | null | undefined,
+  category: string
+): SessionConfigOption | null {
+  return options?.find((o) => o.category === category || o.id === category) ?? null
+}
+/** True when `value` is one of the option's choices and not already chosen. */
+export function shouldSet(option: SessionConfigOption | null, value: string | null): boolean {
+  if (!option || !value || option.currentValue === value) return false
+  return optionValues(option).includes(value)
+}
 const count = z.number().nonnegative().catch(0)
 const promptResultSchema = z.object({
   stopReason: z.string(),
@@ -147,11 +198,13 @@ type PendingRequest = {
 }
 
 /**
- * Runs Cursor agent sessions over the Agent Client Protocol (`agent acp`). Each
- * turn starts its own agent process with the session's model, creates or loads
- * the agent's session, sends one prompt, and stops the process when it ends.
+ * Runs a worker-only agent's sessions over the Agent Client Protocol, such as
+ * Cursor (`agent acp`) or Antigravity (`agy acp`); `agent` holds what differs.
+ * Each turn starts its own agent process, creates or loads the agent's session,
+ * applies the session's model and mode, sends one prompt, and stops the process
+ * when it ends.
  */
-export class CursorService {
+export class AcpAgentService {
   private readonly sessions = new Map<string, Session>()
   private readonly runtimes = new Map<string, Runtime>()
   private readonly requests = new Map<string, PendingRequest>()
@@ -159,12 +212,12 @@ export class CursorService {
   /** Sessions whose worktree is being prepared, and whether the user stopped them meanwhile. */
   private readonly preparing = new Map<string, { stopped: boolean }>()
   private flushTimer: ReturnType<typeof setTimeout> | null = null
-  private connecting: Promise<CursorConnection> | null = null
+  private connecting: Promise<AcpAgentConnection> | null = null
   private profiles: TurnProfiles | null = null
   private recordUsage: WorkerUsageRecorder = () => {}
   private notesFolder: string | null = null
   private closed = false
-  private connection: CursorConnection = {
+  private connection: AcpAgentConnection = {
     status: 'disconnected',
     executablePath: null,
     version: null,
@@ -174,10 +227,11 @@ export class CursorService {
   }
   constructor(
     private readonly store: OwltoStore,
-    private readonly emit: (event: AppEvent) => void
+    private readonly emit: (event: AppEvent) => void,
+    private readonly agent: AcpAgent
   ) {
     for (const session of store.sessions()) {
-      if (session.provider !== 'cursor') continue
+      if (session.provider !== agent.provider) continue
       if (active(session)) {
         session.status = 'interrupted'
         session.error = { code: 'interrupted', message: '' }
@@ -212,25 +266,25 @@ export class CursorService {
     this.flush()
     return [...this.sessions.values()]
   }
-  connectionState(): CursorConnection {
+  connectionState(): AcpAgentConnection {
     return this.connection
   }
   hasActiveTasks(): boolean {
     return [...this.sessions.values()].some(active)
   }
-  connect(): Promise<CursorConnection> {
+  connect(): Promise<AcpAgentConnection> {
     if (this.connecting) return this.connecting
     if (this.hasActiveTasks())
-      throw new OwltoError('busy', 'Stop active tasks before reconnecting Cursor.')
+      throw new OwltoError('busy', `Stop active tasks before reconnecting ${this.agent.label}.`)
     this.connecting = this.openConnection().finally(() => {
       this.connecting = null
     })
     return this.connecting
   }
   /** Forgets the account until the user connects again; each turn starts its own process. */
-  disconnect(): CursorConnection {
+  disconnect(): AcpAgentConnection {
     if (this.connecting || this.hasActiveTasks())
-      throw new OwltoError('busy', 'Stop active tasks before disconnecting Cursor.')
+      throw new OwltoError('busy', `Stop active tasks before disconnecting ${this.agent.label}.`)
     this.connection = {
       ...this.connection,
       status: 'disconnected',
@@ -241,22 +295,18 @@ export class CursorService {
     this.emitConnection()
     return this.connection
   }
-  private async openConnection(): Promise<CursorConnection> {
+  private async openConnection(): Promise<AcpAgentConnection> {
     this.connection = { ...this.connection, status: 'connecting', error: null }
     this.emitConnection()
     try {
-      const executable = discoverCursorExecutable(this.store.settings().cursorExecutablePath)
-      const version = await this.run(executable, ['--version'], 10_000)
-      const account = parseCursorStatus(
-        await this.run(executable, ['status', '--format', 'json'], 20_000).catch(() =>
-          this.run(executable, ['status'], 20_000)
-        )
+      const executable = discoverExecutable(
+        this.agent.executablePath(this.store.settings()),
+        this.agent.search
       )
-      // The catalog needs a signed-in account; without one only the default is offered.
-      const models =
-        account.kind === 'signed-out'
-          ? []
-          : parseCursorModels(await this.run(executable, ['models'], 30_000).catch(() => ''))
+      const version = await this.run(executable, ['--version'], 10_000)
+      const { account, models } = await this.agent.probe((args, timeout) =>
+        this.run(executable, args, timeout)
+      )
       this.connection = {
         status: 'ready',
         executablePath: executable,
@@ -271,22 +321,23 @@ export class CursorService {
         status: 'error',
         account: { kind: 'unknown' },
         models: [],
-        error: this.failure(error, 'cursor_not_connected')
+        error: this.failure(error, this.agent.codes.notConnected)
       }
     }
     this.emitConnection()
     return this.connection
   }
   /**
-   * Cursor CLI shows plan usage only in its interactive `/usage` screen; it has
-   * no command, JSON output, or ACP method that reports it, so Owlto says so
-   * instead of scraping the terminal UI.
+   * Cursor and Antigravity show plan usage only in their interactive terminal
+   * screens; neither has a command, JSON output, or ACP method that reports it,
+   * so Owlto says so instead of scraping the terminal UI.
    */
   usage(): AgentUsage {
     const { status, account } = this.connection
-    if (status !== 'ready') return unavailableUsage('cursor', 'not-connected')
-    if (account.kind === 'signed-out') return unavailableUsage('cursor', 'signed-out')
-    return unavailableUsage('cursor', 'not-supported')
+    const provider = this.agent.provider
+    if (status !== 'ready') return unavailableUsage(provider, 'not-connected')
+    if (account.kind === 'signed-out') return unavailableUsage(provider, 'signed-out')
+    return unavailableUsage(provider, 'not-supported')
   }
   private async run(executable: string, args: string[], timeout: number): Promise<string> {
     const { stdout } = await execFileAsync(executable, args, {
@@ -298,7 +349,8 @@ export class CursorService {
   }
   /**
    * `place` marks a worker session in a worktree of a registered project or in
-   * the workspace folder (`SessionPlace`). Cursor has no reasoning effort setting.
+   * the workspace folder (`SessionPlace`). Effort is kept only for agents with a
+   * thinking-level choice; Cursor has none.
    */
   createSession(input: CreateSession, place?: SessionPlace): Session {
     const cwd = sessionCwd(input.cwd, place, this.store.projects())
@@ -306,13 +358,13 @@ export class CursorService {
     const now = new Date().toISOString()
     const session: Session = {
       id: crypto.randomUUID(),
-      provider: 'cursor',
+      provider: this.agent.provider,
       threadId: null,
       title: '',
       cwd,
       projectPath: sessionProject(cwd, place),
       model: input.model,
-      effort: null,
+      effort: this.agent.thoughtLevel ? input.effort : null,
       permission: input.permission,
       status: 'idle',
       turnId: null,
@@ -378,19 +430,18 @@ export class CursorService {
     executable: string,
     turn: RuntimeTurn
   ): Promise<void> {
-    const connection = new AcpConnection({
-      notification: (method, params) => this.notification(session, runtime, method, params),
-      request: (method, params) => this.agentRequest(session, runtime, method, params),
-      closed: () => {}
-    })
+    const connection = new AcpConnection(
+      {
+        notification: (method, params) => this.notification(session, runtime, method, params),
+        request: (method, params) => this.agentRequest(session, runtime, method, params),
+        closed: () => {}
+      },
+      { label: this.agent.label, disconnected: this.agent.codes.disconnected }
+    )
     runtime.connection = connection
     let stopReason: string | null = null
     try {
-      connection.start(
-        executable,
-        [...(session.model ? ['--model', session.model] : []), 'acp'],
-        session.cwd
-      )
+      connection.start(executable, this.agent.args(session), session.cwd)
       const init = initializeSchema.parse(
         await connection.request(
           'initialize',
@@ -405,8 +456,9 @@ export class CursorService {
           30_000
         )
       )
-      if (init.authMethods.some((m) => m.id === 'cursor_login'))
-        await connection.request('authenticate', { methodId: 'cursor_login' }, 60_000)
+      const authMethod = this.agent.authMethod
+      if (authMethod && init.authMethods.some((m) => m.id === authMethod))
+        await connection.request('authenticate', { methodId: authMethod }, 60_000)
       const profile = this.profiles?.profile(session.id) ?? null
       // ACP clients may hand an agent HTTP MCP servers only when it advertises them.
       const reportUrl =
@@ -421,22 +473,16 @@ export class CursorService {
       const mcpServers = reportUrl
         ? [{ type: 'http', name: REPORT_SERVER_NAME, url: reportUrl, headers: [] }]
         : []
-      const modes = await this.openSession(session, runtime, connection, init, {
+      const opened = await this.openSession(session, runtime, connection, init, {
         mcpServers,
         ...systemPrompt
       })
-      const mode = cursorMode(session.permission)
-      if (modes && modes.currentModeId !== mode && modes.availableModes.some((m) => m.id === mode))
-        await connection.request(
-          'session/set_mode',
-          { sessionId: runtime.acpSessionId, modeId: mode },
-          30_000
-        )
+      await this.configure(session, runtime, connection, opened)
       if (runtime.cancelled) return
       // An agent without image prompts reads images from disk like any other file.
       const { images, rest } = await splitAttachments(
         turn.attachments,
-        init.agentCapabilities.promptCapabilities.image ? CURSOR_IMAGE_MAX_BYTES : null
+        init.agentCapabilities.promptCapabilities.image ? ACP_IMAGE_MAX_BYTES : null
       )
       const text = turnText(turn.text, rest)
       const prompt =
@@ -475,7 +521,7 @@ export class CursorService {
       }
     } catch (error) {
       if (this.runtimes.get(session.id) === runtime && !runtime.cancelled) {
-        const failure = this.failure(error, 'cursor_disconnected')
+        const failure = this.failure(error, this.agent.codes.disconnected)
         const detail = connection.diagnostics()
         session.error = {
           code: failure.code,
@@ -495,7 +541,7 @@ export class CursorService {
     connection: AcpConnection,
     init: z.infer<typeof initializeSchema>,
     options: { mcpServers: unknown[] } & Record<string, unknown>
-  ): Promise<z.infer<typeof modesSchema>> {
+  ): Promise<SessionResult> {
     const base = { cwd: session.cwd, ...options }
     if (session.threadId && init.agentCapabilities.loadSession) {
       runtime.replaying = true
@@ -508,9 +554,9 @@ export class CursorService {
           )
         )
         runtime.acpSessionId = session.threadId
-        return loaded.modes
+        return loaded
       } catch {
-        // A chat Cursor no longer has starts over, as a lost Claude Code session does.
+        // A chat the agent no longer has starts over, as a lost Claude Code session does.
         if (runtime.cancelled || !this.runtimes.has(session.id)) throw new Error('stopped')
       } finally {
         runtime.replaying = false
@@ -518,11 +564,56 @@ export class CursorService {
     }
     const created = sessionResultSchema.parse(await connection.request('session/new', base, 60_000))
     if (!created.sessionId)
-      throw new OwltoError('protocol_error', 'Cursor did not start a session.')
+      throw new OwltoError('protocol_error', `${this.agent.label} did not start a session.`)
     runtime.acpSessionId = created.sessionId
     session.threadId = created.sessionId
     this.changed(session, true)
-    return created.modes
+    return created
+  }
+  /**
+   * Applies the session's permission mode, and its model and thinking level when
+   * the agent lets a client choose them in the session (ACP config options, or
+   * the draft model picker) rather than on its command line.
+   */
+  private async configure(
+    session: Session,
+    runtime: Runtime,
+    connection: AcpConnection,
+    opened: SessionResult
+  ): Promise<void> {
+    const sessionId = runtime.acpSessionId
+    const mode = this.agent.mode(session.permission)
+    const { modes, models, configOptions } = opened
+    if (
+      mode &&
+      modes &&
+      modes.currentModeId !== mode &&
+      modes.availableModes.some((m) => m.id === mode)
+    )
+      await connection.request('session/set_mode', { sessionId, modeId: mode }, 30_000)
+    const modelOption = configOption(configOptions, 'model')
+    if (shouldSet(modelOption, session.model))
+      await connection.request(
+        'session/set_config_option',
+        { sessionId, configId: modelOption?.id, value: session.model },
+        30_000
+      )
+    else if (
+      !modelOption &&
+      session.model &&
+      models &&
+      models.currentModelId !== session.model &&
+      models.availableModels.some((m) => m.modelId === session.model)
+    )
+      await connection.request('session/set_model', { sessionId, modelId: session.model }, 30_000)
+    const level = session.effort ? (this.agent.thoughtLevel?.(session.effort) ?? null) : null
+    const levelOption = configOption(configOptions, 'thought_level')
+    if (shouldSet(levelOption, level))
+      await connection.request(
+        'session/set_config_option',
+        { sessionId, configId: levelOption?.id, value: level },
+        30_000
+      )
   }
   /** Ends the session's ownership by this turn. */
   private release(session: Session, runtime: Runtime, stopReason: string | null): void {
@@ -537,8 +628,8 @@ export class CursorService {
     if (outcome === 'failed' && !session.error)
       session.error =
         stopReason === 'refusal'
-          ? { code: 'native_error', message: 'Cursor refused this request.' }
-          : { code: 'cursor_disconnected', message: '' }
+          ? { code: 'native_error', message: `${this.agent.label} refused this request.` }
+          : { code: this.agent.codes.disconnected, message: '' }
     if (outcome === 'interrupted') session.error = null
     for (const item of session.items) if (item.status === 'running') item.status = outcome
     session.diff = turnDiff(session.items, runtime.turnId)
@@ -560,11 +651,11 @@ export class CursorService {
       const parsed = notificationSchema.safeParse(params)
       if (parsed.success && parsed.data.sessionId === runtime.acpSessionId)
         changed = view.update(session, parsed.data.update)
-    } else if (method === 'cursor/update_todos') changed = view.updateTodos(session, params)
-    else if (method === 'cursor/task') changed = view.task(session, params)
+    } else if (this.agent.extensions)
+      changed = this.agent.extensions.notification(view, session, method, params)
     if (changed) this.changed(session)
   }
-  /** Answers what the agent asks of its client: approvals, questions, and plans. */
+  /** Answers what the agent asks of its client: approvals, and its own extensions' questions. */
   private agentRequest(
     session: Session,
     runtime: Runtime,
@@ -592,30 +683,18 @@ export class CursorService {
         cancelled: cancelled
       })
     }
-    if (method === 'cursor/ask_question') {
-      const input: AskQuestion = askQuestionSchema.parse(params)
-      if (this.runtimes.get(session.id) !== runtime || runtime.cancelled)
-        return Promise.resolve(cancelled)
-      return this.ask(session, runtime, questionRequest(input, runtime.turnId), {
-        answer: (reply) =>
-          reply.decision === 'accept'
-            ? questionResponse(input, reply.answers ?? {})
-            : { outcome: { outcome: 'skipped', reason: 'The user declined to answer.' } },
-        cancelled
-      })
-    }
-    if (method === 'cursor/create_plan') {
-      const input = createPlanSchema.parse(params)
-      if (this.runtimes.get(session.id) !== runtime || runtime.cancelled)
-        return Promise.resolve(cancelled)
-      return this.ask(session, runtime, planRequest(input, runtime.turnId), {
-        answer: (reply) =>
-          reply.decision === 'accept'
-            ? { outcome: { outcome: 'accepted' } }
-            : { outcome: { outcome: 'rejected', reason: 'The user rejected the plan.' } },
-        cancelled
-      })
-    }
+    // An extension's question to a turn that already ended is answered as cancelled.
+    const extension = this.agent.extensions?.request(
+      method,
+      params,
+      runtime.turnId,
+      (request, handling) =>
+        this.runtimes.get(session.id) === runtime && !runtime.cancelled
+          ? this.ask(session, runtime, request, handling)
+          : Promise.resolve(cancelled),
+      cancelled
+    )
+    if (extension) return extension
     // Owlto offers no file system or terminal to the agent, so it runs its own tools.
     return Promise.reject(new AcpReplyError(METHOD_NOT_FOUND, `${method} is not supported.`))
   }
@@ -723,7 +802,7 @@ export class CursorService {
     if (!this.connection.models.some((m) => m.id === model))
       throw new OwltoError(
         'model_unavailable',
-        'This model is not available in the connected Cursor account.'
+        `This model is not available in the connected ${this.agent.label} account.`
       )
   }
   private readyExecutable(): string {
@@ -732,7 +811,10 @@ export class CursorService {
       !this.connection.executablePath ||
       this.connection.account.kind === 'signed-out'
     )
-      throw new OwltoError('cursor_not_connected', 'Connect your local Cursor CLI in Settings.')
+      throw new OwltoError(
+        this.agent.codes.notConnected,
+        `Connect your local ${this.agent.label} CLI in Settings.`
+      )
     return this.connection.executablePath
   }
   private getSession(id: string): Session {
@@ -740,7 +822,7 @@ export class CursorService {
     if (!session) throw new OwltoError('task_not_found', 'Task not found.')
     return session
   }
-  private failure(error: unknown, fallback: 'cursor_not_connected' | 'cursor_disconnected') {
+  private failure(error: unknown, fallback: Failure['code']) {
     const failure = toFailure(error)
     return failure.code === 'native_error' && !failure.message
       ? { code: fallback, message: '' }
@@ -765,7 +847,7 @@ export class CursorService {
     this.dirty.clear()
   }
   private emitConnection(): void {
-    this.emit({ type: 'cursor-connection', connection: this.connection })
+    this.emit(this.agent.connectionEvent(this.connection))
   }
   /** Stops owned agent processes. The shared store is closed by the host. */
   close(): void {

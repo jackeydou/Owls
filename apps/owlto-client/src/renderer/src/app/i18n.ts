@@ -34,6 +34,7 @@ const en = {
   'agent.codex': 'Codex',
   'agent.claude-code': 'Claude Code',
   'agent.cursor': 'Cursor',
+  'agent.antigravity': 'Antigravity',
   agentConnect: 'Connect',
   agentConnecting: 'Connecting…',
   agentReconnect: 'Reconnect',
@@ -84,8 +85,10 @@ const en = {
     'Lets workers open and operate web pages in Owlto’s Browser panel, where you can watch and take over.',
   cursorAccount: 'Cursor account',
   cursorSignInHelp: 'To switch accounts, run cursor-agent login in Terminal, then reconnect.',
-  cursorWorkerOnly: 'Runs workers only, not the Router.',
-  cursorFullAccessHelp: 'Approves every action without asking.',
+  workerOnlyAgent: 'Runs workers only, not the Router.',
+  acpFullAccessHelp: 'Approves every action without asking.',
+  antigravityAccount: 'Google account',
+  antigravitySignInHelp: 'To sign in or switch accounts, run agy in Terminal, then reconnect.',
   defaultsBody: "Each connected agent's settings for new workers. Running workers keep theirs.",
   'workerAgents.allWorkers': 'All workers',
   'workerAgents.missing': '{{agents}} not connected.',
@@ -128,6 +131,7 @@ const en = {
   'effort.medium': 'Medium',
   'effort.high': 'High',
   'effort.xhigh': 'Extra high',
+  'effort.extra': 'Extra',
   'effort.max': 'Max',
   'activity.command.running': 'Running',
   'activity.command.done': 'Ran',
@@ -212,7 +216,12 @@ const en = {
     'The Cursor CLI was not found. Choose your local executable in Settings.',
   'errors.cursor_not_connected': 'Connect Cursor in Settings to continue.',
   'errors.cursor_disconnected':
-    'Cursor stopped before the turn finished. Send a new message to continue.'
+    'Cursor stopped before the turn finished. Send a new message to continue.',
+  'errors.antigravity_not_installed':
+    'The Antigravity CLI (agy) was not found. Choose your local executable in Settings.',
+  'errors.antigravity_not_connected': 'Connect Antigravity in Settings to continue.',
+  'errors.antigravity_disconnected':
+    'Antigravity stopped before the turn finished. Send a new message to continue.'
 }
 const zh: Record<keyof typeof en, string> = {
   projects: '项目',
@@ -226,6 +235,7 @@ const zh: Record<keyof typeof en, string> = {
   'agent.codex': 'Codex',
   'agent.claude-code': 'Claude Code',
   'agent.cursor': 'Cursor',
+  'agent.antigravity': 'Antigravity',
   agentConnect: '连接',
   agentConnecting: '正在连接…',
   agentReconnect: '重新连接',
@@ -272,8 +282,10 @@ const zh: Record<keyof typeof en, string> = {
   browserToolHelp: '让 Worker 在 Owlto 的浏览器面板里打开和操作网页，你可以随时查看和接管。',
   cursorAccount: 'Cursor 账号',
   cursorSignInHelp: '切换账号：在终端运行 cursor-agent login 后重新连接。',
-  cursorWorkerOnly: '只能做 Worker，不能当协调者。',
-  cursorFullAccessHelp: '所有操作直接执行，不再询问。',
+  workerOnlyAgent: '只能做 Worker，不能当协调者。',
+  acpFullAccessHelp: '所有操作直接执行，不再询问。',
+  antigravityAccount: 'Google 账号',
+  antigravitySignInHelp: '登录或切换账号：在终端运行 agy 后重新连接。',
   defaultsBody: '每个已连接 Agent 给新 Worker 用的设置，运行中的 Worker 不受影响。',
   'workerAgents.allWorkers': '所有 Worker',
   'workerAgents.missing': '{{agents}} 未连接。',
@@ -316,6 +328,7 @@ const zh: Record<keyof typeof en, string> = {
   'effort.medium': '中',
   'effort.high': '高',
   'effort.xhigh': '超高',
+  'effort.extra': '超高',
   'effort.max': '最高',
   'activity.command.running': '正在运行',
   'activity.command.done': '已运行',
@@ -391,7 +404,11 @@ const zh: Record<keyof typeof en, string> = {
   'errors.claude_disconnected': 'Claude Code 在本轮完成前停止，请发送新消息继续。',
   'errors.cursor_not_installed': '未找到 Cursor CLI，请在设置中选择本机可执行文件。',
   'errors.cursor_not_connected': '请先在设置中连接 Cursor。',
-  'errors.cursor_disconnected': 'Cursor 在本轮完成前停止，请发送新消息继续。'
+  'errors.cursor_disconnected': 'Cursor 在本轮完成前停止，请发送新消息继续。',
+  'errors.antigravity_not_installed':
+    '未找到 Antigravity CLI（agy），请在设置中选择本机可执行文件。',
+  'errors.antigravity_not_connected': '请先在设置中连接 Antigravity。',
+  'errors.antigravity_disconnected': 'Antigravity 在本轮完成前停止，请发送新消息继续。'
 }
 void i18next.use(initReactI18next).init({
   resources: {

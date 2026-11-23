@@ -1,4 +1,7 @@
-/* Each agent's meters use its own brand color: Claude's clay, Codex's graphite, Cursor's periwinkle. */
+/*
+ * Each agent's meters use its own color: Claude's clay, Codex's graphite, Cursor's periwinkle,
+ * and the teal of the Antigravity owl.
+ */
 .owlto-usage-agent[data-provider="claude-code"],
 .owlto-usage-summary-row[data-provider="claude-code"] {
   --owlto-usage-brand: #d97757;
@@ -10,6 +13,10 @@
 .owlto-usage-agent[data-provider="cursor"],
 .owlto-usage-summary-row[data-provider="cursor"] {
   --owlto-usage-brand: #7c8cff;
+}
+.owlto-usage-agent[data-provider="antigravity"],
+.owlto-usage-summary-row[data-provider="antigravity"] {
+  --owlto-usage-brand: #2fae8f;
 }
 html[data-theme="dark"] .owlto-usage-agent[data-provider="codex"],
 html[data-theme="dark"] .owlto-usage-summary-row[data-provider="codex"] {

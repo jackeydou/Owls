@@ -12,10 +12,13 @@ Agent Client Protocol (ACP) mode has no way to take the Router's in-process tool
 
 - Host routing: `apps/owlto-client/src/main/app/host.ts` (one `AgentRuntime` per
   provider, `src/main/app/agent-runtime.ts`).
-- Discovery: `src/main/cursor/discovery.ts`.
-- ACP transport: `src/main/cursor/acp.ts`.
-- Session orchestration: `src/main/cursor/service.ts`.
-- Update, tool, approval, and question normalization: `src/main/cursor/normalize.ts`.
+- Cursor's agent definition (discovery names, connection probe, launch
+  arguments, modes, and its `cursor/*` extension methods): `src/main/cursor/agent.ts`.
+- Account, model, question, and plan parsing: `src/main/cursor/normalize.ts`.
+- The shared ACP runtime, also used by [Antigravity](ANTIGRAVITY_RUNTIME.md):
+  discovery `src/main/acp/discovery.ts`, transport `src/main/acp/connection.ts`,
+  session orchestration `src/main/acp/service.ts` (`AcpAgentService`), and update,
+  tool, and approval normalization `src/main/acp/normalize.ts`.
 
 Paths after the first entry are relative to `apps/owlto-client/`.
 
@@ -93,7 +96,7 @@ stops the process if the turn has not ended 15 seconds later.
 
 ## Tests and limits
 
-`tests/admin/cursor-runtime.test.mjs` drives the service against
+`tests/admin/cursor-runtime.test.mjs` drives `AcpAgentService` with `cursorAgent` against
 `tests/fixtures/cursor/mock-cursor-agent.cjs`, a scripted ACP agent. The mock
 follows the ACP schema and Cursor's documented extension methods; the
 `status` and `models` output formats are best guesses and need checking against

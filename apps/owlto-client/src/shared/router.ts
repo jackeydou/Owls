@@ -4,7 +4,7 @@ import { ATTACHED_CARD_LIMIT, cardIdSchema, messageQuoteSchema } from './cards.j
 import { ROUTER_INSTRUCTIONS_LIMIT } from './router-instructions.js'
 
 const permissionValues = ['read-only', 'workspace-write', 'full-access'] as const
-const providerValues = ['codex', 'claude-code', 'cursor'] as const
+const providerValues = ['codex', 'claude-code', 'cursor', 'antigravity'] as const
 
 export const routerEngineSchema = z.enum(['owlto', 'claude-code', 'codex'])
 /** Model providers the Owlto engine accepts. `custom` is any OpenAI-compatible endpoint. */
@@ -84,12 +84,13 @@ export const pendingWorkerMessageSchema = z.object({
 /**
  * How each agent takes a message in the middle of a turn. Claude Code (streaming
  * input) and Codex (`turn/steer`) fold it into the running turn; ACP has no such
- * call, so Cursor's turn is cancelled and the message starts the next one.
+ * call, so a Cursor or Antigravity turn is cancelled and the message starts the next one.
  */
 export const STEER_MODES = {
   'claude-code': 'inject',
   codex: 'inject',
-  cursor: 'restart'
+  cursor: 'restart',
+  antigravity: 'restart'
 } as const satisfies Record<(typeof providerValues)[number], 'inject' | 'restart'>
 export type SteerMode = (typeof STEER_MODES)[keyof typeof STEER_MODES]
 export const workerStatusSchema = z.enum([

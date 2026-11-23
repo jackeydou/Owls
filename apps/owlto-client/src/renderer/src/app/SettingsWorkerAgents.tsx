@@ -11,6 +11,7 @@ import {
   type AgentProvider,
   agentPermissions,
   effortSchema,
+  isAcpProvider,
   type Permission,
   providerSchema,
   workerBrowserEnabled
@@ -25,7 +26,7 @@ function permissionHelp(provider: AgentProvider, permission: Permission): string
   if (permission === 'read-only') return 'readOnlyHelp'
   const full = permission === 'full-access'
   if (provider === 'claude-code') return full ? 'claudeFullAccessHelp' : 'claudePermissionHelp'
-  if (provider === 'cursor') return 'cursorFullAccessHelp'
+  if (isAcpProvider(provider)) return 'acpFullAccessHelp'
   return full ? 'fullAccessHelp' : 'permissionHelp'
 }
 

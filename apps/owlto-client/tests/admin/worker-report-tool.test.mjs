@@ -32,7 +32,9 @@ const require = createRequire(import.meta.url)
 const {
   ClaudeService,
   CodexService,
-  CursorService,
+  AcpAgentService,
+  antigravityAgent,
+  cursorAgent,
   OwltoEngine,
   OwltoHost,
   OwltoStore,
@@ -136,11 +138,13 @@ async function app(t, provider, goal = 'report through mcp') {
   const emit = () => {}
   const codex = new CodexService(store, emit)
   const claude = new ClaudeService(store, emit, sdk)
-  const cursor = new CursorService(store, emit)
+  const cursor = new AcpAgentService(store, emit, cursorAgent)
+  const antigravity = new AcpAgentService(store, emit, antigravityAgent)
   const host = new OwltoHost(
     codex,
     claude,
     cursor,
+    antigravity,
     join(root, 'thread'),
     join(root, 'p'),
     workspace
@@ -194,6 +198,7 @@ async function app(t, provider, goal = 'report through mcp') {
     codex.close()
     claude.close()
     cursor.close()
+    antigravity.close()
     client.close()
     rmSync(root, { recursive: true, force: true })
   })

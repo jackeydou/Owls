@@ -72,10 +72,12 @@ export function ProjectAgentsPage({ project }: { project: Project }) {
   const codex = useAppStore((s) => s.connection.models)
   const claude = useAppStore((s) => s.claude.models)
   const cursor = useAppStore((s) => s.cursor.models)
+  const antigravity = useAppStore((s) => s.antigravity.models)
   const offered: Record<AgentProvider, AgentModel[]> = {
     codex: pickable('codex', codex),
     'claude-code': pickable('claude-code', claude),
-    cursor: pickable('cursor', cursor)
+    cursor: pickable('cursor', cursor),
+    antigravity: pickable('antigravity', antigravity)
   }
   // Shown at once, so a dragged row stays where it was dropped while the save runs.
   const [agents, setAgents] = useState(project.settings.agents)
