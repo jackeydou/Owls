@@ -17,8 +17,6 @@ import { useCamera } from './useCamera'
 import { useMapMotion } from './useMapMotion'
 import './map.css'
 
-/** The detail panel's width, which the camera keeps nodes clear of. */
-const PANEL_WIDTH = 480
 const MINUTE = 60_000
 /** Outlives the view so reopening the map never swaps a project's side. */
 const rememberedSides = new Map<string, MapSide>()
@@ -137,7 +135,8 @@ export function MapView() {
       } else {
         focusProject(node.projectId)
         showPanel({ kind: 'worker', workerId: node.id })
-        camera.reveal(boxOf(node), PANEL_WIDTH)
+        // The worker opens in the right sidebar, beside the map rather than over it.
+        camera.reveal(boxOf(node), 0)
       }
     },
     [camera, focusProject, showPanel, toggleDone]
@@ -148,13 +147,15 @@ export function MapView() {
     const index = waiting.findIndex((n) => n.id === selectedWorker)
     const next = waiting[(index + 1) % waiting.length]
     select(next)
-    camera.focus(boxOf(next), PANEL_WIDTH)
+    camera.focus(boxOf(next), 0)
   }, [camera, map, select, selectedWorker])
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       const target = event.target as Element
       if (
-        target.closest?.('textarea, input, [contenteditable="true"], .router-panel') ||
+        target.closest?.(
+          'textarea, input, [contenteditable="true"], .router-panel, .worker-panel'
+        ) ||
         event.metaKey ||
         event.ctrlKey
       )

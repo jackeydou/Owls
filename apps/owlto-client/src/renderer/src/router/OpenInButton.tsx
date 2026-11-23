@@ -164,3 +164,46 @@ export function OpenInSplitButton({ open }: { open: (appId: OpenInAppId) => Prom
     </div>
   )
 }
+
+/**
+ * "Open in" as items of another menu, such as a bar's More menu once the split button no
+ * longer fits: every installed app, the remembered one checked. Picking one opens the
+ * worker's folder there and makes it the default.
+ */
+export function OpenInMenuItems({ worker }: { worker: RouterWorker }) {
+  const { t } = useTranslation()
+  const apps = useRouterStore((s) => s.openInApps)
+  const openWorkerIn = useRouterStore((s) => s.openWorkerIn)
+  const settings = useAppStore((s) => s.settings)
+  const saveSettings = useAppStore((s) => s.saveSettings)
+  if (worker.workspace.kind === 'worktree' && worker.workspace.state === 'released') return null
+  if (!apps?.length) return null
+  const current =
+    apps.find((app) => app.id === settings.openInApp) ??
+    apps.find((app) => app.kind === 'editor') ??
+    apps[0]
+  return (
+    <>
+      <MenuLabel>{t('openIn.menuLabel')}</MenuLabel>
+      {groups(apps).map((group, index) => (
+        <MenuGroup key={group[0].kind}>
+          {index > 0 ? <MenuSeparator /> : null}
+          {group.map((app) => (
+            <MenuItem
+              key={app.id}
+              onSelect={() => {
+                if (app.id !== settings.openInApp)
+                  void saveSettings({ ...settings, openInApp: app.id })
+                void openWorkerIn({ routerId: worker.routerId, workerId: worker.id, appId: app.id })
+              }}
+            >
+              <AppIcon app={app} size={18} />
+              <span className="min-w-0 flex-1 truncate">{app.name}</span>
+              {app.id === current.id ? <CheckIcon size={14} aria-hidden /> : null}
+            </MenuItem>
+          ))}
+        </MenuGroup>
+      ))}
+    </>
+  )
+}

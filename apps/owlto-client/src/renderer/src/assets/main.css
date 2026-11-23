@@ -1407,3 +1407,28 @@ html[data-theme="dark"] .owlto-activity-shimmer {
 :root[data-popover-open] * {
   -webkit-app-region: no-drag;
 }
+
+/* OverflowBar: the actions that fit, then More; the hidden copy only measures them. */
+.owlto-overflow-bar {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+.owlto-overflow-measure {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  white-space: nowrap;
+  visibility: hidden;
+  pointer-events: none;
+}
+.owlto-overflow-measure > * {
+  flex: none;
+}

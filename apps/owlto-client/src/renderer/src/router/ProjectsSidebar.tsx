@@ -94,7 +94,6 @@ type HomeEntry = {
 }
 function HomeRow({ entry, children }: { entry: HomeEntry; children?: React.ReactNode }) {
   const { t } = useTranslation()
-  const showChat = useAppStore((s) => s.showChat)
   const allWorkers = useRouterStore((s) => s.workers)
   const homes = useWorkerHomes()
   const folded = useRouterStore((s) => s.foldedProjects.has(entry.id))
@@ -109,49 +108,58 @@ function HomeRow({ entry, children }: { entry: HomeEntry; children?: React.React
   const foldLabel = t(folded ? 'router.project.showWorkers' : 'router.project.hideWorkers', {
     project: entry.name
   })
+  const foldable = workers.length > 0
+  const rowContent = (
+    <>
+      {entry.icon}
+      <span>{entry.name}</span>
+      {state ? <i className={state} aria-hidden /> : null}
+      {foldable ? (
+        <span className="router-project-fold" aria-hidden>
+          {folded ? <ChevronRightIcon size={15} /> : <ChevronDownIcon size={15} />}
+        </span>
+      ) : null}
+    </>
+  )
   return (
     <div className="router-sidebar-project">
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            type="button"
-            className={workers.length ? 'router-project foldable' : 'router-project'}
-            style={{ '--owl-c': entry.hue } as React.CSSProperties}
-            aria-label={label}
-            onClick={() => showChat(entry.id)}
-          >
-            {entry.icon}
-            <span>{entry.name}</span>
-            {state ? <i className={state} aria-hidden /> : null}
-          </button>
+          {/* The row only folds its workers; a project with none has nothing to open. */}
+          {foldable ? (
+            <button
+              type="button"
+              className="router-project foldable"
+              style={{ '--owl-c': entry.hue } as React.CSSProperties}
+              aria-label={`${label}, ${foldLabel}`}
+              aria-expanded={!folded}
+              onClick={() => toggleProjectFold(entry.id)}
+            >
+              {rowContent}
+            </button>
+          ) : (
+            <div
+              className="router-project"
+              style={{ '--owl-c': entry.hue } as React.CSSProperties}
+            >
+              {rowContent}
+              {state ? <span className="sr-only">{label}</span> : null}
+            </div>
+          )}
         </TooltipTrigger>
         <TooltipContent side="left">{entry.tooltip}</TooltipContent>
       </Tooltip>
       <IconButton
         size="custom"
-        className={
-          workers.length ? 'router-project-settings beside-fold' : 'router-project-settings'
-        }
+        className={foldable ? 'router-project-settings beside-fold' : 'router-project-settings'}
         label={entry.settingsLabel}
         tooltip={entry.settingsLabel}
         tooltipSide="left"
         icon={<SettingsIcon size={15} />}
         onClick={entry.onSettings}
       />
-      {workers.length ? (
-        <IconButton
-          size="custom"
-          className="router-project-fold"
-          label={foldLabel}
-          tooltip={foldLabel}
-          tooltipSide="left"
-          aria-expanded={!folded}
-          icon={folded ? <ChevronRightIcon size={15} /> : <ChevronDownIcon size={15} />}
-          onClick={() => toggleProjectFold(entry.id)}
-        />
-      ) : null}
       {children}
-      {workers.length && !folded ? (
+      {foldable && !folded ? (
         <ul
           className="router-sidebar-workers"
           aria-label={t('router.project.workers', { project: entry.name })}

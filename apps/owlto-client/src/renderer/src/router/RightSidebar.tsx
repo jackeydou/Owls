@@ -22,6 +22,8 @@ import { FileViewerPane } from '../files/FileViewer'
 import { SimulatorPane } from '../simulator/SimulatorPane'
 import { ProjectsPane } from './ProjectsSidebar'
 import { usePaneWidth } from './pane-width'
+import { useRouterStore } from './store'
+import { WorkerDetail } from './WorkerDetail'
 
 /**
  * Opens and closes the right-hand sidebar from the window's top-right corner, whatever the view:
@@ -104,7 +106,8 @@ function PanelTab({
   icon
 }: {
   panel: RightPanel
-  current: RightPanel
+  /** The tab whose list shows, or null while a worker's conversation covers the lists. */
+  current: RightPanel | null
   icon: ReactNode
 }) {
   const { t } = useTranslation()
@@ -126,10 +129,21 @@ function PanelTab({
 /** The right-hand sidebar: one list at a time, picked from the icons in its head. */
 export function RightSidebar() {
   const { t } = useTranslation()
-  const panel = useAppStore((s) => s.settings.layout.rightPanel)
-  // The file viewer keeps its own, wider width, so code has room without widening the lists.
+  const tab = useAppStore((s) => s.settings.layout.rightPanel)
+  const worker = useRouterStore((s) => {
+    const panel = s.panel
+    return panel?.kind === 'worker' ? s.workers.find((w) => w.id === panel.workerId) : undefined
+  })
+  // An open worker covers the lists until the user goes back or picks a tab.
+  const panel = worker ? null : tab
+  // Wide panes keep their own widths, so code, pages, and conversations have room without
+  // widening the lists; a worker keeps the width its split details panel had.
   const { width, handle } = usePaneWidth(
-    panel === 'files' || panel === 'browser' || panel === 'simulator' ? panel : 'projects',
+    worker
+      ? 'panel'
+      : panel === 'files' || panel === 'browser' || panel === 'simulator'
+        ? panel
+        : 'projects',
     'left'
   )
   return (
@@ -149,7 +163,9 @@ export function RightSidebar() {
           <PanelTab panel="simulator" current={panel} icon={<SmartphoneIcon size={18} />} />
         </nav>
       </header>
-      {panel === 'simulator' ? (
+      {worker ? (
+        <WorkerDetail key={worker.id} worker={worker} />
+      ) : panel === 'simulator' ? (
         <SimulatorPane />
       ) : panel === 'browser' ? (
         <BrowserPane />

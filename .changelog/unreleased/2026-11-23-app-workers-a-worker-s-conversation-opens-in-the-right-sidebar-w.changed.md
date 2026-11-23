@@ -1,0 +1,1 @@
+- Workers: a worker's conversation opens in the right sidebar with its actions in a second bar; clicking a project there folds its workers; Settings' sidebar no longer scrolls away with a long page. (#222)

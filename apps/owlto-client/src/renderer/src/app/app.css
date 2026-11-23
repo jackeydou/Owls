@@ -39,7 +39,11 @@
   --owl-link-hover: #8cc8ff;
 }
 
+/* Positioned, so absolutely placed descendants (such as the screen-reader status inside
+   ActionButton) are clipped here instead of stretching the document: a taller document lets a
+   scroll that reaches the end of a pane carry on and move the whole window's content. */
 .owlto-app {
+  position: relative;
   display: flex;
   width: 100vw;
   height: 100dvh;
