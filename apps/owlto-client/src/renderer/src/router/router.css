@@ -351,6 +351,27 @@ div.router-project:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The last row of a project's workers: lists the next, earlier batch. */
+.router-sidebar-more {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 26px;
+  padding: 0 8px 0 10px;
+  border-radius: var(--owl-radius-sm);
+  color: var(--color-muted-foreground);
+  font-size: var(--owl-text-xs);
+  text-align: left;
+  transition: transform 120ms ease;
+}
+.router-sidebar-more:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-foreground);
+}
+.router-sidebar-more:active {
+  transform: scale(0.98);
+}
 .router-sidebar-usage {
   margin-top: 8px;
 }

@@ -1,0 +1,1 @@
+- Projects sidebar: an opened project lists its 5 latest workers, finished ones included, with a row that loads 10 earlier at a time. (#226)
