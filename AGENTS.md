@@ -346,10 +346,16 @@ Release MR flow:
   strip outlines from text fields. Show text-field focus on the field border or
   its wrapper with `--owl-field-focus-border` / `--owl-field-focus-shadow`. Do
   not add `--color-accent`, black, or other hard outlines for focus.
+- Only fixed-height title bars (`--owl-bar-height` strips such as
+  `.owlto-topbar`, `.router-sidebar-head`, `.router-projects-head`) may set
+  `-webkit-app-region: drag`. Never put it on a sidebar, panel, page, or other
+  container: Electron gives a drag area and every descendant without `no-drag`
+  no clicks and no wheel scrolling, so each list or pane added to that container
+  later breaks. `tests/admin/drag-regions.test.mjs` holds the list of allowed
+  bars; add a genuine new bar there, never a container.
 - Fixed or floating overlays (popups, toasts, menus, dialogs) must set
-  `-webkit-app-region: no-drag`. Sidebars and title bars are full-height drag
-  regions, and Electron ignores z-order for drag regions, so an overlay without
-  it swallows clicks over them.
+  `-webkit-app-region: no-drag`. Electron ignores z-order for drag regions, so
+  without it an overlay that covers a title bar loses its clicks there.
 - For forms and settings, persist through the established settings or IPC flow.
   Do not add renderer-only runtime knobs that drift from main-process state.
 - Keep accessibility text and visible copy in the same i18n change. Do not add

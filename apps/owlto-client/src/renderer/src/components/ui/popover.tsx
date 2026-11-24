@@ -15,7 +15,7 @@ export type PopoverPoint = { x: number; y: number }
 
 /**
  * Electron delivers no pointer events from `-webkit-app-region: drag` areas, such as the
- * sidebars' empty space, so a press there could not close an open card. While any card is open
+ * title bars, so a press there could not close an open card. While any card is open
  * the root carries `data-popover-open`, which turns drag regions off (main.css) until it closes.
  */
 let openCards = 0

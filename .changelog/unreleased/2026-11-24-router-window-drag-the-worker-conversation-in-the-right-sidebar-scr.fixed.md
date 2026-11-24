@@ -1,0 +1,1 @@
+- Window drag: the worker conversation in the right sidebar scrolls again; only title bars drag the window, not whole sidebars.

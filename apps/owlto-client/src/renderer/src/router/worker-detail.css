@@ -13,7 +13,6 @@
   height: var(--owl-bar-height);
   padding: 0 8px 0 6px;
   border-bottom: 1px solid var(--color-border);
-  -webkit-app-region: no-drag;
 }
 /* One line: the title shrinks first, then its change counts. */
 .worker-title {
@@ -52,7 +51,6 @@
   color: var(--color-foreground);
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
   animation: worker-jump-in 160ms ease-out;
-  -webkit-app-region: no-drag;
 }
 @keyframes worker-jump-in {
   from {
