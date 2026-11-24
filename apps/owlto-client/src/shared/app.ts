@@ -251,15 +251,13 @@ export const defaultAppLogo = 'lean-cream' satisfies z.infer<typeof appLogoSchem
 /** Width bounds, in CSS pixels, for each pane the user can drag wider or narrower. */
 export const paneWidthBounds = {
   sidebar: { min: 200, max: 440, initial: 264 },
-  projects: { min: 220, max: 480, initial: 304 },
+  /**
+   * The right sidebar. It keeps one width for every tab (lists, files, browser, simulator,
+   * an open worker), so switching tabs never makes it jump; only the user's drag changes it.
+   */
+  right: { min: 260, max: 1280, initial: 360 },
   panel: { min: 360, max: 960, initial: 480 },
-  card: { min: 340, max: 960, initial: 460 },
-  /** The right sidebar while it shows the file viewer, which wants room for code. */
-  files: { min: 320, max: 960, initial: 520 },
-  /** The right sidebar while it shows the browser, which needs room for a real page. */
-  browser: { min: 400, max: 1280, initial: 640 },
-  /** The right sidebar while it shows the iOS Simulator, sized for a phone screen. */
-  simulator: { min: 320, max: 960, initial: 420 }
+  card: { min: 340, max: 960, initial: 460 }
 } as const
 export type ResizablePane = keyof typeof paneWidthBounds
 /** A width the user dragged to, or null to follow the pane's current default. */
@@ -268,16 +266,11 @@ export const rightPanelSchema = z.enum(['projects', 'cards', 'files', 'browser',
 export type RightPanel = z.infer<typeof rightPanelSchema>
 export const layoutSettingsSchema = z.object({
   sidebarWidth: paneWidthSchema,
-  projectsWidth: paneWidthSchema,
+  /** The right sidebar, shared by all its tabs; replaced per-tab widths, so older rows reset. */
+  rightWidth: paneWidthSchema.catch(null),
   panelWidth: paneWidthSchema,
   /** The open card's editor on the Cards page; added later, so older rows follow the default. */
   cardWidth: paneWidthSchema.catch(null),
-  /** The right sidebar on its file viewer tab; added later, so older rows follow the default. */
-  filesWidth: paneWidthSchema.catch(null),
-  /** The right sidebar on its browser tab; added later, so older rows follow the default. */
-  browserWidth: paneWidthSchema.catch(null),
-  /** The right sidebar on its simulator tab; added later, so older rows follow the default. */
-  simulatorWidth: paneWidthSchema.catch(null),
   /** Whether the right-hand sidebar is open; named for its first and once only content. */
   projectsOpen: z.boolean(),
   /** Which list the right-hand sidebar shows; added later, so older rows show projects. */
@@ -293,12 +286,9 @@ export type ExperimentsSettings = z.infer<typeof experimentsSettingsSchema>
 export const defaultExperimentsSettings: ExperimentsSettings = { manualDreaming: false }
 export const defaultLayoutSettings: LayoutSettings = {
   sidebarWidth: null,
-  projectsWidth: null,
+  rightWidth: null,
   panelWidth: null,
   cardWidth: null,
-  filesWidth: null,
-  browserWidth: null,
-  simulatorWidth: null,
   projectsOpen: false,
   rightPanel: 'projects'
 }
