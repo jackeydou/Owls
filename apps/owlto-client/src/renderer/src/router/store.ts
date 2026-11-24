@@ -55,7 +55,7 @@ type State = {
   openDone: ReadonlySet<string>
   /** Workers whose children are folded on the map. */
   collapsed: ReadonlySet<string>
-  /** Projects whose active workers are folded away in the sidebar. */
+  /** Projects whose workers are folded away in the sidebar. */
   foldedProjects: ReadonlySet<string>
   hydrate(routers: Router[], workers: RouterWorker[]): void
   /** Forgets the shown device's threads and workers before another device's load. */

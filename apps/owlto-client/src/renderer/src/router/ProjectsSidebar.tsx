@@ -9,7 +9,7 @@ import {
   XIcon
 } from '@renderer/components/ui/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Project } from '../../../shared/app'
 import type { RouterWorker } from '../../../shared/router'
@@ -82,6 +82,9 @@ function WorkerRow({ worker, home }: { worker: RouterWorker; home: string }) {
     </li>
   )
 }
+/** Workers an opened project lists at first, and how many more each "earlier" click adds. */
+const FIRST_WORKERS = 5
+const EARLIER_WORKERS = 10
 type HomeEntry = {
   /** The project id, or the Workspace's. */
   id: string
@@ -95,15 +98,23 @@ type HomeEntry = {
 function HomeRow({ entry, children }: { entry: HomeEntry; children?: React.ReactNode }) {
   const { t } = useTranslation()
   const allWorkers = useRouterStore((s) => s.workers)
+  const routers = useRouterStore((s) => s.routers)
   const homes = useWorkerHomes()
   const folded = useRouterStore((s) => s.foldedProjects.has(entry.id))
   const toggleProjectFold = useRouterStore((s) => s.toggleProjectFold)
-  // Oldest first, so a row stays put while its neighbors change state.
-  const workers = useMemo(
-    () => allWorkers.filter((w) => homes.get(w.id) === entry.id && isInPlay(w)).sort(byAge),
-    [allWorkers, homes, entry.id]
-  )
-  const state = workers.some(isWaitingOnUser) ? 'wait' : workers.some(isWorking) ? 'run' : null
+  const [shown, setShown] = useState(FIRST_WORKERS)
+  // Newest first, finished ones included, leaving out workers of archived threads.
+  const workers = useMemo(() => {
+    const archived = new Set(routers.filter((r) => r.archivedAt).map((r) => r.id))
+    return allWorkers
+      .filter(
+        (w) => homes.get(w.id) === entry.id && w.status !== 'removed' && !archived.has(w.routerId)
+      )
+      .sort((a, b) => byAge(b, a))
+  }, [allWorkers, routers, homes, entry.id])
+  const inPlay = workers.filter(isInPlay)
+  const state = inPlay.some(isWaitingOnUser) ? 'wait' : inPlay.some(isWorking) ? 'run' : null
+  const earlier = Math.min(EARLIER_WORKERS, workers.length - shown)
   const label = state ? t(`router.project.${state}`, { project: entry.name }) : entry.name
   const foldLabel = t(folded ? 'router.project.showWorkers' : 'router.project.hideWorkers', {
     project: entry.name
@@ -133,15 +144,16 @@ function HomeRow({ entry, children }: { entry: HomeEntry; children?: React.React
               style={{ '--owl-c': entry.hue } as React.CSSProperties}
               aria-label={`${label}, ${foldLabel}`}
               aria-expanded={!folded}
-              onClick={() => toggleProjectFold(entry.id)}
+              onClick={() => {
+                // Each opening starts again from the most recent few.
+                if (folded) setShown(FIRST_WORKERS)
+                toggleProjectFold(entry.id)
+              }}
             >
               {rowContent}
             </button>
           ) : (
-            <div
-              className="router-project"
-              style={{ '--owl-c': entry.hue } as React.CSSProperties}
-            >
+            <div className="router-project" style={{ '--owl-c': entry.hue } as React.CSSProperties}>
               {rowContent}
               {state ? <span className="sr-only">{label}</span> : null}
             </div>
@@ -164,9 +176,21 @@ function HomeRow({ entry, children }: { entry: HomeEntry; children?: React.React
           className="router-sidebar-workers"
           aria-label={t('router.project.workers', { project: entry.name })}
         >
-          {workers.map((worker) => (
+          {workers.slice(0, shown).map((worker) => (
             <WorkerRow key={worker.id} worker={worker} home={entry.id} />
           ))}
+          {earlier > 0 ? (
+            <li>
+              <button
+                type="button"
+                className="router-sidebar-more"
+                onClick={() => setShown((n) => n + EARLIER_WORKERS)}
+              >
+                <ChevronDownIcon size={13} aria-hidden />
+                <span>{t('router.project.earlier', { count: earlier })}</span>
+              </button>
+            </li>
+          ) : null}
         </ul>
       ) : null}
     </div>
