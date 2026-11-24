@@ -82,7 +82,7 @@ function WorkerRow({ worker, home }: { worker: RouterWorker; home: string }) {
     </li>
   )
 }
-/** Workers an opened project lists at first, and how many more each "earlier" click adds. */
+/** Workers an opened project lists at first, and how many more each "Load more" click adds. */
 const FIRST_WORKERS = 5
 const EARLIER_WORKERS = 10
 type HomeEntry = {
@@ -114,7 +114,6 @@ function HomeRow({ entry, children }: { entry: HomeEntry; children?: React.React
   }, [allWorkers, routers, homes, entry.id])
   const inPlay = workers.filter(isInPlay)
   const state = inPlay.some(isWaitingOnUser) ? 'wait' : inPlay.some(isWorking) ? 'run' : null
-  const earlier = Math.min(EARLIER_WORKERS, workers.length - shown)
   const label = state ? t(`router.project.${state}`, { project: entry.name }) : entry.name
   const foldLabel = t(folded ? 'router.project.showWorkers' : 'router.project.hideWorkers', {
     project: entry.name
@@ -179,7 +178,7 @@ function HomeRow({ entry, children }: { entry: HomeEntry; children?: React.React
           {workers.slice(0, shown).map((worker) => (
             <WorkerRow key={worker.id} worker={worker} home={entry.id} />
           ))}
-          {earlier > 0 ? (
+          {workers.length > shown ? (
             <li>
               <button
                 type="button"
@@ -187,7 +186,7 @@ function HomeRow({ entry, children }: { entry: HomeEntry; children?: React.React
                 onClick={() => setShown((n) => n + EARLIER_WORKERS)}
               >
                 <ChevronDownIcon size={13} aria-hidden />
-                <span>{t('router.project.earlier', { count: earlier })}</span>
+                <span>{t('router.project.more')}</span>
               </button>
             </li>
           ) : null}
