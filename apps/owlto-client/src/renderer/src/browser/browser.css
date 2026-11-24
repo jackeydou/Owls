@@ -103,7 +103,6 @@
   background: var(--color-card);
   color: var(--color-muted-foreground);
   font-size: var(--owl-text-sm);
-  -webkit-app-region: no-drag;
 }
 .browser-address[data-locked] {
   background: var(--color-card-muted);
@@ -226,7 +225,6 @@
   overflow: hidden;
   border-top: 1px solid var(--color-border);
   background: #ffffff;
-  -webkit-app-region: no-drag;
 }
 .browser-viewport[data-speaker="claude-code"] {
   --browser-agent: #e8785a;

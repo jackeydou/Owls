@@ -158,7 +158,6 @@
   flex-direction: column;
   min-height: 0;
   overflow: auto;
-  -webkit-app-region: no-drag;
 }
 .file-viewer-body[aria-busy="true"] {
   opacity: 0.7;

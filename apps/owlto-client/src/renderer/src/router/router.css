@@ -68,15 +68,17 @@ html[data-platform="darwin"] {
   padding: 0 8px 12px;
   border-right: 1px solid var(--color-border);
   background: var(--color-sidebar);
-  -webkit-app-region: drag;
 }
-.router-sidebar button {
-  -webkit-app-region: no-drag;
-}
-/* The head clears the window controls and the toggle, which sit over the sidebar. */
+/* The head clears the window controls and the toggle, which sit over the sidebar. It is the
+   sidebar's only drag region: a whole sidebar must never drag, or every list, pane, and
+   scroll area added to it later swallows clicks and wheel turns (see AGENTS.md). */
 .router-sidebar-head {
   flex-shrink: 0;
   height: var(--owl-bar-height);
+  -webkit-app-region: drag;
+}
+.router-sidebar-head button {
+  -webkit-app-region: no-drag;
 }
 .router-sidebar-toggle {
   position: fixed;
@@ -248,10 +250,6 @@ html[data-platform="darwin"] {
 .router-project.foldable {
   padding-right: 32px;
 }
-/* A project row is a plain label unless it has workers to fold. */
-div.router-project {
-  -webkit-app-region: no-drag;
-}
 div.router-project:hover {
   background: none;
 }
@@ -385,10 +383,6 @@ div.router-project:hover {
   padding: 0 8px 12px;
   border-left: 1px solid var(--color-border);
   background: var(--color-sidebar);
-  -webkit-app-region: drag;
-}
-.router-projects button {
-  -webkit-app-region: no-drag;
 }
 /* The head clears the toggles, which sit over its right end, past the sidebar's 8px padding. */
 .router-projects-head {
@@ -398,6 +392,10 @@ div.router-project:hover {
   flex-shrink: 0;
   height: var(--owl-bar-height);
   padding: 0 calc(var(--owl-toggle-right) + var(--owl-right-toggles-width) - 4px) 0 0;
+  -webkit-app-region: drag;
+}
+.router-projects-head button {
+  -webkit-app-region: no-drag;
 }
 /* One icon per list the sidebar can show; the current one keeps the active background. */
 .router-right-tabs {
