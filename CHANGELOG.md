@@ -11,6 +11,22 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2300-beta.2
+
+### Highlights
+
+- Quote a selection from a thread message into your next message.
+- The worker conversation in the right sidebar scrolls again.
+
+### Changes
+
+- Router: select text in a thread message and Quote it with a note; quotes wait as tags above the editor and go out with the next message. (#225)
+- Projects sidebar: an opened project lists its 5 latest workers, finished ones included, with a row that loads 10 earlier at a time. (#226)
+
+### Fixes
+
+- Window drag: the worker conversation in the right sidebar scrolls again; only title bars drag the window, not whole sidebars. (#227)
+
 ## 2026.11.2300-beta.1
 
 ### Highlights
