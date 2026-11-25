@@ -232,6 +232,7 @@ struct WorkerView: View {
     case .user:
       SpeakerRow(speaker: item.author == "user" ? .user : .router, name: item.author == "user" ? String(localized: "You") : "Router") {
         Text(MarkdownText.attributed(item.text))
+          .tint(Theme.link)
           .padding(.horizontal, 12)
           .padding(.vertical, 9)
           .owlCard(Theme.userBubble, shadow: 0)

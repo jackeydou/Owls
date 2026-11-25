@@ -84,6 +84,7 @@ struct ThreadView: View {
     case .user(let item):
       SpeakerRow(speaker: .user, name: String(localized: "You")) {
         Text(MarkdownText.attributed(item.text))
+          .tint(Theme.link)
           .textSelection(.enabled)
           .padding(.horizontal, 12)
           .padding(.vertical, 9)
@@ -93,6 +94,7 @@ struct ThreadView: View {
       let worker = item.workerId.flatMap { store?.worker($0) }
       SpeakerRow(speaker: .user, name: String(localized: "You → \(worker?.label ?? String(localized: "a worker"))")) {
         Text(MarkdownText.attributed(item.text))
+          .tint(Theme.link)
           .padding(.horizontal, 12)
           .padding(.vertical, 9)
           .owlCard(Theme.userBubble, shadow: 0)

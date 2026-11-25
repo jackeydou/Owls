@@ -329,6 +329,26 @@
         }
       }
     },
+    "Copied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
+          }
+        }
+      }
+    },
+    "Copy code": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制代码"
+          }
+        }
+      }
+    },
     "Could not open the file": {
       "localizations": {
         "zh-Hans": {
@@ -1579,6 +1599,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "要断开这部手机，请在 Mac 上的 Owlto → 设置 → 设备 里移除它。"
+          }
+        }
+      }
+    },
+    "To do": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待办"
           }
         }
       }
