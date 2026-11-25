@@ -65,6 +65,24 @@ export class CardService {
     this.stopWatching?.()
     this.stopWatching = null
   }
+  /**
+   * Moves the notes to `folder`: stops watching, runs `transfer` (which brings the files
+   * over), reads the new folder, and watches it. Not watching meanwhile keeps the files
+   * leaving the old folder from reading as deleted notes.
+   */
+  relocate<T>(folder: string, transfer: () => T): T {
+    const watching = this.stopWatching !== null
+    this.close()
+    try {
+      const result = transfer()
+      this.deps.store.relocate(folder)
+      return result
+    } finally {
+      this.deps.store.scan()
+      if (watching) this.watch()
+      this.deps.changed()
+    }
+  }
   library(): CardLibrary {
     const cards = this.deps.store.cards()
     const live = new Set(cards.map((card) => card.id))

@@ -91,6 +91,9 @@ importers:
       '@floating-ui/react-dom':
         specifier: ^2.1.8
         version: 2.1.8(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@owlto/mac-icloud':
+        specifier: workspace:*
+        version: link:../../packages/mac-icloud
       '@owlto/mac-process-limits':
         specifier: workspace:*
         version: link:../../packages/mac-process-limits
@@ -192,6 +195,12 @@ importers:
         version: 5.0.12(@types/react@19.2.14)(immer@11.1.8)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
 
   apps/owlto-website: {}
+
+  packages/mac-icloud:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: ^3.6.2
+        version: 3.6.2(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.9.1)(node-addon-api@8.9.2)
 
   packages/mac-process-limits:
     devDependencies:

@@ -1,0 +1,33 @@
+{
+  "name": "@owlto/mac-icloud",
+  "version": "0.1.0",
+  "description": "Finds Owlto's iCloud Documents container on macOS. Internal Owlto package.",
+  "private": true,
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ],
+  "os": [
+    "darwin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "napi": {
+    "binaryName": "mac-icloud",
+    "targets": [
+      "aarch64-apple-darwin"
+    ]
+  },
+  "scripts": {
+    "build": "napi build --platform --release && node scripts/write-index.mjs",
+    "build:debug": "napi build --platform && node scripts/write-index.mjs",
+    "prepublishOnly": "napi prepublish --skip-gh-release"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.6.2"
+  }
+}

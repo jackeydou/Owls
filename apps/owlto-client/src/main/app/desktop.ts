@@ -34,7 +34,10 @@ import {
   RELAY_URL,
   REMOTE_ROUTER_ENABLED
 } from '../build-flavor.js'
+import { createICloudAccess } from '../cards/icloud.js'
 import { CardService } from '../cards/service.js'
+import { NotesStorageService } from '../cards/storage.js'
+import { registerNotesStorageIpc } from '../cards/storage-ipc.js'
 import { CardStore } from '../cards/store.js'
 import { ClaudeService } from '../claude/service.js'
 import { CodexService } from '../codex/service.js'
@@ -306,9 +309,23 @@ void app
       attachmentsHome(root)
     )
     claude.setWorkspaceFolder(() => service?.workspaceFolder() ?? workspaceHome(root))
-    claude.setNotesFolder(notesHome(root))
-    cursor.setNotesFolder(notesHome(root))
-    antigravity.setNotesFolder(notesHome(root))
+    const notesHost = service
+    const notesStorage = new NotesStorageService({
+      localFolder: notesHome(root),
+      icloud: createICloudAccess(),
+      location: () => notesHost.snapshot().settings.notesLocation,
+      saveLocation: (notesLocation) => {
+        notesHost.saveSettings({ ...notesHost.snapshot().settings, notesLocation })
+      },
+      folderChanged: (folder) => {
+        claude.setNotesFolder(folder)
+        cursor.setNotesFolder(folder)
+        antigravity.setNotesFolder(folder)
+      }
+    })
+    claude.setNotesFolder(notesStorage.startFolder())
+    cursor.setNotesFolder(notesStorage.startFolder())
+    antigravity.setNotesFolder(notesStorage.startFolder())
     const usage = new UsageLedger(store)
     service.attachUsage(usage)
     const recordUsage = (entry: UsageEntry) => usage.record(entry)
@@ -470,7 +487,7 @@ void app
     const sweeper = new MemorySweeper({ sweep: () => memory.sweep() })
     service.attachMemory({ service: memory, dreaming, triggers, sweeper })
     const cards = new CardService({
-      store: new CardStore(store, notesHome(root)),
+      store: new CardStore(store, notesStorage.startFolder()),
       projects,
       content: (source) => {
         if (!router) throw new OwltoError('router_unavailable', 'Threads are not available.')
@@ -481,6 +498,9 @@ void app
     service.attachCards(cards)
     router.attachNotes(cards)
     cards.watch()
+    void notesStorage.start(cards).catch((error: Error) => {
+      console.warn('[notes] could not check iCloud:', error.message)
+    })
     const host = service
     const profile = new UserProfile({
       settings: () => host.snapshot().settings,
@@ -612,6 +632,7 @@ void app
       analytics
     )
     registerRemoteIpc(handle, remote)
+    registerNotesStorageIpc(handle, notesStorage)
     registerBrowserIpc(handle, tabs, {
       settings: () => service?.snapshot().settings ?? settings(),
       save: (next) => {

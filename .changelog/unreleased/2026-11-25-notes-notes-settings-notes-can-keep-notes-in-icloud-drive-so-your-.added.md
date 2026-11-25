@@ -1,0 +1,1 @@
+- Notes: Settings → Notes can keep notes in iCloud Drive, so your Macs and iPhone share them; turning it off copies them back. (#230)

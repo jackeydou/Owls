@@ -124,6 +124,23 @@ jobs:
           printf '%s' "$APPLE_API_KEY_BASE64" | base64 -D > "$RUNNER_TEMP/AuthKey.p8"
           chmod 600 "$RUNNER_TEMP/AuthKey.p8"
 
+      - name: Prepare iCloud provisioning profile
+        if: ${{ inputs.build != 'debug' }}
+        shell: bash
+        env:
+          MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.MAC_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          # The Developer ID profile for dev.owlto.app with iCloud Documents. Without it the
+          # app builds without iCloud, and Settings -> Notes says this build cannot use it.
+          if [[ -z "${MAC_PROVISIONING_PROFILE_BASE64:-}" ]]; then
+            echo "::warning::MAC_PROVISIONING_PROFILE_BASE64 is not set, so this build cannot sync notes with iCloud."
+            exit 0
+          fi
+          profile="$RUNNER_TEMP/Owlto.provisionprofile"
+          printf '%s' "$MAC_PROVISIONING_PROFILE_BASE64" | base64 -D > "$profile"
+          echo "OWLTO_MAC_PROVISIONING_PROFILE=$profile" >> "$GITHUB_ENV"
+
       - name: Build, sign, and notarize macOS package
         shell: bash
         run: |
@@ -189,6 +206,11 @@ jobs:
           }
           pnpm run verify:packaged "$app_path"
           codesign --verify --deep --strict --verbose=2 "$app_path"
+          if [[ -n "${OWLTO_MAC_PROVISIONING_PROFILE:-}" ]] && \
+            ! codesign -d --entitlements - "$app_path" 2>/dev/null | grep -q 'iCloud.dev.owlto.app'; then
+            echo "::error::The app was given a provisioning profile but carries no iCloud entitlement."
+            exit 1
+          fi
           retry_online_check spctl --assess --verbose --type exec "$app_path"
           retry_online_check xcrun stapler validate "$app_path"
 

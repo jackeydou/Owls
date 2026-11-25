@@ -1,0 +1,5 @@
+target/
+*.node
+node_modules/
+# Cargo.lock IS committed - this is a build-output package, reproducible builds
+# matter more than dependency flexibility.

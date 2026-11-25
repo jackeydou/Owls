@@ -73,6 +73,7 @@ export class OwltoStore {
           remoteKeepAwake: false,
           browser: defaultBrowserSettings,
           browserDownloadsPath: null,
+          notesLocation: 'local',
           simulator: defaultSimulatorSettings
         }
   }

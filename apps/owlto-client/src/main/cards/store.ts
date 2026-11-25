@@ -40,7 +40,7 @@ const sha256 = (content: string) => createHash('sha256').update(content).digest(
 /** How long the folder must stay quiet before an edit made elsewhere is read. */
 const WATCH_SETTLE_MS = 150
 /** iCloud keeps a note it has not downloaded as a hidden `.<name>.icloud` placeholder. */
-const PLACEHOLDER = /^\.(.+\.md)\.icloud$/i
+export const PLACEHOLDER = /^\.(.+\.md)\.icloud$/i
 
 /**
  * Notes and boards. Each note is a Markdown file in the notes folder, with its
@@ -58,9 +58,21 @@ export class CardStore {
   private readonly entries = new Map<string, Entry>()
   constructor(
     private readonly store: OwltoStore,
-    readonly folder: string,
+    private notesFolder: string,
     private readonly now: () => Date = () => new Date()
   ) {}
+  /** The folder holding one Markdown file per note. */
+  get folder(): string {
+    return this.notesFolder
+  }
+  /**
+   * Reads notes from `folder` from now on. The index stays: a note whose file moved along
+   * keeps its id, its version, and its board places.
+   */
+  relocate(folder: string): void {
+    this.notesFolder = folder
+    this.entries.clear()
+  }
   private get db() {
     return this.store.db
   }

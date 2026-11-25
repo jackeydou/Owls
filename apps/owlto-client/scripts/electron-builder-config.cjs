@@ -5,6 +5,7 @@ const { version } = require('../package.json')
 const { prepareMacSigning } = require('./prepare-mac-signing.cjs')
 const { verifyPackagedApp } = require('./verify-packaged-runtime.cjs')
 const { prepareDmgSize } = require('./prepare-dmg-size.cjs')
+const { icloudInfoPlist, icloudSigning } = require('./mac-icloud-signing.cjs')
 
 const buildMode = process.env.OWLTO_BUILD_MODE === 'debug' ? 'debug' : 'release'
 const isDebug = buildMode === 'debug'
@@ -13,6 +14,16 @@ const debugSuffix = isDebug ? '-debug' : ''
 // Debug packages are for internal testing: they install beside the released app under their own
 // bundle id, name, and URL scheme, and the app gives them their own data root (build-flavor.ts).
 const productName = isDebug ? 'Owlto Debug' : 'Owlto'
+const appId = isDebug ? 'dev.owlto.app.debug' : 'dev.owlto.app'
+// Notes in iCloud: only release builds, whose bundle id the container's profile names.
+const icloud = isDebug
+  ? null
+  : icloudSigning({
+      profile: process.env.OWLTO_MAC_PROVISIONING_PROFILE,
+      teamId: process.env.APPLE_TEAM_ID,
+      appId,
+      baseEntitlementsPath: path.join(__dirname, '..', 'build', 'entitlements.mac.plist')
+    })
 
 const releaseNotesPath = path.resolve(__dirname, '../../..', 'release-notes', `${version}.md`)
 const releaseNotes = fs.existsSync(releaseNotesPath)
@@ -35,7 +46,7 @@ function removePlistKeyIfPresent(plistPath, key) {
 }
 
 module.exports = {
-  appId: isDebug ? 'dev.owlto.app.debug' : 'dev.owlto.app',
+  appId,
   productName,
   // Electron reads the app name from the packaged package.json, so a debug package says
   // "Owlto Debug" there too (userData folder, keychain item, menus).
@@ -101,8 +112,9 @@ module.exports = {
     identity: skipNotarize ? null : undefined,
     forceCodeSigning: !skipNotarize,
     hardenedRuntime: true,
-    entitlements: 'build/entitlements.mac.plist',
+    entitlements: icloud?.entitlements ?? 'build/entitlements.mac.plist',
     entitlementsInherit: 'build/entitlements.mac.plist',
+    ...(icloud ? { provisioningProfile: icloud.provisioningProfile } : {}),
     extendInfo: [
       {
         NSUserNotificationAlertStyle: 'banner'
@@ -115,7 +127,8 @@ module.exports = {
         // direct connections). Without this key the request can fail with no prompt at all.
         NSLocalNetworkUsageDescription:
           'Owlto connects to your other Macs on this network so you can use their Router.'
-      }
+      },
+      ...(isDebug ? [] : [icloudInfoPlist()])
     ],
     notarize: !skipNotarize,
     // The update feed script looks for `Owlto-<version>-<arch>-mac.zip`, also in debug packages

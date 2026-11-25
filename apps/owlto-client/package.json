@@ -7,7 +7,7 @@
   "main": "./out/main/index.js",
   "author": "Owlto",
   "scripts": {
-    "build:workspace-deps": "pnpm --filter @owlto/mac-process-limits build",
+    "build:workspace-deps": "pnpm --filter @owlto/mac-process-limits --filter @owlto/mac-icloud build",
     "generate:menu-bar-icons": "node scripts/generate-menu-bar-icons.mjs",
     "lint": "cd ../.. && biome check apps/owlto-client packages",
     "format": "cd ../.. && biome format --write apps/owlto-client packages",
@@ -63,6 +63,7 @@
     "@electron-toolkit/tsconfig": "^2.0.0",
     "@electron/rebuild": "^4.2.0",
     "@floating-ui/react-dom": "^2.1.8",
+    "@owlto/mac-icloud": "workspace:*",
     "@owlto/mac-process-limits": "workspace:*",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@react-scan/vite-plugin-react-scan": "^0.2.7",
