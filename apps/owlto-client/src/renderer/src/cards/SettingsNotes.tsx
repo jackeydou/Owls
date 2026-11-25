@@ -1,5 +1,5 @@
-import { ActionButton } from '@renderer/components/ui/action-button'
-import { useEffect } from 'react'
+import { Switch } from '@renderer/components/ui/switch'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../app/failures'
 import { SettingRow } from '../app/SettingRow'
@@ -13,6 +13,7 @@ export function NotesSettingsPane() {
   const error = useNotesStorageStore((s) => s.error)
   const load = useNotesStorageStore((s) => s.load)
   const setLocation = useNotesStorageStore((s) => s.setLocation)
+  const [switching, setSwitching] = useState(false)
   useEffect(() => {
     void load()
   }, [load])
@@ -24,6 +25,7 @@ export function NotesSettingsPane() {
       <p>{t('notesStorage.body')}</p>
       <SettingRow
         label={t('notesStorage.icloud')}
+        htmlFor="notes-icloud"
         description={inICloud ? t('notesStorage.onHelp') : t('notesStorage.offHelp')}
         detail={
           storage ? (
@@ -48,17 +50,15 @@ export function NotesSettingsPane() {
           ) : null
         }
       >
-        <ActionButton
-          size="sm"
-          variant={inICloud ? 'ghost' : 'outline'}
-          disabled={!storage || (!inICloud && unavailable !== null)}
-          doneLabel={inICloud ? t('notesStorage.turnedOff') : t('notesStorage.turnedOn')}
-          onAction={async () =>
-            (await setLocation(inICloud ? 'local' : 'icloud')) ? 'done' : 'quiet'
-          }
-        >
-          {inICloud ? t('notesStorage.turnOff') : t('notesStorage.turnOn')}
-        </ActionButton>
+        <Switch
+          id="notes-icloud"
+          checked={inICloud}
+          disabled={switching || !storage || (!inICloud && unavailable !== null)}
+          onCheckedChange={(checked) => {
+            setSwitching(true)
+            void setLocation(checked ? 'icloud' : 'local').finally(() => setSwitching(false))
+          }}
+        />
       </SettingRow>
     </section>
   )
