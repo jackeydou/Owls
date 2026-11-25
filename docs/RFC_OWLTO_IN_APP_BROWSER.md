@@ -43,8 +43,8 @@ history UI), and remote control of the user's own Chrome.
 ### Where it lives
 
 A fourth tab in the right sidebar, **Browser** (globe icon), next to Projects,
-Notes, and File viewer. Like the file viewer it keeps its own, wider width
-(`layout.browserWidth`, 400 to 1280 px, default 640). The panel has:
+Notes, and File viewer. It shares the sidebar's one user-dragged width
+(`layout.rightWidth`), so switching tabs never resizes the sidebar. The panel has:
 
 - **Tab strip.** Each tab shows its owner: the worker's owl (typing while it
   drives) or a person icon for the user's own tab. A dot marks a tab that

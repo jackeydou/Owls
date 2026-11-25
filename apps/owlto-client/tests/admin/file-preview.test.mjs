@@ -152,15 +152,13 @@ test('opening a file goes to the editor; a terminal opens its folder', async () 
   await assert.rejects(apps.openFile('cursor', '/repo/gone.ts'))
 })
 
-test('the file viewer tab and its width are kept in the layout', () => {
+test('the file viewer tab is kept in the layout', () => {
   const layout = layoutSettingsSchema.parse({
     sidebarWidth: null,
-    projectsWidth: null,
+    rightWidth: null,
     panelWidth: null,
     projectsOpen: true,
-    rightPanel: 'files',
-    filesWidth: 640
+    rightPanel: 'files'
   })
   assert.equal(layout.rightPanel, 'files')
-  assert.equal(layout.filesWidth, 640)
 })

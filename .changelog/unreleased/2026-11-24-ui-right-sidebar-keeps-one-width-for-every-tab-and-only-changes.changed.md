@@ -1,0 +1,1 @@
+- Right sidebar: keeps one width for every tab and only changes when you drag it, remembered across restarts.

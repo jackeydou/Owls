@@ -79,8 +79,8 @@ only do anything on macOS with Xcode installed.
 
 ### Panel
 
-The right sidebar gets a Simulator tab next to Browser, with its own width
-(`layout.simulatorWidth`). It reuses the browser panel's toolbar and status
+The right sidebar gets a Simulator tab next to Browser, sharing the sidebar's
+one width (`layout.rightWidth`). It reuses the browser panel's toolbar and status
 line: a device menu, Home and Lock buttons, Detach and Shut down, a line
 saying which worker drives the device, and the ask strip. The panel does not
 open when a worker attaches; it opens only when an ask needs the user.

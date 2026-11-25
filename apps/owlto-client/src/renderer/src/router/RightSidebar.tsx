@@ -136,16 +136,8 @@ export function RightSidebar() {
   })
   // An open worker covers the lists until the user goes back or picks a tab.
   const panel = worker ? null : tab
-  // Wide panes keep their own widths, so code, pages, and conversations have room without
-  // widening the lists; a worker keeps the width its split details panel had.
-  const { width, handle } = usePaneWidth(
-    worker
-      ? 'panel'
-      : panel === 'files' || panel === 'browser' || panel === 'simulator'
-        ? panel
-        : 'projects',
-    'left'
-  )
+  // One width for every tab and an open worker, so switching never resizes the sidebar.
+  const { width, handle } = usePaneWidth('right', 'left')
   return (
     <aside className="router-projects" style={{ width }} aria-label={t('router.rightSidebar')}>
       <header className="router-projects-head">
