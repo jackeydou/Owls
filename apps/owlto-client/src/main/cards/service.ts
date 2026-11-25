@@ -178,12 +178,16 @@ export class CardService {
       })
     } else {
       const live = new Set(this.deps.store.cards().map((card) => card.id))
+      const current = this.liveBoard(input.id)
       // One place per card: a later entry wins, and cards deleted meanwhile drop out.
-      const placed = new Map(
-        input.placements.filter((p) => live.has(p.cardId)).map((p) => [p.cardId, p])
-      )
+      // The renderer only sees live notes, so places of notes that are gone for now
+      // (a synced file not downloaded yet) are kept as they were.
+      const placed = new Map([
+        ...current.placements.filter((p) => !live.has(p.cardId)).map((p) => [p.cardId, p] as const),
+        ...input.placements.filter((p) => live.has(p.cardId)).map((p) => [p.cardId, p] as const)
+      ])
       board = this.deps.store.putBoard({
-        ...this.liveBoard(input.id),
+        ...current,
         placements: [...placed.values()],
         updatedAt: now
       })

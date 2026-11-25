@@ -303,3 +303,87 @@ test('an agent note is written as a Markdown file and falls back to no project',
   assert.equal(orphan.projectId, null, 'a removed project does not fail the save')
   assert.equal(changes(), 2)
 })
+
+test('a note iCloud has not downloaded stays, with its name and its board place', (t) => {
+  const { service, store, notes } = setup(t)
+  const card = add(service, 'Trip', 'pack')
+  const other = add(service, 'Other')
+  const board = service.saveBoard({ action: 'add', name: 'B', projectId: null })
+  service.saveBoard({
+    action: 'place',
+    id: board.id,
+    placements: [
+      { cardId: card.id, x: 0, y: 0 },
+      { cardId: other.id, x: 300, y: 0 }
+    ]
+  })
+  const content = readFileSync(join(notes, 'Trip.md'), 'utf8')
+  // iCloud evicts the file, leaving a hidden placeholder.
+  unlinkSync(join(notes, 'Trip.md'))
+  writeFileSync(join(notes, '.Trip.md.icloud'), 'placeholder')
+  store.scan()
+  assert.equal(service.library().cards.find((c) => c.id === card.id)?.body, 'pack')
+  assert.equal(add(service, 'Trip').title, 'Trip')
+  assert.ok(existsSync(join(notes, 'Trip 2.md')), 'a new note does not take the evicted name')
+
+  // Gone for real: hidden on the board, but a restored file lands where it was.
+  unlinkSync(join(notes, '.Trip.md.icloud'))
+  store.scan()
+  assert.ok(!service.library().cards.some((c) => c.id === card.id))
+  assert.deepEqual(
+    service.library().boards[0].placements.map((p) => p.cardId),
+    [other.id]
+  )
+  service.saveBoard({
+    action: 'place',
+    id: board.id,
+    placements: [{ cardId: other.id, x: 600, y: 0 }]
+  })
+  writeElsewhere(join(notes, 'Trip.md'), content)
+  store.scan()
+  assert.deepEqual(service.library().boards[0].placements, [
+    { cardId: card.id, x: 0, y: 0 },
+    { cardId: other.id, x: 600, y: 0 }
+  ])
+})
+
+test('two devices give a conflict copy or a hand-written note the same id', (t) => {
+  const { service, notes } = setup(t)
+  add(service, 'Plan', 'v1')
+  const original = readFileSync(join(notes, 'Plan.md'), 'utf8')
+  const copy = original.replace('v1', 'v2')
+  const handWritten = '---\ntitle: Idea\ntags: [a]\n---\nJust a thought.\n'
+  writeElsewhere(join(notes, 'Plan 2.md'), copy)
+  writeElsewhere(join(notes, 'Idea.md'), handWritten)
+  service.library()
+  const first = {
+    copy: readFileSync(join(notes, 'Plan 2.md'), 'utf8'),
+    idea: readFileSync(join(notes, 'Idea.md'), 'utf8')
+  }
+
+  // A second device with its own index reads the same files as they arrived.
+  const dir = mkdtempSync(join(tmpdir(), 'owlto-cards-device-'))
+  const client = openSqlite(join(dir, 'owlto.db'))
+  t.after(() => {
+    client.close()
+    rmSync(dir, { recursive: true, force: true })
+  })
+  const otherNotes = join(dir, 'notes')
+  const other = new CardStore(new OwltoStore(client, MIGRATIONS), otherNotes)
+  other.cards()
+  writeFileSync(join(otherNotes, 'Plan.md'), original)
+  other.scan()
+  writeFileSync(join(otherNotes, 'Plan 2.md'), copy)
+  writeFileSync(join(otherNotes, 'Idea.md'), handWritten)
+  other.scan()
+  assert.equal(readFileSync(join(otherNotes, 'Idea.md'), 'utf8'), first.idea)
+  assert.equal(readFileSync(join(otherNotes, 'Plan 2.md'), 'utf8'), first.copy)
+  assert.match(
+    first.idea,
+    /^---\nid: c_[0-9a-f]{12}\ntitle: Idea\ntags: \[a\]\n---\nJust a thought\.\n$/,
+    'only the id is added'
+  )
+  const withoutId = (text) => text.replace(/^---\nid: \S+\n/, '')
+  assert.notEqual(first.copy, copy, 'the copy got its own id')
+  assert.equal(withoutId(first.copy), withoutId(copy), 'only the id changed')
+})

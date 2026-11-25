@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { Document, isSeq, parse } from 'yaml'
 import { type Card, type CardSource, cardSourceSchema } from '../../shared/cards.js'
 
@@ -84,6 +85,37 @@ export function serializeNote(id: string, note: NoteFields): string {
   if (isSeq(tags)) tags.flow = true
   const yaml = doc.toString({ lineWidth: 0 })
   return `---\n${yaml}---\n${note.body}`
+}
+
+/**
+ * Gives a note file the id `id` and changes nothing else, so every device that
+ * fixes the same file writes the same bytes. Frontmatter that does not parse is
+ * left in the body, as `parseNote` reads it.
+ */
+export function withNoteId(content: string, id: string): string {
+  const match = FRONTMATTER.exec(content)
+  if (!match || !readsAsMap(match[1] ?? '')) return `---\nid: ${id}\n---\n${content}`
+  const lines = (match[1] ?? '').split(/\r?\n/).filter((line) => !/^id[ \t]*:/.test(line))
+  return `---\n${[`id: ${id}`, ...lines].join('\n')}\n---\n${content.slice(match[0].length)}`
+}
+
+function readsAsMap(yaml: string): boolean {
+  try {
+    const value: unknown = parse(yaml)
+    return value === null || (typeof value === 'object' && !Array.isArray(value))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * The id a note file gets when it has none, or shares one with another file: the
+ * same on every device that reads the file, so two devices fixing it at once do
+ * not write two ids.
+ */
+export function derivedNoteId(name: string, id: string | null): string {
+  const digest = createHash('sha256').update(`${id ?? ''}\n${name.normalize('NFC')}`)
+  return `c_${digest.digest('hex').slice(0, 12)}`
 }
 
 /**
