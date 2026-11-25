@@ -299,22 +299,6 @@ struct ConnectionBanner: View {
   }
 }
 
-/// Text with inline Markdown (bold, code, links), as agents write it.
-struct MarkdownText: View {
-  let text: String
-
-  var body: some View {
-    Text(Self.attributed(text))
-      .textSelection(.enabled)
-      .frame(maxWidth: .infinity, alignment: .leading)
-  }
-
-  static func attributed(_ text: String) -> AttributedString {
-    let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-    return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
-  }
-}
-
 /// A small rounded label.
 struct Chip: View {
   let text: String

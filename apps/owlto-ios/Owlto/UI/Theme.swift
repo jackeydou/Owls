@@ -18,6 +18,8 @@ enum Theme {
   static let border = skinned(Swatch(0x1A1C1F, 0xFFFFFF, lightAlpha: 0.1, darkAlpha: 0.12), doodle: Swatch(0x151515, 0x090C18))
   static let userBubble = skinned(Swatch(0xF1F1F1, 0x2A2A2A), doodle: Swatch(0xFFF3CF, 0x33416F))
   static let code = skinned(Swatch(0xF5F5F5, 0x242424), doodle: Swatch(0xFFFFFF, 0x2A365E))
+  /// Links in messages: the desktop's `--owl-link`, blue without an underline.
+  static let link = skinned(Swatch(0x0B6BCB, 0x5EAEFF), doodle: Swatch(0x3D4FD6, 0xA8B3FF))
   static let connector = skinned(Swatch(0xAFAFAF, 0x5D5D5D), doodle: Swatch(0x151515, 0x99A2BF))
   /// Doodle's top and bottom bars: a warmer paper than the page.
   static let chrome = skinned(Swatch(0xFFFFFF, 0x181818), doodle: Swatch(0xFFF3D9, 0x161E37))
