@@ -85,7 +85,31 @@ test('Claude accounts without plan limits say why instead of showing meters', ()
     reason: 'api-key',
     plan: null
   })
-  assert.equal(parseClaudeUsage(answer, { kind: 'unknown' }).reason, 'no-plan-limits')
+  assert.equal(
+    parseClaudeUsage(
+      { ...answer, subscription_type: 'max' },
+      { kind: 'claude', email: null, plan: 'max' }
+    ).reason,
+    'no-plan-limits'
+  )
+})
+
+test('Claude usage tells a signed-out CLI and a failed read apart from no plan limits', () => {
+  const answer = {
+    session,
+    subscription_type: null,
+    rate_limits_available: false,
+    rate_limits: null,
+    behaviors: null
+  }
+  assert.equal(parseClaudeUsage(answer, { kind: 'unknown' }).reason, 'signed-out')
+  assert.equal(
+    parseClaudeUsage(
+      { ...answer, subscription_type: 'max', rate_limits_available: true },
+      { kind: 'claude', email: null, plan: 'max' }
+    ).reason,
+    'failed'
+  )
 })
 
 test('Codex rate limits map the primary and secondary windows and credits', () => {
