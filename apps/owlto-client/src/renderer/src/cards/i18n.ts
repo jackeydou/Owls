@@ -67,9 +67,7 @@ export const cardsEn = {
   'cards.boardProject': 'Board project',
   'cards.deleteBoard': 'Delete board',
   'cards.confirmDeleteBoard': 'Click again to delete the board',
-  'notesStorage.body':
-    'Each note is a Markdown file. Keep them on this Mac, or in iCloud Drive so your other Macs and your iPhone have them too.',
-  'notesStorage.icloud': 'Sync with iCloud',
+  'notesStorage.icloud': 'Sync notes with iCloud',
   'notesStorage.offHelp':
     'Notes are on this Mac only. Turning this on moves them into the Owlto folder in iCloud Drive.',
   'notesStorage.onHelp':
@@ -152,9 +150,7 @@ export const cardsZh: Record<keyof typeof cardsEn, string> = {
   'cards.boardProject': '白板所属项目',
   'cards.deleteBoard': '删除白板',
   'cards.confirmDeleteBoard': '再点一次删除白板',
-  'notesStorage.body':
-    '每条笔记是一个 Markdown 文件。可以只放在这台 Mac 上，也可以放进 iCloud 云盘，让你的其他 Mac 和 iPhone 也能看到。',
-  'notesStorage.icloud': '用 iCloud 同步',
+  'notesStorage.icloud': '用 iCloud 同步笔记',
   'notesStorage.offHelp': '笔记只在这台 Mac 上。开启后会移到 iCloud 云盘的 Owlto 文件夹。',
   'notesStorage.onHelp':
     '笔记在 iCloud 云盘的 Owlto 文件夹里。关闭后会复制回这台 Mac，iCloud 里的那份留给你的其他设备。',

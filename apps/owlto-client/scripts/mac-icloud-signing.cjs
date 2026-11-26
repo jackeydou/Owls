@@ -50,7 +50,7 @@ function icloudEntitlements(baseEntitlements, teamId, appId) {
  * The signing options for iCloud, or null for a build without it. A release build gets
  * iCloud when CI hands it a Developer ID provisioning profile with the iCloud capability
  * (OWLTO_MAC_PROVISIONING_PROFILE) and the team id. Without them the app builds and runs
- * as before, and Settings → Notes says this build cannot use iCloud.
+ * as before, and Settings → Experiments says this build cannot use iCloud.
  */
 function icloudSigning({ profile, teamId, appId, baseEntitlementsPath }) {
   if (!profile || !teamId) return null

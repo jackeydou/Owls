@@ -132,7 +132,7 @@ jobs:
         run: |
           set -euo pipefail
           # The Developer ID profile for dev.owlto.app with iCloud Documents. Without it the
-          # app builds without iCloud, and Settings -> Notes says this build cannot use it.
+          # app builds without iCloud, and Settings -> Experiments says this build cannot use it.
           if [[ -z "${MAC_PROVISIONING_PROFILE_BASE64:-}" ]]; then
             echo "::warning::MAC_PROVISIONING_PROFILE_BASE64 is not set, so this build cannot sync notes with iCloud."
             exit 0

@@ -3,7 +3,6 @@ import {
   ArchiveIcon,
   ArrowLeftIcon,
   BrainIcon,
-  CardsIcon,
   ChartIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -26,7 +25,6 @@ import { Select } from '@renderer/components/ui/select'
 import { Fragment, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { settingsSchema, skinSchema } from '../../../shared/app'
-import { NotesSettingsPane } from '../cards/SettingsNotes'
 import { SettingsMemoryPane } from '../memory/SettingsMemory'
 import { REMOTE_ROUTER_ENABLED } from '../remote/enabled'
 import { DevicesSettingsPane } from '../remote/SettingsDevices'
@@ -65,7 +63,6 @@ const TAB_GROUPS: TabEntry[][] = [
     { id: 'agents', label: 'agents.title', icon: TerminalIcon },
     { id: 'router', label: 'routerWorkers.title', icon: RouteIcon },
     { id: 'memory', label: 'memory.title', icon: BrainIcon },
-    { id: 'notes', label: 'cards.title', icon: CardsIcon },
     { id: 'usage', label: 'usageStats.title', icon: ChartIcon },
     { id: 'browser', label: 'browserSettings.title', icon: GlobeIcon },
     { id: 'archives', label: 'archives.title', icon: ArchiveIcon }
@@ -286,7 +283,6 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   agents: AgentsSettingsPane,
   router: RouterWorkersSettingsPane,
   memory: SettingsMemoryPane,
-  notes: NotesSettingsPane,
   usage: UsageStatsPane,
   archives: ArchivesSettingsPane,
   browser: BrowserSettingsPane,

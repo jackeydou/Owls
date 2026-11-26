@@ -1,5 +1,6 @@
 import { Switch } from '@renderer/components/ui/switch'
 import { useTranslation } from 'react-i18next'
+import { NotesICloudSetting } from '../cards/SettingsNotes'
 import { SettingRow } from './SettingRow'
 import { useAppStore } from './store'
 
@@ -30,6 +31,7 @@ export function ExperimentsSettingsPane() {
           }
         />
       </SettingRow>
+      <NotesICloudSetting />
     </section>
   )
 }
