@@ -123,21 +123,17 @@ module.exports = {
     entitlements: icloud?.entitlements ?? 'build/entitlements.mac.plist',
     entitlementsInherit: 'build/entitlements.mac.plist',
     ...(icloud ? { provisioningProfile: icloud.provisioningProfile } : {}),
-    extendInfo: [
-      {
-        NSUserNotificationAlertStyle: 'banner'
-      },
-      {
-        LSMultipleInstancesProhibited: true
-      },
-      {
-        // macOS 15 asks before an app reaches devices on the local network (Remote Router's
-        // direct connections). Without this key the request can fail with no prompt at all.
-        NSLocalNetworkUsageDescription:
-          'Owlto connects to your other Macs on this network so you can use their Router.'
-      },
-      ...(isDebug ? [] : [icloudInfoPlist()])
-    ],
+    // One object: electron-builder merges it into Info.plist with Object.assign, so an array
+    // here lands as keys "0", "1", ... and macOS ignores every one of them.
+    extendInfo: {
+      NSUserNotificationAlertStyle: 'banner',
+      LSMultipleInstancesProhibited: true,
+      // macOS 15 asks before an app reaches devices on the local network (Remote Router's
+      // direct connections). Without this key the request can fail with no prompt at all.
+      NSLocalNetworkUsageDescription:
+        'Owlto connects to your other Macs on this network so you can use their Router.',
+      ...(isDebug ? {} : icloudInfoPlist())
+    },
     notarize: !skipNotarize,
     // The update feed script looks for `Owlto-<version>-<arch>-mac.zip`, also in debug packages
     // whose product name is "Owlto Debug".
