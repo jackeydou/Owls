@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import type { NotesICloudStatus } from '../../shared/cards.js'
+import type { NotesICloudStatus, NotesICloudUnavailable } from '../../shared/cards.js'
 
 /**
  * Owlto's iCloud container. The Mac app and the iPhone app both list it in their
@@ -15,6 +15,11 @@ type ICloudBinding = {
   containerPath(identifier: string): Promise<string | null>
   startDownloading(path: string): void
 }
+
+/** The helper, or why there is none: another platform, or a build that lacks it. */
+export type ICloudBindingLoad =
+  | { binding: ICloudBinding }
+  | { reason: Extract<NotesICloudUnavailable, 'unsupported' | 'helper_missing'> }
 
 /** Owlto's iCloud container on this Mac: whether it can be used, and where it is. */
 export type ICloudAccess = {
@@ -39,27 +44,28 @@ export function icloudNotesFolder(container: string): string {
  * for macOS on Apple silicon and throws when it is loaded anywhere else, so this cannot be
  * a top-level import.
  */
-function loadBinding(): ICloudBinding | null {
-  if (process.platform !== 'darwin' || process.arch !== 'arm64') return null
+function loadBinding(): ICloudBindingLoad {
+  if (process.platform !== 'darwin' || process.arch !== 'arm64') return { reason: 'unsupported' }
   try {
-    return createRequire(__filename)('@owlto/mac-icloud') as ICloudBinding
+    return { binding: createRequire(__filename)('@owlto/mac-icloud') as ICloudBinding }
   } catch (error) {
     console.warn('[notes] the iCloud helper did not load:', (error as Error).message)
-    return null
+    return { reason: 'helper_missing' }
   }
 }
 
-export function createICloudAccess(load: () => ICloudBinding | null = loadBinding): ICloudAccess {
-  let binding: ICloudBinding | null | undefined
+export function createICloudAccess(load: () => ICloudBindingLoad = loadBinding): ICloudAccess {
+  let loaded: ICloudBindingLoad | undefined
   const native = () => {
-    if (binding === undefined) binding = load()
-    return binding
+    if (loaded === undefined) loaded = load()
+    return loaded
   }
   return {
     async status() {
-      const icloud = native()
-      if (!icloud)
-        return { icloud: { status: 'unavailable', reason: 'unsupported' }, container: null }
+      const result = native()
+      if (!('binding' in result))
+        return { icloud: { status: 'unavailable', reason: result.reason }, container: null }
+      const icloud = result.binding
       if (!icloud.identityAvailable())
         return { icloud: { status: 'unavailable', reason: 'signed_out' }, container: null }
       const container = await icloud.containerPath(NOTES_ICLOUD_CONTAINER)
@@ -70,7 +76,8 @@ export function createICloudAccess(load: () => ICloudBinding | null = loadBindin
     },
     startDownloading(path) {
       try {
-        native()?.startDownloading(path)
+        const result = native()
+        if ('binding' in result) result.binding.startDownloading(path)
       } catch (error) {
         console.warn('[notes] iCloud did not start a download:', (error as Error).message)
       }

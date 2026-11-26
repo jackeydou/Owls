@@ -77,10 +77,11 @@ export const cardsEn = {
   'notesStorage.downloading_other':
     '{{count}} notes are still downloading from iCloud, so nothing was copied yet. Try again in a moment.',
   'notesStorage.unavailable.unsupported': 'iCloud sync needs Owlto for Mac on Apple silicon.',
+  'notesStorage.unavailable.helper_missing':
+    'This build of Owlto is missing its iCloud helper. Update Owlto and try again.',
   'notesStorage.unavailable.signed_out':
     'Sign in to iCloud and turn on iCloud Drive in System Settings first.',
-  'notesStorage.unavailable.not_entitled':
-    'This build of Owlto cannot use iCloud. Use a release build.',
+  'notesStorage.unavailable.not_entitled': 'This build of Owlto is not signed for iCloud yet.',
   'router.mentionCard': 'Note'
 }
 
@@ -159,7 +160,9 @@ export const cardsZh: Record<keyof typeof cardsEn, string> = {
   'notesStorage.downloading_other':
     '还有 {{count}} 条笔记正在从 iCloud 下载，所以这次没有复制。请稍后再试。',
   'notesStorage.unavailable.unsupported': 'iCloud 同步需要 Apple 芯片的 Mac 版 Owlto。',
+  'notesStorage.unavailable.helper_missing':
+    '这个版本的 Owlto 缺少 iCloud 组件，请更新 Owlto 后再试。',
   'notesStorage.unavailable.signed_out': '请先在系统设置里登录 iCloud 并打开 iCloud 云盘。',
-  'notesStorage.unavailable.not_entitled': '这个版本的 Owlto 不能使用 iCloud，请使用正式版。',
+  'notesStorage.unavailable.not_entitled': '这个版本的 Owlto 还没有 iCloud 签名。',
   'router.mentionCard': '笔记'
 }

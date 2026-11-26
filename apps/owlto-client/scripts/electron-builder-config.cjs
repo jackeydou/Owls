@@ -84,7 +84,15 @@ module.exports = {
     '!electron.vite.config.{js,ts,mjs,cjs}',
     '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}',
     '!{.env,.env.*,.npmrc,pnpm-lock.yaml}',
-    '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+    '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}',
+    // electron-builder leaves pnpm workspace packages out of the app, and drops them from the
+    // packaged package.json. The iCloud helper is loaded at runtime, so copy it in by hand;
+    // asarUnpack below unpacks its .node.
+    {
+      from: '../../packages/mac-icloud',
+      to: 'node_modules/@owlto/mac-icloud',
+      filter: ['package.json', 'index.js', '*.node']
+    }
   ],
   // Keep JavaScript dependencies inside app.asar. Unpacking all of node_modules put tens of
   // thousands of small files in the bundle, which made copying, signing, and verifying the
