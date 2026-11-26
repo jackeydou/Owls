@@ -478,6 +478,7 @@
 				ENABLE_PREVIEWS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Owlto-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Owlto;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Owlto uses the camera to scan the pairing QR code your Mac shows.";
@@ -514,6 +515,7 @@
 				ENABLE_PREVIEWS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Owlto-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Owlto;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Owlto uses the camera to scan the pairing QR code your Mac shows.";

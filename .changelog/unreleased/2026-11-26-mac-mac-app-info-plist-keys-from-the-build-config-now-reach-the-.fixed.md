@@ -1,0 +1,1 @@
+- Mac app: Info.plist keys from the build config now reach the top level, so iCloud Drive can show the Owlto folder, a second copy of Owlto no longer opens, and macOS shows the local network prompt for Remote Router. (#237)

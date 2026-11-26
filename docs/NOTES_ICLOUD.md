@@ -48,3 +48,21 @@ The Release macOS workflow then sets `OWLTO_MAC_PROVISIONING_PROFILE`, and
 app's entitlements only (never the helpers). Without the secret the build works as before
 and Settings → Experiments says the build cannot use iCloud. Debug builds (`dev.owlto.app.debug`)
 and `pnpm dev` never carry it.
+
+## iPhone
+
+The iOS app's Notes tab reads the same folder (`apps/owlto-ios/Owlto/Notes`):
+
+- `Owlto.entitlements` lists the container with `CloudDocuments`, and `Owlto-Info.plist`
+  carries the same `NSUbiquitousContainers` keys as the Mac, so the Files app shows the
+  "Owlto" folder too. Xcode's automatic signing picks up the iCloud capability once the
+  App ID `app.owlto.mobile` has it (step 2 above).
+- `NotesStore` finds the container off the main thread, watches `Documents/Notes` with an
+  `NSMetadataQuery` (which also lists notes iCloud has not downloaded; the store asks for
+  them), and reads and writes through `NSFileCoordinator`. The phone keeps no copy.
+- `NoteFile` mirrors `note-file.ts`. Editing changes only `title`, `updated`, and the body,
+  so the Mac's other keys (`id`, `tags`, `project`, `source`, `created`) stay; the file is
+  never renamed. A save refuses when the file changed since the editor opened it. A new
+  note gets a `c_` id, the Mac's key order, and a file name from `fileStem`/`uniqueName`.
+- The tab shows whatever is in the folder. Until a Mac turns sync on, it is empty and says
+  where to turn it on.

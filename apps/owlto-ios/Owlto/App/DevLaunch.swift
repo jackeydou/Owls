@@ -5,7 +5,7 @@ import SwiftUI
 /// `scripts/dev-host.mjs`, where nothing can tap the screen:
 ///
 ///   -OwltoDevPairAddress 127.0.0.1:47330 -OwltoDevPairCode ABCD-EFGH   pair on launch
-///   -OwltoDevTab threads|inbox|devices                                  open a tab
+///   -OwltoDevTab threads|inbox|notes|devices                            open a tab
 ///   -OwltoDevOpen thread|worker|sheet                                   open the first thread,
 ///                                                                       its first worker, or the
 ///                                                                       first inbox item
@@ -25,6 +25,7 @@ enum DevLaunch {
     }
     switch defaults.string(forKey: "OwltoDevTab") {
     case "inbox": tab.wrappedValue = .inbox
+    case "notes": tab.wrappedValue = .notes
     case "devices": tab.wrappedValue = .devices
     default: break
     }

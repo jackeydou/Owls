@@ -2,7 +2,10 @@
 
 The iPhone app for Remote Router: it pairs with a Mac running Owlto and drives that
 Mac's Router. The Mac keeps all data and runs every worker; the phone only relays
-messages and shows state. Nothing about threads is stored on the phone.
+messages and shows state. Nothing about threads is stored on the phone. Notes are the
+exception that is not the Mac's: the Notes tab reads and writes the Markdown files in
+Owlto's iCloud container, the same ones the Mac uses when iCloud sync is on
+(`docs/NOTES_ICLOUD.md`).
 
 ## Layout
 
@@ -31,6 +34,10 @@ messages and shows state. Nothing about threads is stored on the phone.
 - `Owlto/Model/` — lenient `Decodable` mirrors of `shared/app.ts` and
   `shared/router.ts`. Decode only what the phone shows; unknown enum values map to
   an `unknown`/`other` case so a newer Mac still decodes.
+- `Owlto/Notes/` — notes in iCloud: `NoteFile.swift` reads and writes note files the way
+  `apps/owlto-client/src/main/cards/note-file.ts` does; `NotesStore.swift` watches the
+  container's `Documents/Notes`. `Owlto-Info.plist` (merged into the generated Info.plist)
+  holds the `NSUbiquitousContainers` keys that show the "Owlto" folder in Files.
 - `Owlto/UI/` — SwiftUI screens. Colors come from `Theme.swift`, which mirrors the
   desktop tokens in `assets/main.css` and, for the Doodle skin, `skin-doodle.css`,
   light and dark. `Skin.swift` holds the phone's own Style setting (Devices → Style)
@@ -76,8 +83,8 @@ env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin USER="$USER" xcodebuild -
 ```
 
 The unit tests cover crypto interop with the Mac, address and code parsing, event
-decoding, timeline grouping, and diff parsing. `OwltoUITests` skips itself unless a
-dev host is given (below).
+decoding, timeline grouping, diff parsing, and note files written by the Mac.
+`OwltoUITests` skips itself unless a dev host is given (below).
 
 ## Dev host
 

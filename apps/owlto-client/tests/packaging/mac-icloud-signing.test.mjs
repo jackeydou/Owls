@@ -56,3 +56,16 @@ test('the packaged app carries the iCloud helper, which electron-builder skips b
   assert.deepEqual(helper.filter, ['package.json', 'index.js', '*.node'])
   assert.ok(config.asarUnpack.includes('**/*.node'))
 })
+
+test('Info.plist keys sit at the top level, where macOS reads them', async () => {
+  const { default: config } = await import('../../scripts/electron-builder-config.cjs')
+  const extendInfo = config.mac.extendInfo
+  // electron-builder merges extendInfo with Object.assign: an array would add keys "0", "1", ...
+  assert.ok(extendInfo && typeof extendInfo === 'object' && !Array.isArray(extendInfo))
+  assert.equal(extendInfo.LSMultipleInstancesProhibited, true)
+  assert.equal(typeof extendInfo.NSLocalNetworkUsageDescription, 'string')
+  assert.deepEqual(
+    extendInfo.NSUbiquitousContainers,
+    icloud.icloudInfoPlist().NSUbiquitousContainers
+  )
+})
