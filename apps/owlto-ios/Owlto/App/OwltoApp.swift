@@ -4,12 +4,14 @@ import SwiftUI
 struct OwltoApp: App {
   @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
   @State private var hub = RemoteHub()
+  @State private var notes = NotesStore()
   @Environment(\.scenePhase) private var scenePhase
 
   var body: some Scene {
     WindowGroup {
       RootView()
         .environment(hub)
+        .environment(notes)
         .tint(Theme.accent)
         .onAppear { PushRegistration.onToken = { [hub] token in hub.setPushToken(token) } }
     }
@@ -30,7 +32,7 @@ struct RootView: View {
   @AppStorage(ColorMode.storageKey) private var colorMode: ColorMode = .system
 
   enum Tab: Hashable {
-    case threads, inbox, devices
+    case threads, inbox, notes, devices
   }
 
   var body: some View {
@@ -63,6 +65,9 @@ struct RootView: View {
           .tabItem { Label("Needs You", systemImage: "tray") }
           .badge(hub.attention.count)
           .tag(Tab.inbox)
+        NotesView()
+          .tabItem { Label("Notes", systemImage: "note.text") }
+          .tag(Tab.notes)
         NavigationStack { DevicesView() }
           .tabItem { Label("Devices", systemImage: "desktopcomputer") }
           .tag(Tab.devices)

@@ -469,6 +469,16 @@
         }
       }
     },
+    "Downloading from iCloud…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在从 iCloud 下载…"
+          }
+        }
+      }
+    },
     "Drop": {
       "localizations": {
         "zh-Hans": {
@@ -485,6 +495,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "更早"
+          }
+        }
+      }
+    },
+    "Edit": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑"
+          }
+        }
+      }
+    },
+    "Edit note": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑笔记"
           }
         }
       }
@@ -710,6 +740,16 @@
         }
       }
     },
+    "New note": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建笔记"
+          }
+        }
+      }
+    },
     "New thread": {
       "localizations": {
         "zh-Hans": {
@@ -730,12 +770,42 @@
         }
       }
     },
+    "No matching notes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有匹配的笔记"
+          }
+        }
+      }
+    },
+    "No notes yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有笔记"
+          }
+        }
+      }
+    },
     "No threads yet": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "还没有对话"
+          }
+        }
+      }
+    },
+    "Notes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "笔记"
           }
         }
       }
@@ -1204,6 +1274,16 @@
         }
       }
     },
+    "Save": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
+          }
+        }
+      }
+    },
     "Say what you need": {
       "localizations": {
         "zh-Hans": {
@@ -1230,6 +1310,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "扫描二维码，或输入长配对码。在同一网络下，也可以用地址加短配对码。"
+          }
+        }
+      }
+    },
+    "Search notes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索笔记"
           }
         }
       }
@@ -1280,6 +1370,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在显示"
+          }
+        }
+      }
+    },
+    "Sign in to iCloud and turn on iCloud Drive for Owlto in Settings to see your notes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在系统设置里登录 iCloud，并为 Owlto 打开 iCloud 云盘，才能看到笔记。"
           }
         }
       }
@@ -1564,6 +1664,36 @@
         }
       }
     },
+    "This note changed on another device while you were editing. Copy your text, then open the note again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你编辑时这条笔记在另一台设备上改过了。请先复制你的内容，再重新打开这条笔记。"
+          }
+        }
+      }
+    },
+    "This note is no longer in iCloud": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这条笔记已经不在 iCloud 里了"
+          }
+        }
+      }
+    },
+    "This note is no longer in iCloud.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这条笔记已经不在 iCloud 里了。"
+          }
+        }
+      }
+    },
     "This only works on the Mac itself.": {
       "localizations": {
         "zh-Hans": {
@@ -1614,6 +1744,16 @@
         }
       }
     },
+    "Title": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标题"
+          }
+        }
+      }
+    },
     "To cut this phone off, remove it on the Mac in Owlto → Settings → Devices.": {
       "localizations": {
         "zh-Hans": {
@@ -1650,6 +1790,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "工具"
+          }
+        }
+      }
+    },
+    "Try again": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
+          }
+        }
+      }
+    },
+    "Turn on iCloud sync in Owlto for Mac (Settings → Experiments), and your notes show up here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Mac 版 Owlto 里打开 iCloud 同步（设置 → 实验功能），笔记就会出现在这里。"
           }
         }
       }
@@ -1750,6 +1910,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "一个 Worker"
+          }
+        }
+      }
+    },
+    "iCloud is not available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 不可用。"
+          }
+        }
+      }
+    },
+    "iCloud is off": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 没有打开"
           }
         }
       }

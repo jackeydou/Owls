@@ -1,0 +1,1 @@
+- iOS app: a Notes tab shows the notes in Owlto's iCloud folder, the ones a Mac syncs once iCloud sync is on, and lets you edit them and write new ones. Files also shows the Owlto folder. (#237)
