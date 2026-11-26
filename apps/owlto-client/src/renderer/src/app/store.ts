@@ -82,6 +82,8 @@ export type SettingsTab =
   /** The Router and the defaults it gives new workers. */
   | 'router'
   | 'memory'
+  /** Where notes live: this Mac or iCloud. */
+  | 'notes'
   /** Token usage recorded on this device. */
   | 'usage'
   /** Threads the user archived out of the sidebar. */
@@ -323,6 +325,7 @@ export const useAppStore = create<State>((set, get) => {
       remoteKeepAwake: false,
       browser: defaultBrowserSettings,
       browserDownloadsPath: null,
+      notesLocation: 'local',
       simulator: defaultSimulatorSettings
     },
     connection: {

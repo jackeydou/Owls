@@ -23,7 +23,9 @@ import {
   type CardCapture,
   type CardLibrary,
   type CardSave,
-  cardRefSchema
+  cardRefSchema,
+  type NotesStorage,
+  type NotesStorageSwitch
 } from './cards.js'
 import type { FeedbackDiagnostics, FeedbackInput, FeedbackResult } from './feedback.js'
 import type { FilePreviewResult, FileTarget, OpenFileIn } from './file-preview.js'
@@ -304,6 +306,9 @@ export type Skin = z.infer<typeof skinSchema>
  */
 export const onboardingStateSchema = z.enum(['pending', 'skipped', 'done'])
 export type OnboardingState = z.infer<typeof onboardingStateSchema>
+/** Where notes live; see `settingsSchema.notesLocation`. */
+export const notesLocationSchema = z.enum(['local', 'icloud'])
+export type NotesLocation = z.infer<typeof notesLocationSchema>
 export const settingsSchema = z.object({
   executablePath: z.string().nullable(),
   /** How new workers run on each coding agent; rows from before it start from the defaults. */
@@ -386,6 +391,12 @@ export const settingsSchema = z.object({
   remoteKeepAwake: z.boolean().catch(false).default(false),
   /** Settings → Browser: site rules and form asks. Added later, so older rows get the defaults. */
   browser: browserSettingsSchema.catch(defaultBrowserSettings).default(defaultBrowserSettings),
+  /**
+   * Where notes live: `local` is the notes folder on this Mac, `icloud` the Notes folder in
+   * Owlto's iCloud Drive container. Added later, so older rows stay local. Saved only through
+   * the notes storage switch, which moves the files.
+   */
+  notesLocation: notesLocationSchema.catch('local').default('local'),
   /** Where Owlto's browser saves downloads; null uses the data root. Saved only through its picker. */
   browserDownloadsPath: z.string().nullable().catch(null).default(null),
   /** The iOS Simulator panel: whether workers get its tools, and the devices they may use. */
@@ -427,7 +438,8 @@ export const settingsUpdateSchema = settingsSchema
     remoteAccess: true,
     remoteRelay: true,
     remoteKeepAwake: true,
-    browserDownloadsPath: true
+    browserDownloadsPath: true,
+    notesLocation: true
   })
   .strict()
 export const modelSchema = z.object({
@@ -716,6 +728,10 @@ export interface CardsAPI {
   removeBoard(boardId: string): Promise<Reply<void>>
   /** Shows a note's Markdown file in Finder. */
   reveal(cardId: string): Promise<Reply<void>>
+  /** Where notes live, and whether iCloud can hold them. */
+  storage(): Promise<Reply<NotesStorage>>
+  /** Moves notes into iCloud, or copies them back to this Mac; saves `notesLocation`. */
+  setStorage(location: NotesLocation): Promise<Reply<NotesStorageSwitch>>
   onChanged(listener: () => void): () => void
 }
 /** `window.owlto.updates`. The channel is a setting, saved through `saveSettings`. */

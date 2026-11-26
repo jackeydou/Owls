@@ -119,6 +119,8 @@ const api: OwltoAPI = {
     saveBoard: (input) => ipcRenderer.invoke('owlto:cards-save-board', input),
     removeBoard: (boardId) => ipcRenderer.invoke('owlto:cards-remove-board', boardId),
     reveal: (cardId) => ipcRenderer.invoke('owlto:cards-reveal', cardId),
+    storage: () => ipcRenderer.invoke('owlto:cards-storage'),
+    setStorage: (location) => ipcRenderer.invoke('owlto:cards-set-storage', location),
     onChanged: (listener) => {
       const handler = () => listener()
       ipcRenderer.on('owlto:cards-changed', handler)

@@ -65,6 +65,24 @@ export class CardService {
     this.stopWatching?.()
     this.stopWatching = null
   }
+  /**
+   * Moves the notes to `folder`: stops watching, runs `transfer` (which brings the files
+   * over), reads the new folder, and watches it. Not watching meanwhile keeps the files
+   * leaving the old folder from reading as deleted notes.
+   */
+  relocate<T>(folder: string, transfer: () => T): T {
+    const watching = this.stopWatching !== null
+    this.close()
+    try {
+      const result = transfer()
+      this.deps.store.relocate(folder)
+      return result
+    } finally {
+      this.deps.store.scan()
+      if (watching) this.watch()
+      this.deps.changed()
+    }
+  }
   library(): CardLibrary {
     const cards = this.deps.store.cards()
     const live = new Set(cards.map((card) => card.id))
@@ -178,12 +196,16 @@ export class CardService {
       })
     } else {
       const live = new Set(this.deps.store.cards().map((card) => card.id))
+      const current = this.liveBoard(input.id)
       // One place per card: a later entry wins, and cards deleted meanwhile drop out.
-      const placed = new Map(
-        input.placements.filter((p) => live.has(p.cardId)).map((p) => [p.cardId, p])
-      )
+      // The renderer only sees live notes, so places of notes that are gone for now
+      // (a synced file not downloaded yet) are kept as they were.
+      const placed = new Map([
+        ...current.placements.filter((p) => !live.has(p.cardId)).map((p) => [p.cardId, p] as const),
+        ...input.placements.filter((p) => live.has(p.cardId)).map((p) => [p.cardId, p] as const)
+      ])
       board = this.deps.store.putBoard({
-        ...this.liveBoard(input.id),
+        ...current,
         placements: [...placed.values()],
         updatedAt: now
       })

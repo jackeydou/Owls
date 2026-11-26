@@ -1,0 +1,1 @@
+- Notes: a note in a synced folder that is not downloaded yet stays in the list and on its boards, and conflict copies get the same id on every device. (#230)

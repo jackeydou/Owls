@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { NotesLocation } from './app.js'
 
 /** Longest card title. */
 export const CARD_TITLE_LIMIT = 120
@@ -125,3 +126,29 @@ export type AttachedCard = z.infer<typeof attachedCardSchema>
 export type CardRef = z.infer<typeof cardRefSchema>
 /** Every live card and board; deleted ones stay out. */
 export type CardLibrary = { cards: Card[]; boards: Board[] }
+
+/** Why notes cannot move to iCloud on this Mac right now. */
+export type NotesICloudUnavailable =
+  /** Not macOS, or a build without the iCloud helper. */
+  | 'unsupported'
+  /** Signed out of iCloud, or iCloud Drive is off. */
+  | 'signed_out'
+  /** A build without the iCloud entitlement, such as a debug or dev build. */
+  | 'not_entitled'
+export type NotesICloudStatus =
+  | { status: 'available' }
+  | { status: 'unavailable'; reason: NotesICloudUnavailable }
+/** Where notes live now, and whether iCloud can hold them. */
+export type NotesStorage = {
+  location: NotesLocation
+  folder: string
+  icloud: NotesICloudStatus
+}
+/**
+ * The result of switching where notes live. `downloading` means nothing moved: some notes
+ * are in iCloud but not on this Mac yet, so copying them back now would leave them out.
+ * Owlto asks iCloud to download them; the user tries again in a moment.
+ */
+export type NotesStorageSwitch =
+  | { result: 'moved'; storage: NotesStorage; moved: number }
+  | { result: 'downloading'; storage: NotesStorage; pending: number }

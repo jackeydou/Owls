@@ -67,6 +67,22 @@ export const cardsEn = {
   'cards.boardProject': 'Board project',
   'cards.deleteBoard': 'Delete board',
   'cards.confirmDeleteBoard': 'Click again to delete the board',
+  'notesStorage.body':
+    'Each note is a Markdown file. Keep them on this Mac, or in iCloud Drive so your other Macs and your iPhone have them too.',
+  'notesStorage.icloud': 'Sync with iCloud',
+  'notesStorage.offHelp':
+    'Notes are on this Mac only. Turning this on moves them into the Owlto folder in iCloud Drive.',
+  'notesStorage.onHelp':
+    'Notes are in the Owlto folder in iCloud Drive. Turning this off copies them back to this Mac and leaves the iCloud copy for your other devices.',
+  'notesStorage.downloading_one':
+    '{{count}} note is still downloading from iCloud, so nothing was copied yet. Try again in a moment.',
+  'notesStorage.downloading_other':
+    '{{count}} notes are still downloading from iCloud, so nothing was copied yet. Try again in a moment.',
+  'notesStorage.unavailable.unsupported': 'iCloud sync needs Owlto for Mac on Apple silicon.',
+  'notesStorage.unavailable.signed_out':
+    'Sign in to iCloud and turn on iCloud Drive in System Settings first.',
+  'notesStorage.unavailable.not_entitled':
+    'This build of Owlto cannot use iCloud. Use a release build.',
   'router.mentionCard': 'Note'
 }
 
@@ -136,5 +152,18 @@ export const cardsZh: Record<keyof typeof cardsEn, string> = {
   'cards.boardProject': '白板所属项目',
   'cards.deleteBoard': '删除白板',
   'cards.confirmDeleteBoard': '再点一次删除白板',
+  'notesStorage.body':
+    '每条笔记是一个 Markdown 文件。可以只放在这台 Mac 上，也可以放进 iCloud 云盘，让你的其他 Mac 和 iPhone 也能看到。',
+  'notesStorage.icloud': '用 iCloud 同步',
+  'notesStorage.offHelp': '笔记只在这台 Mac 上。开启后会移到 iCloud 云盘的 Owlto 文件夹。',
+  'notesStorage.onHelp':
+    '笔记在 iCloud 云盘的 Owlto 文件夹里。关闭后会复制回这台 Mac，iCloud 里的那份留给你的其他设备。',
+  'notesStorage.downloading_one':
+    '还有 {{count}} 条笔记正在从 iCloud 下载，所以这次没有复制。请稍后再试。',
+  'notesStorage.downloading_other':
+    '还有 {{count}} 条笔记正在从 iCloud 下载，所以这次没有复制。请稍后再试。',
+  'notesStorage.unavailable.unsupported': 'iCloud 同步需要 Apple 芯片的 Mac 版 Owlto。',
+  'notesStorage.unavailable.signed_out': '请先在系统设置里登录 iCloud 并打开 iCloud 云盘。',
+  'notesStorage.unavailable.not_entitled': '这个版本的 Owlto 不能使用 iCloud，请使用正式版。',
   'router.mentionCard': '笔记'
 }
