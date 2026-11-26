@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2500-beta.1
+
+### Highlights
+
+- Experimental: keep your notes in iCloud Drive so your Macs and iPhone share them.
+- The right sidebar keeps one width for every tab.
+
+### Changes
+
+- Right sidebar: keeps one width for every tab and only changes when you drag it, remembered across restarts. (#229)
+- Notes: an experimental switch in Settings → Experiments keeps notes in iCloud Drive, so your Macs and iPhone share them; turning it off copies them back. (#230, #232)
+- iOS app: messages render Markdown: headings, lists and task lists, code blocks with a copy button, quotes, tables, and blue links. (#231)
+
+### Fixes
+
+- Notes: a note in a synced folder that is not downloaded yet stays in the list and on its boards, and conflict copies get the same id on every device. (#230)
+
 ## 2026.11.2300-beta.2
 
 ### Highlights
