@@ -11,6 +11,24 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2600-beta.1
+
+### Highlights
+
+- iPhone can read and edit the notes a Mac syncs through iCloud, and iCloud Drive now shows the Owlto folder.
+
+### Changes
+
+- iOS app: a Notes tab shows the notes in Owlto's iCloud folder, the ones a Mac syncs once iCloud sync is on, and lets you edit them and write new ones. Files also shows the Owlto folder. (#237)
+
+- iOS app: a Theme picker in Settings (System, Light, Dark), and New thread starts a thread in one tap. (#238)
+
+### Fixes
+
+- Mac app: Info.plist keys from the build config now reach the top level, so iCloud Drive can show the Owlto folder, a second copy of Owlto no longer opens, and macOS shows the local network prompt for Remote Router. (#237)
+
+- Usage: Claude Code shows "Signed out" when the CLI has no login and "Could not read usage" when the usage read fails, instead of saying the account has no plan limits. (#234)
+
 ## 2026.11.2500-beta.2
 
 ### Highlights

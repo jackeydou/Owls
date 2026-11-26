@@ -1,0 +1,1 @@
+- Usage: Claude Code shows "Signed out" when the CLI has no login and "Could not read usage" when the usage read fails, instead of saying the account has no plan limits. (#234)
