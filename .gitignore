@@ -24,3 +24,6 @@ apps/website/
 /output/
 /reports/
 /research_notes/
+
+# App Store screenshots and artwork (large binaries, kept locally)
+apps/owlto-ios/app-store/
