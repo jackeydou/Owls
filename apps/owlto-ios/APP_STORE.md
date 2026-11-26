@@ -7,11 +7,11 @@ with `Owlto/PrivacyInfo.xcprivacy` and the website's privacy policy
 
 ## Before the first submission
 
-- [ ] Deploy the website so the URLs below are live: `pnpm --filter owlto-website deploy:cf`.
-- [ ] Set up `support@owlto.dev`: Cloudflare dashboard → `owlto.dev` → Email → Email
+- [x] Deploy the website so the URLs below are live: `pnpm --filter owlto-website deploy:cf`.
+- [x] Set up `support@owlto.dev`: Cloudflare dashboard → `owlto.dev` → Email → Email
       Routing → add a custom address `support` that forwards to your own mailbox. Send a
       test email.
-- [ ] Add an APNs auth key to the production relay (`packages/owlto-relay/README.md`,
+- [x] Add an APNs auth key to the production relay (`packages/owlto-relay/README.md`,
       "Push"), or notifications will not arrive in TestFlight or App Store builds.
 - [ ] Set the App Store link in the Mac app's pairing wizard ("Get Owlto on your iPhone")
       once the App Store ID exists.
@@ -28,7 +28,7 @@ with `Owlto/PrivacyInfo.xcprivacy` and the website's privacy policy
 | Privacy Policy URL | https://owlto.dev/privacy/ |
 | Support URL | https://owlto.dev/support/ |
 | Marketing URL | https://owlto.dev/ |
-| Copyright | `2026 The Owlto developers` |
+| Copyright | `2026 Owlto Team` (matches the Mac app's electron-builder `copyright`) |
 
 ## App Privacy ("nutrition label")
 
@@ -116,70 +116,113 @@ spaces needed), description 4,000 characters. Keep third-party product names (Cl
 Code, Codex, Cursor) out of the name, subtitle, and keywords (Guideline 2.3.7); the
 description may mention them factually.
 
+This copy is marketing for people who know nothing about how Owlto works inside: lead
+with the super agent (stop switching between AI agents) and privacy (end-to-end
+encrypted, your work stays on your Mac). Keep internal terms such as Router, Worker,
+relay, and worktree out of it; they belong in the review notes, not the listing.
+
 ### English
 
 - **Name:** Owlto Remote
-- **Subtitle:** Your Mac's agent team, anywhere
-- **Promotional text:** Message your Mac's Router from your phone, follow every worker,
-  and answer their questions, while your own coding agents do the work at home.
-- **Keywords:** `ai,agent,coding,remote,developer,router,worker,git,code review,automation,mac,terminal`
+- **Subtitle:** Your private AI super agent
+- **Promotional text:** Stop switching between AI agents. Owlto turns them into one super agent you can direct from your phone, private by design and end-to-end encrypted.
+- **Keywords:** `ai,agent,ai agent,super agent,assistant,automation,productivity,coding,privacy,encrypted,mac`
 - **Description:**
 
-> Owlto Remote puts your Mac's agent team in your pocket.
+> Stop switching between AI agents.
 >
-> Owlto is a free, open-source Mac app that runs your coding agents as one team: a Router
-> owl plans the work, dispatches workers, and reports back. With Owlto Remote, you can do
-> all of that from your iPhone or iPad.
+> Owlto brings all your AI agents together as one super agent. Say what you want in plain words. Owlto picks the right agent for each part of the job, keeps everything moving, and tells you when it's done.
 >
-> • Message the Router from anywhere and start new work.
-> • Follow every worker live and see what changed.
-> • Answer the questions and approvals workers ask for, without walking back to your desk.
-> • Get notified when a worker finishes or needs you.
+> Owlto Remote puts that super agent in your pocket.
+>
+> • Just say what you need: start new work from anywhere, in one conversation.
+> • See progress at a glance: what's running, what's finished, and what needs you.
+> • Decide in a tap: approve or answer when your agent asks, without going back to your desk.
+> • Never miss a moment: get notified as soon as something is done or needs your call.
 >
 > Private by design
-> Your projects, code, and threads stay on your Mac. Your phone connects to it directly on
-> the same network, or through the Owlto relay with end-to-end encryption, so the relay
-> cannot read anything. The app has no account, no analytics, and no tracking.
+> Your work stays on your own Mac. Everything between your phone and your Mac is end-to-end encrypted, so no one in between can read it, not even us. No account, no ads, no tracking.
 >
-> Requirements
-> A Mac running Owlto (https://owlto.dev) with Claude Code, Codex, or Cursor installed and
-> signed in. The Mac stays on with Owlto open. Pair once by scanning a QR code.
+> What you need
+> Owlto Remote works with the free Owlto app on your Mac. Install it, scan a QR code once, and you're connected.
 
 ### 简体中文
 
 - **名称：** Owlto Remote
-- **副标题：** 随时指挥 Mac 上的智能体团队
-- **推广文本：** 在手机上给 Mac 的 Router 发消息、跟进每个 Worker、回答它们的问题，实际工作由你 Mac 上的编程智能体完成。
-- **关键词：** `ai,智能体,编程,远程,开发者,代码,router,worker,git,代码审查,自动化,mac`
+- **副标题：** 你的私人 AI 超级智能体
+- **推广文本：** 别再在各种 AI 智能体之间来回切换。Owlto 把它们变成一个超级智能体，在手机上随时指挥；端到端加密，隐私优先。
+- **关键词：** `ai,智能体,超级智能体,ai助手,自动化,效率,编程,隐私,加密,远程,mac,工作流`
 - **描述：**
 
-> Owlto Remote 把你 Mac 上的智能体团队装进口袋。
+> 别再在各种 AI 智能体之间来回切换了。
 >
-> Owlto 是一款免费开源的 Mac 应用，把你的编程智能体组织成一个团队：Router 猫头鹰负责规划、派发
-> Worker 并汇报结果。有了 Owlto Remote，这一切都可以在 iPhone 或 iPad 上完成。
+> Owlto 把你所有的 AI 智能体整合成一个超级智能体。用一句话说出你想做的事，它会把每件事交给最合适的智能体，全程推进，做完告诉你。
 >
-> • 随时随地给 Router 发消息，开始新的工作。
-> • 实时跟进每个 Worker，查看改动。
-> • 直接回答 Worker 的提问和审批请求，不用回到电脑前。
-> • Worker 完成或需要你时收到通知。
+> Owlto Remote 把这个超级智能体装进你的口袋。
+>
+> • 说一句就开工：随时随地，在一个对话里开始新工作。
+> • 进度一目了然：哪些在做、哪些完成、哪些在等你，一眼看清。
+> • 一点就决定：智能体需要你确认或回答时，在手机上点一下就好，不用回到电脑前。
+> • 不错过任何进展：事情做完或需要你拍板时，第一时间通知你。
 >
 > 隐私优先
-> 你的项目、代码和对话都留在你的 Mac 上。手机在同一网络下直接连接 Mac，或通过端到端加密的 Owlto
-> 中继连接，中继无法读取任何内容。应用不需要账号，没有统计分析，也没有追踪。
+> 你的工作始终留在你自己的 Mac 上。手机和 Mac 之间的所有内容都端到端加密，中间任何人都无法读取，包括我们。不需要账号，没有广告，没有追踪。
 >
 > 使用要求
-> 一台运行 Owlto（https://owlto.dev）的 Mac，并已安装和登录 Claude Code、Codex 或 Cursor。Mac
-> 需保持开机并打开 Owlto。扫码配对一次即可。
+> Owlto Remote 需要搭配 Mac 上的免费应用 Owlto 使用。安装后扫码配对一次即可连接。
 
 ## Screenshots
 
 The target supports iPhone and iPad (`TARGETED_DEVICE_FAMILY = 1,2`), so both sets are
 required:
 
-- iPhone 6.9" display: 1320 × 2868 (or 1290 × 2796), portrait, 3–10 images.
-- iPad 13" display: 2064 × 2752 (or 2048 × 2732), 3–10 images.
+- iPhone: App Store Connect asks for the 6.1"/6.3" set (1206 × 2622); a 6.9" set
+  (1320 × 2868) is there too in case the 6.9" tab is offered. Portrait, 3–10 images.
+- iPad 13" display: 2064 × 2752, 3–10 images.
+- iPhone Duo: `duo-outer-*` is the closed pose's outer screen (1398 × 2034, portrait) and
+  `duo-inner-*` the open pose's inner screen (2853 × 2007, landscape, two columns). Upload
+  whichever the Duo tab accepts.
 
-Take them in the simulator against the dev host (`scripts/dev-host.mjs`) so the sample
-threads look real and show no private paths: Threads list, a thread with a worker
-running, a worker's changes, an approval request, pairing, and Devices. Do English and
-Simplified Chinese sets if possible.
+Ready-made sets are in `app-store/` (not part of any build):
+
+- `app-store/screenshots/{iphone-6.3,iphone-6.9,ipad,duo-outer,duo-inner}-{en,zh}/` — captioned, upload in file order. English
+  goes to the English (U.S.) localization, `zh` to Simplified Chinese.
+- `app-store/artwork/artwork-{5244x2950,3840x1646}-{en,zh}.png` — promotional artwork
+  for the header and search-result slots (the Creative assets drop zone): the three owls
+  from the app icon between two iPhones, no text, so App Store overlays stay readable.
+- `app-store/raw/` — the same screens without captions, if you prefer plain screenshots.
+- `app-store/app-icon-1024.png` — the 1024 × 1024 icon (no alpha); Xcode uploads it from
+  the asset catalog, this copy is for reference. It is the desktop's
+  `resources/app-logos/lean-cream.svg` cropped to its tile (`viewBox="100 100 824 824"`),
+  with the corner radius and hairline outline removed, rendered opaque: iOS rounds the
+  corners itself and rejects icons with transparency.
+
+They were taken in the iOS 27.0 simulator against `scripts/dev-host.mjs` (sample threads
+with English copy for the `en` set, device name `MacBook Pro`), with the status bar fixed
+at 9:41. The Duo sets need a build from Xcode 27.1 or later and the
+`iOS-27-2-iPhone19-4` runtime; the iPhone and iPad sets were taken on iOS 27.0. The Devices tab is left out because it shows the dev host's `127.0.0.1` address.
+To retake them, pair a simulator with the dev host and use the `DevLaunch.swift` launch
+arguments (`-OwltoDevOpen thread|worker|sheet`, `-OwltoDevTab inbox`, `-skin doodle`).
+
+## Building the upload
+
+The app uses iOS 27.1 SDK APIs (`toolbarVerticalEdge`, `reservedRegions`), so archive
+with Xcode 27.1 or later; Xcode 27.0 fails to compile `Adaptive.swift` and
+`ThreadsView.swift`. Archive the Release configuration (Product → Archive), then
+Distribute App → App Store Connect. `MARKETING_VERSION` is `0.1.0` and
+`CURRENT_PROJECT_VERSION` is `1`; bump the build number for each later upload.
+
+From the command line (Xcode signed in to the team's Apple ID; automatic signing with
+`-allowProvisioningUpdates` creates the distribution signing in the cloud):
+
+```bash
+env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin USER="$USER" xcodebuild -project apps/owlto-ios/Owlto.xcodeproj -scheme Owlto -configuration Release -destination 'generic/platform=iOS' -archivePath build/Owlto.xcarchive -allowProvisioningUpdates archive
+```
+
+```bash
+env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin USER="$USER" xcodebuild -exportArchive -archivePath build/Owlto.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath build/export -allowProvisioningUpdates
+```
+
+`ExportOptions.plist` sets `method` = `app-store-connect`, `destination` = `upload`,
+`signingStyle` = `automatic`, `teamID` = `9SS2Q95YZN`. The export uploads the build;
+it shows up in TestFlight after Apple finishes processing it.
