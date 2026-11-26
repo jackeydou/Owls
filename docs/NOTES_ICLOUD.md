@@ -1,6 +1,6 @@
 # Notes in iCloud
 
-Settings → Notes → **Sync with iCloud** keeps the notes folder in Owlto's iCloud Drive
+Settings → Experiments → **Sync notes with iCloud** (experimental) keeps the notes folder in Owlto's iCloud Drive
 container, so the user's Macs and the iPhone app read and write the same Markdown files.
 Everything else (threads, workers, projects, the Workspace, boards, settings) stays on
 the device it belongs to.
@@ -44,5 +44,5 @@ One-time setup in the Apple Developer account (same team as the iOS app):
 The Release macOS workflow then sets `OWLTO_MAC_PROVISIONING_PROFILE`, and
 `scripts/mac-icloud-signing.cjs` embeds the profile and adds the iCloud keys to the main
 app's entitlements only (never the helpers). Without the secret the build works as before
-and Settings → Notes says the build cannot use iCloud. Debug builds (`dev.owlto.app.debug`)
+and Settings → Experiments says the build cannot use iCloud. Debug builds (`dev.owlto.app.debug`)
 and `pnpm dev` never carry it.

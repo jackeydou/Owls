@@ -14,7 +14,7 @@ type State = {
   setLocation(location: NotesLocation): Promise<boolean>
 }
 
-/** Settings → Notes: where notes live, and the switch that moves them. */
+/** Settings → Experiments: where notes live, and the switch that moves them. */
 export const useNotesStorageStore = create<State>((set) => ({
   storage: null,
   pending: 0,
