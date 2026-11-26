@@ -11,6 +11,18 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2500-beta.2
+
+### Highlights
+
+- iCloud Notes sync in Experiments can now be turned on in the packaged app.
+
+### Changes
+
+### Fixes
+
+- Notes: the packaged app now includes the iCloud helper, so the iCloud sync switch in Experiments can turn on, and an unavailable switch says the real reason. (#235)
+
 ## 2026.11.2500-beta.1
 
 ### Highlights
