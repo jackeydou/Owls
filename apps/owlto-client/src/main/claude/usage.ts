@@ -1,6 +1,11 @@
 import type { SDKControlGetUsageResponse } from '@anthropic-ai/claude-agent-sdk'
 import type { ClaudeAccount } from '../../shared/app.js'
-import { type AgentUsage, percent, type UsageWindow } from '../../shared/usage.js'
+import {
+  type AgentUsage,
+  percent,
+  type UsageUnavailable,
+  type UsageWindow
+} from '../../shared/usage.js'
 
 type Limits = NonNullable<SDKControlGetUsageResponse['rate_limits']>
 type Bucket = { utilization: number | null; resets_at: string | null } | null | undefined
@@ -27,6 +32,22 @@ function modelWindows(limits: Limits): Array<UsageWindow | null> {
 }
 
 /**
+ * Why the CLI sent no windows. Plan limits that apply but did not arrive mean
+ * the usage endpoint failed for now (rate limited or offline). A CLI with no
+ * claude.ai login and no API key is signed out, which also reports limits as
+ * unavailable, so it must not read as a plan without limits.
+ */
+function missingReason(
+  response: SDKControlGetUsageResponse,
+  account: ClaudeAccount
+): UsageUnavailable {
+  if (response.rate_limits_available) return 'failed'
+  if (account.kind === 'api-key') return 'api-key'
+  if (account.kind === 'unknown' && !response.subscription_type) return 'signed-out'
+  return 'no-plan-limits'
+}
+
+/**
  * Reads the CLI's structured `/usage` answer: the claude.ai plan's 5-hour and
  * weekly windows, per-model weekly windows, and extra usage. Accounts without
  * plan limits (API key, Bedrock, Vertex) report none.
@@ -41,7 +62,7 @@ export function parseClaudeUsage(
     return {
       provider: 'claude-code',
       state: 'unavailable',
-      reason: account.kind === 'api-key' ? 'api-key' : 'no-plan-limits',
+      reason: missingReason(response, account),
       plan
     }
   const windows = [
