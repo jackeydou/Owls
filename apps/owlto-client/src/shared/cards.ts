@@ -129,11 +129,13 @@ export type CardLibrary = { cards: Card[]; boards: Board[] }
 
 /** Why notes cannot move to iCloud on this Mac right now. */
 export type NotesICloudUnavailable =
-  /** Not macOS, or a build without the iCloud helper. */
+  /** Not macOS on Apple silicon. */
   | 'unsupported'
+  /** The iCloud helper is missing from this build or did not load. */
+  | 'helper_missing'
   /** Signed out of iCloud, or iCloud Drive is off. */
   | 'signed_out'
-  /** A build without the iCloud entitlement, such as a debug or dev build. */
+  /** A build without the iCloud entitlement: dev and debug builds, or a release signed without the profile. */
   | 'not_entitled'
 export type NotesICloudStatus =
   | { status: 'available' }

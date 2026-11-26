@@ -46,3 +46,13 @@ test('the container in the Info.plist is the one the app asks iCloud for', () =>
   assert.ok(runtime.includes(`'${icloud.ICLOUD_CONTAINER}'`))
   assert.ok(icloud.icloudInfoPlist().NSUbiquitousContainers[icloud.ICLOUD_CONTAINER])
 })
+
+test('the packaged app carries the iCloud helper, which electron-builder skips by itself', async () => {
+  const { default: config } = await import('../../scripts/electron-builder-config.cjs')
+  const helper = config.files.find(
+    (entry) => typeof entry === 'object' && entry.to === 'node_modules/@owlto/mac-icloud'
+  )
+  assert.ok(helper, 'files must copy @owlto/mac-icloud into the app')
+  assert.deepEqual(helper.filter, ['package.json', 'index.js', '*.node'])
+  assert.ok(config.asarUnpack.includes('**/*.node'))
+})

@@ -176,15 +176,19 @@ test('iCloud that is not available refuses the switch and moves nothing', async 
 })
 
 test('the iCloud helper reports why it cannot be used', async () => {
-  const unsupported = await createICloudAccess(() => null).status()
+  const unsupported = await createICloudAccess(() => ({ reason: 'unsupported' })).status()
   assert.deepEqual(unsupported.icloud, { status: 'unavailable', reason: 'unsupported' })
+  const missing = await createICloudAccess(() => ({ reason: 'helper_missing' })).status()
+  assert.deepEqual(missing.icloud, { status: 'unavailable', reason: 'helper_missing' })
   const binding = (signedIn, container) => ({
-    identityAvailable: () => signedIn,
-    containerPath: async (id) => {
-      assert.equal(id, NOTES_ICLOUD_CONTAINER)
-      return container
-    },
-    startDownloading: () => {}
+    binding: {
+      identityAvailable: () => signedIn,
+      containerPath: async (id) => {
+        assert.equal(id, NOTES_ICLOUD_CONTAINER)
+        return container
+      },
+      startDownloading: () => {}
+    }
   })
   const signedOut = await createICloudAccess(() => binding(false, '/c')).status()
   assert.deepEqual(signedOut.icloud, { status: 'unavailable', reason: 'signed_out' })

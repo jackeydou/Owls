@@ -26,7 +26,9 @@ the device it belongs to.
   every device.
 - `@owlto/mac-icloud` (Rust, `packages/mac-icloud`) wraps `NSFileManager`:
   `identityAvailable`, `containerPath` (off the main thread, as Apple asks), and
-  `startDownloading`.
+  `startDownloading`. electron-builder leaves pnpm workspace packages out of the app, so
+  `scripts/electron-builder-config.cjs` copies the helper in through `files`, and
+  `verify:packaged` loads it from the packaged app so a release without it fails.
 
 ## Builds
 

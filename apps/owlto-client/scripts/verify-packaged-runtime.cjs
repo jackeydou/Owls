@@ -78,13 +78,21 @@ function probeRuntime(archive) {
   } finally {
     database.close()
   }
+  // Notes' iCloud sync loads this helper at runtime. electron-builder leaves workspace
+  // packages out unless the config copies them in, and then the switch can never turn on.
+  let icloud = ''
+  if (process.platform === 'darwin' && process.arch === 'arm64') {
+    const helper = appRequire('@owlto/mac-icloud')
+    assert.equal(typeof helper.identityAvailable, 'function', 'iCloud helper has no binding')
+    icloud = ', iCloud helper'
+  }
   for (const filename of Object.keys(require.cache)) {
     if (before.has(filename)) continue
     if (!isInside(archive, filename) && !isInside(`${archive}.unpacked`, filename)) {
       throw new Error(`Runtime dependency loaded from outside the app: ${filename}`)
     }
   }
-  console.log(`Packaged runtime verified: ${count} packages, MCP transports and SQLite.`)
+  console.log(`Packaged runtime verified: ${count} packages, MCP transports and SQLite${icloud}.`)
 }
 
 function verifyPackagedApp(appPath) {

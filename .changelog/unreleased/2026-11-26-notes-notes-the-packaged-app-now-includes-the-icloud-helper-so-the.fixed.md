@@ -1,0 +1,1 @@
+- Notes: the packaged app now includes the iCloud helper, so the iCloud sync switch in Experiments can turn on, and an unavailable switch says the real reason. (#235)
