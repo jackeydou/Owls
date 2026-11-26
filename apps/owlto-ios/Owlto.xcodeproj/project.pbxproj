@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0A1D00000000000000000601 /* OwltoNotify.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0A1D00000000000000000014 /* OwltoNotify.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		0A1D00000000000000000301 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,10 +33,6 @@
 			remoteInfo = OwltoNotify;
 		};
 /* End PBXContainerItemProxy section */
-
-/* Begin PBXBuildFile section */
-		0A1D00000000000000000601 /* OwltoNotify.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0A1D00000000000000000014 /* OwltoNotify.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-/* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		0A1D00000000000000000203 /* Embed Foundation Extensions */ = {
@@ -474,6 +474,7 @@
 				CODE_SIGN_ENTITLEMENTS = Owlto.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9SS2Q95YZN;
 				ENABLE_PREVIEWS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -495,7 +496,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "Owlto/Remote/OwltoScrypt.h";
+				SWIFT_OBJC_BRIDGING_HEADER = Owlto/Remote/OwltoScrypt.h;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -509,6 +510,7 @@
 				CODE_SIGN_ENTITLEMENTS = Owlto.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9SS2Q95YZN;
 				ENABLE_PREVIEWS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -530,7 +532,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "Owlto/Remote/OwltoScrypt.h";
+				SWIFT_OBJC_BRIDGING_HEADER = Owlto/Remote/OwltoScrypt.h;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -609,6 +611,7 @@
 				CODE_SIGN_ENTITLEMENTS = OwltoNotify.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9SS2Q95YZN;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OwltoNotify/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = OwltoNotify;
@@ -634,6 +637,7 @@
 				CODE_SIGN_ENTITLEMENTS = OwltoNotify.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9SS2Q95YZN;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OwltoNotify/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = OwltoNotify;

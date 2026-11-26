@@ -6,6 +6,7 @@ struct DevicesView: View {
   @State private var pairing = false
   @State private var removing: PairedHost?
   @AppStorage(Skin.storageKey) private var skin: Skin = .standard
+  @AppStorage(ColorMode.storageKey) private var colorMode: ColorMode = .system
 
   var body: some View {
     List {
@@ -14,11 +15,11 @@ struct DevicesView: View {
           Button {
             hub.selectedHostId = host.deviceId
           } label: {
-            row(host)
+            row(host).foregroundStyle(Theme.foreground)
           }
-          .buttonStyle(.plain)
           .swipeActions {
-            Button("Remove", role: .destructive) { removing = host }
+            Button("Remove", systemImage: "trash", role: .destructive) { removing = host }
+              .tint(.red)
           }
           .contextMenu {
             Button("Reconnect", systemImage: "arrow.clockwise") { hub.reconnect(host.deviceId) }
@@ -41,6 +42,12 @@ struct DevicesView: View {
       Section {
         Picker("Style", selection: $skin) {
           ForEach(Skin.allCases) { option in
+            Text(option.label).tag(option)
+          }
+        }
+        .skinnedRow(Theme.elevated)
+        Picker("Theme", selection: $colorMode) {
+          ForEach(ColorMode.allCases) { option in
             Text(option.label).tag(option)
           }
         }

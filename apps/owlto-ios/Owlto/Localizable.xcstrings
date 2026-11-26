@@ -369,6 +369,16 @@
         }
       }
     },
+    "Dark": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "深色"
+          }
+        }
+      }
+    },
     "Decline": {
       "localizations": {
         "zh-Hans": {
@@ -559,16 +569,6 @@
         }
       }
     },
-    "In a project": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在项目里"
-          }
-        }
-      }
-    },
     "It ends its current turn on the Mac. Its worktree and conversation stay.": {
       "localizations": {
         "zh-Hans": {
@@ -605,6 +605,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "K7Q2-ABCD-EFGH 或 192.168.1.20"
+          }
+        }
+      }
+    },
+    "Light": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浅色"
           }
         }
       }
@@ -650,6 +660,7 @@
       }
     },
     "More": {
+      "extractionState": "stale",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -715,16 +726,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "没有改动"
-          }
-        }
-      }
-    },
-    "No project": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不指定项目"
           }
         }
       }
@@ -1383,6 +1384,16 @@
         }
       }
     },
+    "System": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
+          }
+        }
+      }
+    },
     "That Mac did not answer in time. Try again.": {
       "localizations": {
         "zh-Hans": {
@@ -1509,6 +1520,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Worker 正在工作，新消息会先排队…"
+          }
+        }
+      }
+    },
+    "Theme": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主题"
           }
         }
       }
