@@ -1,0 +1,1 @@
+- iOS app: a Theme picker in Settings (System, Light, Dark), and New thread starts a thread in one tap. (#238)

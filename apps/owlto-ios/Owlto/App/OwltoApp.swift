@@ -27,6 +27,7 @@ struct RootView: View {
   @Environment(RemoteHub.self) private var hub
   @State private var tab: Tab = .threads
   @AppStorage(Skin.storageKey) private var skin: Skin = .standard
+  @AppStorage(ColorMode.storageKey) private var colorMode: ColorMode = .system
 
   enum Tab: Hashable {
     case threads, inbox, devices
@@ -40,6 +41,7 @@ struct RootView: View {
     content
       .id(skin)
       .environment(\.skin, skin)
+      .onChange(of: colorMode, initial: true) { _, mode in mode.apply() }
       .sheet(isPresented: Binding(get: { hub.justPaired != nil }, set: { if !$0 { hub.justPaired = nil } })) {
         if let result = hub.justPaired { SafetyCodeView(result: result) }
       }

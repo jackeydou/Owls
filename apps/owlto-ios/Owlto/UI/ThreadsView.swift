@@ -55,7 +55,7 @@ struct ThreadsView: View {
       .navigationTitle("Threads")
       .toolbar {
         ToolbarItem(placement: .topBarLeading) { DevicePicker(iconOnly: isSplit) }
-        ToolbarItem(placement: .topBarTrailing) { newThreadMenu }
+        ToolbarItem(placement: .topBarTrailing) { newThreadButton }
       }
       // An ideal, not a fixed width: when the detail column's vertical bar leaves too little
       // room, the system narrows the list to keep both columns side by side.
@@ -136,7 +136,7 @@ struct ThreadsView: View {
       }
       if threads.isEmpty && store.loaded {
         EmptyState(title: "No threads yet", message: "Start one and the Router will send workers to your projects.") {
-          newThreadMenu.buttonStyle(OwltoButtonStyle(height: 44)).frame(maxWidth: 220)
+          newThreadButton.buttonStyle(OwltoButtonStyle(height: 44)).frame(maxWidth: 220)
         }
         .listRowSeparator(.hidden)
         .skinnedRow()
@@ -216,32 +216,16 @@ struct ThreadsView: View {
     }
   }
 
-  private var newThreadMenu: some View {
-    Menu {
-      if let host = hub.selectedHost, let store = hub.stores[host.deviceId] {
-        Button("No project") { create(host: host, projectId: nil) }
-        if !store.projects.isEmpty {
-          Section("In a project") {
-            ForEach(store.projects.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }) { project in
-              Button(project.name) { create(host: host, projectId: project.id) }
-            }
-          }
-        }
-      }
-    } label: {
+  /// Starts a thread with no project, so the Router names a project for each worker it sends.
+  private var newThreadButton: some View {
+    AsyncButton(action: {
+      guard let host = hub.selectedHost else { return }
+      let router: Router = try await hub.request(host.deviceId, "createThread", ["projectId": NSNull()])
+      selection = ThreadRoute(hostId: host.deviceId, routerId: router.id)
+    }, onError: { error = describe($0) }) {
       Label("New thread", systemImage: "square.and.pencil")
     }
-  }
-
-  private func create(host: PairedHost, projectId: String?) {
-    Task {
-      do {
-        let router: Router = try await hub.request(host.deviceId, "createThread", ["projectId": projectId.map { $0 as Any } ?? NSNull()])
-        selection = ThreadRoute(hostId: host.deviceId, routerId: router.id)
-      } catch {
-        self.error = describe(error)
-      }
-    }
+    .disabled(hub.selectedHost == nil)
   }
 
   private struct ThreadGroup: Identifiable {
