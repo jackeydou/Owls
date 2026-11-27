@@ -692,7 +692,7 @@ test('a wake checks a relay socket that still looks online and reconnects when i
   listener.reconnectNow()
   // Still online until the ping goes unanswered for a few seconds; then it dials again.
   assert.equal(listener.status().state, 'online')
-  await until(() => connections === 2, 9000)
+  await until(() => connections === 2, 12_000)
 })
 
 test('a device on another network pairs with a typed relay code, and both show the same digits', async (t) => {

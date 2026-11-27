@@ -176,9 +176,11 @@ class SocketHeartbeat {
   probe(): void {
     if (this.sentAt === null) this.ping()
     if (this.probeTimer) clearTimeout(this.probeTimer)
+    // Any ping still unanswered when this fires has waited at least this long. Timers may
+    // fire a fraction of a millisecond early by the monotonic clock, so no time is compared.
     this.probeTimer = setTimeout(() => {
       this.probeTimer = null
-      this.check(PROBE_TIMEOUT_MS)
+      if (this.sentAt !== null) this.dead()
     }, PROBE_TIMEOUT_MS)
     this.probeTimer.unref?.()
   }
@@ -189,10 +191,7 @@ class SocketHeartbeat {
   }
   private tick(): void {
     if (this.sentAt === null) this.ping()
-    else this.check(PONG_TIMEOUT_MS)
-  }
-  private check(timeoutMs: number): void {
-    if (this.sentAt !== null && performance.now() - this.sentAt >= timeoutMs) this.dead()
+    else if (performance.now() - this.sentAt >= PONG_TIMEOUT_MS) this.dead()
   }
   private ping(): void {
     if (this.socket.readyState !== WebSocket.OPEN) return
