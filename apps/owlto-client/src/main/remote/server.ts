@@ -328,12 +328,20 @@ export class HostServer {
     const run = this.deps.api[name] as (input: unknown) => unknown
     return await run(input)
   }
-  /** Issues a client a new relay ticket; its old one stops working. */
+  /**
+   * The client's relay ticket, issued on first ask and the same on every later one. A new
+   * ticket on every connect left a client whose reply got lost (it lost the connection, or
+   * went to the background) holding a ticket the relay no longer took; a client that pairs
+   * through the relay has no other way back, so it was cut off until it paired again.
+   */
   private relayRoute(deviceId: string): RelayRouteReply {
     const relay = this.deps.relay()
     if (!relay) return null
+    const peer = this.deps.store.peer(deviceId, 'client')
+    if (peer?.relayTicket && peer.relayTicketHash === relayTicketHash(peer.relayTicket))
+      return { ...relay, ticket: peer.relayTicket }
     const ticket = newRelayToken()
-    this.deps.store.saveTicketHash(deviceId, relayTicketHash(ticket))
+    this.deps.store.saveClientTicket(deviceId, ticket)
     this.deps.ticketsChanged()
     return { ...relay, ticket }
   }

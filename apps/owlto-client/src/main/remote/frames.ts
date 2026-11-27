@@ -16,7 +16,8 @@ export interface FrameChannel {
 }
 
 /**
- * When to ping a quiet peer, and how long a silence means it went away. A relay bills for
+ * When to ping a quiet peer, and how long a silence means it went away: a link quiet for
+ * `pingMs` sends a ping, and closes when no answer comes before `idleMs` in all. A relay bills for
  * the time a message keeps it awake, so its pipes ping rarely and lean on the relay closing
  * a pipe when either end drops.
  */

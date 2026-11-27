@@ -123,6 +123,19 @@ export function listAddresses(
  */
 /** Messages left on the relay are dropped after a week, as the relay does. */
 const QUEUE_MAX_AGE_MS = 7 * 24 * 60 * 60_000
+/**
+ * How often to look for a network change (another Wi-Fi, a VPN coming up). Electron's main
+ * process has no event for it, and reading the interfaces is cheap.
+ */
+const NETWORK_CHECK_MS = 10_000
+
+/** The addresses as one comparable string. */
+function networkSignature(addresses: RemoteNetworkAddress[]): string {
+  return addresses
+    .map((each) => `${each.interface}=${each.host}`)
+    .sort()
+    .join(',')
+}
 
 export class RemoteService {
   private identity: Promise<KeyPair> | null = null
@@ -134,6 +147,7 @@ export class RemoteService {
   private relayError: string | null = null
   private readonly relayUrl: string
   private listenError: string | null = null
+  private networkWatch: NodeJS.Timeout | null = null
   private readonly server: HostServer
   private readonly links: HostLinks
   private readonly keepAwake: KeepAwake | null
@@ -190,6 +204,7 @@ export class RemoteService {
   /** Listens when remote access was on, and connects to paired hosts. Failures show in the overview. */
   start(): void {
     void this.account.load()
+    this.watchNetwork()
     if (this.deps.accessEnabled())
       void this.listen().then(
         () => (this.deps.relayEnabled() ? this.startRelay() : undefined),
@@ -202,6 +217,8 @@ export class RemoteService {
       )
   }
   close(): void {
+    if (this.networkWatch) clearInterval(this.networkWatch)
+    this.networkWatch = null
     this.account.close()
     this.keepAwake?.close()
     this.stopRelay()
@@ -218,7 +235,10 @@ export class RemoteService {
     this.keepAwake?.update()
     return this.changed()
   }
-  /** Reconnects right away after the Mac wakes or its network changes. */
+  /**
+   * Reconnects right away after the Mac wakes or its network changes. A relay socket that
+   * still looks online is checked with a ping first, since sleep can end it silently.
+   */
   wake(): void {
     this.relay?.reconnectNow()
     this.links.wake()
@@ -281,7 +301,7 @@ export class RemoteService {
       this.enableAfterSignIn = false
       if (this.account.state().status === 'pending') this.account.cancelSignIn()
     }
-    this.deps.saveRelay(enabled)
+    this.saveRelay(enabled)
     if (enabled && this.server.listening()) await this.startRelay()
     else if (!enabled) this.stopRelay()
     return this.changed()
@@ -427,6 +447,28 @@ export class RemoteService {
     if (isRemoteEvent(event)) this.server.observe(event)
   }
 
+  /**
+   * Saves the relay switch. Turning it on turns keep-awake on too: a Mac that sleeps or naps
+   * drops its relay socket, and a phone on another network then cannot reach it. People can
+   * turn keep-awake off again on its own.
+   */
+  private saveRelay(enabled: boolean): void {
+    if (enabled && !this.deps.relayEnabled()) this.deps.saveKeepAwake(true)
+    this.deps.saveRelay(enabled)
+  }
+  /** Calls `wake` when this Mac's addresses change, as when it joins another network. */
+  private watchNetwork(): void {
+    if (this.networkWatch) return
+    const read = () => networkSignature((this.deps.addresses ?? localAddresses)())
+    let last = read()
+    this.networkWatch = setInterval(() => {
+      const now = read()
+      if (now === last) return
+      last = now
+      this.wake()
+    }, NETWORK_CHECK_MS)
+    this.networkWatch.unref?.()
+  }
   private name(): string {
     return (this.deps.deviceName ?? localDeviceName)()
   }
@@ -513,7 +555,7 @@ export class RemoteService {
   private accountChanged(): void {
     if (this.enableAfterSignIn && this.account.state().status === 'signed-in') {
       this.enableAfterSignIn = false
-      this.deps.saveRelay(true)
+      this.saveRelay(true)
       if (this.server.listening()) void this.startRelay()
     }
     const relay = this.relay
