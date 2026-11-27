@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
+import { performance } from 'node:perf_hooks'
 import { type FrameChannel, type Keepalive, MAX_FRAME_BYTES } from './frames.js'
 
 /**
@@ -42,8 +43,14 @@ const OPEN_TIMEOUT_MS = 10_000
  * answers them without waking its Durable Object, so they cost nothing there.
  */
 const SOCKET_PING_MS = 30_000
-/** No word from the relay this long, pongs included, means the socket is dead. */
-const SOCKET_SILENCE_MS = 75_000
+/**
+ * A ping the relay has not answered this long means the socket is dead. Counted from the ping
+ * itself, not from the last message: macOS App Nap can hold the ping timer back for minutes,
+ * and a quiet but healthy socket must not look dead because of that.
+ */
+const PONG_TIMEOUT_MS = 20_000
+/** After a wake or a network change, a socket gets this long to answer a ping. */
+const PROBE_TIMEOUT_MS = 5_000
 /**
  * End-to-end pings wake the relay's Durable Object, which bills by the time it stays awake,
  * so a quiet pipe checks on its peer every few minutes. A peer that drops is noticed sooner:
@@ -145,6 +152,55 @@ function relaySocket(
   })
 }
 
+/**
+ * Pings a relay socket and calls `dead` when a ping goes unanswered. Any message from the
+ * relay counts as an answer. Times come from the monotonic clock, which wall-clock changes
+ * do not move.
+ */
+class SocketHeartbeat {
+  /** When the unanswered ping went out; null when none is outstanding. */
+  private sentAt: number | null = null
+  private readonly timer: NodeJS.Timeout
+  private probeTimer: NodeJS.Timeout | null = null
+  constructor(
+    private readonly socket: WebSocket,
+    private readonly dead: () => void
+  ) {
+    this.timer = setInterval(() => this.tick(), SOCKET_PING_MS)
+    this.timer.unref?.()
+  }
+  heard(): void {
+    this.sentAt = null
+  }
+  /** Checks the socket now, as after a wake: no answer within a few seconds means dead. */
+  probe(): void {
+    if (this.sentAt === null) this.ping()
+    if (this.probeTimer) clearTimeout(this.probeTimer)
+    this.probeTimer = setTimeout(() => {
+      this.probeTimer = null
+      this.check(PROBE_TIMEOUT_MS)
+    }, PROBE_TIMEOUT_MS)
+    this.probeTimer.unref?.()
+  }
+  stop(): void {
+    clearInterval(this.timer)
+    if (this.probeTimer) clearTimeout(this.probeTimer)
+    this.probeTimer = null
+  }
+  private tick(): void {
+    if (this.sentAt === null) this.ping()
+    else this.check(PONG_TIMEOUT_MS)
+  }
+  private check(timeoutMs: number): void {
+    if (this.sentAt !== null && performance.now() - this.sentAt >= timeoutMs) this.dead()
+  }
+  private ping(): void {
+    if (this.socket.readyState !== WebSocket.OPEN) return
+    this.socket.send('ping')
+    this.sentAt = performance.now()
+  }
+}
+
 /** Whole frames over an open relay pipe, split into chunks that fit a relay message. */
 export class WebSocketFrames implements FrameChannel {
   private frameListener: ((frame: Buffer) => void) | null = null
@@ -154,25 +210,23 @@ export class WebSocketFrames implements FrameChannel {
   private partBytes = 0
   private closed = false
   private failure: Error | null = null
-  private lastHeard = Date.now()
-  private readonly pinger: NodeJS.Timeout
+  private readonly heartbeat: SocketHeartbeat
   readonly keepalive = RELAY_KEEPALIVE
   constructor(private readonly socket: WebSocket) {
+    this.heartbeat = new SocketHeartbeat(socket, () => {
+      this.failure ??= new RelayError('silent')
+      // A dead connection may not finish the closing handshake for minutes.
+      this.socket.close()
+      this.finish()
+    })
     socket.addEventListener('message', (event) => {
-      this.lastHeard = Date.now()
+      this.heartbeat.heard()
       this.receive(event.data)
     })
     socket.addEventListener('error', () => {
       this.failure ??= new RelayError('socket')
     })
     socket.addEventListener('close', () => this.finish())
-    this.pinger = setInterval(() => {
-      if (Date.now() - this.lastHeard > SOCKET_SILENCE_MS) {
-        this.failure ??= new RelayError('silent')
-        this.close()
-      } else if (socket.readyState === WebSocket.OPEN) socket.send('ping')
-    }, SOCKET_PING_MS)
-    this.pinger.unref?.()
     if (socket.readyState === WebSocket.CLOSED) this.finish()
   }
   private receive(data: unknown): void {
@@ -196,7 +250,7 @@ export class WebSocketFrames implements FrameChannel {
   private finish(): void {
     if (this.closed) return
     this.closed = true
-    clearInterval(this.pinger)
+    this.heartbeat.stop()
     for (const listener of this.closeListeners) listener(this.failure)
     this.closeListeners = []
   }
@@ -317,7 +371,7 @@ export type RelayRendezvous = { ticket: string; code: string; expiresAt: number 
  * The backoff resets only after a connection stays up for `STABLE_MS`, so a relay that
  * accepts and then drops the socket is not hit in a tight loop.
  */
-const HOST_BACKOFF_MS = [1_000, 3_000, 10_000, 30_000, 60_000, 300_000]
+const HOST_BACKOFF_MS = [1_000, 3_000, 10_000, 30_000, 60_000]
 
 /**
  * The host side of the relay: keeps a control socket to its mailbox open, tells the relay
@@ -326,7 +380,7 @@ const HOST_BACKOFF_MS = [1_000, 3_000, 10_000, 30_000, 60_000, 300_000]
 export class RelayListener {
   private socket: WebSocket | null = null
   private retry: NodeJS.Timeout | null = null
-  private keepalive: NodeJS.Timeout | null = null
+  private heartbeat: SocketHeartbeat | null = null
   private failures = 0
   private stopped = false
   private current: RelayStatus = { state: 'connecting', error: null }
@@ -393,9 +447,8 @@ export class RelayListener {
     if (this.stopped) return
     this.set('connecting', this.current.error)
     let socket: WebSocket
-    let lastHeard = Date.now()
     const onMessage = (event: MessageEvent) => {
-      lastHeard = Date.now()
+      this.heartbeat?.heard()
       this.receive(parse(event.data))
     }
     try {
@@ -422,13 +475,13 @@ export class RelayListener {
       return
     }
     this.socket = socket
-    const openedAt = Date.now()
-    socket.addEventListener('close', () => {
+    const openedAt = performance.now()
+    const closed = () => {
       if (this.socket !== socket) return
       this.socket = null
       this.stopKeepalive()
       if (this.stopped) return
-      if (Date.now() - openedAt >= STABLE_MS) this.failures = 0
+      if (performance.now() - openedAt >= STABLE_MS) this.failures = 0
       // Another Mac with this mailbox's secret took over (a copied data folder). Taking it
       // back would make the two push each other off forever, so wait for a wake or a
       // toggle instead.
@@ -439,12 +492,14 @@ export class RelayListener {
       }
       this.set('offline', 'relay_closed')
       this.retryLater()
+    }
+    socket.addEventListener('close', closed)
+    // A dead connection may not finish the closing handshake for minutes, so a socket that
+    // stopped answering counts as closed at once.
+    this.heartbeat = new SocketHeartbeat(socket, () => {
+      closed()
+      socket.close()
     })
-    this.keepalive = setInterval(() => {
-      if (Date.now() - lastHeard > SOCKET_SILENCE_MS) socket.close()
-      else socket.send('ping')
-    }, SOCKET_PING_MS)
-    this.keepalive.unref?.()
     this.set('online', null)
     this.pushTickets()
   }
@@ -484,8 +539,8 @@ export class RelayListener {
     )
   }
   private stopKeepalive(): void {
-    if (this.keepalive) clearInterval(this.keepalive)
-    this.keepalive = null
+    this.heartbeat?.stop()
+    this.heartbeat = null
   }
   private retryLater(): void {
     if (this.stopped || this.retry) return
@@ -498,9 +553,17 @@ export class RelayListener {
     }, delay)
     this.retry.unref?.()
   }
-  /** Reconnects at once, as after the Mac wakes or the network changes. */
+  /**
+   * Reconnects at once, as after the Mac wakes or the network changes. A socket that still
+   * looks online may have died while the Mac slept, before any close event: it gets a ping,
+   * and closes (and so reconnects) when the relay does not answer within a few seconds.
+   */
   reconnectNow(): void {
-    if (this.stopped || this.current.state === 'online') return
+    if (this.stopped) return
+    if (this.current.state === 'online') {
+      this.heartbeat?.probe()
+      return
+    }
     // A wake may end a takeover by another Mac, but not a missing or ended sign-in.
     const error = this.current.error
     if (error && error !== 'relay_replaced' && FINAL_ERRORS.has(error)) return

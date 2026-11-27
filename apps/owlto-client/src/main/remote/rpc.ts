@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks'
 import { z } from 'zod'
 import { type Failure, failureSchema } from '../../shared/app.js'
 import type { SecureChannel } from './handshake.js'
@@ -50,8 +51,9 @@ export class RpcConnection {
     number,
     { resolve(value: unknown): void; reject(error: Error): void; timer: NodeJS.Timeout }
   >()
-  private lastHeard = Date.now()
-  private lastPing = Date.now()
+  private lastHeard = performance.now()
+  /** When the unanswered ping went out; null when none is outstanding. */
+  private pingSentAt: number | null = null
   private readonly heartbeat: NodeJS.Timeout
   private closed = false
   private closeListeners: (() => void)[] = []
@@ -67,14 +69,16 @@ export class RpcConnection {
     const { pingMs, idleMs } = channel.keepalive
     this.heartbeat = setInterval(
       () => {
-        const now = Date.now()
-        // Silence this long means the peer went away (asleep, or off the network).
-        if (now - this.lastHeard > idleMs) {
-          this.close()
+        const now = performance.now()
+        // An unanswered ping means the peer went away (asleep, or off the network). It is
+        // counted from the ping, not from the last message: macOS App Nap can hold this timer
+        // back for minutes, and a quiet link must not look dead because of that.
+        if (this.pingSentAt !== null) {
+          if (now - this.pingSentAt > idleMs - pingMs) this.close()
           return
         }
-        if (now - this.lastHeard < pingMs || now - this.lastPing < pingMs) return
-        this.lastPing = now
+        if (now - this.lastHeard < pingMs) return
+        this.pingSentAt = now
         this.channel.send({ t: 'ping' })
       },
       Math.max(1_000, Math.floor(pingMs / 4))
@@ -82,7 +86,8 @@ export class RpcConnection {
     this.heartbeat.unref?.()
   }
   private receive(raw: unknown): void {
-    this.lastHeard = Date.now()
+    this.lastHeard = performance.now()
+    this.pingSentAt = null
     const parsed = messageSchema.safeParse(raw)
     if (!parsed.success) return
     const message = parsed.data

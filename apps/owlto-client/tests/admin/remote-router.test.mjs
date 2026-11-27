@@ -635,6 +635,66 @@ test('two Macs with one relay mailbox do not push each other off forever', async
   assert.equal(second.status().state, 'online')
 })
 
+test('a relay client keeps its ticket when it connects again', async (t) => {
+  const { url } = await localRelay(t)
+  const host = await relayHost(t, network(), url)
+  assert.equal(host.service.overview().keepAwake.enabled, true, 'the relay turns keep-awake on')
+  const laptop = device(t, 'laptop', network())
+  const { pairing } = host.service.startPairing()
+  const remote = await laptop.service.pair({ invite: pairing.invite })
+  await until(() => laptop.raw.peer(remote.deviceId, 'host').relayTicket !== null)
+  const ticket = laptop.raw.peer(remote.deviceId, 'host').relayTicket
+  assert.notEqual(ticket, parseRemoteInvite(pairing.invite).ticket)
+  // The host goes away and comes back; the laptop dials again and asks for its route again.
+  await host.service.setAccess(false)
+  await until(() => laptop.service.overview().devices[0].status !== 'online')
+  await host.service.setAccess(true)
+  await until(() => host.service.overview().relay.state === 'online')
+  laptop.service.wake()
+  await until(() => laptop.service.overview().devices[0].status === 'online', 5000)
+  await laptop.service.call(remote.deviceId, 'snapshot', undefined)
+  // A lost reply cannot leave the laptop with a ticket the relay no longer takes.
+  assert.equal(laptop.raw.peer(remote.deviceId, 'host').relayTicket, ticket)
+})
+
+test('a wake checks a relay socket that still looks online and reconnects when it is dead', async (t) => {
+  const relayRequire = createRequire(
+    new URL('../../../../packages/owlto-relay/package.json', import.meta.url)
+  )
+  const { WebSocketServer } = relayRequire('ws')
+  // A relay that says ready and then goes silent, like a socket that died while the Mac slept.
+  const server = new WebSocketServer({ port: 0 })
+  let connections = 0
+  server.on('connection', (socket) => {
+    connections++
+    socket.once('message', () => socket.send(JSON.stringify({ t: 'ready' })))
+  })
+  await new Promise((resolve) => server.once('listening', resolve))
+  t.after(() => {
+    for (const client of server.clients) client.terminate()
+    server.close()
+  })
+  const listener = new RelayListener({
+    url: `ws://127.0.0.1:${server.address().port}`,
+    mailbox: 'M'.repeat(32),
+    secret: 'S'.repeat(32),
+    tickets: () => [],
+    pairingTicket: () => null,
+    session: async () => null,
+    accept: (frames) => frames.close(),
+    queued: () => {},
+    pushGone: () => {},
+    changed: () => {}
+  })
+  t.after(() => listener.close())
+  listener.start()
+  await until(() => listener.status().state === 'online')
+  listener.reconnectNow()
+  // Still online until the ping goes unanswered for a few seconds; then it dials again.
+  assert.equal(listener.status().state, 'online')
+  await until(() => connections === 2, 9000)
+})
+
 test('a device on another network pairs with a typed relay code, and both show the same digits', async (t) => {
   const { url } = await localRelay(t)
   const host = await relayHost(t, network(), url)

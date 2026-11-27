@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { remoteIdentityTable, remotePeersTable } from '../app/schema.js'
 import type { OwltoStore } from '../app/store.js'
+import { relayTicketHash } from './relay.js'
 
 export type PeerRole = 'client' | 'host'
 export type PeerRecord = {
@@ -13,7 +14,10 @@ export type PeerRecord = {
   port: number | null
   pairedAt: string
   lastSeenAt: string | null
-  /** For a host: where it waits on the relay and the ticket this device shows there. */
+  /**
+   * For a host: where it waits on the relay and the ticket this device shows there. For a
+   * client: only the ticket it was given, handed out again when it asks for its route.
+   */
   relayUrl: string | null
   relayMailbox: string | null
   relayTicket: string | null
@@ -122,11 +126,11 @@ export class RemoteStore {
       .where(and(eq(remotePeersTable.deviceId, deviceId), eq(remotePeersTable.role, 'host')))
       .run()
   }
-  /** A client's relay ticket hash; null takes its relay access away. */
-  saveTicketHash(deviceId: string, hash: string | null): void {
+  /** A client's relay ticket and its hash; null takes its relay access away. */
+  saveClientTicket(deviceId: string, ticket: string | null): void {
     this.db
       .update(remotePeersTable)
-      .set({ relayTicketHash: hash })
+      .set({ relayTicket: ticket, relayTicketHash: ticket ? relayTicketHash(ticket) : null })
       .where(and(eq(remotePeersTable.deviceId, deviceId), eq(remotePeersTable.role, 'client')))
       .run()
   }
