@@ -1,0 +1,1 @@
+- Remote Router: the phone reconnects to the Mac over the relay more reliably after the Mac sleeps, naps in the background, or changes networks; turning the relay on also keeps the Mac awake on power. (#241)
