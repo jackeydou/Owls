@@ -1,0 +1,1 @@
+- Workspace: choose which coding agents and models Workspace tasks use, in Settings → Workspace → Coding agents. (#246)
