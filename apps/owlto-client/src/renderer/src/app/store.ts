@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { defaultAgentConfigs } from '../../../shared/agents'
+import { defaultAgentConfigs, defaultProjectAgents } from '../../../shared/agents'
 import type {
   AcpAgentConnection,
   AgentConnection,
@@ -99,6 +99,8 @@ export type SettingsTab =
   | 'project'
   /** The workspace folder and its top-level folders. */
   | 'workspace'
+  /** The coding agents and models tasks in the workspace use. */
+  | 'workspaceAgents'
   /** Remote Router: paired devices and remote access. */
   | 'devices'
 export type RouterSettingsTab = 'router' | 'workers'
@@ -209,7 +211,8 @@ type State = {
   selectCursorExecutable(): Promise<void>
   connectAntigravity(): Promise<void>
   selectAntigravityExecutable(): Promise<void>
-  saveSettings(settings: AppSettings): Promise<void>
+  /** Resolves true once the settings are saved. */
+  saveSettings(settings: AppSettings): Promise<boolean>
   /** Saves the user's name or avatar choice; resolves to whether it was saved. */
   saveProfile(update: ProfileUpdate): Promise<boolean>
   /** Switches the avatar to the GitHub one; resolves to whether it worked. */
@@ -314,6 +317,7 @@ export const useAppStore = create<State>((set, get) => {
       usageData: true,
       workspacePath: null,
       workspaceDismissed: [],
+      workspaceAgents: defaultProjectAgents,
       connectedAgents: [],
       openInApp: null,
       profile: defaultProfile,
@@ -726,10 +730,12 @@ export const useAppStore = create<State>((set, get) => {
           openInApp: settings.openInApp,
           onboarding: settings.onboarding,
           browser: settings.browser,
-          simulator: settings.simulator
+          simulator: settings.simulator,
+          workspaceAgents: settings.workspaceAgents
         })
       )
       if (saved) set({ settings: saved })
+      return Boolean(saved)
     },
     saveProfile: async (update) => {
       const saved = await action(() => window.owlto.saveProfile(update))

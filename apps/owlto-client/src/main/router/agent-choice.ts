@@ -3,7 +3,6 @@ import {
   type AgentProvider,
   allowedAgents,
   chosenModels,
-  defaultProjectAgents,
   type Permission,
   type ProjectAgents
 } from '../../shared/agents.js'
@@ -27,8 +26,8 @@ export type AgentChoiceRequest = {
 }
 
 export type AgentChoiceContext = {
-  /** The project's agent and model order; null for the workspace, which uses every agent. */
-  project: ProjectAgents | null
+  /** The agent and model order of the project, or of the Workspace for tasks in no project. */
+  project: ProjectAgents
   agents: AgentConfigs
   ready(provider: AgentProvider): boolean
   /** The models the agent offers now; empty while unknown. */
@@ -41,7 +40,7 @@ export type AgentChoiceContext = {
  * listed model the agent still offers, or the agent's own setting.
  */
 export function chooseAgent(request: AgentChoiceRequest, context: AgentChoiceContext): AgentChoice {
-  const project = context.project ?? defaultProjectAgents
+  const { project } = context
   const allowed = allowedAgents(project)
   if (request.provider && !allowed.includes(request.provider))
     throw new RouterToolError(

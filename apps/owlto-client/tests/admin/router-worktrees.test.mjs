@@ -359,6 +359,22 @@ test('the Router reads each project agent order and model lists', () => {
   )
 })
 
+test('the Router reads the Workspace agent order before the projects', () => {
+  const workspace = {
+    order: [
+      { id: 'codex', on: true },
+      { id: 'claude-code', on: false }
+    ],
+    models: { codex: [{ id: 'gpt-6', on: true }], 'claude-code': [], cursor: [], antigravity: [] }
+  }
+  assert.equal(
+    renderProjects([], null, ['codex'], workspace),
+    'Coding agents connected: codex\nWorkspace (workspace):\n  agents, in order: codex (models: gpt-6)'
+  )
+  const unset = { order: [], models: { codex: [], 'claude-code': [], cursor: [], antigravity: [] } }
+  assert.equal(renderProjects([], null, ['codex'], unset), 'Coding agents connected: codex')
+})
+
 test('workers that write start together, each in its own worktree', async () => {
   const workspaces = fakeWorkspaces()
   const { engine, factory } = scriptedEngine()
@@ -741,6 +757,48 @@ test('dispatch follows the project agent order and model list', async () => {
       ['claude-code', 'sonnet', null, 'read-only']
     ],
     'skips the disconnected agent and the model the agent no longer offers'
+  )
+  service.close()
+})
+
+test('dispatch in the Workspace follows its own agent order and model list', async () => {
+  const model = (id) => ({ id, name: id, efforts: [], isDefault: false })
+  const { engine, service, router, current, created } = scripted({
+    host: {
+      ready: ['codex', 'claude-code'],
+      models: { 'claude-code': [model('haiku'), model('opus')] },
+      settings: {
+        workspaceAgents: {
+          order: [
+            { id: 'claude-code', on: true },
+            { id: 'codex', on: false }
+          ],
+          models: {
+            codex: [],
+            'claude-code': [{ id: 'opus', on: true }],
+            cursor: [],
+            antigravity: []
+          }
+        }
+      }
+    }
+  })
+  const results = []
+  engine.onRun = async (_input, tools) => {
+    const dispatch = dispatchFrom(tools)
+    for (const input of [
+      { goal: 'Workspace task', project: 'workspace' },
+      { goal: 'Unused agent', project: 'workspace', provider: 'codex' }
+    ])
+      results.push(await dispatch.execute(input).then(JSON.parse, (error) => error.code))
+  }
+  await send(service, router, 'go')
+  await waitFor(() => current().status === 'idle' && results.length === 2, 'dispatches')
+  assert.match(engine.runs[0].text, /Workspace \(workspace\):\n {2}agents, in order: claude-code/)
+  assert.equal(results[1], 'provider_unavailable')
+  assert.deepEqual(
+    created.map((s) => [s.provider, s.model]),
+    [['claude-code', 'opus']]
   )
   service.close()
 })

@@ -3,7 +3,7 @@ import Database from 'better-sqlite3'
 import { desc, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import { defaultAgentConfigs } from '../../shared/agents.js'
+import { defaultAgentConfigs, defaultProjectAgents } from '../../shared/agents.js'
 import type { AppSettings, Project, Session } from '../../shared/app.js'
 import {
   defaultAppLogo,
@@ -64,6 +64,7 @@ export class OwltoStore {
           usageData: true,
           workspacePath: null,
           workspaceDismissed: [],
+          workspaceAgents: defaultProjectAgents,
           connectedAgents: [],
           openInApp: null,
           profile: defaultProfile,

@@ -64,6 +64,51 @@ const pickable = (provider: AgentProvider, models: AgentModel[]) =>
 export function ProjectAgentsPage({ project }: { project: Project }) {
   const { t } = useTranslation()
   const saveProject = useAppStore((s) => s.saveProject)
+  return (
+    <AgentChoiceSection
+      body={t('projectAgents.body')}
+      value={project.settings.agents}
+      onSave={(agents) =>
+        saveProject({
+          id: project.id,
+          name: project.name,
+          settings: { ...project.settings, agents }
+        })
+      }
+    />
+  )
+}
+
+/** The same choice for tasks that run in the Workspace, saved in the app settings. */
+export function WorkspaceAgentsPane() {
+  const { t } = useTranslation()
+  const workspaceAgents = useAppStore((s) => s.settings.workspaceAgents)
+  const saveSettings = useAppStore((s) => s.saveSettings)
+  return (
+    <AgentChoiceSection
+      body={t('workspace.agentsBody')}
+      value={workspaceAgents}
+      onSave={(workspaceAgents) =>
+        saveSettings({ ...useAppStore.getState().settings, workspaceAgents })
+      }
+    />
+  )
+}
+
+/**
+ * The agent order and model lists of one place workers run, a project or the Workspace.
+ * `onSave` resolves true once the choice is saved.
+ */
+function AgentChoiceSection({
+  body,
+  value,
+  onSave
+}: {
+  body: string
+  value: ProjectAgents
+  onSave(agents: ProjectAgents): Promise<boolean>
+}) {
+  const { t } = useTranslation()
   const copy = useRankedCopy()
   const pickerCopy = usePickerCopy(copy)
   const ready = useAppStore(
@@ -80,15 +125,11 @@ export function ProjectAgentsPage({ project }: { project: Project }) {
     antigravity: pickable('antigravity', antigravity)
   }
   // Shown at once, so a dragged row stays where it was dropped while the save runs.
-  const [agents, setAgents] = useState(project.settings.agents)
-  useEffect(() => setAgents(project.settings.agents), [project.settings.agents])
+  const [agents, setAgents] = useState(value)
+  useEffect(() => setAgents(value), [value])
   function save(next: ProjectAgents) {
     setAgents(next)
-    return saveProject({
-      id: project.id,
-      name: project.name,
-      settings: { ...project.settings, agents: next }
-    })
+    return onSave(next)
   }
   const agentItems: RankedItem[] = rankAll(agents.order, providerSchema.options).map((a) => ({
     ...a,
@@ -108,7 +149,7 @@ export function ProjectAgentsPage({ project }: { project: Project }) {
       <div className="owlto-section-heading">
         <div>
           <h2>{t('projectSettings.page.agents')}</h2>
-          <p>{t('projectAgents.body')}</p>
+          <p>{body}</p>
         </div>
         {configured ? (
           <ActionButton

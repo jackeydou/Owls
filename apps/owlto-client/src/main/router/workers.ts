@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { defaultProjectAgents } from '../../shared/agents.js'
 import type {
   AgentModel,
   AgentProvider,
@@ -269,7 +270,10 @@ export class WorkerPool implements TurnProfiles {
     } = chooseAgent(
       { ...input, permission: request.permission, selection: request.selection },
       {
-        project: project?.settings?.agents ?? null,
+        // Tasks in no project follow the Workspace's own agent and model order.
+        project: project
+          ? (project.settings?.agents ?? defaultProjectAgents)
+          : settings.workspaceAgents,
         agents: settings.agents,
         ready: (p) => this.host.providerReady(p),
         models: (p) => this.host.agentModels(p)

@@ -10,6 +10,7 @@ import type { Project } from '../../shared/app.js'
 import type { AttachedCard } from '../../shared/cards.js'
 import type { RouterWorker } from '../../shared/router.js'
 import type { InboxEvent } from './events.js'
+import { WORKSPACE_PROJECT } from './tools.js'
 
 /** Upper bound for the Owlto engine's request context, estimated in UTF-8 bytes. */
 export const ROUTER_CONTEXT_BUDGET = 48_000
@@ -174,15 +175,22 @@ function projectAgentsLine(agents: ProjectAgents | undefined): string | null {
  * The coding agents the user connected and the projects a Router can dispatch to, sorted
  * so the text only changes when they do. A single project is listed too, so the Router can
  * tell whether a task is about it. Each project names its agents, most preferred first,
- * and each agent's models in order, when the user chose them.
+ * and each agent's models in order, when the user chose them; so does the Workspace, for
+ * tasks in no project.
  */
 export function renderProjects(
   projects: Project[],
   defaultId: string | null,
-  connected: readonly AgentProvider[]
+  connected: readonly AgentProvider[],
+  workspace: ProjectAgents | null = null
 ): string {
   const ready = providerSchema.options.filter((p) => connected.includes(p))
-  const agents = `Coding agents connected: ${ready.length ? ready.join(', ') : 'none'}`
+  const connectedLine = `Coding agents connected: ${ready.length ? ready.join(', ') : 'none'}`
+  // The Workspace takes the tasks that name no project, so its own agents come first.
+  const workspaceLine = projectAgentsLine(workspace ?? undefined)
+  const agents = workspaceLine
+    ? `${connectedLine}\nWorkspace (${WORKSPACE_PROJECT}):\n${escapeBatch(workspaceLine)}`
+    : connectedLine
   if (!projects.length) return agents
   const lines = [...projects]
     .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))

@@ -43,6 +43,7 @@ import { ExperimentsSettingsPane } from './SettingsExperiments'
 import { GitHubSettingsPane } from './SettingsGitHub'
 import { ProfileSettingsPane } from './SettingsProfile'
 import { ProjectSettingsPane } from './SettingsProject'
+import { WorkspaceAgentsPane } from './SettingsProjectAgents'
 import { RouterWorkersSettingsPane } from './SettingsRouterWorkers'
 import { WorkspaceSettingsPane } from './SettingsWorkspace'
 import {
@@ -53,7 +54,7 @@ import {
 } from './store'
 
 type TabEntry = {
-  id: Exclude<SettingsTab, 'project' | 'workspace'>
+  id: Exclude<SettingsTab, 'project' | 'workspace' | 'workspaceAgents'>
   label: string
   icon: IconComponent
 }
@@ -86,6 +87,16 @@ const PROJECT_PAGE_ICONS: Record<ProjectSettingsPage, IconComponent> = {
   instructions: ScrollTextIcon
 }
 
+/** The Workspace's pages: its folders, and the agents its tasks use, like a project's. */
+const WORKSPACE_PAGES: Array<{
+  tab: 'workspace' | 'workspaceAgents'
+  label: string
+  icon: IconComponent
+}> = [
+  { tab: 'workspace', label: 'projectSettings.page.general', icon: InfoIcon },
+  { tab: 'workspaceAgents', label: 'projectSettings.page.agents', icon: TerminalIcon }
+]
+
 /**
  * Every project, with the pages of the open one listed under it. Clicking the open project
  * folds its pages away; clicking another opens it on its general page.
@@ -96,12 +107,20 @@ function ProjectsNav() {
   const current = useAppStore((s) => (s.settingsTab === 'project' ? s.settingsProject : null))
   const showProjectSettings = useAppStore((s) => s.showProjectSettings)
   const showSettings = useAppStore((s) => s.showSettings)
-  const workspaceOpen = useAppStore((s) => s.settingsTab === 'workspace')
+  const workspacePage = useAppStore((s) =>
+    s.settingsTab === 'workspace' || s.settingsTab === 'workspaceAgents' ? s.settingsTab : null
+  )
   const [folded, setFolded] = useState(false)
+  const [workspaceFolded, setWorkspaceFolded] = useState(false)
   // Opening any project page, from here or the Projects sidebar, unfolds it again.
   useEffect(() => {
     if (current) setFolded(false)
   }, [current])
+  useEffect(() => {
+    if (workspacePage) setWorkspaceFolded(false)
+  }, [workspacePage])
+  const workspaceOpen = workspacePage !== null && !workspaceFolded
+  const WorkspaceChevron = workspaceOpen ? ChevronDownIcon : ChevronRightIcon
   return (
     <>
       <hr />
@@ -110,12 +129,33 @@ function ProjectsNav() {
         type="button"
         className="router-sidebar-item owlto-settings-project"
         style={{ '--owl-c': 'var(--color-muted-foreground)' } as React.CSSProperties}
-        aria-current={workspaceOpen || undefined}
-        onClick={() => showSettings('workspace')}
+        aria-expanded={workspaceOpen}
+        onClick={() => {
+          if (workspacePage) setWorkspaceFolded(!workspaceFolded)
+          else showSettings('workspace')
+        }}
       >
         <WorkspaceIcon />
         <span>{t('workspace.name')}</span>
+        <WorkspaceChevron size={16} className="owlto-settings-chevron" aria-hidden="true" />
       </button>
+      {workspaceOpen ? (
+        <ul className="owlto-settings-subnav" aria-label={t('workspace.pages')}>
+          {WORKSPACE_PAGES.map((page) => (
+            <li key={page.tab}>
+              <button
+                type="button"
+                className="router-sidebar-item"
+                aria-current={workspacePage === page.tab || undefined}
+                onClick={() => showSettings(page.tab)}
+              >
+                <page.icon size={17} />
+                <span>{t(page.label)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {projects.map((project) => {
         const selected = current?.projectId === project.id
         const open = selected && !folded
@@ -293,6 +333,7 @@ const PANES: Record<SettingsTab, () => React.JSX.Element> = {
   updates: SettingsUpdatesPane,
   project: ProjectSettingsPane,
   workspace: WorkspaceSettingsPane,
+  workspaceAgents: WorkspaceAgentsPane,
   devices: DevicesSettingsPane
 }
 
