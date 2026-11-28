@@ -1,0 +1,1 @@
+- Notes: the Router and workers can edit an existing note with a new edit_note tool, changing its title, tags, or text, instead of only adding new notes. (#243)
