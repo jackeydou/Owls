@@ -1,10 +1,12 @@
+import { ActionButton } from '@renderer/components/ui/action-button'
 import { Button } from '@renderer/components/ui/button'
 import { Dialog } from '@renderer/components/ui/dialog'
-import { LoaderIcon, PlusIcon } from '@renderer/components/ui/icons'
+import { LoaderIcon, PlusIcon, TrashIcon } from '@renderer/components/ui/icons'
 import { Select } from '@renderer/components/ui/select'
 import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CARD_TITLE_LIMIT } from '../../../shared/cards'
+import { failureMessage } from '../app/failures'
 import { useAppStore } from '../app/store'
 import { byRecent, threadTitle, useThreadTitle } from '../router/activity'
 import { useRouterStore } from '../router/store'
@@ -180,6 +182,65 @@ function SendCardsForm() {
         <Button size="sm" onClick={submit}>
           {t('cards.sendConfirm')}
         </Button>
+      </footer>
+    </Dialog>
+  )
+}
+
+/** A system error code, such as EACCES, that main passes on when a note file cannot be deleted. */
+const SYSTEM_CODE = /^E[A-Z]+$/
+
+/** Asks before notes are deleted: their files go, and so do their places on boards. */
+export function DeleteCardsDialog() {
+  const deleting = useCardsStore((s) => s.deleting)
+  return deleting ? <DeleteCardsForm cardIds={deleting} /> : null
+}
+function DeleteCardsForm({ cardIds }: { cardIds: string[] }) {
+  const { t } = useTranslation()
+  const allCards = useCardsStore((s) => s.cards)
+  const error = useCardsStore((s) => s.error)
+  const { remove, cancelDelete } = useCardsStore()
+  const titleId = useId()
+  const cards = useMemo(() => {
+    const ids = new Set(cardIds)
+    return allCards.filter((card) => ids.has(card.id))
+  }, [allCards, cardIds])
+  const count = cards.length
+  const only = count === 1 ? cards[0] : undefined
+  return (
+    <Dialog className="cards-dialog" aria-labelledby={titleId} onClose={cancelDelete}>
+      <h2 id={titleId}>
+        {only
+          ? t('cards.deleteTitleOne', { title: only.title })
+          : t('cards.deleteTitle', { count })}
+      </h2>
+      <p className="cards-dialog-note">{t('cards.deleteBody', { count })}</p>
+      {error ? (
+        <p className="cards-dialog-error" role="alert">
+          {error.code !== 'native_error'
+            ? failureMessage(error)
+            : SYSTEM_CODE.test(error.message ?? '')
+              ? t('cards.deleteFailedCode', { code: error.message })
+              : t('cards.deleteFailed')}
+        </p>
+      ) : null}
+      <footer>
+        <Button size="sm" variant="ghost" onClick={cancelDelete}>
+          {t('cards.cancel')}
+        </Button>
+        <ActionButton
+          size="sm"
+          variant="destructive"
+          disabled={!count}
+          icon={<TrashIcon size={14} />}
+          // Success closes the dialog and the notes leave the list; a failure stays here.
+          onAction={async () => {
+            if (!(await remove(cards.map((card) => card.id))))
+              throw new Error('The notes were not deleted.')
+          }}
+        >
+          {t('cards.deleteConfirm', { count })}
+        </ActionButton>
       </footer>
     </Dialog>
   )

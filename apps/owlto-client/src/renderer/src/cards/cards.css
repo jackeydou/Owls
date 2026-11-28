@@ -726,3 +726,13 @@
 .message-cards svg {
   flex-shrink: 0;
 }
+/* Where a note tile's right-click menu opens. */
+.card-menu-anchor {
+  position: fixed;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.card-tile[data-menu-open]:not([data-selected], [aria-current="true"]) {
+  box-shadow: var(--owl-card-shadow-hover);
+}

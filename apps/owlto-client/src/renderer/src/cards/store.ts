@@ -40,6 +40,8 @@ type State = {
   /** Cards picked to send, in the order they were picked. */
   selected: string[]
   capturing: Capturing | null
+  /** The notes the delete dialog is asking about; null when it is closed. */
+  deleting: string[] | null
   /** True while the send dialog for `selected` is open. */
   choosingTarget: boolean
   /** Cards the next draft should start with, set when cards are sent to a thread. */
@@ -54,7 +56,11 @@ type State = {
   toggleSelected(cardId: string): void
   setSelected(cardIds: string[]): void
   save(input: CardSave): Promise<Card | null>
-  remove(cardId: string): Promise<boolean>
+  /** Opens the delete dialog for these notes. */
+  askDelete(cardIds: string[]): void
+  cancelDelete(): void
+  /** Deletes the notes, all or none; true once they are gone. */
+  remove(cardIds: string[]): Promise<boolean>
   /** Shows the card's Markdown file in Finder. */
   reveal(cardId: string): Promise<void>
   startCapture(capturing: Capturing): void
@@ -94,6 +100,7 @@ export const useCardsStore = create<State>((set, get) => {
     editorSession: 0,
     selected: [],
     capturing: null,
+    deleting: null,
     choosingTarget: false,
     pendingCards: [],
     error: null,
@@ -135,10 +142,20 @@ export const useCardsStore = create<State>((set, get) => {
       if (card) await get().load()
       return card
     },
-    remove: async (cardId) => {
-      const done = (await action(() => window.owlto.cards.remove(cardId))) !== null
-      if (done) await get().load()
-      return done
+    askDelete: (cardIds) => set({ deleting: cardIds, error: null }),
+    cancelDelete: () => set({ deleting: null, error: null }),
+    remove: async (cardIds) => {
+      const done = (await action(() => window.owlto.cards.remove(cardIds))) !== null
+      if (!done) return false
+      const gone = new Set(cardIds)
+      set((state) => ({
+        deleting: null,
+        cards: state.cards.filter((card) => !gone.has(card.id)),
+        selected: state.selected.filter((id) => !gone.has(id)),
+        openCardId: state.openCardId && gone.has(state.openCardId) ? null : state.openCardId
+      }))
+      await get().load()
+      return true
     },
     reveal: async (cardId) => {
       await action(() => window.owlto.cards.reveal(cardId))

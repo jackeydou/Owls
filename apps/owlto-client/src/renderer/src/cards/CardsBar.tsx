@@ -7,6 +7,7 @@ import {
   PlusIcon,
   SearchIcon,
   TagIcon,
+  TrashIcon,
   XIcon
 } from '@renderer/components/ui/icons'
 import {
@@ -203,7 +204,7 @@ export function CardsBar() {
   const tag = useCardsStore((s) => s.filter.tag)
   const selected = useCardsStore((s) => s.selected)
   const board = useCardsStore((s) => s.boards.find((b) => b.id === s.boardId))
-  const { setFilter, openCard, setSelected, chooseTarget, showBoard } = useCardsStore()
+  const { setFilter, openCard, setSelected, chooseTarget, showBoard, askDelete } = useCardsStore()
   return (
     <header className="cards-hud">
       <nav className="cards-crumbs" aria-label={t('cards.title')}>
@@ -239,6 +240,15 @@ export function CardsBar() {
           <Button size="sm" variant="ghost" onClick={() => setSelected([])}>
             {t('cards.clearSelection')}
           </Button>
+          <IconButton
+            size="sm"
+            className="text-destructive"
+            label={t('cards.deleteSelected', { count: selected.length })}
+            tooltip={t('cards.deleteSelected', { count: selected.length })}
+            tooltipSide="bottom"
+            icon={<TrashIcon size={16} />}
+            onClick={() => askDelete(selected)}
+          />
           <Button size="sm" onClick={() => chooseTarget(true)}>
             {t('cards.sendSelected', { count: selected.length })}
           </Button>

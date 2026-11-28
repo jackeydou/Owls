@@ -3,6 +3,7 @@ import { LoaderIcon, XIcon } from '@renderer/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { failureMessage } from '../app/failures'
 import { BoardCanvas } from './BoardCanvas'
+import { DeleteCardsDialog } from './CardDialogs'
 import { CardEditor } from './CardEditor'
 import { CardsBar } from './CardsBar'
 import { CardTile } from './CardTile'
@@ -48,7 +49,8 @@ function CardList() {
 
 function CardsError() {
   const { t } = useTranslation()
-  const error = useCardsStore((s) => s.error)
+  // The delete dialog shows its own failure.
+  const error = useCardsStore((s) => (s.deleting ? null : s.error))
   const clearError = useCardsStore((s) => s.clearError)
   if (!error) return null
   return (
@@ -77,6 +79,7 @@ export function CardsView() {
         {boardId ? <BoardCanvas key={boardId} boardId={boardId} /> : <CardList />}
       </section>
       {openCardId ? <CardEditor key={editorSession} cardId={openCardId} /> : null}
+      <DeleteCardsDialog />
     </main>
   )
 }

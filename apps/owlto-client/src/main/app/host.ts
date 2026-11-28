@@ -567,8 +567,8 @@ export class OwltoHost {
   cardCapture(input: CardCaptureInput): Card {
     return this.requireCards().capture(input)
   }
-  cardRemove(id: string): void {
-    this.requireCards().remove(id)
+  cardRemove(ids: string[]): void {
+    this.requireCards().remove(ids)
   }
   boardSave(input: BoardSaveInput): Board {
     return this.requireCards().saveBoard(input)

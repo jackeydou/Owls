@@ -223,19 +223,37 @@ export class CardService {
     this.deps.changed()
     return updated
   }
-  remove(id: string): void {
-    this.liveCard(id)
-    const now = this.now()
-    const boards = this.deps.store
-      .boards()
-      .filter((board) => board.placements.some((p) => p.cardId === id))
-      .map((board) => ({
-        ...board,
-        placements: board.placements.filter((p) => p.cardId !== id),
-        updatedAt: now
-      }))
-    this.deps.store.deleteCard(id, boards)
-    this.deps.changed()
+  /**
+   * Deletes notes and takes them off every board. Every id is checked first, so a
+   * note that is already gone refuses the whole set before any file is touched.
+   */
+  remove(ids: string[]): void {
+    for (const id of ids) this.liveCard(id)
+    let removed = 0
+    try {
+      for (const id of ids) {
+        const now = this.now()
+        const boards = this.deps.store
+          .boards()
+          .filter((board) => board.placements.some((p) => p.cardId === id))
+          .map((board) => ({
+            ...board,
+            placements: board.placements.filter((p) => p.cardId !== id),
+            updatedAt: now
+          }))
+        this.deps.store.deleteCard(id, boards)
+        removed++
+      }
+    } catch (error) {
+      // Only the system's reason, such as EACCES, leaves main: the raw message holds the file path.
+      const code = (error as NodeJS.ErrnoException).code
+      if (typeof code === 'string' && /^E[A-Z]+$/.test(code))
+        throw new OwltoError('native_error', code)
+      throw error
+    } finally {
+      // A file that cannot be deleted stops the rest; the ones already gone still show as gone.
+      if (removed) this.deps.changed()
+    }
   }
   saveBoard(input: BoardSaveInput): Board {
     const now = this.now()

@@ -75,9 +75,9 @@ test('cards save, update, and delete as versioned records', (t) => {
   assert.ok(updated.rev > card.rev, 'every change takes the next version')
   assert.equal(updated.createdAt, card.createdAt)
   assert.deepEqual(service.library().cards, [updated])
-  service.remove(card.id)
+  service.remove([card.id])
   assert.deepEqual(service.library().cards, [])
-  assert.throws(() => service.remove(card.id), { code: 'request_unavailable' })
+  assert.throws(() => service.remove([card.id]), { code: 'request_unavailable' })
   assert.throws(() => add(service, 'Lost', '', { projectId: 'gone' }), { code: 'project_required' })
   assert.equal(changes(), 3)
 })
@@ -129,7 +129,7 @@ test('boards keep one place per live card, and a deleted card leaves every board
     { cardId: a.id, x: 40, y: 40 },
     { cardId: b.id, x: 300, y: 0 }
   ])
-  service.remove(a.id)
+  service.remove([a.id])
   assert.deepEqual(service.library().boards[0].placements, [{ cardId: b.id, x: 300, y: 0 }])
   service.removeBoard(board.id)
   assert.deepEqual(service.library().boards, [])
@@ -139,6 +139,35 @@ test('boards keep one place per live card, and a deleted card leaves every board
       code: 'request_unavailable'
     }
   )
+})
+
+test('deleting several notes removes their files and board places, all or none', (t) => {
+  const { service, notes, changes } = setup(t)
+  const a = add(service, 'A')
+  const b = add(service, 'B')
+  const c = add(service, 'C')
+  const board = service.saveBoard({ action: 'add', name: 'Plan', projectId: null })
+  service.saveBoard({
+    action: 'place',
+    id: board.id,
+    placements: [
+      { cardId: a.id, x: 0, y: 0 },
+      { cardId: b.id, x: 300, y: 0 },
+      { cardId: c.id, x: 600, y: 0 }
+    ]
+  })
+  const before = changes()
+  assert.throws(() => service.remove([a.id, 'c_missing']), { code: 'request_unavailable' })
+  assert.deepEqual(files(notes), ['A.md', 'B.md', 'C.md'], 'a missing id deletes nothing')
+  assert.equal(changes(), before)
+  service.remove([a.id, c.id])
+  assert.deepEqual(files(notes), ['B.md'])
+  assert.deepEqual(
+    service.library().cards.map((card) => card.id),
+    [b.id]
+  )
+  assert.deepEqual(service.library().boards[0].placements, [{ cardId: b.id, x: 300, y: 0 }])
+  assert.equal(changes(), before + 1, 'one delete is one change')
 })
 
 test('attaching freezes cards in order and refuses missing or oversized ones', (t) => {
@@ -193,7 +222,7 @@ test('each note is a Markdown file with YAML frontmatter, named after its title'
     projectId: null
   })
   assert.deepEqual(files(notes), ['OAuth refresh.md', 'Tokens.md'])
-  service.remove(same.id)
+  service.remove([same.id])
   assert.deepEqual(files(notes), ['OAuth refresh.md'])
 })
 

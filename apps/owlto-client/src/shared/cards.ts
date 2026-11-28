@@ -11,6 +11,8 @@ const CARD_TAG_LENGTH = 32
 export const ATTACHED_CARD_LIMIT = 8
 /** Most characters of card text one message can carry, so cards cannot crowd out the model's context. */
 export const ATTACHED_TEXT_LIMIT = 30_000
+/** The most notes one delete takes, such as every note picked in the list. */
+export const CARD_REMOVE_LIMIT = 500
 
 const id = z.string().min(1).max(64)
 const projectId = z.string().min(1).max(200).nullable()
@@ -104,6 +106,12 @@ export const boardSaveSchema = z.discriminatedUnion('action', [
   })
 ])
 export const cardIdSchema = id
+/** The notes one delete takes: deduplicated and sorted, so a repeat id cannot fail the set. */
+export const cardRemoveSchema = z
+  .array(id)
+  .min(1)
+  .max(CARD_REMOVE_LIMIT)
+  .transform((ids) => [...new Set(ids)].sort())
 
 /** A card as a message carried it: frozen when sent, so later edits never change the thread. */
 export const attachedCardSchema = z.object({
