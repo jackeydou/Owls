@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter owlto-client dev --",
     "debug:app": "node apps/owlto-client/scripts/debug-app.mjs",
+    "ios:testflight": "node apps/owlto-ios/scripts/testflight.mjs",
     "changelog:add": "node scripts/changelog-add-unreleased.mjs",
     "changelog:check": "node scripts/changelog-check.mjs",
     "changelog:compose": "node scripts/changelog-compose-release.mjs",

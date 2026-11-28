@@ -73,9 +73,14 @@ HKDF-SHA256, AES-256-GCM, scrypt), not only Apple's HTTPS. In App Store Connect:
   until that is settled, or file it.
 
 This is a legal determination. If unsure, check Apple's "Complying with encryption export
-regulations" page and the BIS guidance before answering. Once decided, add
-`ITSAppUsesNonExemptEncryption` to the build settings (`INFOPLIST_KEY_...`) so each
-upload stops asking.
+regulations" page and the BIS guidance before answering.
+
+Decided (2026-11-28): the app is **not distributed in France**, so no documentation is
+needed, and the app target sets `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO` so
+uploads stop asking the encryption and France questions. Keep France out of the app's
+availability. To distribute there, file the French declaration in App Store Connect first,
+then set the key to `YES` and add `ITSEncryptionExportComplianceCode` with the code App
+Store Connect issues.
 
 ## Age rating
 
@@ -211,6 +216,40 @@ with Xcode 27.1 or later; Xcode 27.0 fails to compile `Adaptive.swift` and
 `ThreadsView.swift`. Archive the Release configuration (Product → Archive), then
 Distribute App → App Store Connect. `MARKETING_VERSION` is `0.1.0` and
 `CURRENT_PROJECT_VERSION` is `1`; bump the build number for each later upload.
+
+### TestFlight in one command
+
+`pnpm ios:testflight` (`scripts/testflight.mjs`) archives, uploads, waits for Apple to
+process the build, fills in "What to Test", submits the build for Beta App Review, and adds
+it to the external tester group:
+
+```bash
+pnpm ios:testflight --notes "What changed in this build"
+```
+
+It picks the build number itself (the highest one in App Store Connect plus one, passed to
+`xcodebuild`), so the project's `CURRENT_PROJECT_VERSION` stays as it is. `--build <n>`
+distributes a build that is already uploaded, `--upload-only` stops after the upload, and
+`--no-review` stops before review and the group.
+
+Signing and the upload use the Apple ID that Xcode is signed in to (automatic cloud signing,
+as in "By hand" below); cloud-managed distribution certificates are not available to an App
+Manager API key. The API key only drives the App Store Connect API.
+
+One-time setup, on the machine that ships (with Xcode signed in to the team's Apple ID):
+
+1. App Store Connect → Users and Access → Integrations → App Store Connect API: create a
+   key with the App Manager role and save it as
+   `~/.appstoreconnect/private_keys/AuthKey_<KEY ID>.p8`.
+2. Write `~/.appstoreconnect/owlto-testflight.json` with the key's ids and the external
+   group's name: `{ "keyId": "...", "issuerId": "...", "group": "..." }`.
+
+The script relies on `ITSAppUsesNonExemptEncryption` in the build settings (see "Export
+compliance" above). Without that key App Store Connect asks the encryption and France
+questions for every build, only its web page can answer them, and the script stops at
+"missing export compliance".
+
+### By hand
 
 From the command line (Xcode signed in to the team's Apple ID; automatic signing with
 `-allowProvisioningUpdates` creates the distribution signing in the cloud):

@@ -480,6 +480,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Owlto-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Owlto;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Owlto uses the camera to scan the pairing QR code your Mac shows.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Owlto connects directly to the Mac you paired with, on your network or over Tailscale.";
@@ -517,6 +518,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Owlto-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Owlto;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Owlto uses the camera to scan the pairing QR code your Mac shows.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Owlto connects directly to the Mac you paired with, on your network or over Tailscale.";
