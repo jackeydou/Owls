@@ -1,6 +1,6 @@
 import { ActionIconButton } from '@renderer/components/ui/action-button'
 import { MoonZIcon } from '@renderer/components/ui/icons'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Router } from '../../../shared/app'
 import { useAppStore } from '../app/store'
@@ -15,6 +15,7 @@ import { RouterSetupNotice, RouterStarting, useRouterSetup, useStartingAgent } f
 import { RouterTimeline } from './RouterTimeline'
 import { useRouterStore } from './store'
 import { ThreadEditor } from './ThreadEditor'
+import { ThreadTitleEditor } from './ThreadTitleEditor'
 
 /** The manual Dreaming experiment: sorts this thread into memory now. */
 function DreamButton({ router }: { router: Router }) {
@@ -54,6 +55,9 @@ export function RouterChat() {
   // Agents connect as the app starts, so a working setup must not flash a setup notice.
   const starting = useStartingAgent(setup)
   const setupCard = useSetupCardVisible()
+  const [renaming, setRenaming] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: closes the field when the thread changes.
+  useEffect(() => setRenaming(false), [threadId])
   useEffect(() => {
     if (threadId) void loadItems(threadId)
   }, [threadId, loadItems])
@@ -71,7 +75,14 @@ export function RouterChat() {
       <header className="owlto-topbar router-topbar">
         {router ? (
           <div className="router-thread-heading">
-            <strong>{threadTitle(router, untitled)}</strong>
+            {renaming ? (
+              <ThreadTitleEditor thread={router} onClose={() => setRenaming(false)} />
+            ) : (
+              // Double-clicking the name renames the thread in place.
+              <strong onDoubleClick={() => setRenaming(true)}>
+                {threadTitle(router, untitled)}
+              </strong>
+            )}
             {projectName ? <span>{projectName}</span> : null}
             {router.archivedAt ? <span>{t('archives.archived')}</span> : null}
           </div>

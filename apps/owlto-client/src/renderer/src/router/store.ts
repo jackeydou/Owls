@@ -85,6 +85,9 @@ type State = {
   interrupt(routerId: string): Promise<void>
   /** Resolves true once the thread is archived or back in the sidebar. */
   archive(routerId: string, archived: boolean): Promise<boolean>
+  /** Resolves true once the thread carries the new title. */
+  rename(routerId: string, title: string): Promise<boolean>
+  pin(routerId: string, pinned: boolean): Promise<boolean>
   /** Resolves true once the user confirmed and the thread is deleted. */
   deleteThread(routerId: string): Promise<boolean>
   resolveBatch(routerId: string, batchId: string, decision: 'retry' | 'ignore'): Promise<void>
@@ -287,6 +290,26 @@ export const useRouterStore = create<State>((set, get) => {
       try {
         set({ error: null })
         unwrap(await backend().archiveThread({ routerId, archived }))
+        return true
+      } catch (error) {
+        set({ error: uiFailure(error) })
+        return false
+      }
+    },
+    rename: async (routerId, title) => {
+      try {
+        set({ error: null })
+        unwrap(await backend().renameThread({ routerId, title }))
+        return true
+      } catch (error) {
+        set({ error: uiFailure(error) })
+        return false
+      }
+    },
+    pin: async (routerId, pinned) => {
+      try {
+        set({ error: null })
+        unwrap(await backend().pinThread({ routerId, pinned }))
         return true
       } catch (error) {
         set({ error: uiFailure(error) })

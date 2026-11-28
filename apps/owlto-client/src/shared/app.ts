@@ -59,6 +59,8 @@ import {
   type CreateThread,
   type ForwardMessage,
   type PendingMessageAction,
+  type PinThread,
+  type RenameThread,
   type ResolveBatch,
   type RouterProviderInfo,
   type RouterWorker,
@@ -479,6 +481,8 @@ export const routerSchema = z.object({
   unknownBatches: z.array(unknownBatchSchema),
   /** When the user archived it, or null. Archived threads leave the sidebar but keep their items. */
   archivedAt: z.string().nullable().default(null),
+  /** When the user pinned it, or null. Pinned threads sit in their own sidebar section. */
+  pinnedAt: z.string().nullable().default(null),
   createdAt: z.string(),
   updatedAt: z.string()
 })
@@ -650,6 +654,9 @@ export interface OwltoAPI {
   forward(input: ForwardMessage): Promise<Reply<Router>>
   interruptRouter(routerId: string): Promise<Reply<void>>
   archiveThread(input: ArchiveThread): Promise<Reply<void>>
+  /** Sets the thread's title as the user typed it. */
+  renameThread(input: RenameThread): Promise<Reply<void>>
+  pinThread(input: PinThread): Promise<Reply<void>>
   /** Asks the user to confirm, then deletes the thread; resolves true once it is gone. */
   deleteThread(routerId: string): Promise<Reply<boolean>>
   resolveBatch(input: ResolveBatch): Promise<Reply<void>>

@@ -103,6 +103,34 @@ test('archiving keeps a thread and a new message brings it back', async () => {
   service.close()
 })
 
+test('a renamed thread keeps its name, and pinning persists', async () => {
+  const { service, router, current, store } = harness([
+    fauxAssistantMessage(fauxText('First reply.')),
+    fauxAssistantMessage(fauxText('Second reply.'))
+  ])
+  assert.equal(router.pinnedAt, null)
+  service.send({ routerId: router.id, commandId: crypto.randomUUID(), text: 'Hello there' })
+  await waitFor(() => current().status === 'idle' && current().items.length >= 2, 'first reply')
+  assert.equal(current().title, 'Hello there')
+  service.rename({ routerId: router.id, title: 'Launch   plan' })
+  assert.equal(current().title, 'Launch plan', 'whitespace folds to one space')
+  service.pin({ routerId: router.id, pinned: true })
+  const pinnedAt = current().pinnedAt
+  assert.ok(pinnedAt)
+  service.pin({ routerId: router.id, pinned: true })
+  assert.equal(current().pinnedAt, pinnedAt, 'pinning again keeps the first time')
+  await waitFor(() => {
+    const saved = store.routers().find((r) => r.id === router.id)
+    return saved?.pinnedAt === pinnedAt && saved.title === 'Launch plan'
+  }, 'rename and pin persisted')
+  service.send({ routerId: router.id, commandId: crypto.randomUUID(), text: 'Next' })
+  await waitFor(() => current().status === 'idle' && current().items.length >= 4, 'second reply')
+  assert.equal(current().title, 'Launch plan', 'a new message keeps the user title')
+  service.pin({ routerId: router.id, pinned: false })
+  assert.equal(current().pinnedAt, null)
+  service.close()
+})
+
 test('deleting a thread removes it, its items, and its workers', async () => {
   const { service, router, current, store, events, created } = harness([
     fauxAssistantMessage([fauxToolCall('dispatch_task', { goal: 'Look around' })], {

@@ -22,13 +22,16 @@ import { useViewingRemote } from '../remote/viewing'
 import { usageSummaryRows, useUsageStore, watchUsage } from '../usage/store'
 import { UsagePanel } from '../usage/UsagePanel'
 import { UsageSummary } from '../usage/UsageSummary'
-import { ArchiveThreadButton } from './ArchiveThreadButton'
 import { byRecent, isWaitingOnUser, isWorking, threadTitle, useThreadTitle } from './activity'
 import { usePaneWidth } from './pane-width'
 import { useRouterStore } from './store'
+import { ThreadMenu, useThreadMenu } from './ThreadMenu'
+import { ThreadTitleEditor } from './ThreadTitleEditor'
 
 function ThreadEntry({ thread }: { thread: Router }) {
   const { t } = useTranslation()
+  const [renaming, setRenaming] = useState(false)
+  const menu = useThreadMenu()
   const current = useAppStore((s) => s.view === 'chat' && s.threadId === thread.id)
   const showThread = useAppStore((s) => s.showThread)
   const untitled = useThreadTitle()
@@ -45,17 +48,53 @@ function ThreadEntry({ thread }: { thread: Router }) {
     : dreaming
       ? t('thread.state.dream', { title })
       : title
+  if (renaming)
+    return (
+      <ThreadTitleEditor
+        thread={thread}
+        className="router-thread-rename"
+        onClose={() => setRenaming(false)}
+      />
+    )
   return (
-    <button
-      type="button"
-      className="router-thread"
-      aria-label={label}
-      aria-current={current || undefined}
-      onClick={() => showThread(thread.id)}
-    >
-      <span>{title}</span>
-      {state ? <i className={state} aria-hidden /> : dreaming ? <DreamingOwl /> : null}
-    </button>
+    <>
+      <button
+        type="button"
+        className="router-thread"
+        aria-label={label}
+        aria-current={current || undefined}
+        aria-haspopup="menu"
+        aria-expanded={menu.point !== null}
+        data-menu-open={menu.point !== null || undefined}
+        onClick={() => showThread(thread.id)}
+        onContextMenu={menu.onContextMenu}
+      >
+        <span>{title}</span>
+        {state ? <i className={state} aria-hidden /> : dreaming ? <DreamingOwl /> : null}
+      </button>
+      <ThreadMenu
+        thread={thread}
+        point={menu.point}
+        row={menu.row}
+        onClose={menu.close}
+        onRename={() => setRenaming(true)}
+      />
+    </>
+  )
+}
+/** A labeled group of thread rows; Pinned and the rest share one scrolling column. */
+function ThreadGroup({ label, threads }: { label: string; threads: Router[] }) {
+  return (
+    <section className="router-sidebar-group" aria-label={label}>
+      <header>
+        <h2>{label}</h2>
+      </header>
+      <div className="router-sidebar-list">
+        {threads.map((thread) => (
+          <ThreadEntry key={thread.id} thread={thread} />
+        ))}
+      </div>
+    </section>
   )
 }
 /** Hovering shows each agent's tightest limit; a click opens the full Usage popover above it. */
@@ -131,10 +170,16 @@ export function Sidebar() {
   const routers = useRouterStore((s) => s.routers)
   // A thread exists once it has its first message; this hides one whose send failed.
   // Archived threads are listed in Settings instead.
-  const threads = useMemo(
-    () => routers.filter((r) => r.itemCount && !r.archivedAt).sort(byRecent),
-    [routers]
-  )
+  // Pinned threads keep the order they were pinned in, newest first.
+  const { pinned, threads } = useMemo(() => {
+    const listed = routers.filter((r) => r.itemCount && !r.archivedAt)
+    return {
+      pinned: listed
+        .filter((r) => r.pinnedAt)
+        .sort((a, b) => (b.pinnedAt ?? '').localeCompare(a.pinnedAt ?? '') || byRecent(a, b)),
+      threads: listed.filter((r) => !r.pinnedAt).sort(byRecent)
+    }
+  }, [routers])
   return (
     <nav className="router-sidebar" style={{ width }} aria-label={t('router.sidebar')}>
       <div className="router-sidebar-head" />
@@ -202,23 +247,19 @@ export function Sidebar() {
           <span>{t('pulls.title')}</span>
         </button>
       ) : null}
-      <section className="router-sidebar-threads" aria-label={t('thread.title')}>
-        <header>
-          <h2>{t('thread.title')}</h2>
-        </header>
+      <div className="router-sidebar-threads">
+        {pinned.length ? <ThreadGroup label={t('threadActions.pinned')} threads={pinned} /> : null}
         {threads.length ? (
-          <div className="router-sidebar-list">
-            {threads.map((thread) => (
-              <div key={thread.id} className="router-sidebar-thread">
-                <ThreadEntry thread={thread} />
-                <ArchiveThreadButton thread={thread} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p>{t('thread.none')}</p>
+          <ThreadGroup label={t('thread.title')} threads={threads} />
+        ) : pinned.length ? null : (
+          <section className="router-sidebar-group" aria-label={t('thread.title')}>
+            <header>
+              <h2>{t('thread.title')}</h2>
+            </header>
+            <p>{t('thread.none')}</p>
+          </section>
         )}
-      </section>
+      </div>
       {remote ? null : <UsageEntry />}
       <button
         type="button"

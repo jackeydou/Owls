@@ -141,6 +141,8 @@ function hostApi(calls) {
     },
     interruptRouter: record('interruptRouter', undefined),
     archiveThread: record('archiveThread', undefined),
+    renameThread: record('renameThread', undefined),
+    pinThread: record('pinThread', undefined),
     resolveBatch: record('resolveBatch', undefined),
     stopWorker: record('stopWorker', undefined),
     steerPendingMessage: record('steerPendingMessage', undefined),

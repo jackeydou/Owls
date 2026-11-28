@@ -44,6 +44,8 @@ import {
   forwardSchema,
   owltoProviderSchema,
   pendingMessageActionSchema,
+  pinThreadSchema,
+  renameThreadSchema,
   resolveBatchSchema,
   sendRouterSchema,
   setRouterKeySchema,
@@ -146,6 +148,8 @@ export function registerIpc(
   handle('router-forward', (input) => host.forward(forwardSchema.parse(input)))
   handle('router-interrupt', (input) => host.interruptRouter(z.string().uuid().parse(input)))
   handle('router-archive', (input) => host.archiveThread(archiveThreadSchema.parse(input)))
+  handle('router-rename', (input) => host.renameThread(renameThreadSchema.parse(input)))
+  handle('router-pin', (input) => host.pinThread(pinThreadSchema.parse(input)))
   handle('router-delete', async (input) => {
     const routerId = z.string().uuid().parse(input)
     const chinese = host.snapshot().settings.language === 'zh-CN'

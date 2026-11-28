@@ -8,6 +8,8 @@ import {
   archiveThreadSchema,
   createThreadSchema,
   pendingMessageActionSchema,
+  pinThreadSchema,
+  renameThreadSchema,
   resolveBatchSchema,
   sendRouterSchema,
   threadItemsSchema,
@@ -303,6 +305,8 @@ export const remoteMethodSchemas = {
   stageAttachment: remoteStageAttachmentSchema,
   interruptRouter: z.string().uuid(),
   archiveThread: archiveThreadSchema,
+  renameThread: renameThreadSchema,
+  pinThread: pinThreadSchema,
   resolveBatch: resolveBatchSchema,
   stopWorker: workerActionSchema,
   resolveWorker: workerActionSchema,
@@ -325,6 +329,8 @@ export type RemoteResults = {
   stageAttachment: Attachment
   interruptRouter: void
   archiveThread: void
+  renameThread: void
+  pinThread: void
   resolveBatch: void
   stopWorker: void
   resolveWorker: void

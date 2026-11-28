@@ -17,6 +17,8 @@ import type {
   CreateThread,
   ForwardMessage,
   PendingMessageAction,
+  PinThread,
+  RenameThread,
   ResolveBatch,
   RouterEngineId,
   RouterProviderInfo,
@@ -248,6 +250,7 @@ export class RouterService implements TurnProfiles {
       native: null,
       unknownBatches: [],
       archivedAt: null,
+      pinnedAt: null,
       createdAt: now,
       updatedAt: now
     }
@@ -527,6 +530,24 @@ export class RouterService implements TurnProfiles {
     const archivedAt = input.archived ? (router.archivedAt ?? new Date().toISOString()) : null
     if (archivedAt === router.archivedAt) return
     router.archivedAt = archivedAt
+    this.changed(router)
+  }
+
+  /** The user's own title. Later messages keep it: titles only fill in while empty. */
+  rename(input: RenameThread): void {
+    const router = this.ownRouter(input.routerId)
+    const title = input.title.replace(/\s+/g, ' ')
+    if (title === router.title) return
+    router.title = title
+    this.changed(router)
+  }
+
+  /** Moves a thread into the sidebar's Pinned section, or back to the list. */
+  pin(input: PinThread): void {
+    const router = this.ownRouter(input.routerId)
+    const pinnedAt = input.pinned ? (router.pinnedAt ?? new Date().toISOString()) : null
+    if (pinnedAt === router.pinnedAt) return
+    router.pinnedAt = pinnedAt
     this.changed(router)
   }
 
