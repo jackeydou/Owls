@@ -20,6 +20,7 @@ import {
   boardSaveSchema,
   cardCaptureSchema,
   cardIdSchema,
+  cardRemoveSchema,
   cardSaveSchema
 } from '../../shared/cards.js'
 import { feedbackInputSchema } from '../../shared/feedback.js'
@@ -246,7 +247,7 @@ export function registerIpc(
   handle('cards-library', () => host.cardLibrary())
   handle('cards-save', (input) => host.cardSave(cardSaveSchema.parse(input)))
   handle('cards-capture', (input) => host.cardCapture(cardCaptureSchema.parse(input)))
-  handle('cards-remove', (input) => host.cardRemove(cardIdSchema.parse(input)))
+  handle('cards-remove', (input) => host.cardRemove(cardRemoveSchema.parse(input)))
   handle('cards-save-board', (input) => host.boardSave(boardSaveSchema.parse(input)))
   handle('cards-remove-board', (input) => host.boardRemove(cardIdSchema.parse(input)))
   handle('cards-reveal', (input) => {

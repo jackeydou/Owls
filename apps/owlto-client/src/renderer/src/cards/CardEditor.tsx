@@ -64,6 +64,9 @@ function useAutosave(cardId: string, fields: Fields, onCreated: (card: Card) => 
     while (running.current) await running.current
     const next = latest.current
     if (!next.title.trim() || (saved.current && sameFields(saved.current, next))) return
+    // A deleted card closes the editor; its last edits go with it rather than failing to save.
+    const current = id.current
+    if (current && !useCardsStore.getState().cards.some((card) => card.id === current)) return
     const input: CardSave = id.current
       ? { action: 'update', id: id.current, ...next }
       : { action: 'add', ...next }
@@ -104,11 +107,10 @@ function CardMenu({ card }: { card: Card }) {
     Boolean(source && s.routers.some((r) => r.id === source.threadId))
   )
   const boards = useCardsStore((s) => s.boards)
-  const { place, remove, reveal } = useCardsStore()
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const { place, askDelete, reveal } = useCardsStore()
   const free = boards.filter((board) => !board.placements.some((p) => p.cardId === card.id))
   return (
-    <Menu onOpenChange={(open) => open || setConfirmDelete(false)}>
+    <Menu>
       <MenuTrigger asChild>
         <IconButton
           size="sm"
@@ -158,16 +160,9 @@ function CardMenu({ card }: { card: Card }) {
           </>
         ) : null}
         <MenuSeparator />
-        <MenuItem
-          className="text-destructive"
-          onSelect={(event) => {
-            if (confirmDelete) return void remove(card.id)
-            event.preventDefault()
-            setConfirmDelete(true)
-          }}
-        >
+        <MenuItem className="text-destructive" onSelect={() => askDelete([card.id])}>
           <TrashIcon size={14} />
-          {t(confirmDelete ? 'cards.confirmDelete' : 'cards.delete')}
+          {t('cards.delete')}
         </MenuItem>
       </MenuContent>
     </Menu>

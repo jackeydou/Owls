@@ -1,0 +1,1 @@
+- Notes: delete notes from a tile's right-click menu, from a selection of notes, or from the editor, each behind a confirmation dialog. (#247)

@@ -737,7 +737,8 @@ export interface CardsAPI {
   save(input: CardSave): Promise<Reply<Card>>
   /** Saves a thread message or worker result as a new card. */
   capture(input: CardCapture): Promise<Reply<Card>>
-  remove(cardId: string): Promise<Reply<void>>
+  /** Deletes the notes' files, all or none: an id that is not a live note refuses the set. */
+  remove(cardIds: string[]): Promise<Reply<void>>
   saveBoard(input: BoardSave): Promise<Reply<Board>>
   removeBoard(boardId: string): Promise<Reply<void>>
   /** Shows a note's Markdown file in Finder. */
