@@ -11,6 +11,23 @@ development history is intentionally not carried forward.
 
 ### Fixes
 
+## 2026.11.2800-beta.1
+
+### Highlights
+
+- Pin and rename threads from a right-click menu in the sidebar.
+- The phone stays connected to the Mac over the relay through sleep, App Nap, and network changes.
+
+### Changes
+
+- Notes: the Router and workers can edit an existing note with a new edit_note tool, changing its title, tags, or text, instead of only adding new notes. (#243)
+
+- Threads: pin threads to a Pinned section and rename them from a right-click menu in the sidebar or by double-clicking the title; Archive moved into the same menu. (#242)
+
+### Fixes
+
+- Remote Router: the phone reconnects to the Mac over the relay more reliably after the Mac sleeps, naps in the background, or changes networks; turning the relay on also keeps the Mac awake on power. (#241)
+
 ## 2026.11.2600-beta.1
 
 ### Highlights
