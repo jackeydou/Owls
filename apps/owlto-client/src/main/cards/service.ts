@@ -6,6 +6,7 @@ import {
   type AttachedCard,
   type Board,
   type boardSaveSchema,
+  CARD_BODY_LIMIT,
   type Card,
   type CardLibrary,
   type CardSource,
@@ -27,6 +28,40 @@ export type AgentNoteInput = {
   tags: string[]
   projectId: string | null
   source: CardSource
+}
+
+/** An agent's change to an existing note; fields left out stay as they are. */
+export type AgentNoteEdit = {
+  id: string
+  title?: string
+  /** The whole new body. */
+  body?: string
+  /** Find-and-replace changes to the body, applied in order. */
+  edits?: { oldText: string; newText: string; replaceAll?: boolean }[]
+  tags?: string[]
+}
+
+const invalidEdit = (message: string) => new OwltoError('invalid_request', message)
+const count = (text: string, part: string) => text.split(part).length - 1
+
+/**
+ * Applies find-and-replace edits to a note body, all or none. Each edit sees the result of
+ * the ones before it; one whose text is missing, or found more than once without
+ * replaceAll, fails the whole set.
+ */
+export function applyNoteEdits(body: string, edits: NonNullable<AgentNoteEdit['edits']>): string {
+  return edits.reduce((text, edit, index) => {
+    const label = edits.length > 1 ? `Edit ${index + 1}: ` : ''
+    const found = count(text, edit.oldText)
+    if (found === 0) throw invalidEdit(`${label}oldText was not found in the note.`)
+    if (found > 1 && !edit.replaceAll)
+      throw invalidEdit(
+        `${label}oldText occurs ${found} times in the note. Add surrounding text to make it unique, or set replaceAll.`
+      )
+    return edit.replaceAll
+      ? text.split(edit.oldText).join(edit.newText)
+      : text.replace(edit.oldText, () => edit.newText)
+  }, body)
 }
 
 const newId = (prefix: string) => `${prefix}_${randomBytes(6).toString('hex')}`
@@ -159,6 +194,34 @@ export class CardService {
     })
     this.deps.changed()
     return card
+  }
+  /**
+   * Changes a note an agent edits through its edit_note tool. The note keeps its
+   * source and project; only the fields given change.
+   */
+  editFromAgent(input: AgentNoteEdit): Card {
+    if (input.body !== undefined && input.edits)
+      throw invalidEdit('Give either body or edits, not both.')
+    if (
+      input.title === undefined &&
+      input.body === undefined &&
+      !input.edits &&
+      input.tags === undefined
+    )
+      throw invalidEdit('Give at least one of title, body, edits, or tags to change.')
+    const card = this.liveCard(input.id)
+    const body = input.edits ? applyNoteEdits(card.body, input.edits) : (input.body ?? card.body)
+    if (body.length > CARD_BODY_LIMIT)
+      throw invalidEdit(`The edited note would be longer than ${CARD_BODY_LIMIT} characters.`)
+    const updated = this.deps.store.putCard({
+      ...card,
+      title: input.title ?? card.title,
+      body,
+      tags: input.tags ? [...new Set(input.tags)].sort((a, b) => a.localeCompare(b)) : card.tags,
+      updatedAt: this.now()
+    })
+    this.deps.changed()
+    return updated
   }
   remove(id: string): void {
     this.liveCard(id)

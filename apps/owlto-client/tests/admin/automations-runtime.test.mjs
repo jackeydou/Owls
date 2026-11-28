@@ -7,6 +7,7 @@ const require = createRequire(import.meta.url)
 const {
   AutomationService,
   nextAutomationRun,
+  OwltoError,
   renderBatch,
   RouterCredentials,
   RouterService,
@@ -254,6 +255,18 @@ function app() {
       notes.push(note)
       return note
     },
+    editFromAgent: (input) => {
+      const note = notes.find((n) => n.id === input.id)
+      if (!note) throw new OwltoError('request_unavailable', 'This note no longer exists.')
+      if (input.title === 'Broken') throw new Error('EACCES: /Users/me/Owlto/Notes/Broken.md')
+      Object.assign(note, {
+        ...(input.title ? { title: input.title } : {}),
+        ...(input.body ? { body: input.body } : {}),
+        ...(input.tags ? { tags: [...input.tags].sort() } : {})
+      })
+      note.lastEdit = input
+      return note
+    },
     folder: () => '/Users/me/Owlto/Notes'
   })
   return { router, store, automations, runs, fake, notes, tools: () => tools }
@@ -432,7 +445,14 @@ test('a worker schedules its own follow-up, and a user automation opens its own 
   const profile = router.profile(worker.sessionId)
   assert.deepEqual(
     profile.tools.map((t) => t.name),
-    ['create_automation', 'delete_automation', 'list_automations', 'save_note', 'update_automation']
+    [
+      'create_automation',
+      'delete_automation',
+      'edit_note',
+      'list_automations',
+      'save_note',
+      'update_automation'
+    ]
   )
   const tool = (name) => profile.tools.find((t) => t.name === name)
   const created = tool('create_automation').call({
@@ -593,4 +613,56 @@ test('the Router and workers save notes with save_note', async () => {
   assert.equal(notes[1].source.kind, 'worker')
   assert.equal(notes[1].source.workerId, worker.id)
   assert.deepEqual(notes[1].tags, [])
+})
+
+test('the Router and workers edit notes with edit_note', async () => {
+  const { router, runs, fake, notes, tools } = app()
+  const thread = router.createThread({ projectId: null })
+  router.send({ routerId: thread.id, commandId: crypto.randomUUID(), text: 'hi' })
+  await waitFor(() => runs.length === 1, 'the first batch')
+  const save = tools().find((t) => t.name === 'save_note')
+  await save.execute({ title: 'Summary', body: 'Three points.' })
+  const edit = tools().find((t) => t.name === 'edit_note')
+  const edited = JSON.parse(
+    await edit.execute({
+      noteId: 'c_0',
+      edits: [{ oldText: 'Three', newText: 'Four' }],
+      tags: ['x']
+    })
+  )
+  assert.deepEqual(edited, { edited: { noteId: 'c_0', title: 'Summary', tags: ['x'] } })
+  assert.deepEqual(notes[0].lastEdit, {
+    id: 'c_0',
+    title: undefined,
+    body: undefined,
+    edits: [{ oldText: 'Three', newText: 'Four' }],
+    tags: ['x']
+  })
+  await assert.rejects(edit.execute({ noteId: 'c_0', edits: [] }), { code: 'invalid_request' })
+  await assert.rejects(edit.execute({ noteId: 'c_9', body: 'x' }), (error) => {
+    assert.equal(error.code, 'tool_failed')
+    assert.equal(error.message, 'This note no longer exists.')
+    return true
+  })
+  await assert.rejects(edit.execute({ noteId: 'c_0', title: 'Broken' }), (error) => {
+    assert.equal(error.message, 'The note could not be edited.', 'no local path reaches the model')
+    return true
+  })
+
+  const dispatched = JSON.parse(
+    await tools()
+      .find((t) => t.name === 'dispatch_task')
+      .execute({ goal: 'Research' })
+  )
+  await waitFor(() => fake.sent.length === 1, 'the worker turn')
+  const worker = router.worker(dispatched.workerId)
+  const profile = router.profile(worker.sessionId)
+  assert.match(profile.instructions, /change an existing one only with edit_note/)
+  const workerEdit = profile.tools.find((t) => t.name === 'edit_note')
+  const result = workerEdit.call({ noteId: 'c_0', body: 'Rewritten.' })
+  assert.equal(result.ok, true, result.text)
+  assert.equal(notes[0].body, 'Rewritten.')
+  const missing = workerEdit.call({ noteId: 'c_9', body: 'x' })
+  assert.equal(missing.ok, false)
+  assert.equal(missing.text, 'This note no longer exists.')
 })

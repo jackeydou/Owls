@@ -304,6 +304,78 @@ test('an agent note is written as a Markdown file and falls back to no project',
   assert.equal(changes(), 2)
 })
 
+test('an agent edits a note by find-and-replace or a whole new body, all or none', (t) => {
+  const { service, store, notes } = setup(t)
+  const source = {
+    kind: 'message',
+    threadId: 't1',
+    threadTitle: 'Plan',
+    itemId: null,
+    workerId: null
+  }
+  const card = service.addFromAgent({
+    title: 'Plan',
+    body: '- step one\n- step two\n- step two',
+    tags: ['a'],
+    projectId: 'p1',
+    source
+  })
+  const edited = service.editFromAgent({
+    id: card.id,
+    edits: [
+      { oldText: 'step one', newText: 'first step' },
+      { oldText: 'step two', newText: 'next', replaceAll: true }
+    ],
+    tags: ['z', 'b', 'z']
+  })
+  assert.equal(edited.body, '- first step\n- next\n- next')
+  assert.deepEqual(edited.tags, ['b', 'z'])
+  assert.equal(edited.title, 'Plan', 'fields left out stay')
+  assert.deepEqual(edited.source, source, 'the note keeps where it came from')
+  assert.equal(edited.projectId, 'p1')
+  assert.match(readFileSync(join(notes, 'Plan.md'), 'utf8'), /- first step/)
+
+  const before = store.card(card.id).body
+  assert.throws(
+    () =>
+      service.editFromAgent({
+        id: card.id,
+        edits: [
+          { oldText: 'first step', newText: 'one' },
+          { oldText: 'missing', newText: 'x' }
+        ]
+      }),
+    { code: 'invalid_request', message: 'Edit 2: oldText was not found in the note.' }
+  )
+  assert.throws(
+    () => service.editFromAgent({ id: card.id, edits: [{ oldText: 'next', newText: 'x' }] }),
+    { code: 'invalid_request', message: /occurs 2 times/ }
+  )
+  assert.equal(store.card(card.id).body, before, 'a failed edit changes nothing')
+  assert.throws(() => service.editFromAgent({ id: card.id }), { code: 'invalid_request' })
+  assert.throws(
+    () =>
+      service.editFromAgent({ id: card.id, body: 'x', edits: [{ oldText: 'a', newText: 'b' }] }),
+    { code: 'invalid_request' }
+  )
+  assert.throws(() => service.editFromAgent({ id: 'c_gone', body: 'x' }), {
+    code: 'request_unavailable'
+  })
+
+  const renamed = service.editFromAgent({
+    id: card.id,
+    title: 'Roadmap',
+    body: 'New text with $& kept'
+  })
+  assert.equal(renamed.body, 'New text with $& kept')
+  assert.deepEqual(files(notes), ['Roadmap.md'], 'a new title renames the file')
+  const literal = service.editFromAgent({
+    id: card.id,
+    edits: [{ oldText: 'New', newText: '$&$&' }]
+  })
+  assert.equal(literal.body, '$&$& text with $& kept', 'replacement text is literal')
+})
+
 test('a note iCloud has not downloaded stays, with its name and its board place', (t) => {
   const { service, store, notes } = setup(t)
   const card = add(service, 'Trip', 'pack')
