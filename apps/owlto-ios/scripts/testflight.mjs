@@ -36,6 +36,8 @@ const API = 'https://api.appstoreconnect.apple.com'
 const POLL_INTERVAL_MS = 30_000
 const PROCESSING_TIMEOUT_MS = 45 * 60_000
 const REVIEW_STATE_TIMEOUT_MS = 5 * 60_000
+const GET_ATTEMPTS = 5
+const RETRY_DELAY_MS = 5_000
 
 const here = dirname(fileURLToPath(import.meta.url))
 const project = resolve(here, '../Owlto.xcodeproj')
@@ -102,27 +104,55 @@ export function createToken({ keyId, issuerId, privateKeyPem, now = Date.now() }
 
 function createClient(config) {
   const privateKeyPem = readFileSync(config.keyPath, 'utf8')
-  return async function request(method, path, body) {
+  async function send(method, path, body) {
     const token = createToken({ ...config, privateKeyPem })
-    const response = await fetch(`${API}${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(body ? { 'Content-Type': 'application/json' } : {})
-      },
-      body: body ? JSON.stringify(body) : undefined
-    })
+    try {
+      return await fetch(`${API}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(body ? { 'Content-Type': 'application/json' } : {})
+        },
+        body: body ? JSON.stringify(body) : undefined
+      })
+    } catch (error) {
+      const reason = error.cause?.code ?? error.cause?.message ?? error.message
+      throw new Error(
+        `${method} ${path.split('?')[0]} could not reach App Store Connect (${reason})`
+      )
+    }
+  }
+
+  return async function request(method, path, body) {
+    // The wait for processing makes dozens of reads over many minutes, so one dropped
+    // connection must not end the run. Only reads are retried: they are safe to repeat.
+    const attempts = method === 'GET' ? GET_ATTEMPTS : 1
+    let response
+    for (let attempt = 1; ; attempt += 1) {
+      const last = attempt === attempts
+      try {
+        response = await send(method, path, body)
+      } catch (error) {
+        if (last) throw error
+        await sleep(RETRY_DELAY_MS * attempt)
+        continue
+      }
+      if (last || (response.status !== 429 && response.status < 500)) break
+      await sleep(RETRY_DELAY_MS * attempt)
+    }
     const text = await response.text()
     const json = text ? JSON.parse(text) : null
     if (!response.ok) {
       const details = (json?.errors ?? [])
         .map((error) => `${error.title}: ${error.detail}`)
         .join('\n  ')
-      const error = new Error(
-        `${method} ${path.split('?')[0]} → ${response.status}\n  ${details || text}`
+      const hint =
+        response.status === 403
+          ? '\n  The API key needs the App Manager role (a team key, not an individual one) to submit builds for review and manage external groups.'
+          : ''
+      throw new Error(
+        `${method} ${path.split('?')[0]} → ${response.status}\n  ${details || text}${hint}`
       )
-      error.status = response.status
-      throw error
     }
     return json
   }
