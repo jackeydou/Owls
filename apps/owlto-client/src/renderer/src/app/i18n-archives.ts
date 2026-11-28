@@ -10,7 +10,6 @@ export const archivesEn = {
   'errors.thread_busy': 'This thread is still working. Stop it first, then try again.',
   'archives.unarchive': 'Unarchive',
   'archives.archive': 'Archive',
-  'archives.archiveThread': 'Archive {{title}}',
   'archives.archived': 'Archived'
 }
 
@@ -25,6 +24,5 @@ export const archivesZh: Record<keyof typeof archivesEn, string> = {
   'errors.thread_busy': '这个 Thread 还在运行，请先停止再试。',
   'archives.unarchive': '取消归档',
   'archives.archive': '归档',
-  'archives.archiveThread': '归档 {{title}}',
   'archives.archived': '已归档'
 }

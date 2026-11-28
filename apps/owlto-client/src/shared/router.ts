@@ -263,6 +263,15 @@ export const archiveThreadSchema = z.object({
   routerId: z.string().uuid(),
   archived: z.boolean()
 })
+export const THREAD_TITLE_LIMIT = 120
+export const renameThreadSchema = z.object({
+  routerId: z.string().uuid(),
+  title: z.string().trim().min(1).max(THREAD_TITLE_LIMIT)
+})
+export const pinThreadSchema = z.object({
+  routerId: z.string().uuid(),
+  pinned: z.boolean()
+})
 export const workerActionSchema = z.object({
   routerId: z.string().uuid(),
   workerId: z.string().min(1).max(64)
@@ -295,6 +304,8 @@ export type RouterNative = z.infer<typeof routerNativeSchema>
 export type UnknownBatch = z.infer<typeof unknownBatchSchema>
 export type ResolveBatch = z.infer<typeof resolveBatchSchema>
 export type ArchiveThread = z.infer<typeof archiveThreadSchema>
+export type RenameThread = z.infer<typeof renameThreadSchema>
+export type PinThread = z.infer<typeof pinThreadSchema>
 export type SendRouterMessage = z.infer<typeof sendRouterSchema>
 export type CreateThread = z.infer<typeof createThreadSchema>
 export type ThreadItemsRequest = z.input<typeof threadItemsSchema>

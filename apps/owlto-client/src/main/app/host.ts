@@ -53,6 +53,8 @@ import type {
   CreateThread,
   ForwardMessage,
   PendingMessageAction,
+  PinThread,
+  RenameThread,
   ResolveBatch,
   RouterProviderInfo,
   SendRouterMessage,
@@ -387,6 +389,12 @@ export class OwltoHost {
   }
   archiveThread(input: ArchiveThread): void {
     this.requireRouter().archive(input)
+  }
+  renameThread(input: RenameThread): void {
+    this.requireRouter().rename(input)
+  }
+  pinThread(input: PinThread): void {
+    this.requireRouter().pin(input)
   }
   resolveBatch(input: ResolveBatch): void {
     this.requireRouter().resolveBatch(input)

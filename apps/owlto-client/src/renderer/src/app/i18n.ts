@@ -20,6 +20,7 @@ import { archivesEn, archivesZh } from './i18n-archives'
 import { experimentsEn, experimentsZh } from './i18n-experiments'
 import { profileEn, profileZh } from './i18n-profile'
 import { projectSettingsEn, projectSettingsZh } from './i18n-project-settings'
+import { threadActionsEn, threadActionsZh } from './i18n-thread-actions'
 import { workspaceEn, workspaceZh } from './i18n-workspace'
 
 const en = {
@@ -429,6 +430,7 @@ void i18next.use(initReactI18next).init({
         ...usageStatsEn,
         ...workspaceEn,
         ...archivesEn,
+        ...threadActionsEn,
         ...workerComposerEn,
         ...feedbackEn,
         ...projectsPageEn,
@@ -455,6 +457,7 @@ void i18next.use(initReactI18next).init({
         ...usageStatsZh,
         ...workspaceZh,
         ...archivesZh,
+        ...threadActionsZh,
         ...workerComposerZh,
         ...feedbackZh,
         ...projectsPageZh,

@@ -19,6 +19,8 @@ export function remoteHostApi(host: OwltoHost): RemoteHostApi {
     stageAttachment: (input) => host.stageAttachment(input),
     interruptRouter: (routerId) => host.interruptRouter(routerId),
     archiveThread: (input) => host.archiveThread(input),
+    renameThread: (input) => host.renameThread(input),
+    pinThread: (input) => host.pinThread(input),
     resolveBatch: (input) => host.resolveBatch(input),
     stopWorker: (input) => host.stopWorker(input),
     resolveWorker: (input) => host.resolveWorker(input),
