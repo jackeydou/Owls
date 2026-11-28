@@ -41,8 +41,13 @@ import {
   workerAutomationTools
 } from '../automations/tools.js'
 import { browserHandoffTool, browserTool, type WorkerBrowser } from '../browser/tool.js'
-import type { AgentNoteInput, CapturedContent } from '../cards/service.js'
-import { routerNoteTools, type SaveNoteInput, workerNoteTools } from '../cards/tools.js'
+import type { AgentNoteEdit, AgentNoteInput, CapturedContent } from '../cards/service.js'
+import {
+  type EditNoteInput,
+  routerNoteTools,
+  type SaveNoteInput,
+  workerNoteTools
+} from '../cards/tools.js'
 import type { RouterMemory } from '../memory/service.js'
 import { simulatorTools, type WorkerSimulator } from '../simulator/tool.js'
 import type { RouterCredentials } from './credentials.js'
@@ -69,11 +74,21 @@ import {
 } from './workers.js'
 import { checkoutOnly, type WorkerRemoteBranch, type WorkerWorkspaces } from './worktrees.js'
 
+/** Runs a Router tool handler, turning its error into a tool failure the model sees. */
+function toolFailure<T>(run: () => T, fallback: string): T {
+  try {
+    return run()
+  } catch (error) {
+    throw new RouterToolError('tool_failed', error instanceof Error ? error.message : fallback)
+  }
+}
+
 export type { TurnOutcome, TurnProfile, TurnProfiles, WorkerHost } from './workers.js'
 
 /** Where agents save notes; the app passes its CardService. */
 export type AgentNotes = {
   addFromAgent(input: AgentNoteInput): Card
+  editFromAgent(input: AgentNoteEdit): Card
   /** The folder holding the note files, which workers may read. */
   folder(): string
 }
@@ -143,7 +158,7 @@ export class RouterService implements TurnProfiles {
   private closed = false
   private browser: WorkerBrowser | null = null
   private simulator: WorkerSimulator | null = null
-  /** The user's Notes, for the save_note tool; the tool is left out until attached. */
+  /** The user's Notes, for the note tools; the tools are left out until attached. */
   private notes: AgentNotes | null = null
 
   constructor(
@@ -717,7 +732,7 @@ export class RouterService implements TurnProfiles {
     this.simulator = simulator
   }
 
-  /** Gives agents the save_note tool. Threads started before this pick it up on their next turn. */
+  /** Gives agents the note tools. Threads started before this pick it up on their next turn. */
   attachNotes(notes: AgentNotes): void {
     this.notes = notes
   }
@@ -751,6 +766,26 @@ export class RouterService implements TurnProfiles {
     return { saved: { noteId: note.id, title: note.title, tags: note.tags } }
   }
 
+  /** Changes a note an agent asked to edit. */
+  private editNote(input: EditNoteInput) {
+    const notes = this.notes
+    if (!notes) throw new Error('Notes are not available.')
+    let note: Card
+    try {
+      note = notes.editFromAgent({
+        id: input.noteId,
+        title: input.title,
+        body: input.body,
+        edits: input.edits,
+        tags: input.tags
+      })
+    } catch (error) {
+      // File system errors carry local paths, which stay out of the model's view.
+      throw new Error(error instanceof OwltoError ? error.message : 'The note could not be edited.')
+    }
+    return { edited: { noteId: note.id, title: note.title, tags: note.tags } }
+  }
+
   /**
    * The tools a worker gets besides `report`: notes, automations, and the browser and the iOS
    * Simulator where allowed.
@@ -767,9 +802,11 @@ export class RouterService implements TurnProfiles {
     const router = this.routers.get(worker.routerId)
     const notes =
       this.notes && router
-        ? workerNoteTools((input) =>
-            this.saveNote(input, { router, projectId: worker.projectId, workerId: worker.id })
-          )
+        ? workerNoteTools({
+            save: (input) =>
+              this.saveNote(input, { router, projectId: worker.projectId, workerId: worker.id }),
+            edit: (input) => this.editNote(input)
+          })
         : []
     const simulator =
       this.simulator && this.host.settings().simulator.enabled
@@ -1173,15 +1210,15 @@ export class RouterService implements TurnProfiles {
         }),
         ...this.routerAutomationTools(router),
         ...(notes
-          ? routerNoteTools((input) => {
-              try {
-                return this.saveNote(input, { router, projectId: router.projectId, workerId: null })
-              } catch (error) {
-                throw new RouterToolError(
-                  'tool_failed',
-                  error instanceof Error ? error.message : 'The note could not be saved.'
-                )
-              }
+          ? routerNoteTools({
+              save: (input) =>
+                toolFailure(
+                  () =>
+                    this.saveNote(input, { router, projectId: router.projectId, workerId: null }),
+                  'The note could not be saved.'
+                ),
+              edit: (input) =>
+                toolFailure(() => this.editNote(input), 'The note could not be edited.')
             })
           : [])
       ].sort((a, b) => a.name.localeCompare(b.name)),
