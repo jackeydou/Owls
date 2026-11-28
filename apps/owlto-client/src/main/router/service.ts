@@ -1085,7 +1085,12 @@ export class RouterService implements TurnProfiles {
     const state = this.needsState(router, settings.engine, history) ? this.stateOf(router) : null
     // A context that starts without this thread's history reads memory once, frozen there.
     const memory = !history || state ? this.memory.injection(router.projectId) : null
-    const projects = renderProjects(this.host.projects(), router.projectId, this.connectedAgents())
+    const projects = renderProjects(
+      this.host.projects(),
+      router.projectId,
+      this.connectedAgents(),
+      this.host.settings().workspaceAgents
+    )
     // A context that gets the state reads the list there.
     const newProjects = !state && projects !== router.projectsShown ? projects : null
     router.projectsShown = projects
@@ -1401,7 +1406,12 @@ export class RouterService implements TurnProfiles {
   }
   private stateOf(router: Router, trimmed = false): string {
     const list = this.host.projects()
-    const projects = renderProjects(list, router.projectId, this.connectedAgents())
+    const projects = renderProjects(
+      list,
+      router.projectId,
+      this.connectedAgents(),
+      this.host.settings().workspaceAgents
+    )
     const workers = renderState(this.pool.list(router.id), (worker) =>
       list.length ? this.pool.projectName(worker) : null
     )

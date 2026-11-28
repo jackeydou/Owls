@@ -172,6 +172,10 @@ function fakeHost() {
       },
       cursor: { model: null, effort: null, permission: 'workspace-write', browser: true }
     },
+    workspaceAgents: {
+      order: [],
+      models: { codex: [], 'claude-code': [], cursor: [], antigravity: [] }
+    },
     router: {
       engine: 'owlto',
       owlto: null,

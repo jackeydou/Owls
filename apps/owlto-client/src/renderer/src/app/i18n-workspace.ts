@@ -6,6 +6,8 @@ export const workspaceEn = {
   'workspace.page.title': 'Workspace',
   'workspace.page.body':
     'Tasks that belong to no project run here. Make a folder its own project to track it separately; its past tasks, pull requests, and token usage move with it.',
+  'workspace.agentsBody': 'Which agents and models workers use for tasks in the Workspace.',
+  'workspace.pages': 'Workspace pages',
   'workspace.folders': 'Folders',
   'workspace.foldersBody': 'Top-level folders in the workspace.',
   'workspace.foldersEmpty': 'No folders yet. Tasks create one each.',
@@ -31,6 +33,8 @@ export const workspaceZh: Record<keyof typeof workspaceEn, string> = {
   'workspace.page.title': 'Workspace',
   'workspace.page.body':
     '不属于任何项目的任务在这里运行。把某个文件夹设为项目后会单独统计，它以前的任务、PR 和 token 用量也会一起迁过去。',
+  'workspace.agentsBody': 'Workspace 里的任务使用哪些 Agent 和模型。',
+  'workspace.pages': 'Workspace 的设置页',
   'workspace.folders': '文件夹',
   'workspace.foldersBody': 'Workspace 下的一级文件夹。',
   'workspace.foldersEmpty': '还没有文件夹，每个任务会新建一个。',

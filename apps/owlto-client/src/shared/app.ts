@@ -3,8 +3,10 @@ import {
   type AgentProvider,
   agentConfigsSchema,
   defaultAgentConfigs,
+  defaultProjectAgents,
   effortSchema,
   permissionSchema,
+  projectAgentsSchema,
   providerSchema
 } from './agents.js'
 import type { FeatureFlagKey, FeatureFlagValue } from './analytics.js'
@@ -364,6 +366,11 @@ export const settingsSchema = z.object({
    * dismissed, by path; added later. Saved only through `dismissWorkspaceFolder`.
    */
   workspaceDismissed: z.array(z.string()).catch([]).default([]),
+  /**
+   * Which coding agents and models tasks in the Workspace use, in the user's order, like a
+   * project's `settings.agents`. Added later, so older rows leave both to the defaults.
+   */
+  workspaceAgents: projectAgentsSchema.catch(defaultProjectAgents).default(defaultProjectAgents),
   /**
    * Agents the user connected. Only these connect at startup: Owlto never connects
    * an agent the user did not pick. Saved only through connecting and disconnecting;

@@ -75,6 +75,10 @@ export function fakeHost(overrides = {}) {
       'claude-code': { model: null, effort: null, permission: 'workspace-write' },
       cursor: { model: null, effort: null, permission: 'workspace-write' }
     },
+    workspaceAgents: {
+      order: [],
+      models: { codex: [], 'claude-code': [], cursor: [], antigravity: [] }
+    },
     router: {
       engine: 'owlto',
       owlto: null,
