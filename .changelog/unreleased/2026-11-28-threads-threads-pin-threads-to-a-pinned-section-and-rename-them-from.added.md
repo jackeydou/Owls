@@ -1,0 +1,1 @@
+- Threads: pin threads to a Pinned section and rename them from a right-click menu in the sidebar or by double-clicking the title; Archive moved into the same menu. (#242)
